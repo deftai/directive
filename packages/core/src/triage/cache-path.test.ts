@@ -138,40 +138,40 @@ describe("triage cache-path (#1703)", () => {
     expect(existsSync(join(resolveTriageCacheDir(root), "candidates.jsonl"))).toBe(true);
   });
 
-  it("regenerates README.md with layout-aware .triage-cache paths instead of renaming stale .eval content", () => {
+  it("leaves a tracked legacy .eval/README.md in place and writes no .triage-cache README (#7057)", () => {
     seedXbrief();
     const legacyDir = resolveEvalDir(root);
     mkdirSync(legacyDir, { recursive: true });
-    writeFileSync(
-      join(legacyDir, "README.md"),
-      "# legacy `.eval/` readme -- do not keep\n",
-      "utf8",
-    );
+    const legacyReadme = "# tracked .eval readme\n";
+    writeFileSync(join(legacyDir, "README.md"), legacyReadme, "utf8");
 
     const result = migrateLegacyTriageCacheFromEval(root);
-    expect(result.regeneratedFiles).toContain("README.md");
-    expect(existsSync(join(legacyDir, "README.md"))).toBe(false);
+    expect(result.migratedFiles).not.toContain("README.md");
+    expect(result.removedLegacyFiles).not.toContain("README.md");
+    expect(readFileSync(join(legacyDir, "README.md"), "utf8")).toBe(legacyReadme);
+    expect(existsSync(join(resolveTriageCacheDir(root), "README.md"))).toBe(false);
 
-    const readme = readFileSync(join(resolveTriageCacheDir(root), "README.md"), "utf8");
-    expect(readme).toContain("xbrief/.triage-cache/");
-    expect(readme).not.toContain("`.eval/`");
-    expect(readme).not.toContain("legacy `.eval/` readme");
+    // A second pass is still a no-op for the README.
+    migrateLegacyTriageCacheFromEval(root);
+    expect(readFileSync(join(legacyDir, "README.md"), "utf8")).toBe(legacyReadme);
+    expect(existsSync(join(resolveTriageCacheDir(root), "README.md"))).toBe(false);
   });
 
-  it("preserves an existing canonical README and only removes the legacy copy", () => {
+  it("keeps both READMEs when the canonical .triage-cache README already exists (#7057)", () => {
     seedXbrief();
     const legacyDir = resolveEvalDir(root);
     const targetDir = resolveTriageCacheDir(root);
     mkdirSync(legacyDir, { recursive: true });
     mkdirSync(targetDir, { recursive: true });
-    writeFileSync(join(legacyDir, "README.md"), "# stale legacy\n", "utf8");
-    writeFileSync(join(targetDir, "README.md"), "# canonical custom\n", "utf8");
+    const legacyReadme = "# tracked legacy\n";
+    const canonicalReadme = "# canonical custom\n";
+    writeFileSync(join(legacyDir, "README.md"), legacyReadme, "utf8");
+    writeFileSync(join(targetDir, "README.md"), canonicalReadme, "utf8");
 
     const result = migrateLegacyTriageCacheFromEval(root);
-    expect(result.removedLegacyFiles).toContain("README.md");
-    expect(result.regeneratedFiles).not.toContain("README.md");
-    expect(readFileSync(join(targetDir, "README.md"), "utf8")).toBe("# canonical custom\n");
-    expect(existsSync(join(legacyDir, "README.md"))).toBe(false);
+    expect(result.removedLegacyFiles).not.toContain("README.md");
+    expect(readFileSync(join(targetDir, "README.md"), "utf8")).toBe(canonicalReadme);
+    expect(readFileSync(join(legacyDir, "README.md"), "utf8")).toBe(legacyReadme);
   });
 
   it("removes orphaned legacy triage-cache files when the canonical .triage-cache copy already exists", () => {
