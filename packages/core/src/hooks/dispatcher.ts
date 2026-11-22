@@ -5461,7 +5461,40 @@ export function listStagedRelPathsIncludingDeletes(projectRoot: string): ListSta
 /** Commit-target admission result: the checkout root to judge, or a deny (#6278). */
 type CommitTargetRootResult =
   | { readonly ok: true; readonly root: string }
-  | { readonly ok: false; readonly code: HookDecisionCode; readonly message: string };
+  | {
+      readonly ok: false;
+      readonly code: HookDecisionCode;
+      readonly message: string;
+      /** Set when both common dirs were read and differ (#6871). */
+      readonly foreignToplevel?: string;
+    };
+
+/** Entries that mark a Directive project at a repository toplevel (#6871). */
+const DIRECTIVE_PROJECT_MARKERS = [
+  ".deft",
+  join("xbrief", "PROJECT-DEFINITION.xbrief.json"),
+  join("vbrief", "PROJECT-DEFINITION.vbrief.json"),
+] as const;
+
+/**
+ * True unless every Directive marker at the toplevel is proven absent (#6871).
+ * Only ENOENT and ENOTDIR count as absent; any other probe result counts as
+ * present, so a probe that fails keeps the foreign-repository refusal.
+ */
+export function commitTargetMayBeDirectiveProject(
+  toplevel: string,
+  lstat: (path: string) => unknown = lstatSync,
+): boolean {
+  return DIRECTIVE_PROJECT_MARKERS.some((marker) => {
+    try {
+      lstat(join(toplevel, marker));
+      return true;
+    } catch (cause) {
+      const code = (cause as NodeJS.ErrnoException).code;
+      return code !== "ENOENT" && code !== "ENOTDIR";
+    }
+  });
+}
 
 function isExistingDirectory(path: string): boolean {
   try {
@@ -5475,7 +5508,9 @@ function isExistingDirectory(path: string): boolean {
  * Admit a named commit target through the existing #3794 root admission (#6278).
  * The path must exist and share `--git-common-dir` with the payload root. There
  * is no non-repository fallback for a commit target: a path outside every
- * checkout, or a payload root that is not a repository, is refused.
+ * checkout, or a payload root that is not a repository, is refused. A proven
+ * different repository carries its toplevel, so the caller can drop the gate
+ * for a repository that is not a Directive project (#6871).
  */
 function admitCommitTargetRoot(
   payloadRoot: string,
@@ -5492,6 +5527,16 @@ function admitCommitTargetRoot(
   const admission = admitEffectiveHookRoot(payloadRoot, named, runGit);
   const candidate = admission.candidate ?? "<none>";
   if (admission.foreign) {
+    if (admission.refusal === "foreign-repository" && admission.candidate !== null) {
+      return {
+        ok: false,
+        code: "foreign-repository-deny",
+        message:
+          "the commit target is in a different Git repository than the hook payload root; " +
+          `commit from a Directive session in that project (candidate=${candidate})`,
+        foreignToplevel: admission.candidate,
+      };
+    }
     const reason =
       admission.refusal === "unproven-identity"
         ? "resolved to a separate Git working tree whose repository identity could not be read"
@@ -5561,6 +5606,14 @@ function decideProspectiveGitCommitScopeCover(
     const runGit = memoizeGitRunner(seams.ritualRunGit ?? defaultGitRunner);
     const admitted = admitCommitTargetRoot(payloadRoot, target.path, runGit);
     if (!admitted.ok) {
+      // A commit into a different repository that is not a Directive project is
+      // governed by that repository's own hooks and policy, not this gate (#6871).
+      if (
+        admitted.foreignToplevel !== undefined &&
+        !commitTargetMayBeDirectiveProject(admitted.foreignToplevel)
+      ) {
+        return null;
+      }
       return deny(
         input,
         admitted.code,

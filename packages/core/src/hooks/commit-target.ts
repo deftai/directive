@@ -20,6 +20,8 @@
  *
  * A commit signal outside the two named shapes makes the whole call unresolvable
  * (#6362); the gate refuses these forms rather than rebuild a target through them.
+ * A variable command word, and a `-c` / `env -S` / `eval` string that holds a
+ * variable, is a signal only when the call shows the word `commit` (#6871).
  * It is a guardrail over the commands it reads, not a security boundary.
  */
 
@@ -234,6 +236,24 @@ export function splitShellArgvPreservingQuotes(part: string): string[] {
 }
 
 const ENV_ASSIGNMENT = /^[A-Za-z_][\w.]*=/;
+/** A bash array-element assignment, `NAME[subscript]=value` or `NAME[subscript]+=value` (#6871). */
+const ARRAY_ELEMENT_ASSIGNMENT = /^[A-Za-z_]\w*\[[^\]]*\]\+?=/;
+
+/**
+ * True when the word is an assignment the shell runs before the command word:
+ * `NAME=value`, or an array element `NAME[subscript]=value` / `+=value` that
+ * holds no `$(` and no backtick (#6871). This is assignment recognition only; it
+ * makes no claim that a subscript cannot run code supplied by earlier shell state.
+ */
+function isAssignmentWord(value: string): boolean {
+  if (ENV_ASSIGNMENT.test(value)) return true;
+  return ARRAY_ELEMENT_ASSIGNMENT.test(value) && !value.includes("$(") && !value.includes("`");
+}
+
+/** The variable an assignment word names, without an array subscript (`GIT_DIR[0]=x` → `GIT_DIR`). */
+function assignmentName(value: string): string {
+  return /^[A-Za-z_][\w.]*/.exec(value)?.[0] ?? "";
+}
 
 /** Environment prefixes that move the index, work tree or repository of a commit. */
 const GIT_LOCATION_ENV = new Set(["GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_COMMON_DIR"]);
@@ -262,8 +282,8 @@ function withoutTrailingCloses(word: ShellWord): string {
 function parseGitInvocation(words: readonly ShellWord[]): GitInvocation | null {
   let i = 0;
   const envNames: string[] = [];
-  while (i < words.length && ENV_ASSIGNMENT.test(words[i]?.value ?? "")) {
-    envNames.push((words[i]?.value ?? "").split("=")[0] ?? "");
+  while (i < words.length && isAssignmentWord(words[i]?.value ?? "")) {
+    envNames.push(assignmentName(words[i]?.value ?? ""));
     i++;
   }
   const binTok = words[i]?.value;
@@ -494,7 +514,15 @@ const GROUPED_COMMIT = "the commit runs inside a `( … )` subshell group";
 /** What one command is (#6362); a wrapped command or a `-c` / `eval` string is read next. */
 type CommandReading =
   | { readonly kind: "commit"; readonly git: GitInvocation }
-  | { readonly kind: "signal"; readonly reason: string }
+  | {
+      readonly kind: "signal";
+      readonly reason: string;
+      /**
+       * True for a variable command word and a `-c`, `env -S` or `eval` string
+       * that holds a variable: a signal only when the call shows `commit` (#6871).
+       */
+      readonly needsCommitWord?: true;
+    }
   | { readonly kind: "wrapped"; readonly words: readonly ShellWord[]; readonly name: string }
   | { readonly kind: "string"; readonly text: string; readonly what: string }
   | null;
@@ -529,11 +557,34 @@ function signal(reason: string): CommandReading {
   return { kind: "signal", reason };
 }
 
-/** The refusal for text the gate cannot read (#6362). */
+/**
+ * The refusal for text the gate cannot read (#6362). It applies only when the
+ * call shows the word `commit` (#6871); `readCall` drops it otherwise.
+ */
 function unreadable(subject: string): CommandReading {
-  return signal(
-    `${subject} holds a variable or substitution, so the gate cannot tell whether it commits`,
-  );
+  return {
+    kind: "signal",
+    reason: `${subject} holds a variable or substitution, so the gate cannot tell whether it commits`,
+    needsCommitWord: true,
+  };
+}
+
+/**
+ * True when the call shows `commit` (any case, as part of any word) in the
+ * decoded word values of its command chunks or in the same text before decoding
+ * (#6871). Quoted heredoc bodies are removed, unquoted bodies kept, and line
+ * continuations joined. A command supplied wholly by variables set earlier is
+ * not read (content/docs/hook-root-admission.md).
+ */
+function callShowsCommitWord(command: string): boolean {
+  const chunks = shellCommandChunksWithoutQuotedHereDocBodies(command);
+  return chunks.some((chunk) => {
+    const joined = chunk.replace(/\\\r?\n/g, "");
+    if (/commit/i.test(chunk) || /commit/i.test(joined)) return true;
+    return tokenizeShellCommand(joined).some((segment) =>
+      segment.words.some((word) => /commit/i.test(word.value)),
+    );
+  });
 }
 
 /** A `-c`, `env -S` or `eval` string: a literal one is read next, any other is refused. */
@@ -651,7 +702,7 @@ function readWrapper(words: readonly ShellWord[], k: number, name: string): Comm
 /** Read one command's words (after `{` / `(` openers) for a commit or a commit signal (#6362). */
 function readCommand(words: readonly ShellWord[]): CommandReading {
   let k = 0;
-  while (k < words.length && ENV_ASSIGNMENT.test(words[k]?.value ?? "")) k++;
+  while (k < words.length && isAssignmentWord(words[k]?.value ?? "")) k++;
   const word = words[k];
   if (word === undefined) return null;
   if (isUnreadableCommandWord(word))
@@ -706,11 +757,16 @@ function readCall(command: string): CallReading {
     asCommit: null,
     prefix: "",
   }));
+  let showsCommit: boolean | null = null;
   for (let i = 0; i < pending.length && found === null; i++) {
     const item = pending[i];
     const reading = item === undefined ? null : readCommand(item.words);
     if (item === undefined || reading === null) continue;
     if (reading.kind === "signal") {
+      if (reading.needsCommitWord === true) {
+        showsCommit ??= callShowsCommitWord(command);
+        if (!showsCommit) continue;
+      }
       found = `${item.prefix}${reading.reason}`;
     } else if (reading.kind === "commit") {
       found = item.asCommit;

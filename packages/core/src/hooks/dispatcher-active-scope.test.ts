@@ -9,6 +9,7 @@ import { applyWorktreeOccupancy } from "../session/occupancy.js";
 import { writeWorkerAuthAssignment } from "../swarm/worker-auth-assignment.js";
 import {
   ACTIVE_SCOPE_PIN_ENV,
+  commitTargetMayBeDirectiveProject,
   decideHook,
   evaluateProspectiveScopeCover,
   type HookPolicySeams,
@@ -626,14 +627,16 @@ describe("commit gate judges the checkout the commit names (#6278 / #6247)", {
     expect(out.message).toContain("packages/b/out.ts");
   });
 
-  it("denies a foreign repository, a missing directory and a non-repository target", () => {
+  it("denies a foreign Directive project, a missing directory and a non-repository target", () => {
     const { primary } = cohort();
     const foreign = initRepo("hook-6278-foreign-");
     seedBriefs(foreign);
+    mkdirSync(join(foreign, ".deft"));
     stage(foreign, "packages/a/in.ts");
     const foreignOut = commit(primary, `git -C "${foreign}" commit -m x`);
     expect(foreignOut).toMatchObject({ verdict: "deny", code: "foreign-repository-deny" });
     expect(foreignOut.message).toMatch(/different Git repository/);
+    expect(foreignOut.message).toContain("commit from a Directive session in that project");
 
     const missing = commit(primary, `git -C "${join(primary, "missing")}" commit -m x`);
     expect(missing).toMatchObject({ verdict: "deny", code: "prospective-scope-cover-deny" });
@@ -644,6 +647,75 @@ describe("commit gate judges the checkout the commit names (#6278 / #6247)", {
     const notRepo = commit(primary, `cd "${plain}" && git commit -m x`);
     expect(notRepo).toMatchObject({ verdict: "deny", code: "prospective-scope-cover-deny" });
     expect(notRepo.message).toMatch(/not a checkout/);
+  });
+
+  it("returns no commit decision for a foreign repository that is not a Directive project (#6871)", () => {
+    const { primary } = cohort();
+    const foreign = initRepo("hook-6871-plain-repo-");
+    // Out-of-scope paths for every story here: the gate must not judge them.
+    stage(foreign, "packages/z/out.ts");
+    for (const command of [
+      `git -C "${foreign}" commit -m x`,
+      `cd "${foreign}" && git commit -m x`,
+      `git -C "${msys(foreign)}" commit -m x`,
+    ]) {
+      const out = commit(primary, command);
+      expect(out.code, command).not.toBe("foreign-repository-deny");
+      expect(out.code, command).not.toBe("prospective-scope-cover-deny");
+      expect(out.verdict, command).toBe("allow");
+    }
+    // An `xbrief` file (not a folder) makes the marker probe report ENOTDIR: absent.
+    writeFileSync(join(foreign, "xbrief"), "not a folder\n", "utf8");
+    expect(commit(primary, `git -C "${foreign}" commit -m x`).verdict).toBe("allow");
+  });
+
+  it("keeps foreign-repository-deny for each Directive marker and a separate clone (#6871)", () => {
+    const { primary } = cohort();
+    const markers: readonly (readonly string[])[] = [
+      [".deft"],
+      ["xbrief", "PROJECT-DEFINITION.xbrief.json"],
+      ["vbrief", "PROJECT-DEFINITION.vbrief.json"],
+    ];
+    for (const marker of markers) {
+      const foreign = initRepo("hook-6871-marked-repo-");
+      const abs = join(foreign, ...marker);
+      if (marker.length === 1) mkdirSync(abs);
+      else {
+        mkdirSync(dirname(abs), { recursive: true });
+        writeFileSync(abs, "{}\n", "utf8");
+      }
+      for (const command of [
+        `git -C "${foreign}" commit -m x`,
+        `cd "${foreign}" && git commit -m x`,
+      ]) {
+        const out = commit(primary, command);
+        expect(out, `${marker.join("/")}: ${command}`).toMatchObject({
+          verdict: "deny",
+          code: "foreign-repository-deny",
+        });
+        expect(out.message).toContain("commit from a Directive session in that project");
+      }
+    }
+    const definition = join(primary, "xbrief", "PROJECT-DEFINITION.xbrief.json");
+    writeFileSync(definition, "{}\n", "utf8");
+    git(primary, ["add", "--", "xbrief/PROJECT-DEFINITION.xbrief.json"]);
+    git(primary, ["commit", "-q", "-m", "definition"]);
+    const clone = mkdtempSync(join(tmpdir(), "hook-6871-clone-"));
+    temps.push(clone);
+    git(tmpdir(), ["clone", "-q", primary, clone]);
+    const cloneOut = commit(primary, `git -C "${clone}" commit -m x`);
+    expect(cloneOut).toMatchObject({ verdict: "deny", code: "foreign-repository-deny" });
+  });
+
+  it("treats a marker probe error other than not-found as present (#6871)", () => {
+    const fail = (code: string) => () => {
+      throw Object.assign(new Error(code), { code });
+    };
+    expect(commitTargetMayBeDirectiveProject("/r", fail("ENOENT"))).toBe(false);
+    expect(commitTargetMayBeDirectiveProject("/r", fail("ENOTDIR"))).toBe(false);
+    expect(commitTargetMayBeDirectiveProject("/r", fail("EACCES"))).toBe(true);
+    expect(commitTargetMayBeDirectiveProject("/r", fail("EIO"))).toBe(true);
+    expect(commitTargetMayBeDirectiveProject("/r", () => ({}))).toBe(true);
   });
 
   it("denies with the resolver's reason on a corrupt record or a conflicting pin", () => {

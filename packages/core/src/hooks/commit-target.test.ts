@@ -640,18 +640,18 @@ describe("commit signals outside the named shapes are unresolvable (#6362 clause
     ["/bin/zsh --norc -c 'git commit -m x'", /`zsh -c` string runs a git commit/],
     ["bash -c 'sh -c \"git commit -m x\"'", /in a `bash -c` string, a `sh -c` string runs/],
     ["(bash -c 'git commit -m x')", /`bash -c` string runs a git commit/],
-    ['sh -c "$CMD"', /`sh -c` string holds a variable/],
-    ['bash -c "echo $HOME"', /`bash -c` string holds a variable/],
+    ['sh -c "$CMD commit"', /`sh -c` string holds a variable/],
+    ['bash -c "echo $HOME; git commit -m x"', /`bash -c` string holds a variable/],
     ["sh -c", /`sh -c` string is missing/],
-    ["sh -c '$CMD'", /in a `sh -c` string, the command word "\$CMD"/],
+    ["sh -c '$CMD commit -m x'", /in a `sh -c` string, the command word "\$CMD"/],
     ["eval 'git commit -m x'", /`eval` runs a git commit/],
     ["eval git commit -m x", /`eval` runs a git commit/],
-    ['eval "$X"', /`eval` holds a variable/],
+    ['eval "$X commit"', /`eval` holds a variable/],
     ["command -p bash -c 'git commit -m x'", /`bash -c` string runs a git commit/],
     ["env -i bash -c 'git commit -m x'", /`bash -c` string runs a git commit/],
     ["env -S 'git commit -m x'", /behind the `env` wrapper/],
     ["env --split-string 'git -C /x commit -m y'", /behind the `env` wrapper/],
-    ['env -S "$X"', /`env -S` string holds a variable/],
+    ['env -S "$X commit"', /`env -S` string holds a variable/],
     ["env -S git commit -m x", /behind the `env` wrapper/],
     ["env -Sgit commit -m x", /behind the `env` wrapper/],
     ["env --split-string=git commit -m x", /behind the `env` wrapper/],
@@ -678,7 +678,7 @@ describe("commit signals outside the named shapes are unresolvable (#6362 clause
     ["nice -n 5 git commit -m x", /behind the `nice` wrapper/],
     ["command -p git commit -m x", /behind the `command` wrapper/],
     ["env FOO=1 bash -c 'git commit -m x'", /`bash -c` string runs a git commit/],
-    ["timeout 5 $CMD", /command word "\$CMD"/],
+    ["timeout 5 $CMD commit -m x", /command word "\$CMD"/],
     ["xargs git", /`xargs` runs git with arguments/],
     ["G=git; $G commit -m x", /command word "\$G"/],
     ['"$GIT" commit -m x', /command word "\$GIT"/],
@@ -841,5 +841,74 @@ describe("controls that stay as they were (#6362 clause 4)", () => {
       kind: "named",
       path: "/x",
     });
+  });
+});
+
+describe("a variable needs a commit word; array assignments are assignments (#6871)", () => {
+  it("reads a call with a variable but no commit word as no commit", () => {
+    for (const command of [
+      "declare -A M; M[$k]=v; echo ok",
+      "$D verify:x",
+      '$env:X="1"; deft foo',
+      "$id = 5; deft scope:show $id",
+      'bash -c "deft foo $X"',
+      'sh -c "$CMD"',
+      'bash -c "echo $HOME"',
+      "sh -c '$CMD'",
+      'eval "$X"',
+      'env -S "$X"',
+      "timeout 5 $CMD",
+      "cat <<'EOF'\ncommit\nEOF\n$D verify:x",
+    ]) {
+      expect(resolveCommitTarget(command, posix), command).toBeNull();
+      expect(commandHasGitCommitSubcommand(command), command).toBe(false);
+    }
+  });
+
+  it("keeps a variable a signal when the call shows the word commit", () => {
+    for (const [command, reason] of [
+      ["$GIT commit -m x", /command word "\$GIT"/],
+      ["GIT=git; $GIT co''mmit -m x", /command word "\$GIT"/],
+      ['GIT=git; $GIT "com"mit -m x', /command word "\$GIT"/],
+      ["GIT=git; $GIT co\\\nmmit -m x", /command word "\$GIT"/],
+      ["$GIT COMMIT -m x", /command word "\$GIT"/],
+      ['eval "$CMD"; git commit -m y', /`eval` holds a variable/],
+      ['bash -c "$X" && git commit -m y', /`bash -c` string holds a variable/],
+      ["cat <<EOF\ncommit\nEOF\n$D verify:x", /command word "\$D"/],
+    ] as const) {
+      const target = resolveCommitTarget(command, posix);
+      expect(target, command).toMatchObject({ kind: "unresolvable" });
+      if (target?.kind === "unresolvable") expect(target.reason, command).toMatch(reason);
+    }
+  });
+
+  it("keeps a variable git subcommand, grouped, wrapped and literal -c commits as signals", () => {
+    for (const command of [
+      "git $SUB",
+      "(git commit -m x)",
+      "env git commit -m x",
+      "bash -c 'git commit -m x'",
+      "xargs git",
+    ]) {
+      expect(resolveCommitTarget(command, posix), command).toMatchObject({ kind: "unresolvable" });
+    }
+  });
+
+  it("reads array-element assignments as assignments", () => {
+    expect(
+      resolveCommitTarget("for x in a b; do\n  M[$x]=1\ndone; git commit -m y", posix),
+    ).toEqual({ kind: "hook-root" });
+    expect(resolveCommitTarget("M[k]+=v git commit -m y", posix)).toEqual({ kind: "hook-root" });
+    expect(resolveCommitTarget("A[1]=x", posix)).toBeNull();
+    expect(resolveCommitTarget("GIT_DIR[0]=/x git commit -m y", posix)).toMatchObject({
+      kind: "unresolvable",
+      reason: "the commit carries a GIT_DIR= prefix",
+    });
+  });
+
+  it("does not read a substitution in a subscript as an assignment", () => {
+    for (const command of ["M[$(git commit -m y)]=1", "M[`git commit -m y`]=1"]) {
+      expect(resolveCommitTarget(command, posix), command).toMatchObject({ kind: "unresolvable" });
+    }
   });
 });
