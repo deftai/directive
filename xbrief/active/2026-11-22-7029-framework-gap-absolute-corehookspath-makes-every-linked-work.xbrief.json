@@ -1,0 +1,202 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #7029",
+    "updated": "2026-11-22T16:45:52Z"
+  },
+  "plan": {
+    "title": "[framework-gap] Absolute core.hooksPath makes every linked worktree run the primary checkout's hooks; breaks commits after the _directive-run.sh rename",
+    "status": "running",
+    "narratives": {
+      "Description": "[framework-gap] Absolute core.hooksPath makes every linked worktree run the primary checkout's hooks; breaks commits after the _directive-run.sh rename",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/7029",
+      "Overview": "## Problem\n\n`directive install` sets `core.hooksPath` to an **absolute path inside one checkout** (`<primary>/.githooks`) in the shared `.git/config`. Every linked worktree inherits that path, so each worktree runs the **primary checkout's** hook scripts. Those scripts then source helpers from the *current* worktree (`$REPO_ROOT/.githooks/...`).\n\nWhen the primary checkout is on an older commit than a worktree, the two halves come from different versions, and the hooks break. After the `_deft-run.sh` → `_directive-run.sh` rename (#5802), every commit and push in an up-to-date worktree fails.\n\n## Reproduction (deftai/evolution, pin 0.131.0)\n\n```\n$ git config --show-origin --get core.hooksPath\nfile:.git/config  <primary>/.githooks          # absolute, shared by all worktrees\n$ git -C <primary> log --oneline -1\n860411f8 chore(release): cut v4.3.4            # primary checkout is old\n$ git worktree add <wt> origin/main             # main ships .githooks/_directive-run.sh only\n$ cd <wt> && git commit -m test\n<primary>/.githooks/pre-commit: line N: <wt>/.githooks/_deft-run.sh: No such file or directory\n```\n\nThe primary's old `pre-commit` sources `\"$REPO_ROOT/.githooks/_deft-run.sh\"`. `$REPO_ROOT` is the worktree, and the worktree's tree only has `_directive-run.sh`. The pre-push hook fails the same way, so `git push` is refused too.\n\n**Workaround** (used by 9 agent workers in one session): `git -c core.hooksPath=.githooks commit|push`. This runs the worktree's own tracked hooks, and those pass.\n\n## Impact\n\n- Every multi-worktree or swarm setup breaks whenever the primary checkout is behind. Each worker discovers the failure separately and has to invent the same workaround.\n- An agent that doesn't know the workaround may try `--no-verify`. That skips the gates the hooks exist to run.\n- `directive install --repair` in a worktree doesn't obviously fix it, because the setting lives in the shared config.\n\n## Acceptance Criteria\n\n- [ ] Set `core.hooksPath` to the **relative** value `.githooks`. Git resolves a relative path against each worktree's own root, so every checkout runs its own tracked hooks and helpers from one version. Or, if an absolute path is required, write it per worktree (`extensions.worktreeConfig` + `git config --worktree`). This repo already has `extensions.worktreeConfig=true`.\n- [ ] `directive doctor` should flag an absolute `core.hooksPath` that points outside the current worktree.\n\nRelated: #5802 (the helper rename), #6949 (installer rewrites).\n\n",
+      "UserStory": "As a maintainer running several linked worktrees (swarm workers), I want every checkout to run its own tracked .githooks, so that a commit or push in a worktree that is ahead of the primary checkout does not fail on hook scripts and helpers from two different versions.",
+      "ImplementationPlan": "1. packages/runtime/src/setup-wiring.ts: readHooksPathState treats a value that names the .githooks folder of any checkout of this repository (this worktree, or another worktree from `git worktree list --porcelain`) as ours, and marks it for migration when it is not the relative value .githooks. ensureGitHooks rewrites such a value to .githooks in the scope where it lives (--worktree when worktree-scoped, else --local), with no takeover approval, on install, repair, upgrade and automatic setup. A foreign value (another tool's folder) is unchanged and still needs the plan's approval.\n2. packages/runtime/src/doctor-diagnose.ts: a read-only, exit-exempt warning when core.hooksPath is absolute and points outside the current worktree. It names the value and directive install --repair, and appears in the human report and the --json warnings list.\n3. packages/cli/src/bookends.ts: detectHooksTakeover does not report another checkout's .githooks as a takeover, so the install/repair plan does not ask for approval to migrate it.\n4. Tests: a linked worktree on a newer commit than the primary, with an absolute core.hooksPath naming the primary's .githooks, runs its own .githooks helper after ensureGitHooks; doctor warns on an absolute outside path and not on the relative value; the launcher plan shows no takeover for another checkout's .githooks.\n5. changelog.d/7029-relative-hookspath-worktrees.md.",
+      "Traces": "#7029 clause 1 traces to the issue's first Acceptance Criteria item (relative .githooks; per-worktree config alternative not needed because the relative value works in every checkout). Clause 2 traces to the second item (doctor flags an absolute outside path). Migration of existing absolute values comes from the dispatch goal (Scott, 2026-11-22). design-critique: not warranted (issue comment 7082296358)."
+    },
+    "items": [
+      {
+        "title": "Set `core.hooksPath` to the **relative** value `.githooks`. Git resolves a relative path against each worktree's own root, so every checkout runs its own tracked hooks and helpers from one version. Or, if an absolute path is required, write it per worktree (`extensions.worktreeConfig` + `git config --worktree`). This repo already has `extensions.worktreeConfig=true`.",
+        "status": "proposed",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "Set `core.hooksPath` to the **relative** value `.githooks`. Git resolves a relative path against each worktree's own root, so every checkout runs its own tracked hooks and helpers from one version. Or, if an absolute path is required, write it per worktree (`extensions.worktreeConfig` + `git config --worktree`). This repo already has `extensions.worktreeConfig=true`."
+        }
+      },
+      {
+        "title": "`directive doctor` should flag an absolute `core.hooksPath` that points outside the current worktree.",
+        "status": "proposed",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "`directive doctor` should flag an absolute `core.hooksPath` that points outside the current worktree."
+        }
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/7029",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #7029: [framework-gap] Absolute core.hooksPath makes every linked worktree run the primary checkout's hooks; breaks commits after the _directive-run.sh rename"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "git config --show-origin --get core.hooksPath",
+          "reason": "first token \"git\" is not in the literal-AC allowlist (accepted: bun, deft, directive, node, npm, npx, pnpm, py, python, python3, task, vitest, yarn)",
+          "sourceSpan": "fence@L11"
+        },
+        {
+          "command": "file:.git/config\t<primary>/.githooks          # absolute, shared by all worktrees",
+          "reason": "shell metacharacter \"<\" is not allowed in literal AC commands",
+          "sourceSpan": "fence@L11"
+        },
+        {
+          "command": "git -C <primary> log --oneline -1",
+          "reason": "shell metacharacter \"<\" is not allowed in literal AC commands",
+          "sourceSpan": "fence@L11"
+        },
+        {
+          "command": "860411f8 chore(release): cut v4.3.4            # primary checkout is old",
+          "reason": "shell metacharacter \"(\" is not allowed in literal AC commands",
+          "sourceSpan": "fence@L11"
+        },
+        {
+          "command": "git worktree add <wt> origin/main             # main ships .githooks/_directive-run.sh only",
+          "reason": "shell metacharacter \"<\" is not allowed in literal AC commands",
+          "sourceSpan": "fence@L11"
+        },
+        {
+          "command": "cd <wt> && git commit -m test",
+          "reason": "shell metacharacter \"<\" is not allowed in literal AC commands",
+          "sourceSpan": "fence@L11"
+        },
+        {
+          "command": "<primary>/.githooks/pre-commit: line N: <wt>/.githooks/_deft-run.sh: No such file or directory",
+          "reason": "shell metacharacter \"<\" is not allowed in literal AC commands",
+          "sourceSpan": "fence@L11"
+        },
+        {
+          "command": "git push",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L21"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/runtime/src/setup-wiring.ts",
+          "packages/runtime/src/doctor-diagnose.ts",
+          "packages/cli/src/bookends.ts",
+          "packages/runtime/src/setup-wiring-hookspath-worktree.test.ts",
+          "packages/runtime/src/setup-wiring-hookspath.test.ts",
+          "packages/runtime/src/doctor-diagnose.test.ts",
+          "packages/cli/src/plan-present-hookspath.test.ts",
+          "changelog.d/7029-relative-hookspath-worktrees.md",
+          "docs/RULE-MAP.md",
+          "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "xbrief/evaluator-surface-disposition.json",
+          "xbrief/.audit/spec-drift/github.issue.6541018146.json"
+        ],
+        "verify_commands": [
+          "npx vitest run packages/runtime/src/setup-wiring-hookspath-worktree.test.ts packages/runtime/src/setup-wiring-hookspath.test.ts",
+          "npx vitest run packages/cli/src/plan-present-hookspath.test.ts"
+        ],
+        "size": "small",
+        "file_scope_confidence": "high",
+        "depends_on": [],
+        "expected_outputs": [
+          "install, repair, upgrade and automatic setup rewrite an absolute core.hooksPath that names any checkout's .githooks (this worktree or another worktree of the same repository) to the relative value .githooks, in the scope where it lives, without a takeover prompt",
+          "a linked worktree on a newer commit than the primary runs its own .githooks hooks and helpers after setup",
+          "directive doctor prints an exit-exempt warning (human and --json warnings) when core.hooksPath is absolute and points outside the current worktree, naming directive install --repair",
+          "the launcher install/repair plan does not show another checkout's .githooks as a hooks takeover",
+          "one changelog fragment changelog.d/7029-relative-hookspath-worktrees.md"
+        ],
+        "conflict_group": "git-hooks-path",
+        "model_tier": "high"
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "design-critique: not warranted, because the issue names the exact fix and there is no design fork. The installer already writes the relative value `.githooks`; the change is a narrow migration of existing absolute values that point at a checkout's `.githooks`, plus one read-only doctor warning.\n\nBuilding this ourselves (Scott approved 2026-11-22) because the install owner is unavailable; every install/setup file touched will be listed on the PR for review.\n\nBody edit: renamed `## Expected` to `## Acceptance Criteria` with `- [ ]` items so ingest takes the clauses. Reporter wording kept; the \"Or, if an absolute path is required\" alternative is folded into the first item.\n\n",
+          "id": 7082296358,
+          "html_url": "https://github.com/deftai/directive/issues/7029#issuecomment-7082296358",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T16:43:42Z",
+          "updated_at": "2026-11-22T16:43:42Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6541018146,
+        "origin": "deftai/directive#7029",
+        "id": "github.issue.6541018146"
+      },
+      "kind": "story"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per sentence-list entry (2), in order (#6333)",
+      "sentences": [
+        "Set `core.hooksPath` to the **relative** value `.githooks`. Git resolves a relative path against each worktree's own root, so every checkout runs its own tracked hooks and helpers from one version. Or, if an absolute path is required, write it per worktree (`extensions.worktreeConfig` + `git config --worktree`). This repo already has `extensions.worktreeConfig=true`.",
+        "`directive doctor` should flag an absolute `core.hooksPath` that points outside the current worktree."
+      ],
+      "admitted_source_sentences": [
+        "Set `core.hooksPath` to the **relative** value `.githooks`. Git resolves a relative path against each worktree's own root, so every checkout runs its own tracked hooks and helpers from one version. Or, if an absolute path is required, write it per worktree (`extensions.worktreeConfig` + `git config --worktree`). This repo already has `extensions.worktreeConfig=true`.",
+        "`directive doctor` should flag an absolute `core.hooksPath` that points outside the current worktree."
+      ],
+      "admitted_source_digest": "c2bf6bacb0613e35c3315b5d683f2d798aeae142ee886942a2a4516b2058e351",
+      "admitted_source_extractor": 2,
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Set `core.hooksPath` to the **relative** value `.githooks`. Git resolves a relative path against each worktree's own root, so every checkout runs its own tracked hooks and helpers from one version. Or, if an absolute path is required, write it per worktree (`extensions.worktreeConfig` + `git config --worktree`). This repo already has `extensions.worktreeConfig=true`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "`directive doctor` should flag an absolute `core.hooksPath` that points outside the current worktree.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.6541018146",
+    "updated": "2026-11-22T16:45:52Z"
+  }
+}
