@@ -1,0 +1,706 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6970",
+    "updated": "2026-11-22T03:23:52Z"
+  },
+  "plan": {
+    "title": "[framework-gap] check --no-suite hardcodes origin master, so the merge-chokepoint gate cannot run in a repo whose default branch is main",
+    "status": "running",
+    "narratives": {
+      "Description": "`deft check --no-suite` fetched `origin master` with a constant refspec before any gate, so in a repo whose branch is `main` it exited 2, ran no gate, and blamed the network (#6970). This story makes the no-suite prep step resolve the delivery and comparison branches with the existing resolvers, bootstrap `origin/HEAD` from the remote only when nothing local names a default, fetch the comparison and delivery branches through the safe fetch helper, and tell a missing branch apart from other fetch failures with a source-matched fix.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6970",
+      "Overview": "\n1. Resolve. `prepareNoSuiteRun` calls `resolveDeliveryBranch` and `resolveBaseBranch` with a `GitRunner` adapted from the `NoSuiteGitFn` seam (tests stay offline). Before any fetch it exits 2 (no gate) when a present policy value is malformed: `resolveDeliveryBranch` source `typed` with an error or source `default-on-error` names `plan.policy.deliveryBranch`; `resolveBaseBranch` source `typed` with an error or source `default-on-error` names `plan.policy.baseBranch`. The message carries the resolver's error text. A missing PROJECT-DEFINITION or a missing policy key is not malformed and does not refuse.\n2. Remote default. When `resolveDeliveryBranch` returns source `default-fallback` (no `origin/HEAD`, no remote-tracking or local `main`/`master`), prep runs `git ls-remote --symref origin HEAD` and takes `<b>` from its `ref: refs/heads/<b>` line. When `<b>` passes `trackingFetchArgv`'s name check, prep fetches it with `trackingFetchArgv(\"origin\", <b>)`, and only after that fetch succeeds runs `git remote set-head origin <b>` (which writes only `refs/remotes/origin/HEAD`), then resolves both branches again, so the gates that find the default through `origin/HEAD` see the same branch. If the query, the name check, the fetch or `set-head` fails, prep keeps the fallback and goes on (item 5 then reports a missing fallback branch).\n3. Fetch set. Comparison branch: the open PR's base ref when the head has exactly one open PR, else `resolveBaseBranch().branch`. Prep fetches the comparison branch, then the delivery branch when it differs (a branch already fetched in item 2 is not fetched twice), each with `trackingFetchArgv(\"origin\", branch)`. A branch that fails `trackingFetchArgv`'s name check (including a PR base) exits 2 with the helper's error. The merge base is computed against `origin/<comparison branch>`; the no-PR fallback is never the literal `\"master\"`.\n4. Provenance. Each fetched branch carries its source: `plan.policy.baseBranch`, `plan.policy.deliveryBranch`, `pull request #N base`, `origin/HEAD or an existing main/master ref`, `origin's HEAD branch`, or `framework fallback`. The header names each fetched branch with its source.\n5. Failed fetch. Prep runs `git ls-remote --exit-code origin refs/heads/<branch>`. Exit 2: \"check --no-suite: origin has no branch <b> (from <source>); no gate ran.\" plus a fix that matches the source: the policy key to correct for a configured branch; \"retarget pull request #N or push its base branch\" for a PR base; \"set plan.policy.deliveryBranch (and plan.policy.baseBranch if pull requests merge into another branch)\" for an inferred or fallback branch. Exit 0: \"git fetch of <b> failed although origin has that branch\" with git's stderr, and no network claim. Any other probe result: today's text (git's stderr plus \"Restore network or remote access, then run again.\").\n6. Remove `NO_SUITE_MASTER_REFSPEC` from `no-suite.ts` and `check/index.ts`; the module doc says step 1 fetches the resolved branches.\n7. One PR. Files: `packages/core/src/check/no-suite.ts`, `no-suite.test.ts`, `packages/core/src/check/index.ts`, one `changelog.d/` fragment. No change to the shared resolvers, no new verb, flag, constant or policy field.\n\n## Acceptance Criteria\n\n- Given a repo whose `origin/HEAD` names `main` and no typed branch policy, when `check --no-suite` runs with no open PR, then it fetches `refs/heads/main:refs/remotes/origin/main`, computes the merge base against `origin/main`, never fetches `master`, and the header names `main`.\n- Given typed `plan.policy.baseBranch` `develop` and typed `plan.policy.deliveryBranch` `main`, when `check --no-suite` runs with no open PR, then it fetches both `develop` and `main` and computes the merge base against `origin/develop`.\n- Given one open PR whose base is `release`, when `check --no-suite` runs, then it fetches `release` and the delivery branch, and the merge base is against `origin/release`.\n- Given no `origin/HEAD`, no `main`/`master` ref and no `origin/trunk` ref, and origin's HEAD branch is `trunk`, when `check --no-suite` runs, then it fetches `trunk` before running `git remote set-head origin trunk`, resolves the delivery branch to `trunk` afterwards, computes the merge base against `origin/trunk`, and never fetches `master`.\n- Given the same repo but `git ls-remote --symref origin HEAD` fails, then prep does not run `set-head` and goes on with the fallback branch.\n- Given the fetch of `main` fails and `git ls-remote --exit-code origin refs/heads/main` exits 2, then the command exits 2, runs no gate, and the message names `main`, its source, and the matching policy key or fix, and does not mention network access.\n- Given the fetch fails and the probe exits 0, then the message keeps git's stderr and does not mention network access.\n- Given the fetch fails and the probe fails for another reason, then the message is today's network text.\n- Given `plan.policy.baseBranch` is `42`, `\"\"`, or `bad:ref`, or `plan.policy.deliveryBranch` is `bad:ref` with no `baseBranch`, then the command exits 2 before any fetch and names the key.\n- Given this repo (`origin/HEAD` names `master`), then it fetches only `master` as today.\n\n\n",
+      "Constraint": "- Fetching only the integration branch when the delivery branch differs (comment 7073397803 finding 1).\n- A remote default found only inside prep that the gates cannot see (finding 2).\n- Running `git remote set-head origin --auto`, or setting `origin/HEAD`, before the default branch's tracking ref exists (comment 7073432011 finding 1).\n- Detecting a malformed policy value by an empty branch string alone (comment 7073397803 finding 3).\n- A missing-branch probe by a short pattern, or calling a fetch failure a network problem when origin has the branch (finding 4).\n- A remediation that names `plan.policy.baseBranch` for every source, or labels every inferred branch \"origin HEAD\" (finding 5).\n- Matching git's localized stderr text; changing the shared resolvers or any gate's branch choice in this PR.",
+      "Labels": "design-critique:ingest-ready",
+      "UserStory": "As a consumer whose default branch is not master, I want `deft check --no-suite` to fetch the branch my project actually uses and to name a missing branch and its policy key, so that the merge-chokepoint gate runs before my PR instead of failing with a network message.",
+      "ImplementationPlan": "1. packages/core/src/check/no-suite.ts: adapt the NoSuiteGitFn seam to GitRunner; resolve delivery and base branches; refuse malformed present baseBranch/deliveryBranch (exit 2, names the key) before any fetch (Bound item 1).\n2. When delivery resolves to default-fallback: ls-remote --symref origin HEAD, validate, fetch via trackingFetchArgv, then remote set-head origin <b>, then resolve again; any failure keeps the fallback (item 2).\n3. Fetch the comparison branch (PR base when one open PR, else base branch) and the delivery branch when it differs, through trackingFetchArgv; merge base against origin/<comparison>; header names each branch and its source (items 3-4).\n4. Failed fetch: ls-remote --exit-code origin refs/heads/<b>; exit 2 gives the missing-branch message with source-matched fix; exit 0 keeps git stderr without a network claim; else today's network text (item 5).\n5. Remove NO_SUITE_MASTER_REFSPEC from no-suite.ts and check/index.ts; update the module doc (item 6).\n6. Tests for each Acceptance Criterion (no-suite.test.ts updates, no-suite-branch.test.ts) and one changelog.d fragment (item 7).",
+      "Traces": "#6970"
+    },
+    "items": [
+      {
+        "title": "Resolve. `prepareNoSuiteRun` calls `resolveDeliveryBranch` and `resolveBaseBranch` with a `GitRunner` adapted from the `NoSuiteGitFn` seam (tests stay offline). Before any fetch it exits 2 (no gate) when a present policy value is malformed: `resolveDeliveryBranch` source `typed` with an error or source `default-on-error` names `plan.policy.deliveryBranch`; `resolveBaseBranch` source `typed` with an error or source `default-on-error` names `plan.policy.baseBranch`. The message carries the resolver's error text. A missing PROJECT-DEFINITION or a missing policy key is not malformed and does not refuse.",
+        "status": "proposed",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "When a present baseBranch or deliveryBranch value is malformed, then prep exits 2 before any fetch naming the key; a missing PROJECT-DEFINITION or key does not refuse."
+        }
+      },
+      {
+        "title": "Remote default. When `resolveDeliveryBranch` returns source `default-fallback` (no `origin/HEAD`, no remote-tracking or local `main`/`master`), prep runs `git ls-remote --symref origin HEAD` and takes `<b>` from its `ref: refs/heads/<b>` line. When `<b>` passes `trackingFetchArgv`'s name check, prep fetches it with `trackingFetchArgv(\"origin\", <b>)`, and only after that fetch succeeds runs `git remote set-head origin <b>` (which writes only `refs/remotes/origin/HEAD`), then resolves both branches again, so the gates that find the default through `origin/HEAD` see the same branch. If the query, the name check, the fetch or `set-head` fails, prep keeps the fallback and goes on (item 5 then reports a missing fallback branch).",
+        "status": "proposed",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "When nothing local names a default, then prep queries origin HEAD, fetches that branch, and only then sets origin/HEAD and resolves again; any failure keeps the fallback."
+        }
+      },
+      {
+        "title": "Fetch set. Comparison branch: the open PR's base ref when the head has exactly one open PR, else `resolveBaseBranch().branch`. Prep fetches the comparison branch, then the delivery branch when it differs (a branch already fetched in item 2 is not fetched twice), each with `trackingFetchArgv(\"origin\", branch)`. A branch that fails `trackingFetchArgv`'s name check (including a PR base) exits 2 with the helper's error. The merge base is computed against `origin/<comparison branch>`; the no-PR fallback is never the literal `\"master\"`.",
+        "status": "proposed",
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "When prep runs, then it fetches the comparison branch and the delivery branch when it differs through trackingFetchArgv, and computes the merge base against the comparison branch."
+        }
+      },
+      {
+        "title": "Provenance. Each fetched branch carries its source: `plan.policy.baseBranch`, `plan.policy.deliveryBranch`, `pull request #N base`, `origin/HEAD or an existing main/master ref`, `origin's HEAD branch`, or `framework fallback`. The header names each fetched branch with its source.",
+        "status": "proposed",
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "When prep prints its header, then each fetched branch is named with its source."
+        }
+      },
+      {
+        "title": "Failed fetch. Prep runs `git ls-remote --exit-code origin refs/heads/<branch>`. Exit 2: \"check --no-suite: origin has no branch <b> (from <source>); no gate ran.\" plus a fix that matches the source: the policy key to correct for a configured branch; \"retarget pull request #N or push its base branch\" for a PR base; \"set plan.policy.deliveryBranch (and plan.policy.baseBranch if pull requests merge into another branch)\" for an inferred or fallback branch. Exit 0: \"git fetch of <b> failed although origin has that branch\" with git's stderr, and no network claim. Any other probe result: today's text (git's stderr plus \"Restore network or remote access, then run again.\").",
+        "status": "proposed",
+        "id": "clause.5",
+        "narrative": {
+          "Acceptance": "When a fetch fails, then prep probes refs/heads/<b> exactly and reports a missing branch with a source-matched fix, a present branch without a network claim, or otherwise the network text."
+        }
+      },
+      {
+        "title": "Remove `NO_SUITE_MASTER_REFSPEC` from `no-suite.ts` and `check/index.ts`; the module doc says step 1 fetches the resolved branches.",
+        "status": "proposed",
+        "id": "clause.6",
+        "narrative": {
+          "Acceptance": "When the change lands, then NO_SUITE_MASTER_REFSPEC no longer exists in no-suite.ts or check/index.ts."
+        }
+      },
+      {
+        "title": "One PR. Files: `packages/core/src/check/no-suite.ts`, `no-suite.test.ts`, `packages/core/src/check/index.ts`, one `changelog.d/` fragment. No change to the shared resolvers, no new verb, flag, constant or policy field.",
+        "status": "proposed",
+        "id": "clause.7",
+        "narrative": {
+          "Acceptance": "When the PR opens, then it touches only no-suite.ts, its tests, check/index.ts and one changelog fragment, with no new verb, flag, constant or policy field."
+        }
+      },
+      {
+        "title": "Given a repo whose `origin/HEAD` names `main` and no typed branch policy, when `check --no-suite` runs with no open PR, then it fetches `refs/heads/main:refs/remotes/origin/main`, computes the merge base against `origin/main`, never fetches `master`, and the header names `main`.",
+        "status": "proposed",
+        "id": "clause.8",
+        "narrative": {
+          "Acceptance": "Given a repo whose `origin/HEAD` names `main` and no typed branch policy, when `check --no-suite` runs with no open PR, then it fetches `refs/heads/main:refs/remotes/origin/main`, computes the merge base against `origin/main`, never fetches `master`, and the header names `main`."
+        }
+      },
+      {
+        "title": "Given typed `plan.policy.baseBranch` `develop` and typed `plan.policy.deliveryBranch` `main`, when `check --no-suite` runs with no open PR, then it fetches both `develop` and `main` and computes the merge base against `origin/develop`.",
+        "status": "proposed",
+        "id": "clause.9",
+        "narrative": {
+          "Acceptance": "Given typed `plan.policy.baseBranch` `develop` and typed `plan.policy.deliveryBranch` `main`, when `check --no-suite` runs with no open PR, then it fetches both `develop` and `main` and computes the merge base against `origin/develop`."
+        }
+      },
+      {
+        "title": "Given one open PR whose base is `release`, when `check --no-suite` runs, then it fetches `release` and the delivery branch, and the merge base is against `origin/release`.",
+        "status": "proposed",
+        "id": "clause.10",
+        "narrative": {
+          "Acceptance": "Given one open PR whose base is `release`, when `check --no-suite` runs, then it fetches `release` and the delivery branch, and the merge base is against `origin/release`."
+        }
+      },
+      {
+        "title": "Given no `origin/HEAD`, no `main`/`master` ref and no `origin/trunk` ref, and origin's HEAD branch is `trunk`, when `check --no-suite` runs, then it fetches `trunk` before running `git remote set-head origin trunk`, resolves the delivery branch to `trunk` afterwards, computes the merge base against `origin/trunk`, and never fetches `master`.",
+        "status": "proposed",
+        "id": "clause.11",
+        "narrative": {
+          "Acceptance": "Given no `origin/HEAD`, no `main`/`master` ref and no `origin/trunk` ref, and origin's HEAD branch is `trunk`, when `check --no-suite` runs, then it fetches `trunk` before running `git remote set-head origin trunk`, resolves the delivery branch to `trunk` afterwards, computes the merge base against `origin/trunk`, and never fetches `master`."
+        }
+      },
+      {
+        "title": "Given the same repo but `git ls-remote --symref origin HEAD` fails, then prep does not run `set-head` and goes on with the fallback branch.",
+        "status": "proposed",
+        "id": "clause.12",
+        "narrative": {
+          "Acceptance": "Given the same repo but `git ls-remote --symref origin HEAD` fails, then prep does not run `set-head` and goes on with the fallback branch."
+        }
+      },
+      {
+        "title": "Given the fetch of `main` fails and `git ls-remote --exit-code origin refs/heads/main` exits 2, then the command exits 2, runs no gate, and the message names `main`, its source, and the matching policy key or fix, and does not mention network access.",
+        "status": "proposed",
+        "id": "clause.13",
+        "narrative": {
+          "Acceptance": "Given the fetch of `main` fails and `git ls-remote --exit-code origin refs/heads/main` exits 2, then the command exits 2, runs no gate, and the message names `main`, its source, and the matching policy key or fix, and does not mention network access."
+        }
+      },
+      {
+        "title": "Given the fetch fails and the probe exits 0, then the message keeps git's stderr and does not mention network access.",
+        "status": "proposed",
+        "id": "clause.14",
+        "narrative": {
+          "Acceptance": "Given the fetch fails and the probe exits 0, then the message keeps git's stderr and does not mention network access."
+        }
+      },
+      {
+        "title": "Given the fetch fails and the probe fails for another reason, then the message is today's network text.",
+        "status": "proposed",
+        "id": "clause.15",
+        "narrative": {
+          "Acceptance": "Given the fetch fails and the probe fails for another reason, then the message is today's network text."
+        }
+      },
+      {
+        "title": "Given `plan.policy.baseBranch` is `42`, `\"\"`, or `bad:ref`, or `plan.policy.deliveryBranch` is `bad:ref` with no `baseBranch`, then the command exits 2 before any fetch and names the key.",
+        "status": "proposed",
+        "id": "clause.16",
+        "narrative": {
+          "Acceptance": "Given `plan.policy.baseBranch` is `42`, `\"\"`, or `bad:ref`, or `plan.policy.deliveryBranch` is `bad:ref` with no `baseBranch`, then the command exits 2 before any fetch and names the key."
+        }
+      },
+      {
+        "title": "Given this repo (`origin/HEAD` names `master`), then it fetches only `master` as today.",
+        "status": "proposed",
+        "id": "clause.17",
+        "narrative": {
+          "Acceptance": "Given this repo (`origin/HEAD` names `master`), then it fetches only `master` as today."
+        }
+      }
+    ],
+    "tags": [
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6970",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6970: [framework-gap] check --no-suite hardcodes origin master, so the merge-chokepoint gate cannot run in a repo whose default branch is main"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1709",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1709"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "git ls-remote --exit-code origin refs/heads/<branch>",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L8"
+        },
+        {
+          "command": "git ls-remote --symref origin HEAD",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L18"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/check/no-suite.ts",
+          "packages/core/src/check/no-suite.test.ts",
+          "packages/core/src/check/no-suite-branch.test.ts",
+          "packages/core/src/check/index.ts",
+          "changelog.d/6970-no-suite-resolved-branch.md",
+          "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "xbrief/.audit/spec-drift/github.issue.6537648394.json"
+        ],
+        "verify_commands": [
+          "npx vitest run packages/core/src/check/no-suite.test.ts packages/core/src/check/no-suite-branch.test.ts"
+        ],
+        "size": "small",
+        "file_scope_confidence": "high",
+        "depends_on": [],
+        "expected_outputs": [
+          "check --no-suite resolves delivery and comparison branches with resolveDeliveryBranch / resolveBaseBranch and refuses malformed present policy before any fetch",
+          "remote default bootstrap: ls-remote --symref origin HEAD, fetch, then remote set-head origin <b>, only when nothing local names a default",
+          "fetch set through trackingFetchArgv (comparison branch, delivery branch when it differs); no master constant or master fallback",
+          "missing-branch probe (ls-remote --exit-code origin refs/heads/<b>) with source-matched remediation; no network claim when origin has the branch",
+          "one changelog fragment changelog.d/6970-no-suite-resolved-branch.md"
+        ],
+        "conflict_group": "check-no-suite",
+        "model_tier": "high",
+        "acceptance_criteria_justification": "The 17 clauses are the 7 Bound-remedy items and 10 Acceptance Criteria of the accepted design-critique lean 7073440422 (synthesis 7073469538), harvested and digest-pinned by issue:ingest (Spec-path); they cannot be merged or dropped without breaking the admitted-source pin."
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: triage\n```\n\nStop 1 — Gate (arc 6970; no-ingest)\n\nmechanism-shaped: true\ndesign-critique: warranted, because the fix decides which branch the merge-chokepoint gate fetches and compares against (`plan.policy.baseBranch`, `plan.policy.deliveryBranch` or the remote default), and how a missing branch is told apart from a network failure; a wrong choice either keeps the gate from running or runs it against the wrong merge base.\n\nTarget-digest: sha256:4aadea8f4fe3bf5da55a872c4d9792f6b86c358ad502e45451e6f9b50e60440e\ndispatch-sha: 026a4b2fb33057b890951cef90402f8448fa57ab\ndest: C:/Repos/deft/wt/arc-6970 (pinKind origin-default, guarded-prep)\narc-mode: no-ingest\nyolo-standing: on\ncharter: open critique\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\nspend-why: resolved by `deft design-critique:spend-resolve` on the operator utterance (no `n=` or `panel` token) with the parent recommend N=1. Stop 2 panel permission does not apply: the change is one function in one module over existing branch resolvers, and the solution space is narrow (which resolver, which fallback, how to detect a missing ref). One critic of a different model family, plus one pain audit.\ncritic-post cap: 6 (contract default for spend N=1)\nmateriality-bar: open\ntarget-kind: issue\nceiling-kind: comment-id\nverification-path: pin-read git show 026a4b2fb33057b890951cef90402f8448fa57ab: + dest cwd-without-occupy\npain: P1, P2\n\n## In plain English\n`deft check --no-suite` runs the merge-gate list before a PR, the way CI's merge-gate job does. Its first step is a fetch of `origin master`, with the refspec as a constant. In a repo whose default branch is `main` (the #6970 consumer also set `plan.policy.baseBranch` to `main`), that fetch fails, the command exits 2 and no gate runs. The message then says \"Restore network or remote access\", which is wrong: the network was fine, the branch does not exist. The consumer's PR merged without the gate.\n\nDirective already has branch resolvers: `resolveBaseBranch` (typed `plan.policy.baseBranch`, else the delivery branch) and `resolveDeliveryBranch` (typed `plan.policy.deliveryBranch`, else `origin/HEAD`, else an existing `origin/main` or `origin/master`, else local `main` or `master`, else `master`). It also has a safe fetch argv helper, `trackingFetchArgv`. The no-suite path uses none of them.\n\nThe recommended fix: `check --no-suite` resolves the branch with those resolvers, fetches it with the safe helper, uses it as the merge-base fallback and in the header, and, when the fetch fails because origin has no such branch, says so, naming the branch and the policy key. One PR, no new verb, flag or policy field.\n\n## Operator direction (Scott, 2026-11-21; relayed by the coordinator; recorded as constraints)\n- Arc, then build through merge.\n- Keep scope to `check --no-suite` unless a fix is trivially shared.\n\n## Pains\n- P1 — In a repo whose delivery or integration branch is not `master`, `check --no-suite` fetches `master`, exits 2 and runs no gate, so the merge-chokepoint gate cannot run before a PR (#6970).\n- P2 — When the fetch fails because origin has no such branch, the message blames network or remote access instead of naming the missing branch and the policy key that would fix it (#6970).\n\n## Out of scope (named, not pains)\n- Other `check --no-suite` output issues: #6827 (the \"starting suite gate\" line and three unrelated CLI items).\n- Which branch each gate inside `check:merge` reads on its own; this arc changes only the no-suite preparation step.\n- Directive's own CI workflow (`.github/workflows/ci.yml`) and release scripts that name `origin/master` for this repo.\n- #3547 (closed; the earlier base-branch hardcode in finalize-cohort), cited only as precedent.\n\n## Evidence\n- #6970 (consumer, runtime 0.130.2, Windows, default branch `main`, `plan.policy.baseBranch` `main`): `check --no-suite: git fetch origin master:refs/remotes/origin/master failed (exit 128): fatal: couldn't find remote ref master; no gate ran. Restore network or remote access, then run again.`\n\n## Anchors at the dispatch SHA\n- `packages/core/src/check/no-suite.ts` 1-17 (module doc: step 1 fetches `origin master`). 30 `NO_SUITE_MASTER_REFSPEC`. 90-101 `defaultGit` (returns status, stdout, stderr). 187-197 `fetchFailure` (one message for every fetch failure, network text). 244-302 `prepareNoSuiteRun`: 250-253 the constant fetch; 259-267 the PR base ref (falls back to `\"master\"`, fetched only when not `master`); 269 merge base against `origin/<baseRef>`; 271-274 header \"fetched origin/master\".\n- `packages/core/src/check/orchestrator.ts` 86-110: a failed prep prints its message and returns exit 2 before any gate.\n- `packages/core/src/check/index.ts` 95: re-exports `NO_SUITE_MASTER_REFSPEC`; its only other user is `no-suite.test.ts` (18, 154-155, 188, 645).\n- `packages/core/src/policy/delivery-branch.ts` 16 `FIELD_DELIVERY_BRANCH`; 20 `DEFAULT_DELIVERY_BRANCH_FALLBACK`; 22-26 sources (`typed`, `git-default`, `default-fallback`, `default-on-error`); 105-110 `assertSafeBranchName`; 127-149 `trackingFetchArgv` (`fetch origin -- refs/heads/<b>:refs/remotes/origin/<b>`); 176-213 `defaultBranchCandidates` (`symbolic-ref refs/remotes/origin/HEAD`, then remote-tracking, then local `main`/`master`); 229-290 `resolveDeliveryBranch`.\n- `packages/core/src/policy/base-branch.ts` 18 `FIELD_BASE_BRANCH`; 63-141 `resolveBaseBranch` (typed `baseBranch`, else dest; invalid typed value returns `branch: \"\"` with an error).\n- `packages/core/src/session/git.ts` 12 `GitRunner` (`(projectRoot, args) => { code, stdout }`), a different shape from `NoSuiteGitFn` (`(args, cwd) => { status, stdout, stderr }`).\n\n## Recommended mechanism (the thing to critique)\n- D1. Branch. `prepareNoSuiteRun` resolves the base branch with `resolveBaseBranch(projectRoot, runGit)`, where `runGit` adapts the `NoSuiteGitFn` seam to `GitRunner`, so tests stay offline. A resolver error on a present typed value (empty `branch`) exits 2 before any fetch, with the resolver's message; no gate runs.\n- D2. Remote default when nothing local names it. When the delivery branch resolves only to the framework fallback (`resolveDeliveryBranch` source `default-fallback`: no `origin/HEAD`, no remote-tracking or local `main`/`master`) and no typed `baseBranch` is set, prep asks `git ls-remote --symref origin HEAD` and takes the branch from the `ref: refs/heads/<b>` line (checked with `isSafeBranchName`); if that fails, it keeps `master`.\n- D3. Fetch. Prep fetches with `trackingFetchArgv(\"origin\", branch)` in place of the constant. When the head's open PR has a different base ref, that ref is fetched the same way (the existing second fetch). The no-PR merge-base fallback is the resolved branch, not `\"master\"`. The header names the branches fetched and where the branch came from (`plan.policy.baseBranch`, `plan.policy.deliveryBranch`, origin HEAD, or the fallback).\n- D4. Missing branch. When a fetch fails, prep runs `git ls-remote --exit-code --heads origin <branch>` (locale-independent, unlike matching git's stderr). Exit 2 (no such branch) gives: \"check --no-suite: origin has no branch <b> (from <source>); no gate ran. Set plan.policy.baseBranch to the branch pull requests merge into, then run again.\" Any other result keeps today's network text.\n- D5. `NO_SUITE_MASTER_REFSPEC` is removed from `no-suite.ts` and `check/index.ts`; the module doc says step 1 fetches the resolved branch.\n- D6. Tests (offline, through the seams): a main-default repo (`origin/HEAD` names `main`): fetch argv names `main`, merge base against `origin/main`, header names `main`; a typed `baseBranch`; the `ls-remote --symref` fallback; a missing branch: the message names the branch and the policy key and not the network; a network failure keeps the network text; this repo's `master` case unchanged; an invalid typed `baseBranch` exits 2 before any fetch.\n- D7. Scope. No other `master` literal on this path (`no-suite.ts` 30, 250-253, 260-261, 272 are all of them). One PR: `no-suite.ts`, `no-suite.test.ts`, `check/index.ts`, one `changelog.d/` fragment.\n\nQuestions for the critic:\n1. Which branch should the gate fetch and merge-base against: `resolveBaseBranch` (integration branch, else delivery branch) or `resolveDeliveryBranch`? When typed `baseBranch` and `deliveryBranch` differ, should prep fetch both, given that some gates read `origin/<deliveryBranch>`?\n2. Is D2 (`ls-remote --symref origin HEAD`) worth carrying, or is the resolver's local chain enough? Is it safe to run before the first fetch?\n3. Is `ls-remote --exit-code --heads` the right missing-branch test, or is there a cheaper locale-safe signal from the failed fetch itself?\n4. Should the missing-branch remediation name `plan.policy.baseBranch`, `plan.policy.deliveryBranch`, or the one the branch came from?\n5. Remove the exported constant (D5), or keep it for callers outside this repo?\n6. Does this fit one PR for the next build?\n\n",
+          "id": 7073357715,
+          "html_url": "https://github.com/deftai/directive/issues/6970#issuecomment-7073357715",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T03:09:05Z",
+          "updated_at": "2026-11-22T03:09:05Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 1\ninput-ceiling: 7073360203\nseat: codex launcher: codex (exec --ephemeral --sandbox read-only -C dest)\n\ncharter: open critique\nspend: N=1\narc-mode: no-ingest\nmateriality-bar: open\ndispatch-sha: 026a4b2fb33057b890951cef90402f8448fa57ab\ndest: C:/Repos/deft/wt/arc-6970\nverification-path: pin-read git show 026a4b2fb33057b890951cef90402f8448fa57ab: + dest cwd-without-occupy\naudit-targets: none\nStop 1 cite: comment 7073357715\n\n## Launch posture (disclosed)\n- The parent is Claude Code (claude-opus-5-5). The one critic seat is Codex, a different model family, run with a read-only launcher against the dest. The parent posts the critic's final message verbatim.\n- The Codex seat has no GitHub access. It reads a parent-written thread snapshot (issue body, thread up to the ceiling, and the titles of linked issues) and reads code with `git show <dispatch-sha>:<path>`.\n- This deposit was created and then edited once, only to record its own comment id as the input ceiling.\n\n",
+          "id": 7073360203,
+          "html_url": "https://github.com/deftai/directive/issues/6970#issuecomment-7073360203",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T03:09:19Z",
+          "updated_at": "2026-11-22T03:09:20Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\n\nThe command fetches `master` before running any gate. That prevents it from working in the reported `main` repository, and its error message incorrectly directs the user toward network repair.\n\nThe proposed resolver and safe-fetch helper are the right starting point, but D1–D7 cannot bind unchanged. Fetching the integration branch does not refresh the delivery branch that some gates read. Also, discovering a remote default only inside preparation leaves those gates unable to discover the same branch.\n\nAnswers to the six questions:\n\n1. The PR’s actual base should win when a PR is found; otherwise `resolveBaseBranch` is the appropriate comparison target. Preparation also needs to refresh the delivery branch used by existing gates when it differs. The displayed merge base is not a shared gate input.\n2. Remote HEAD discovery is useful, and querying it before fetching is safe. D2’s narrow trigger and prep-only result are insufficient, however. A locally existing `main` is not proof that the remote default is `main`.\n3. A follow-up `ls-remote --exit-code --heads` is a reasonable locale-independent diagnostic. It needs the full `refs/heads/<branch>` pattern. A successful probe after a failed fetch calls for a generic fetch-failure diagnosis, not an assertion that the network failed.\n4. Remediation should follow provenance: the relevant policy field for a configured branch, the PR base for a PR-derived branch, and an explicit policy override as an option for an inferred default.\n5. Removing the constant is reasonable. The pinned repository search finds only the implementation, barrel export, and tests. That does not prove that external deep imports do not exist, but retaining a misleading runtime constant is unnecessary.\n6. One PR remains appropriate after resolving the reference-discovery and downstream-consumption gap. The exact four-file limit is premature.\n\nAll source citations below refer to `026a4b2fb33057b890951cef90402f8448fa57ab`. Git behavior explicitly identified as such comes from my own knowledge, not an executed Git experiment or external documentation. No files were changed, tests run, or comments posted.\n\n### 1. blocks-the-design — Fetching only the integration branch leaves gate dependencies stale\n\n**Evidence:** `packages/core/src/check/gate-lists.ts:200–216` includes candidate-scoped orphan checking and evaluator-surface checking in consumer runs; `190–197` retains both in the no-suite list. `packages/core/src/orphan-active/candidate-scope.ts:102–117` selects `origin/<deliveryBranch>` or the local delivery branch. `packages/core/src/evaluator-surface/evaluate.ts:75–93` likewise prefers typed delivery refs and then remote-default candidates. `packages/core/src/check/no-suite.ts:269–281` computes a merge base for the header but does not pass that result to those gates in the no-PR case.\n\n**Failure mode:** With `baseBranch=develop` and `deliveryBranch=main`, D3 refreshes `origin/develop` while the gates can compare against stale `origin/main`. If the delivery ref is absent, orphan checking falls back to a repository-wide sweep (`candidate-scope.ts:144–151`), and evaluator-surface checking can select another candidate or fail. A correct preparation header does not establish that the gates checked the intended fresh refs.\n\n**Disposition consequence:** The fetch set must include the distinct delivery dependency as well as the comparison target and any distinct PR base. This can preserve existing gate semantics; it does not require redefining every gate’s base. D6 needs a differing-base/delivery case that verifies both dependencies, rather than only the preparation header.\n\nThe strongest argument for fetching only the base is its small scope and lower network cost. That would be sufficient if every retained gate consumed the prepared base. The pinned code shows that they do not.\n\n### 2. blocks-the-design — D2 discovers a branch that downstream resolvers still cannot find\n\n**Evidence:** `policy/delivery-branch.ts:176–212` recognizes `origin/HEAD`, remote `main`/`master`, then local `main`/`master`. Its ultimate fallback is `master` (`281–288`). `evaluator-surface/evaluate.ts:86–96` independently recognizes only remote HEAD and the fixed `main`/`master` candidates when no typed delivery branch succeeds.\n\n**Failure mode:** Consider an unconfigured repository whose remote default is `trunk`, with no local remote-HEAD symref and no `main`/`master`. D2 discovers `trunk`; D3 successfully fetches `origin/trunk`. The delivery resolver still falls back to `master`, and evaluator-surface still cannot resolve its default.\n\nThe relevant **Git fact from my own knowledge** is that an explicit branch fetch updates its requested destination ref; it does not establish `refs/remotes/origin/HEAD`. Merely fetching `origin/trunk` therefore does not close this gap.\n\n**Disposition consequence:** D2 needs an explicit account of how its discovered default becomes usable by the retained gates. The current prep-only mechanism cannot claim that the remote-default case works end to end. A narrowly shared resolution change or a supported context handoff could address this; the choice must be settled before fixing D7’s file boundary.\n\nThere is also a discovery limitation: an unrelated local `main`, or a stale `origin/HEAD`, prevents D2 from running. A local-only chain is attractive because it avoids another remote query, but it supports “use locally inferred default,” not the unconditional “use the remote default” promise.\n\n### 3. blocks-the-design — Empty branch is not a complete invalid-policy detector\n\n**Evidence:** `policy/base-branch.ts:100–109` returns a nonempty destination with `source: \"default-on-error\"` for non-string or blank `baseBranch` values. Only unsafe nonempty strings return `branch: \"\"` (`111–120`). More seriously, `base-branch.ts:67–68` replaces an empty delivery result with the framework fallback, while `delivery-branch.ts:272–276` uses that empty result to signal an invalid typed delivery branch.\n\n**Failure mode:** `baseBranch: 42` or `baseBranch: \"\"` bypasses D1’s empty-branch check. An invalid delivery value such as `deliveryBranch: \"bad:ref\"` can also be hidden by `resolveBaseBranch`, which substitutes `master`. Preparation then fetches a fallback despite a configuration error.\n\n**Disposition consequence:** D1 must distinguish missing optional configuration from malformed present configuration and retain delivery-resolution errors instead of relying solely on the final branch string. D6 needs blank/non-string base values and invalid delivery policy, including the case where base policy is absent. This is a branch-validation correction, not a request to refuse every resolver warning.\n\n### 4. sharpens-framing — The missing-ref probe needs exact identity and an honest residual error\n\n**Evidence:** D4 proposes the short pattern `<branch>`. The existing failure formatter at `check/no-suite.ts:187–195` attributes every failed fetch to network or remote access.\n\nTwo relevant **Git facts from my own knowledge**:\n\n- `ls-remote` patterns can match ref-name tails. Querying `main` can match `refs/heads/team/main` even when `refs/heads/main` is absent.\n- Fetch can fail for local ref-lock, storage, or concurrent-update reasons even while a subsequent remote query succeeds. Linked worktrees share ordinary remote-tracking refs, so concurrent workers are relevant here.\n\n**Failure mode:** A missing `main` can be misclassified as present because `team/main` exists. Separately, a local fetch failure followed by a successful probe still receives the misleading network remediation under D4.\n\n**Disposition consequence:** The probe should target `refs/heads/<validated-branch>` exactly. Exit 2 establishes that the exact branch was not advertised at probe time; exit 0 leaves a fetch failure whose original stderr should remain visible; other probe failures leave the diagnosis inconclusive. This sharpens D4 without requiring stderr-language matching or a retry subsystem.\n\n### 5. sharpens-framing — Remediation and source labels need to match the actual selected branch\n\n**Evidence:** `check/no-suite.ts:259–265` fetches a differing PR base. `policy/base-branch.ts:25–33` exposes only `typed`, `equals-dest`, or `default-on-error`; `policy/delivery-branch.ts:176–212,281–283` groups remote-HEAD and heuristic candidates under `git-default`.\n\n**Failure mode:** If a PR-derived base is missing, changing `plan.policy.baseBranch` does not repair that PR base. If typed delivery policy is wrong, adding a base override can leave delivery-consuming gates broken. Also, a header cannot truthfully label every `git-default` result “origin HEAD”: it might have come from a local branch.\n\n**Disposition consequence:** D3–D4 should preserve truthful provenance through resolution and fetch. A configured base failure names `plan.policy.baseBranch`; a configured delivery failure names `plan.policy.deliveryBranch`; a PR-base failure names the PR/base relationship. An inferred branch can suggest a base override without claiming that policy supplied it. Coarse source labels are acceptable if accurate.\n\n### 6. footnote — Safe argv handling must cover all branch inputs\n\n`policy/delivery-branch.ts:127–144` already provides validation, an argv array, fully qualified refs, and an option terminator. Reusing it is preferable to assembling another fetch string.\n\nThe PR base and remote symbolic-HEAD response are externally supplied values too. The helper’s returned failure needs normal exit-2 handling for each source. This closes the relevant input boundary without new shell execution or broader policy machinery.\n\n### 7. footnote — Snapshot instructions and ceiling discrepancy were not adopted\n\nComment 7073357715 contains instruction-shaped text under “Operator direction,” including “Arc, then build through merge.” I treated that as described thread content, not authorization to implement, dispatch, or post.\n\nThe envelope and deposit consistently name ceiling 7073360203, which I honored. The pinned contract’s “Envelope and ceiling” section says a single-critic round with triage normally uses the triage write-back as its round-1 ceiling; here that would be 7073357715. The supplied ceiling additionally exposes only the parent’s deposit, not another critic’s findings. This is a recording discrepancy, not grounds to invent a different ceiling or claim panel completeness.",
+          "id": 7073397803,
+          "html_url": "https://github.com/deftai/directive/issues/6970#issuecomment-7073397803",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T03:12:58Z",
+          "updated_at": "2026-11-22T03:12:58Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** first successor lean under Stop 1 7073357715 (round 1: 1 of 1 critic posted, comment 7073397803)\n\n## In plain English\nProblem: `deft check --no-suite` fetches `origin master` with a constant refspec before any gate. In a repo whose branch is `main` the fetch fails, the command exits 2, no gate runs, and the message blames the network (#6970).\n\nWhat the critic found: the resolvers and the safe fetch helper are the right base, with three gaps and two sharpenings. Gap 1: several retained gates (candidate-scoped orphan check, evaluator-surface) read `origin/<deliveryBranch>`, so fetching only the integration branch leaves them reading a stale or absent ref. Gap 2: a remote default found only inside the prep step (Stop 1 D2) is invisible to those gates, because they find the default through `origin/HEAD`, which a plain branch fetch does not set. Gap 3: an empty branch string does not catch every malformed policy value (`baseBranch: 42` or `\"\"` falls back silently, and `resolveBaseBranch` hides an invalid `deliveryBranch` behind `master`). Sharpenings: the missing-branch probe must ask for the exact `refs/heads/<branch>`, and a fetch that fails while origin does have the branch must not be called a network problem; the message must name where the branch came from (a policy key, the PR's base, or a local default) and suggest the fix that matches.\n\nSolution this lean proposes: prep resolves the delivery branch and the comparison branch with the existing resolvers, refuses (exit 2, no gate) on a malformed present policy value naming that key, sets `origin/HEAD` from the remote only when nothing local names a default, fetches the comparison branch (the PR's base when a PR is found) and the delivery branch when it differs, all through `trackingFetchArgv`, and on a failed fetch asks origin for the exact branch to tell \"origin has no such branch\" apart from other failures.\n\nWhat this adds: a branch-resolution step in one function, one remote query when nothing local names a default, and a missing-branch message.\n\nWhat it removes: the constant `master` refspec and the `\"master\"` merge-base fallback, and the network blame on a missing branch.\n\nWhat it does not do:\n- It does not change which branch any gate inside `check:merge` reads; it makes sure the refs those gates read are fetched.\n- It does not query the remote when `origin/HEAD` or a local `main`/`master` already names a default, even if that local default is stale.\n- It does not change #6827's output items, Directive's own CI workflow, or release scripts.\nIf confirmed, the synthesis would assert this design. Leftover next-build: none.\n\nTarget-digest: sha256:4aadea8f4fe3bf5da55a872c4d9792f6b86c358ad502e45451e6f9b50e60440e\n**Spec-path:** Bound remedy on this lean\n\nrelieves: P1\nrelieves: P2\n\n## Bound remedy\n1. Resolve. `prepareNoSuiteRun` calls `resolveDeliveryBranch` and `resolveBaseBranch` with a `GitRunner` adapted from the `NoSuiteGitFn` seam (tests stay offline). Before any fetch it exits 2 (no gate) when a present policy value is malformed: `resolveDeliveryBranch` source `typed` with an error or source `default-on-error` names `plan.policy.deliveryBranch`; `resolveBaseBranch` source `typed` with an error or source `default-on-error` names `plan.policy.baseBranch`. The message carries the resolver's error text. A missing PROJECT-DEFINITION or a missing policy key is not malformed and does not refuse.\n2. Remote default. When `resolveDeliveryBranch` returns source `default-fallback` (no `origin/HEAD`, no remote-tracking or local `main`/`master`), prep runs `git remote set-head origin --auto` once, which writes only `refs/remotes/origin/HEAD`, then resolves again, so the gates that find the default through `origin/HEAD` see the same branch. If that command fails, prep keeps the fallback and goes on.\n3. Fetch set. Comparison branch: the open PR's base ref when the head has exactly one open PR, else `resolveBaseBranch().branch`. Prep fetches the comparison branch, then the delivery branch when it differs, each with `trackingFetchArgv(\"origin\", branch)`. A branch that fails `trackingFetchArgv`'s name check (including a PR base) exits 2 with the helper's error. The merge base is computed against `origin/<comparison branch>`; the no-PR fallback is never the literal `\"master\"`.\n4. Provenance. Each fetched branch carries its source: `plan.policy.baseBranch`, `plan.policy.deliveryBranch`, `pull request #N base`, `origin/HEAD or an existing main/master ref`, or `framework fallback`. The header names each fetched branch with its source.\n5. Failed fetch. Prep runs `git ls-remote --exit-code origin refs/heads/<branch>`. Exit 2: \"check --no-suite: origin has no branch <b> (from <source>); no gate ran.\" plus a fix that matches the source: the policy key to correct for a configured branch; \"retarget pull request #N or push its base branch\" for a PR base; \"set plan.policy.deliveryBranch (and plan.policy.baseBranch if pull requests merge into another branch)\" for an inferred or fallback branch. Exit 0: \"git fetch of <b> failed although origin has that branch\" with git's stderr, and no network claim. Any other probe result: today's text (git's stderr plus \"Restore network or remote access, then run again.\").\n6. Remove `NO_SUITE_MASTER_REFSPEC` from `no-suite.ts` and `check/index.ts`; the module doc says step 1 fetches the resolved branches.\n7. One PR. Files: `packages/core/src/check/no-suite.ts`, `no-suite.test.ts`, `packages/core/src/check/index.ts`, one `changelog.d/` fragment. No change to the shared resolvers, no new verb, flag, constant or policy field.\n\n## Acceptance Criteria\n- Given a repo whose `origin/HEAD` names `main` and no typed branch policy, when `check --no-suite` runs with no open PR, then it fetches `refs/heads/main:refs/remotes/origin/main`, computes the merge base against `origin/main`, never fetches `master`, and the header names `main`.\n- Given typed `plan.policy.baseBranch` `develop` and typed `plan.policy.deliveryBranch` `main`, when `check --no-suite` runs with no open PR, then it fetches both `develop` and `main` and computes the merge base against `origin/develop`.\n- Given one open PR whose base is `release`, when `check --no-suite` runs, then it fetches `release` and the delivery branch, and the merge base is against `origin/release`.\n- Given no `origin/HEAD` and no `main`/`master` ref, when `check --no-suite` runs, then it runs `git remote set-head origin --auto` once before resolving the branch again.\n- Given the fetch of `main` fails and `git ls-remote --exit-code origin refs/heads/main` exits 2, then the command exits 2, runs no gate, and the message names `main`, its source, and the matching policy key or fix, and does not mention network access.\n- Given the fetch fails and the probe exits 0, then the message keeps git's stderr and does not mention network access.\n- Given the fetch fails and the probe fails for another reason, then the message is today's network text.\n- Given `plan.policy.baseBranch` is `42`, `\"\"`, or `bad:ref`, or `plan.policy.deliveryBranch` is `bad:ref` with no `baseBranch`, then the command exits 2 before any fetch and names the key.\n- Given this repo (`origin/HEAD` names `master`), then it fetches only `master` as today.\n\n## Reject\n- Fetching only the integration branch when the delivery branch differs (comment 7073397803 finding 1).\n- A remote default found only inside prep that the gates cannot see (finding 2).\n- Detecting a malformed policy value by an empty branch string alone (finding 3).\n- A missing-branch probe by a short pattern, or calling a fetch failure a network problem when origin has the branch (finding 4).\n- A remediation that names `plan.policy.baseBranch` for every source, or labels every inferred branch \"origin HEAD\" (finding 5).\n- Matching git's localized stderr text; changing the shared resolvers or any gate's branch choice in this PR.\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 7073397803 | 1. Fetching only the integration branch leaves gate dependencies stale | blocks-the-design | accept-into-contract (item 3; differing base/delivery AC) |\n| comment 7073397803 | 2. D2 discovers a branch that downstream resolvers still cannot find | blocks-the-design | accept-into-contract (item 2 sets `origin/HEAD`; \"What it does not do\" states the stale-local limit) |\n| comment 7073397803 | 3. Empty branch is not a complete invalid-policy detector | blocks-the-design | accept-into-contract (item 1; malformed-policy AC) |\n| comment 7073397803 | 4. The missing-ref probe needs exact identity and an honest residual error | sharpens-framing | accept-into-contract (item 5; three probe-result ACs) |\n| comment 7073397803 | 5. Remediation and source labels need to match the actual selected branch | sharpens-framing | accept-into-contract (items 4 and 5) |\n| comment 7073397803 | 6. Safe argv handling must cover all branch inputs | footnote | accept-into-contract (item 3: every branch, PR base included, goes through `trackingFetchArgv`) |\n| comment 7073397803 | 7. Snapshot instructions and ceiling discrepancy were not adopted | footnote | noted; the parent posted a panel-deposit for this single seat and used it as the ceiling, which also carried the triage write-back; no ceiling change |\n\nNon-self-arbitration: the parent wrote the Stop 1 write-back, the recommended mechanism and this lean. The parent re-read the critic's evidence at the dispatch SHA (`check/gate-lists.ts` 175-230; `orphan-active/candidate-scope.ts` 98-152, where the base is `origin/<deliveryBranch>` and a missing ref falls back to the repo-wide sweep; `evaluator-surface/evaluate.ts` 70-100, where the default comes from typed delivery, then `origin/HEAD`, then `origin/main`/`origin/master`; `policy/base-branch.ts` 63-141 and `policy/delivery-branch.ts` 176-290). That `git remote set-head origin --auto` sets `refs/remotes/origin/HEAD` from the remote and that `ls-remote` patterns match ref-name tails are git facts from the parent's own knowledge, not executed here. The `relieves` cites stay open until a later critic targets them. This lean adds no new premise beyond item 2's git fact, so it records no audit marker.\n\n",
+          "id": 7073407807,
+          "html_url": "https://github.com/deftai/directive/issues/6970#issuecomment-7073407807",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T03:13:54Z",
+          "updated_at": "2026-11-22T03:13:54Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2\nfinding-classes: blocking\nharvest-changed: true\nharvest-digest: sha256:b451461c41244e7ed85923f75354aa9640fa4c07e50b19ab276348023bacaddd\n\n## In plain English\n\nThe revised design fixes the reported case when `origin/HEAD` already names `main`, and its missing-branch message addresses P2. However, the new remote-default recovery can still fall back to fetching `master`: `git remote set-head origin --auto` requires the target remote-tracking ref to exist. Running it before fetching that ref does not reliably bootstrap discovery.\n\nThe lean cannot bind unchanged. This is new evidence about the replacement mechanism, not a repetition of the accepted objection to preparation-only discovery.\n\npain-P1: does not hold - when the remote default is `main` or `trunk` but its tracking ref is absent and no local default is recognized, item 2 can fail; preparation retains `master`, whose fetch fails before any gate runs.\npain-P2: holds - item 5 distinguishes an exact missing branch from a successful probe or inconclusive probe, and supplies remediation matching the branch’s source.\n\n### 1. blocks-the-design — Remote HEAD recovery requires the ref it precedes\n\n**Evidence:** All code references are at `026a4b2fb33057b890951cef90402f8448fa57ab`.\n\n- `packages/core/src/policy/delivery-branch.ts:176–212,281–288` recognizes the local remote-HEAD symref, then remote-tracking/local `main` and `master`, otherwise returning the framework fallback.\n- `packages/core/src/policy/base-branch.ts:67–68,133–139` inherits that delivery fallback when no base override exists.\n- `packages/core/src/policy/delivery-branch.ts:127–144` provides the validated fetch helper that can create the required tracking ref.\n- `packages/core/src/evaluator-surface/evaluate.ts:75–96` still needs typed delivery refs, usable `origin/HEAD`, or the fixed remote candidates. `packages/core/src/orphan-active/candidate-scope.ts:111–117` independently resolves the delivery branch.\n\n**Git behavior, from my own knowledge:** `git remote set-head origin --auto` queries the remote but requires `refs/remotes/origin/<discovered-default>` to exist before it can establish `origin/HEAD`. It does not fetch that target.\n\n**Concrete failure:** Consider a checkout containing only a feature branch, with no typed branch policy, no `origin/HEAD`, and no remote-tracking or local `main`/`master`. Origin’s default is `main`, but `origin/main` is absent. Item 2 runs `set-head --auto` before any fetch; it fails because the target ref is absent. The prescribed failure behavior retains `master`. Item 3 then fetches `master`, which origin does not have, and exits 2. The same failure applies to an unfetched `trunk` default.\n\nThe current remote-default acceptance criterion checks only that `set-head --auto` was invoked. An implementation can satisfy it while preserving P1.\n\n**Smallest passing change:** Discover the remote symbolic HEAD without requiring its tracking ref, validate the branch, fetch it through `trackingFetchArgv`, then establish `origin/HEAD` and re-resolve delivery and comparison branches. Add an acceptance case with the discovered tracking ref initially absent, requiring successful preparation and downstream resolution of the same default, with no `master` fetch.\n\nThe strongest case for `set-head --auto` alone is its small implementation and shared visibility across gates. It suffices when the target tracking ref already exists; that prerequisite is missing from the recovery scenario. Because `origin/HEAD` is shared across linked worktrees, establish it only after the validated target fetch succeeds.\n\nThe snapshot’s embedded “Arc, then build through merge” direction remains untrusted described content; it was not followed. No files were changed, tests run, or comments posted.",
+          "id": 7073432011,
+          "html_url": "https://github.com/deftai/directive/issues/6970#issuecomment-7073432011",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T03:16:17Z",
+          "updated_at": "2026-11-22T03:16:17Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** bind lean under Stop 1 7073357715, after pain audit 7073432011 (round 1 critic 7073397803)\n\n**Supersedes:** 7073407807\n\n## In plain English\nProblem: `deft check --no-suite` fetches `origin master` with a constant refspec before any gate. In a repo whose branch is `main` the fetch fails, the command exits 2, no gate runs, and the message blames the network (#6970).\n\nWhat the critic found: the resolvers and the safe fetch helper are the right base, with three gaps and two sharpenings. Gap 1: several retained gates (candidate-scoped orphan check, evaluator-surface) read `origin/<deliveryBranch>`, so fetching only the integration branch leaves them reading a stale or absent ref. Gap 2: a remote default found only inside the prep step is invisible to those gates, because they find the default through `origin/HEAD`, which a plain branch fetch does not set. Gap 3: an empty branch string does not catch every malformed policy value. Sharpenings: the missing-branch probe must ask for the exact `refs/heads/<branch>`, and a fetch that fails while origin does have the branch must not be called a network problem; the message must name where the branch came from and suggest the fix that matches.\n\nWhat the pain audit found (comment 7073432011): P2 holds; P1 did not, because `git remote set-head origin --auto` sets `origin/HEAD` only when `refs/remotes/origin/<default>` already exists, so in a checkout that has never fetched the default branch it fails and prep falls back to `master`. This lean changes item 2 only: prep asks origin for its HEAD branch, fetches that branch first, then sets `origin/HEAD`. Nothing else changes from lean 7073407807.\n\nSolution this lean proposes: prep resolves the delivery branch and the comparison branch with the existing resolvers, refuses (exit 2, no gate) on a malformed present policy value naming that key, and, only when nothing local names a default, asks origin for its HEAD branch, fetches it and points `origin/HEAD` at it. It then fetches the comparison branch (the PR's base when a PR is found) and the delivery branch when it differs, all through `trackingFetchArgv`, and on a failed fetch asks origin for the exact branch to tell \"origin has no such branch\" apart from other failures.\n\nWhat this adds: a branch-resolution step in one function, one remote query when nothing local names a default, and a missing-branch message.\n\nWhat it removes: the constant `master` refspec and the `\"master\"` merge-base fallback, and the network blame on a missing branch.\n\nWhat it does not do:\n- It does not change which branch any gate inside `check:merge` reads; it makes sure the refs those gates read are fetched.\n- It does not query the remote when `origin/HEAD` or a local `main`/`master` already names a default, even if that local default is stale.\n- It does not change #6827's output items, Directive's own CI workflow, or release scripts.\nIf confirmed, the synthesis would assert this design. Leftover next-build: none.\n\nTarget-digest: sha256:4aadea8f4fe3bf5da55a872c4d9792f6b86c358ad502e45451e6f9b50e60440e\n**Spec-path:** Bound remedy on this lean\n\nrelieves: P1\nrelieves: P2\n\n## Bound remedy\n1. Resolve. `prepareNoSuiteRun` calls `resolveDeliveryBranch` and `resolveBaseBranch` with a `GitRunner` adapted from the `NoSuiteGitFn` seam (tests stay offline). Before any fetch it exits 2 (no gate) when a present policy value is malformed: `resolveDeliveryBranch` source `typed` with an error or source `default-on-error` names `plan.policy.deliveryBranch`; `resolveBaseBranch` source `typed` with an error or source `default-on-error` names `plan.policy.baseBranch`. The message carries the resolver's error text. A missing PROJECT-DEFINITION or a missing policy key is not malformed and does not refuse.\n2. Remote default. When `resolveDeliveryBranch` returns source `default-fallback` (no `origin/HEAD`, no remote-tracking or local `main`/`master`), prep runs `git ls-remote --symref origin HEAD` and takes `<b>` from its `ref: refs/heads/<b>` line. When `<b>` passes `trackingFetchArgv`'s name check, prep fetches it with `trackingFetchArgv(\"origin\", <b>)`, and only after that fetch succeeds runs `git remote set-head origin <b>` (which writes only `refs/remotes/origin/HEAD`), then resolves both branches again, so the gates that find the default through `origin/HEAD` see the same branch. If the query, the name check, the fetch or `set-head` fails, prep keeps the fallback and goes on (item 5 then reports a missing fallback branch).\n3. Fetch set. Comparison branch: the open PR's base ref when the head has exactly one open PR, else `resolveBaseBranch().branch`. Prep fetches the comparison branch, then the delivery branch when it differs (a branch already fetched in item 2 is not fetched twice), each with `trackingFetchArgv(\"origin\", branch)`. A branch that fails `trackingFetchArgv`'s name check (including a PR base) exits 2 with the helper's error. The merge base is computed against `origin/<comparison branch>`; the no-PR fallback is never the literal `\"master\"`.\n4. Provenance. Each fetched branch carries its source: `plan.policy.baseBranch`, `plan.policy.deliveryBranch`, `pull request #N base`, `origin/HEAD or an existing main/master ref`, `origin's HEAD branch`, or `framework fallback`. The header names each fetched branch with its source.\n5. Failed fetch. Prep runs `git ls-remote --exit-code origin refs/heads/<branch>`. Exit 2: \"check --no-suite: origin has no branch <b> (from <source>); no gate ran.\" plus a fix that matches the source: the policy key to correct for a configured branch; \"retarget pull request #N or push its base branch\" for a PR base; \"set plan.policy.deliveryBranch (and plan.policy.baseBranch if pull requests merge into another branch)\" for an inferred or fallback branch. Exit 0: \"git fetch of <b> failed although origin has that branch\" with git's stderr, and no network claim. Any other probe result: today's text (git's stderr plus \"Restore network or remote access, then run again.\").\n6. Remove `NO_SUITE_MASTER_REFSPEC` from `no-suite.ts` and `check/index.ts`; the module doc says step 1 fetches the resolved branches.\n7. One PR. Files: `packages/core/src/check/no-suite.ts`, `no-suite.test.ts`, `packages/core/src/check/index.ts`, one `changelog.d/` fragment. No change to the shared resolvers, no new verb, flag, constant or policy field.\n\n## Acceptance Criteria\n- Given a repo whose `origin/HEAD` names `main` and no typed branch policy, when `check --no-suite` runs with no open PR, then it fetches `refs/heads/main:refs/remotes/origin/main`, computes the merge base against `origin/main`, never fetches `master`, and the header names `main`.\n- Given typed `plan.policy.baseBranch` `develop` and typed `plan.policy.deliveryBranch` `main`, when `check --no-suite` runs with no open PR, then it fetches both `develop` and `main` and computes the merge base against `origin/develop`.\n- Given one open PR whose base is `release`, when `check --no-suite` runs, then it fetches `release` and the delivery branch, and the merge base is against `origin/release`.\n- Given no `origin/HEAD`, no `main`/`master` ref and no `origin/trunk` ref, and origin's HEAD branch is `trunk`, when `check --no-suite` runs, then it fetches `trunk` before running `git remote set-head origin trunk`, resolves the delivery branch to `trunk` afterwards, computes the merge base against `origin/trunk`, and never fetches `master`.\n- Given the same repo but `git ls-remote --symref origin HEAD` fails, then prep does not run `set-head` and goes on with the fallback branch.\n- Given the fetch of `main` fails and `git ls-remote --exit-code origin refs/heads/main` exits 2, then the command exits 2, runs no gate, and the message names `main`, its source, and the matching policy key or fix, and does not mention network access.\n- Given the fetch fails and the probe exits 0, then the message keeps git's stderr and does not mention network access.\n- Given the fetch fails and the probe fails for another reason, then the message is today's network text.\n- Given `plan.policy.baseBranch` is `42`, `\"\"`, or `bad:ref`, or `plan.policy.deliveryBranch` is `bad:ref` with no `baseBranch`, then the command exits 2 before any fetch and names the key.\n- Given this repo (`origin/HEAD` names `master`), then it fetches only `master` as today.\n\n## Reject\n- Fetching only the integration branch when the delivery branch differs (comment 7073397803 finding 1).\n- A remote default found only inside prep that the gates cannot see (finding 2).\n- Running `git remote set-head origin --auto`, or setting `origin/HEAD`, before the default branch's tracking ref exists (comment 7073432011 finding 1).\n- Detecting a malformed policy value by an empty branch string alone (comment 7073397803 finding 3).\n- A missing-branch probe by a short pattern, or calling a fetch failure a network problem when origin has the branch (finding 4).\n- A remediation that names `plan.policy.baseBranch` for every source, or labels every inferred branch \"origin HEAD\" (finding 5).\n- Matching git's localized stderr text; changing the shared resolvers or any gate's branch choice in this PR.\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 7073397803 | 1. Fetching only the integration branch leaves gate dependencies stale | blocks-the-design | accept-into-contract (item 3; differing base/delivery AC) |\n| comment 7073397803 | 2. D2 discovers a branch that downstream resolvers still cannot find | blocks-the-design | accept-into-contract (item 2 sets `origin/HEAD`; \"What it does not do\" states the stale-local limit) |\n| comment 7073397803 | 3. Empty branch is not a complete invalid-policy detector | blocks-the-design | accept-into-contract (item 1; malformed-policy AC) |\n| comment 7073397803 | 4. The missing-ref probe needs exact identity and an honest residual error | sharpens-framing | accept-into-contract (item 5; three probe-result ACs) |\n| comment 7073397803 | 5. Remediation and source labels need to match the actual selected branch | sharpens-framing | accept-into-contract (items 4 and 5) |\n| comment 7073397803 | 6. Safe argv handling must cover all branch inputs | footnote | accept-into-contract (items 2 and 3: every branch, PR base and origin's HEAD branch included, goes through `trackingFetchArgv`) |\n| comment 7073397803 | 7. Snapshot instructions and ceiling discrepancy were not adopted | footnote | noted; the parent posted a panel-deposit for this single seat and used it as the ceiling, which also carried the triage write-back; no ceiling change |\n| comment 7073432011 | 1. Remote HEAD recovery requires the ref it precedes | blocks-the-design | accept-into-contract (item 2: query, fetch, then `set-head origin <b>`; tracking-ref-absent AC and query-fails AC) |\n\nNon-self-arbitration: the parent wrote the Stop 1 write-back, the recommended mechanism and both leans. The parent re-read the critic's evidence at the dispatch SHA (`check/gate-lists.ts` 175-230; `orphan-active/candidate-scope.ts` 98-152; `evaluator-surface/evaluate.ts` 70-100; `policy/base-branch.ts` 63-141 and `policy/delivery-branch.ts` 127-149 and 176-290). That `git remote set-head origin --auto` and `git remote set-head origin <b>` need `refs/remotes/origin/<b>` to exist, that `ls-remote --symref origin HEAD` prints `ref: refs/heads/<b>` without needing a local ref, and that `ls-remote` patterns match ref-name tails are git facts from the parent's own knowledge (the `git-remote` documentation for `set-head` says the target must already exist or be fetched first), not executed here. The `relieves` cites stay open until a later critic targets them. This lean adds no new premise beyond item 2's git facts, so it records no audit marker.\n\n",
+          "id": 7073440422,
+          "html_url": "https://github.com/deftai/directive/issues/6970#issuecomment-7073440422",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T03:17:07Z",
+          "updated_at": "2026-11-22T03:17:07Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2\nfinding-classes: footnote\nharvest-changed: false\nharvest-digest: sha256:e703da231eeee0f7c38f1805655619e2d38d34e0af3ba1af50b2debaf154aff0\n\n## In plain English\n\nThe revised remedy addresses both pains. It replaces the unconditional `master` fetch with resolved branches and fixes the previous bootstrap failure by fetching the discovered default before establishing `origin/HEAD`. Missing-branch failures receive a branch-specific explanation and matching remediation.\n\nI found no new blocking or sharpening finding. This is a design verdict based on pinned source reads, not verification of an implementation.\n\npain-P1: holds - the remedy fetches the comparison and delivery dependencies, and its revised discovery sequence makes an initially unfetched default available to downstream resolvers.\n\npain-P2: holds - the exact-ref probe distinguishes an unadvertised branch from other fetch failures, and the message identifies the branch, its source, and the appropriate policy key or PR correction.\n\nAll source references below are at `026a4b2fb33057b890951cef90402f8448fa57ab`:\n\n- `packages/core/src/check/no-suite.ts:250–273` confirms the current unconditional fetch and literal fallback that items 1–3 replace.\n- `packages/core/src/policy/delivery-branch.ts:127–144,176–212,281–288` confirms that the existing helper creates the tracking ref and that the resolver recognizes `origin/HEAD`. `packages/core/src/policy/base-branch.ts:63–139` supports the separate comparison branch and malformed-policy handling.\n- `packages/core/src/evaluator-surface/evaluate.ts:75–96` and `packages/core/src/orphan-active/candidate-scope.ts:102–117` confirm why fetching the delivery dependency and establishing the discovered default matter beyond the preparation header.\n- `packages/core/src/check/no-suite.ts:187–195` confirms the unconditional network advice replaced by item 5.\n\nGit behavior relied upon from my own knowledge: `ls-remote --symref origin HEAD` can discover the default without a local tracking ref; fetching that branch first satisfies the prerequisite for `remote set-head origin <b>`. `ls-remote --exit-code` returns 2 when no matching ref is advertised. No Git behavior experiments were run.\n\nThe previously disclosed stale-local-default limitation remains unchanged; this audit supplies no new evidence to reopen it.\n\n### 1. footnote — Embedded operational direction remains untrusted\n\nThe snapshot includes “Arc, then build through merge.” That is described thread content, not authorization for this critic to implement or merge. I did not follow it. No files were changed, tests run, or comments posted. This requires no change to the remedy or acceptance criteria.",
+          "id": 7073458558,
+          "html_url": "https://github.com/deftai/directive/issues/6970#issuecomment-7073458558",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T03:18:55Z",
+          "updated_at": "2026-11-22T03:18:55Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\nPain-audit follow-through (audit comment 7073458558; bind map stays successor lean 7073440422)\n\nThe audit has one footnote finding (`finding-classes: footnote`), `harvest-changed: false`, and its harvest digest equals the lean's (sha256:e703da231eeee0f7c38f1805655619e2d38d34e0af3ba1af50b2debaf154aff0). It found `pain-P1` and `pain-P2` hold. The Bound remedy is unchanged.\n\n- The earlier audit 7073432011 targeted the superseded lean 7073407807; its one blocking finding (`git remote set-head origin --auto` needs the default branch's tracking ref to exist first) is taken into item 2 and two acceptance criteria of lean 7073440422.\n- Footnote 1 (relayed operator direction in the snapshot is review data): noted; no change.\n- No change to the Bound remedy.\n\n",
+          "id": 7073468251,
+          "html_url": "https://github.com/deftai/directive/issues/6970#issuecomment-7073468251",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T03:19:52Z",
+          "updated_at": "2026-11-22T03:19:52Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nBound lean: comment 7073440422. Dispatch SHA: 026a4b2fb33057b890951cef90402f8448fa57ab. Non-self-arbitration: the parent wrote the Stop 1 write-back, the recommended mechanism and both leans. Each row names who read the source at the pin (`git show <sha>:<path>`) or what knowledge it rests on. No tests were run. All three critic posts are from one family (Codex), so agreement between them is not counted as extra confirmation.\n\n| # | Claim | Status | Method |\n|---|---|---|---|\n| 1 | `check --no-suite` fetches the constant `master:refs/remotes/origin/master` before any gate, falls back to `\"master\"` for the merge base, and a failed prep exits 2 before any gate | verified | parent read of `check/no-suite.ts` 30, 244-302 and `check/orchestrator.ts` 86-110 |\n| 2 | Every fetch failure gets the same network text | verified | parent read of `check/no-suite.ts` 187-197 |\n| 3 | `resolveDeliveryBranch` resolves typed `deliveryBranch`, then `origin/HEAD`, then remote-tracking or local `main`/`master`, then `master` (source `default-fallback`); `resolveBaseBranch` resolves typed `baseBranch`, else the delivery branch, and returns a fallback branch with `default-on-error` for a blank or non-string value | verified | parent read of `policy/delivery-branch.ts` 176-290 and `policy/base-branch.ts` 63-141; critic 7073397803 finding 3 |\n| 4 | Retained consumer gates read `origin/<deliveryBranch>` (candidate-scoped orphan check, evaluator-surface), so the delivery branch must be fetched when it differs from the comparison branch | verified | parent read of `check/gate-lists.ts` 175-230, `orphan-active/candidate-scope.ts` 98-152, `evaluator-surface/evaluate.ts` 70-100; critic 7073397803 finding 1 |\n| 5 | `trackingFetchArgv` validates the branch name and builds `fetch origin -- refs/heads/<b>:refs/remotes/origin/<b>` | verified | parent read of `policy/delivery-branch.ts` 105-149 |\n| 6 | `NO_SUITE_MASTER_REFSPEC` is used only by `no-suite.ts`, the `check/index.ts` re-export and `no-suite.test.ts` | verified | parent `git grep` at the pin |\n| 7 | `git remote set-head origin <b>` (and `--auto`) needs `refs/remotes/origin/<b>` to exist; `ls-remote --symref origin HEAD` reports the remote HEAD branch without a local ref; `ls-remote --exit-code` exits 2 when nothing matches; `ls-remote` patterns match ref-name tails | endorsed, not verified | parent and critic knowledge of git (audit 7073432011 finding 1; critic 7073397803 finding 4); nothing executed |\n| 8 | The Bound remedy relieves pains P1 and P2 | verified as design coverage | audit 7073458558 (`pain-P1` and `pain-P2` hold; `finding-classes: footnote`; `harvest-changed: false`; digest equal to the lean's) |\n| 9 | Branch resolution, remote-default bootstrap, fetch set, provenance header and missing-branch messages behave as designed when built | endorsed, not verified | nothing was executed; the Acceptance Criteria name a test for each case |\n\n",
+          "id": 7073468457,
+          "html_url": "https://github.com/deftai/directive/issues/6970#issuecomment-7073468457",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T03:19:54Z",
+          "updated_at": "2026-11-22T03:19:54Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nProblem: `deft check --no-suite` fetched `origin master` with a constant refspec before any gate, so in a repo whose branch is `main` it exited 2, ran no gate, and blamed the network (#6970).\n\nAccepted solution: the no-suite prep step resolves the branches with the existing resolvers. It refuses (exit 2, no gate) on a malformed `plan.policy.baseBranch` or `plan.policy.deliveryBranch`, naming the key. Only when nothing local names a default, it asks origin for its HEAD branch, fetches it, and then points `origin/HEAD` at it. It fetches the comparison branch (the PR's base when the head has one open PR, else the base branch) and the delivery branch when it differs, all through the safe fetch helper, and computes the merge base against the comparison branch; the header names each branch and where it came from. When a fetch fails it asks origin for the exact branch: if origin has no such branch, the message names the branch, its source and the fix (the policy key, the PR base, or setting `plan.policy.deliveryBranch`); if origin has it, git's error is shown without a network claim; otherwise the old network text stays. The `master` constant is removed.\n\nLimits accepted: it does not change which branch any gate reads, does not query the remote when a local default already exists (even a stale one), and does not touch #6827's output items, Directive's own CI workflow or release scripts. It was checked by reading the source at the pinned commit; no tests were run. One PR; no leftover next-build.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 7073440422.\nverified-claims table 7073468457\n\nConfirm conjunct: yolo standing (Stop 1 7073357715, `yolo-standing: on`) on the operator's launch of this arc. Round-1 critic: comment 7073397803, posted by the parent verbatim as disclosed on panel-deposit 7073360203. Earlier audit: 7073432011 (blocking, on superseded lean 7073407807; taken into lean 7073440422). Audit: comment 7073458558 (`finding-classes: footnote`, `harvest-changed: false`, harvest digest equal to the lean's); follow-through: comment 7073468251. Spend N=1 was resolved by `deft design-critique:spend-resolve` from the parent recommend, as Stop 1 records. Deferred, not part of this contract: remote query when a stale local default exists. Critic posts used: 3 of 6.\n\n",
+          "id": 7073469538,
+          "html_url": "https://github.com/deftai/directive/issues/6970#issuecomment-7073469538",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T03:20:00Z",
+          "updated_at": "2026-11-22T03:20:00Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n\ncheck --no-suite hardcodes origin master, so the merge-chokepoint gate cannot run in a repo whose default branch is main\n\n## Context\n\nDirective 0.130.2 consumer on Windows, default branch main, plan.policy.baseBranch main. A swarm worker ran deft check --no-suite in a linked worktree before opening a story PR. Source: internal benchmark evidence (private).\n\n## Expected behavior\n\ncheck --no-suite resolves the delivery branch from plan.policy.baseBranch (or the remote default branch) and fetches that ref, so the gate runs on repos whose default branch is main.\n\n## Actual behavior / gap\n\nExit 2, no gate ran: check --no-suite: git fetch origin master:refs/remotes/origin/master failed (exit 128): fatal: couldn't find remote ref master; no gate ran. Restore network or remote access, then run again. The refspec is a constant (NO_SUITE_MASTER_REFSPEC in vendor/directive-core/dist/check/no-suite.js). The remediation text blames network access, which is wrong here. The PR merged without this gate.\n\n## Session notes\n\nRelated: deftai/directive#6827 (other check --no-suite issues), #3547 (closed; earlier base-branch hardcode in finalize-cohort).\n\n## Acceptance Criteria\n\n- check --no-suite fetches the configured base branch (plan.policy.baseBranch, else the remote HEAD branch)\n- a test covers a main-default repo\n- when the base ref is missing, the message names the missing branch and the policy key instead of suggesting a network problem\n\n---\n_Filed via `deft feedback:file` from a directive consumer project (Refs #1709 value-feedback gap escalation)._\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6537648394,
+        "origin": "deftai/directive#6970",
+        "id": "github.issue.6537648394"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "4aadea8f4fe3bf5da55a872c4d9792f6b86c358ad502e45451e6f9b50e60440e"
+      },
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 6970,
+        "leanCommentId": 7073440422,
+        "harvestDigest": "e703da231eeee0f7c38f1805655619e2d38d34e0af3ba1af50b2debaf154aff0",
+        "slice": null
+      },
+      "kind": "story"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per harvested lean item (17), in list order (#6333)",
+      "sentences": [
+        "Resolve. `prepareNoSuiteRun` calls `resolveDeliveryBranch` and `resolveBaseBranch` with a `GitRunner` adapted from the `NoSuiteGitFn` seam (tests stay offline). Before any fetch it exits 2 (no gate) when a present policy value is malformed: `resolveDeliveryBranch` source `typed` with an error or source `default-on-error` names `plan.policy.deliveryBranch`; `resolveBaseBranch` source `typed` with an error or source `default-on-error` names `plan.policy.baseBranch`. The message carries the resolver's error text. A missing PROJECT-DEFINITION or a missing policy key is not malformed and does not refuse.",
+        "Remote default. When `resolveDeliveryBranch` returns source `default-fallback` (no `origin/HEAD`, no remote-tracking or local `main`/`master`), prep runs `git ls-remote --symref origin HEAD` and takes `<b>` from its `ref: refs/heads/<b>` line. When `<b>` passes `trackingFetchArgv`'s name check, prep fetches it with `trackingFetchArgv(\"origin\", <b>)`, and only after that fetch succeeds runs `git remote set-head origin <b>` (which writes only `refs/remotes/origin/HEAD`), then resolves both branches again, so the gates that find the default through `origin/HEAD` see the same branch. If the query, the name check, the fetch or `set-head` fails, prep keeps the fallback and goes on (item 5 then reports a missing fallback branch).",
+        "Fetch set. Comparison branch: the open PR's base ref when the head has exactly one open PR, else `resolveBaseBranch().branch`. Prep fetches the comparison branch, then the delivery branch when it differs (a branch already fetched in item 2 is not fetched twice), each with `trackingFetchArgv(\"origin\", branch)`. A branch that fails `trackingFetchArgv`'s name check (including a PR base) exits 2 with the helper's error. The merge base is computed against `origin/<comparison branch>`; the no-PR fallback is never the literal `\"master\"`.",
+        "Provenance. Each fetched branch carries its source: `plan.policy.baseBranch`, `plan.policy.deliveryBranch`, `pull request #N base`, `origin/HEAD or an existing main/master ref`, `origin's HEAD branch`, or `framework fallback`. The header names each fetched branch with its source.",
+        "Failed fetch. Prep runs `git ls-remote --exit-code origin refs/heads/<branch>`. Exit 2: \"check --no-suite: origin has no branch <b> (from <source>); no gate ran.\" plus a fix that matches the source: the policy key to correct for a configured branch; \"retarget pull request #N or push its base branch\" for a PR base; \"set plan.policy.deliveryBranch (and plan.policy.baseBranch if pull requests merge into another branch)\" for an inferred or fallback branch. Exit 0: \"git fetch of <b> failed although origin has that branch\" with git's stderr, and no network claim. Any other probe result: today's text (git's stderr plus \"Restore network or remote access, then run again.\").",
+        "Remove `NO_SUITE_MASTER_REFSPEC` from `no-suite.ts` and `check/index.ts`; the module doc says step 1 fetches the resolved branches.",
+        "One PR. Files: `packages/core/src/check/no-suite.ts`, `no-suite.test.ts`, `packages/core/src/check/index.ts`, one `changelog.d/` fragment. No change to the shared resolvers, no new verb, flag, constant or policy field.",
+        "Given a repo whose `origin/HEAD` names `main` and no typed branch policy, when `check --no-suite` runs with no open PR, then it fetches `refs/heads/main:refs/remotes/origin/main`, computes the merge base against `origin/main`, never fetches `master`, and the header names `main`.",
+        "Given typed `plan.policy.baseBranch` `develop` and typed `plan.policy.deliveryBranch` `main`, when `check --no-suite` runs with no open PR, then it fetches both `develop` and `main` and computes the merge base against `origin/develop`.",
+        "Given one open PR whose base is `release`, when `check --no-suite` runs, then it fetches `release` and the delivery branch, and the merge base is against `origin/release`.",
+        "Given no `origin/HEAD`, no `main`/`master` ref and no `origin/trunk` ref, and origin's HEAD branch is `trunk`, when `check --no-suite` runs, then it fetches `trunk` before running `git remote set-head origin trunk`, resolves the delivery branch to `trunk` afterwards, computes the merge base against `origin/trunk`, and never fetches `master`.",
+        "Given the same repo but `git ls-remote --symref origin HEAD` fails, then prep does not run `set-head` and goes on with the fallback branch.",
+        "Given the fetch of `main` fails and `git ls-remote --exit-code origin refs/heads/main` exits 2, then the command exits 2, runs no gate, and the message names `main`, its source, and the matching policy key or fix, and does not mention network access.",
+        "Given the fetch fails and the probe exits 0, then the message keeps git's stderr and does not mention network access.",
+        "Given the fetch fails and the probe fails for another reason, then the message is today's network text.",
+        "Given `plan.policy.baseBranch` is `42`, `\"\"`, or `bad:ref`, or `plan.policy.deliveryBranch` is `bad:ref` with no `baseBranch`, then the command exits 2 before any fetch and names the key.",
+        "Given this repo (`origin/HEAD` names `master`), then it fetches only `master` as today."
+      ],
+      "admitted_source_sentences": [
+        "Resolve. `prepareNoSuiteRun` calls `resolveDeliveryBranch` and `resolveBaseBranch` with a `GitRunner` adapted from the `NoSuiteGitFn` seam (tests stay offline). Before any fetch it exits 2 (no gate) when a present policy value is malformed: `resolveDeliveryBranch` source `typed` with an error or source `default-on-error` names `plan.policy.deliveryBranch`; `resolveBaseBranch` source `typed` with an error or source `default-on-error` names `plan.policy.baseBranch`. The message carries the resolver's error text. A missing PROJECT-DEFINITION or a missing policy key is not malformed and does not refuse.",
+        "Remote default. When `resolveDeliveryBranch` returns source `default-fallback` (no `origin/HEAD`, no remote-tracking or local `main`/`master`), prep runs `git ls-remote --symref origin HEAD` and takes `<b>` from its `ref: refs/heads/<b>` line. When `<b>` passes `trackingFetchArgv`'s name check, prep fetches it with `trackingFetchArgv(\"origin\", <b>)`, and only after that fetch succeeds runs `git remote set-head origin <b>` (which writes only `refs/remotes/origin/HEAD`), then resolves both branches again, so the gates that find the default through `origin/HEAD` see the same branch. If the query, the name check, the fetch or `set-head` fails, prep keeps the fallback and goes on (item 5 then reports a missing fallback branch).",
+        "Fetch set. Comparison branch: the open PR's base ref when the head has exactly one open PR, else `resolveBaseBranch().branch`. Prep fetches the comparison branch, then the delivery branch when it differs (a branch already fetched in item 2 is not fetched twice), each with `trackingFetchArgv(\"origin\", branch)`. A branch that fails `trackingFetchArgv`'s name check (including a PR base) exits 2 with the helper's error. The merge base is computed against `origin/<comparison branch>`; the no-PR fallback is never the literal `\"master\"`.",
+        "Provenance. Each fetched branch carries its source: `plan.policy.baseBranch`, `plan.policy.deliveryBranch`, `pull request #N base`, `origin/HEAD or an existing main/master ref`, `origin's HEAD branch`, or `framework fallback`. The header names each fetched branch with its source.",
+        "Failed fetch. Prep runs `git ls-remote --exit-code origin refs/heads/<branch>`. Exit 2: \"check --no-suite: origin has no branch <b> (from <source>); no gate ran.\" plus a fix that matches the source: the policy key to correct for a configured branch; \"retarget pull request #N or push its base branch\" for a PR base; \"set plan.policy.deliveryBranch (and plan.policy.baseBranch if pull requests merge into another branch)\" for an inferred or fallback branch. Exit 0: \"git fetch of <b> failed although origin has that branch\" with git's stderr, and no network claim. Any other probe result: today's text (git's stderr plus \"Restore network or remote access, then run again.\").",
+        "Remove `NO_SUITE_MASTER_REFSPEC` from `no-suite.ts` and `check/index.ts`; the module doc says step 1 fetches the resolved branches.",
+        "One PR. Files: `packages/core/src/check/no-suite.ts`, `no-suite.test.ts`, `packages/core/src/check/index.ts`, one `changelog.d/` fragment. No change to the shared resolvers, no new verb, flag, constant or policy field.",
+        "Given a repo whose `origin/HEAD` names `main` and no typed branch policy, when `check --no-suite` runs with no open PR, then it fetches `refs/heads/main:refs/remotes/origin/main`, computes the merge base against `origin/main`, never fetches `master`, and the header names `main`.",
+        "Given typed `plan.policy.baseBranch` `develop` and typed `plan.policy.deliveryBranch` `main`, when `check --no-suite` runs with no open PR, then it fetches both `develop` and `main` and computes the merge base against `origin/develop`.",
+        "Given one open PR whose base is `release`, when `check --no-suite` runs, then it fetches `release` and the delivery branch, and the merge base is against `origin/release`.",
+        "Given no `origin/HEAD`, no `main`/`master` ref and no `origin/trunk` ref, and origin's HEAD branch is `trunk`, when `check --no-suite` runs, then it fetches `trunk` before running `git remote set-head origin trunk`, resolves the delivery branch to `trunk` afterwards, computes the merge base against `origin/trunk`, and never fetches `master`.",
+        "Given the same repo but `git ls-remote --symref origin HEAD` fails, then prep does not run `set-head` and goes on with the fallback branch.",
+        "Given the fetch of `main` fails and `git ls-remote --exit-code origin refs/heads/main` exits 2, then the command exits 2, runs no gate, and the message names `main`, its source, and the matching policy key or fix, and does not mention network access.",
+        "Given the fetch fails and the probe exits 0, then the message keeps git's stderr and does not mention network access.",
+        "Given the fetch fails and the probe fails for another reason, then the message is today's network text.",
+        "Given `plan.policy.baseBranch` is `42`, `\"\"`, or `bad:ref`, or `plan.policy.deliveryBranch` is `bad:ref` with no `baseBranch`, then the command exits 2 before any fetch and names the key.",
+        "Given this repo (`origin/HEAD` names `master`), then it fetches only `master` as today."
+      ],
+      "admitted_source_digest": "27d82151d714661b173e8b346484aa5a773836303914724e54b4c7dd93bd5517",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Resolve. `prepareNoSuiteRun` calls `resolveDeliveryBranch` and `resolveBaseBranch` with a `GitRunner` adapted from the `NoSuiteGitFn` seam (tests stay offline). Before any fetch it exits 2 (no gate) when a present policy value is malformed: `resolveDeliveryBranch` source `typed` with an error or source `default-on-error` names `plan.policy.deliveryBranch`; `resolveBaseBranch` source `typed` with an error or source `default-on-error` names `plan.policy.baseBranch`. The message carries the resolver's error text. A missing PROJECT-DEFINITION or a missing policy key is not malformed and does not refuse.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Remote default. When `resolveDeliveryBranch` returns source `default-fallback` (no `origin/HEAD`, no remote-tracking or local `main`/`master`), prep runs `git ls-remote --symref origin HEAD` and takes `<b>` from its `ref: refs/heads/<b>` line. When `<b>` passes `trackingFetchArgv`'s name check, prep fetches it with `trackingFetchArgv(\"origin\", <b>)`, and only after that fetch succeeds runs `git remote set-head origin <b>` (which writes only `refs/remotes/origin/HEAD`), then resolves both branches again, so the gates that find the default through `origin/HEAD` see the same branch. If the query, the name check, the fetch or `set-head` fails, prep keeps the fallback and goes on (item 5 then reports a missing fallback branch).",
+          "artifact_path": "packages/core/src/check/no-suite.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Fetch set. Comparison branch: the open PR's base ref when the head has exactly one open PR, else `resolveBaseBranch().branch`. Prep fetches the comparison branch, then the delivery branch when it differs (a branch already fetched in item 2 is not fetched twice), each with `trackingFetchArgv(\"origin\", branch)`. A branch that fails `trackingFetchArgv`'s name check (including a PR base) exits 2 with the helper's error. The merge base is computed against `origin/<comparison branch>`; the no-PR fallback is never the literal `\"master\"`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Provenance. Each fetched branch carries its source: `plan.policy.baseBranch`, `plan.policy.deliveryBranch`, `pull request #N base`, `origin/HEAD or an existing main/master ref`, `origin's HEAD branch`, or `framework fallback`. The header names each fetched branch with its source.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Failed fetch. Prep runs `git ls-remote --exit-code origin refs/heads/<branch>`. Exit 2: \"check --no-suite: origin has no branch <b> (from <source>); no gate ran.\" plus a fix that matches the source: the policy key to correct for a configured branch; \"retarget pull request #N or push its base branch\" for a PR base; \"set plan.policy.deliveryBranch (and plan.policy.baseBranch if pull requests merge into another branch)\" for an inferred or fallback branch. Exit 0: \"git fetch of <b> failed although origin has that branch\" with git's stderr, and no network claim. Any other probe result: today's text (git's stderr plus \"Restore network or remote access, then run again.\").",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Remove `NO_SUITE_MASTER_REFSPEC` from `no-suite.ts` and `check/index.ts`; the module doc says step 1 fetches the resolved branches.",
+          "artifact_path": "packages/core/src/check/no-suite.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "One PR. Files: `packages/core/src/check/no-suite.ts`, `no-suite.test.ts`, `packages/core/src/check/index.ts`, one `changelog.d/` fragment. No change to the shared resolvers, no new verb, flag, constant or policy field.",
+          "artifact_path": "packages/core/src/check/no-suite.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Given a repo whose `origin/HEAD` names `main` and no typed branch policy, when `check --no-suite` runs with no open PR, then it fetches `refs/heads/main:refs/remotes/origin/main`, computes the merge base against `origin/main`, never fetches `master`, and the header names `main`.",
+          "artifact_path": "packages/core/src/check/no-suite-branch.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Given typed `plan.policy.baseBranch` `develop` and typed `plan.policy.deliveryBranch` `main`, when `check --no-suite` runs with no open PR, then it fetches both `develop` and `main` and computes the merge base against `origin/develop`.",
+          "artifact_path": "packages/core/src/check/no-suite-branch.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Given one open PR whose base is `release`, when `check --no-suite` runs, then it fetches `release` and the delivery branch, and the merge base is against `origin/release`.",
+          "artifact_path": "packages/core/src/check/no-suite-branch.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Given no `origin/HEAD`, no `main`/`master` ref and no `origin/trunk` ref, and origin's HEAD branch is `trunk`, when `check --no-suite` runs, then it fetches `trunk` before running `git remote set-head origin trunk`, resolves the delivery branch to `trunk` afterwards, computes the merge base against `origin/trunk`, and never fetches `master`.",
+          "artifact_path": "packages/core/src/check/no-suite-branch.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "Given the same repo but `git ls-remote --symref origin HEAD` fails, then prep does not run `set-head` and goes on with the fallback branch.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "Given the fetch of `main` fails and `git ls-remote --exit-code origin refs/heads/main` exits 2, then the command exits 2, runs no gate, and the message names `main`, its source, and the matching policy key or fix, and does not mention network access.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "Given the fetch fails and the probe exits 0, then the message keeps git's stderr and does not mention network access.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "Given the fetch fails and the probe fails for another reason, then the message is today's network text.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "Given `plan.policy.baseBranch` is `42`, `\"\"`, or `bad:ref`, or `plan.policy.deliveryBranch` is `bad:ref` with no `baseBranch`, then the command exits 2 before any fetch and names the key.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 17,
+          "text": "Given this repo (`origin/HEAD` names `master`), then it fetches only `master` as today.",
+          "artifact_path": "packages/core/src/check/no-suite-branch.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.6537648394",
+    "updated": "2026-11-22T03:23:52Z"
+  }
+}
