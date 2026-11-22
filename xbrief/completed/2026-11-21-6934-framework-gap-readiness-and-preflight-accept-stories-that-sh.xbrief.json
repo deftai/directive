@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6934",
-    "updated": "2026-11-21T23:43:43Z"
+    "updated": "2026-11-22T01:04:33Z"
   },
   "plan": {
     "title": "[framework-gap] Readiness and preflight accept stories that share one origin issue, which can never be completed",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Stories that share one completion issue (the first GitHub issue reference of each brief) compete for the same deft-story: N mark, and a part line cannot complete any of them, yet nothing says so until scope:complete refuses after merge (#6934). The worker envelope also asks the parent to pick a story line per task, so a leaf that delivers a whole story can carry deft-story-part: N (#6882 item 1). This story adds a warn-only shared-issue check to swarm:readiness, xbrief:preflight and swarm:launch, makes the envelope default to deft-story: N, and has the story-line writer note any part line on a product branch.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6934",
@@ -20,146 +20,272 @@
     "items": [
       {
         "title": "Helper. In `packages/core/src/pr-closing-keywords/story-issue.ts`, a function returns, for one story brief, the other story briefs in `xbrief/pending` and `xbrief/active` (legacy `vbrief/` read-accepted) whose `resolvePlanGithubIssueRef` names the same repository and issue. Epic and phase briefs are not counted. Files only, no forge. The #6468 case A check (`storyIssueIdentityMessage`) stays as it is and is not merged with this one.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "When the helper runs for a story brief, then it returns the other pending/active story briefs whose first GitHub issue reference names the same repository and issue, reading files only and skipping epic and phase briefs."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f420b0b7efe3b6f1ccbcba3997e88c3e8e2fbfe8",
+          "recorded_at": "2026-11-22T01:02:29Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Warning text, one per shared issue: \"<rel> shares completion issue <repo>#N (each brief's first GitHub issue reference) with <rels>. Their product PRs would compete for `deft-story: N`: only the PR named by `metadata.productPullRequest` in its brief on the fetched delivery branch can complete, and an operator attestation does not get past another product part. Give each story its own issue as its first GitHub issue reference, or carry the work as one story.\"",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "When a shared issue is found, then the warning names the brief, repo#N, the other briefs, the productPullRequest settlement and the fix (own issue per story, or one story), and never says only one story can ever complete."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f420b0b7efe3b6f1ccbcba3997e88c3e8e2fbfe8",
+          "recorded_at": "2026-11-22T01:02:29Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "`swarm:readiness`. `readinessReport` runs the helper for each story candidate and prints the warnings under a new heading \"Shared story issues\" (\"- none\" when empty). Exit code unchanged.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "When swarm:readiness runs, then the report has a Shared story issues heading (- none when empty) and the exit code is unchanged."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f420b0b7efe3b6f1ccbcba3997e88c3e8e2fbfe8",
+          "recorded_at": "2026-11-22T01:02:29Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "`xbrief:preflight`. `evaluate` runs the helper for the brief and appends the warning to the OK message, as it does for `placementWarning`. Exit code unchanged.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "When xbrief:preflight passes on a brief that shares its issue, then the OK message carries the warning and the exit code stays 0."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f420b0b7efe3b6f1ccbcba3997e88c3e8e2fbfe8",
+          "recorded_at": "2026-11-22T01:02:29Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "`swarm:launch`. When the gates pass, launch runs the helper for each resolved story (directly, not by parsing gate text), removes duplicates, and adds the warnings to the success stderr beside the existing advisory note. Stdout stays the JSON manifest; exit code unchanged.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "When swarm:launch gates pass, then the deduplicated warnings are on stderr beside the advisory, stdout is the JSON manifest, and the exit code is unchanged."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f420b0b7efe3b6f1ccbcba3997e88c3e8e2fbfe8",
+          "recorded_at": "2026-11-22T01:02:29Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Envelope. `content/skills/deft-directive-swarm/references/core-ops.md`: the task line becomes `Task A (xBRIEF: [filename], issue #[N])`; STEP 5 and the rule at line 95 say the worker writes `deft-story: N` with `--write-story-line`, and passes `--part` only when the envelope says \"split: a later product PR completes this story\". `core-phase-3.md` line 151 says the envelope names the story issue, and names a split only for a split story. No launch-manifest story-line field.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "narrative": {
           "Acceptance": "When a parent reads core-ops.md or core-phase-3.md, then the task line names only the xBRIEF and issue, and --part is reserved for an envelope-marked split story."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f420b0b7efe3b6f1ccbcba3997e88c3e8e2fbfe8",
+          "recorded_at": "2026-11-22T01:02:29Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Writer note. `writeStoryLineToBodyFile`: when the branch diff (`collectLocalDiffFiles`) is product-shaped (`isProductShapedDiff`) and the resulting body carries `deft-story-part: N` for a running story issue N of the branch, written now or already present, the OK message adds: \"`deft-story-part: N` on a product PR: this PR does not complete story #N; a later PR with `deft-story: N` must. If this PR delivers the whole story, replace the line with `deft-story: N` (dropping --part does not remove a line already in the body).\" Exit code unchanged; an existing line is never rewritten. `pre-pr:run` writes the writer's OK message to stderr whether or not `--json` is set, including when it goes on to start a controller run; stdout stays the controller JSON (`packages/runtime/src/pre-pr-run.ts` 670-674).",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
         "narrative": {
           "Acceptance": "When the writer runs on a product branch whose resulting body carries deft-story-part: N for a running story issue, then the OK message adds the note, an existing line is never rewritten, and pre-pr:run prints the message on stderr in every mode."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f420b0b7efe3b6f1ccbcba3997e88c3e8e2fbfe8",
+          "recorded_at": "2026-11-22T01:02:29Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "One PR. Files: `story-issue.ts`, `swarm/readiness.ts`, `preflight/evaluate.ts`, `swarm/launch.ts`, `pr-closing-keywords/main.ts`, `packages/runtime/src/pre-pr-run.ts`, their tests, `core-ops.md`, `core-phase-3.md`, one `changelog.d/` fragment. No new verb, flag, constant, policy field or refusal. None of the source files is a declared evaluator surface.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.8",
         "narrative": {
           "Acceptance": "When the PR is reviewed, then it is one PR with no new verb, flag, constant, policy field or refusal."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f420b0b7efe3b6f1ccbcba3997e88c3e8e2fbfe8",
+          "recorded_at": "2026-11-22T01:02:29Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given two story briefs in `xbrief/active` whose first GitHub issue reference is the same issue, when `swarm:readiness` runs on either, then the report lists both under \"Shared story issues\" and the exit code is what it would be without them.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.9",
         "narrative": {
           "Acceptance": "When two active story briefs share a first issue reference and swarm:readiness runs on either, then both are listed under Shared story issues with an unchanged exit code."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f420b0b7efe3b6f1ccbcba3997e88c3e8e2fbfe8",
+          "recorded_at": "2026-11-22T01:02:29Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given the same briefs, when `xbrief:preflight` runs on one, then it exits 0 and the message carries the warning naming the other brief.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.10",
         "narrative": {
           "Acceptance": "When xbrief:preflight runs on one of two sharing briefs, then it exits 0 and the message names the other brief."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f420b0b7efe3b6f1ccbcba3997e88c3e8e2fbfe8",
+          "recorded_at": "2026-11-22T01:02:29Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given the same briefs, when `swarm:launch` runs on one story and its gates pass, then the warning is on stderr, stdout is the unchanged JSON manifest, and the exit code is 0.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.11",
         "narrative": {
           "Acceptance": "When swarm:launch runs on one sharing story and its gates pass, then the warning is on stderr, stdout is the unchanged manifest, and the exit code is 0."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f420b0b7efe3b6f1ccbcba3997e88c3e8e2fbfe8",
+          "recorded_at": "2026-11-22T01:02:29Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given an epic brief and one story brief with the same first issue reference, then no warning is printed.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.12",
         "narrative": {
           "Acceptance": "When an epic brief and one story brief share a first issue reference, then no warning is printed."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f420b0b7efe3b6f1ccbcba3997e88c3e8e2fbfe8",
+          "recorded_at": "2026-11-22T01:02:29Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given two story briefs whose anchors name the same number in different repositories, or a sharing brief in `xbrief/completed`, then no warning is printed.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.13",
         "narrative": {
           "Acceptance": "When two story briefs name the same number in different repositories, or the sharing brief is in completed/, then no warning is printed."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f420b0b7efe3b6f1ccbcba3997e88c3e8e2fbfe8",
+          "recorded_at": "2026-11-22T01:02:29Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given a product branch of a running story, when the writer runs with `--part`, then it writes `deft-story-part: N` and prints the note.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.14",
         "narrative": {
           "Acceptance": "When the writer runs with --part on a product branch of a running story, then it writes deft-story-part: N and prints the note."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f420b0b7efe3b6f1ccbcba3997e88c3e8e2fbfe8",
+          "recorded_at": "2026-11-22T01:02:29Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given a product branch whose body already carries `deft-story-part: N`, when the writer runs without `--part`, then the body is unchanged and the note is printed.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.15",
         "narrative": {
           "Acceptance": "When the writer runs without --part on a product branch whose body already carries deft-story-part: N, then the body is unchanged and the note is printed."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f420b0b7efe3b6f1ccbcba3997e88c3e8e2fbfe8",
+          "recorded_at": "2026-11-22T01:02:29Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given a brief-only branch, when the writer runs with or without `--part`, then no note is printed.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.16",
         "narrative": {
           "Acceptance": "When the writer runs on a brief-only branch with or without --part, then no note is printed."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f420b0b7efe3b6f1ccbcba3997e88c3e8e2fbfe8",
+          "recorded_at": "2026-11-22T01:02:29Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given a product branch whose body already carries `deft-story-part: N`, when `pre-pr:run --body-file <body> --json` runs without `--part` and starts a controller run, then the note is on stderr, stdout is valid controller JSON, the body is unchanged, and the exit code is 0.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.17",
         "narrative": {
           "Acceptance": "When pre-pr:run --body-file --json runs without --part on a product branch whose body carries deft-story-part: N and starts a controller run, then the note is on stderr, stdout is valid controller JSON, the body is unchanged and the exit code is 0."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f420b0b7efe3b6f1ccbcba3997e88c3e8e2fbfe8",
+          "recorded_at": "2026-11-22T01:02:29Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given `core-ops.md`, then the task line has no story-line choice and `--part` appears only for a story the envelope marks as split.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.18",
         "narrative": {
           "Acceptance": "When core-ops.md is read, then the task line has no story-line choice and --part appears only for a story the envelope marks as split."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f420b0b7efe3b6f1ccbcba3997e88c3e8e2fbfe8",
+          "recorded_at": "2026-11-22T01:02:29Z",
+          "recorded_by": "scope:complete"
         }
       }
     ],
@@ -585,7 +711,36 @@
         "harvestDigest": "7584272ef9313ec5277aeefb72a60f50e5ee7312518a20ac2db28c13d6cab1e6",
         "slice": null
       },
-      "kind": "story"
+      "kind": "story",
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "1a63c3009e05f0871564a6bb193136be82e61118",
+        "prNumber": 6952,
+        "prBase": "master",
+        "mergeCommit": "f420b0b7efe3b6f1ccbcba3997e88c3e8e2fbfe8",
+        "deliveryBranch": "master",
+        "deliveryCommit": "f420b0b7efe3b6f1ccbcba3997e88c3e8e2fbfe8",
+        "verifiedAt": "2026-11-22T01:04:33Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:ZTYxMTJjZWUtZTUxNC00NjVlLTk1ZjUtN2QwZDljMmE5OWVl",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          6946
+        ]
+      },
+      "completedAt": "2026-11-22T01:04:33Z",
+      "completedSessionId": "host:claude:v1:ZTYxMTJjZWUtZTUxNC00NjVlLTk1ZjUtN2QwZDljMmE5OWVl",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-22T01:04:33Z"
+      }
     },
     "acceptance": {
       "commands": [],
@@ -764,6 +919,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.6526203936",
-    "updated": "2026-11-21T23:43:43Z"
+    "updated": "2026-11-22T01:04:33Z"
   }
 }
