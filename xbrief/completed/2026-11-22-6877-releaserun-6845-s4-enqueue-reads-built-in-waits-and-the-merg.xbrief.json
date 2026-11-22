@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6877",
-    "updated": "2026-11-22T06:54:35Z"
+    "updated": "2026-11-22T07:57:14Z"
   },
   "plan": {
     "title": "release:run (#6845 S4): enqueue reads, built-in waits and the merge phase",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "After the up-front approval, the release PR still needs a hand-checked merge freeze, a manual watch and merge, and a manual finish (#6877, S4 of #6845). This story builds the merge phase of `deft release:run`: enqueue reads (origin tip still B and an empty merge queue), the in-process `pr:watch` wait, then `pr:wait-mergeable-and-merge --wait`, one re-run of a failed required check per run kept in the run record, and the tag reconciliation the finish step needs on `--resume`. It builds clauses 7, 8, 18, 22, 23 and 25 of the accepted #6845 lean 7032154033 (split comment 7048165729); the S5 (#6878) clauses stay out.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6877",
@@ -19,50 +19,92 @@
     "items": [
       {
         "title": "Enqueue reads, no hold. The run enqueues the release PR only when the origin tip is still B and the merge queue is empty, and otherwise stops without enqueueing. After an ejection it re-enqueues only under the same reads. The finish step resolves the sole parent of M and refuses unless it is B, before it creates the tag and before it pushes a tag left only local; so when another PR lands ahead anyway, the run stops before the tag and names the break-glass recovery.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "Enqueue reads, no hold. The run enqueues the release PR only when the origin tip is still B and the merge queue is empty, and otherwise stops without enqueueing. After an ejection it re-enqueues only under the same reads. The finish step resolves the sole parent of M and refuses unless it is B, before it creates the tag and before it pushes a tag left only local; so when another PR lands ahead anyway, the run stops before the tag and names the break-glass recovery."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a64012b2a105512298c3d781527e9128b6b8226b",
+          "recorded_at": "2026-11-22T07:57:14Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Built-in waits. The run waits on the release PR in-process with `pr:watch` until CLEAN, then `pr:wait-mergeable-and-merge --wait`. A failed required check, or a queue ejection for a failed check, is re-run once per run; the count is kept in the run record and `--resume` does not reset it. A second failure or a review finding stops the run.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "Built-in waits. The run waits on the release PR in-process with `pr:watch` until CLEAN, then `pr:wait-mergeable-and-merge --wait`. A failed required check, or a queue ejection for a failed check, is re-run once per run; the count is kept in the run record and `--resume` does not reset it. A second failure or a review finding stops the run."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a64012b2a105512298c3d781527e9128b6b8226b",
+          "recorded_at": "2026-11-22T07:57:14Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given an origin tip that is not B or a non-empty merge queue, when the run would enqueue the release PR, then it does not enqueue and stops.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "Given an origin tip that is not B or a non-empty merge queue, when the run would enqueue the release PR, then it does not enqueue and stops."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a64012b2a105512298c3d781527e9128b6b8226b",
+          "recorded_at": "2026-11-22T07:57:14Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given a crash after the local tag on M and before its push, when `--resume` runs, then it pushes the tag and continues.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "Given a crash after the local tag on M and before its push, when `--resume` runs, then it pushes the tag and continues."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a64012b2a105512298c3d781527e9128b6b8226b",
+          "recorded_at": "2026-11-22T07:57:14Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given a remote `v<version>` tag on a commit other than M, when `--resume` runs, then it stops.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "Given a remote `v<version>` tag on a commit other than M, when `--resume` runs, then it stops."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a64012b2a105512298c3d781527e9128b6b8226b",
+          "recorded_at": "2026-11-22T07:57:14Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given a required check that fails once, then the run re-runs it once; given a second failure, also after a `--resume`, then the run stops without another re-run.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "narrative": {
           "Acceptance": "Given a required check that fails once, then the run re-runs it once; given a second failure, also after a `--resume`, then the run stops without another re-run."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a64012b2a105512298c3d781527e9128b6b8226b",
+          "recorded_at": "2026-11-22T07:57:14Z",
+          "recorded_by": "scope:complete"
         }
       }
     ],
@@ -170,7 +212,36 @@
         "origin": "deftai/directive#6877",
         "id": "github.issue.6517860375"
       },
-      "kind": "story"
+      "kind": "story",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "4a0ac9abd22893fd1fde8ae73f4cc6b6517cbe92",
+        "prNumber": 7023,
+        "prBase": "master",
+        "mergeCommit": "a64012b2a105512298c3d781527e9128b6b8226b",
+        "deliveryBranch": "master",
+        "deliveryCommit": "a64012b2a105512298c3d781527e9128b6b8226b",
+        "verifiedAt": "2026-11-22T07:57:14Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:ZTYxMTJjZWUtZTUxNC00NjVlLTk1ZjUtN2QwZDljMmE5OWVl",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          7022
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-22T07:57:14Z",
+      "completedSessionId": "host:claude:v1:ZTYxMTJjZWUtZTUxNC00NjVlLTk1ZjUtN2QwZDljMmE5OWVl",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-22T07:57:14Z"
+      }
     },
     "acceptance": {
       "commands": [],
@@ -242,6 +313,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.6517860375",
-    "updated": "2026-11-22T06:54:35Z"
+    "updated": "2026-11-22T07:57:14Z"
   }
 }
