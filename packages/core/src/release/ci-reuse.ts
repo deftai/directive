@@ -328,11 +328,7 @@ export function runSmokeCommand(
       process[stream].write(text);
     });
   const label = [command, ...args].join(" ");
-  write(
-    "stdout",
-    `host smoke check: ${label} (${Math.ceil(timeoutMs / 1000)}s left)
-`,
-  );
+  write("stdout", `host smoke check: ${label} (${timeoutMs} ms left)\n`);
   const plan = smokeSpawnPlan(command, args, cwd, platform);
   const result = (options.timedRunner ?? runTimedChild)({
     command: plan.command,

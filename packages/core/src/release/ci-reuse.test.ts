@@ -406,7 +406,7 @@ describe("smoke command under the timed-child supervisor (#6904)", () => {
       },
     ]);
     expect(written).toEqual([
-      "stdout:host smoke check: pnpm run build (2s left)\n",
+      "stdout:host smoke check: pnpm run build (1234 ms left)\n",
       "stdout:built\n",
       "stderr:warn\n",
     ]);
