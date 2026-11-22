@@ -22,7 +22,7 @@
       },
       {
         "command": "node .cursor/hooks/deft-hook-8149fb11.mjs --host cursor --event tool.before",
-        "matcher": "Shell|Bash|BashTool|shell|bash|run_terminal_command|monitor",
+        "matcher": "Shell|Bash|BashTool|shell|bash|run_terminal_command|monitor|PowerShell|Monitor",
         "failClosed": true,
         "timeout": 30
       },
