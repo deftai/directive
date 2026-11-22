@@ -1,0 +1,815 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6941",
+    "updated": "2026-11-22T03:41:12Z"
+  },
+  "plan": {
+    "title": "fix(hooks): kill-switch mention rule refuses read-only and data-only commands that name the flag file",
+    "status": "running",
+    "narratives": {
+      "Description": "fix(hooks): kill-switch mention rule refuses read-only and data-only commands that name the flag file",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6941",
+      "Overview": "\n1. Plain reads. `PLAIN_READ_BINS` gains `cut`, `tr`, `nl`, `jq`, `sort` and `sed`; `PLAIN_READ_GIT_SUBCOMMANDS` gains `grep`. Unsafe options: `sort`: `-o`, `--output`, `--compress-program`; `git grep`: `-o` (the text is lowercased, so `-O` is caught), `--open-files-in-pager`, `--textconv`; `rg`: `--pre`, `--hostname-bin`; `file`: `-c`, `--compile`; `less`: `-o`, `-k`, `--log-file`, `--lesskey-file`; `more`: `-o`. `sed` is a plain read only when every option word is exactly one of `-n`, `--quiet`, `--silent`, `-e`, `--expression`, `-r`, `-z`, `-u`, `-s` (any other spelling, abbreviation or attached value fails) and every script is a line-range print (`N`, `N,M`, `$` or `N,$`, then `p`).\n2. One unsafe-option test, replacing the exact-word match in `usesUnsafeReadFlag` for every reader with unsafe options. It reads every word of the segment after the program name, a lone `--` and every word after it included. A short unsafe option `-x` matches any word that starts with a single `-` and holds the letter `x` anywhere after it. A long unsafe option `--name` matches any word that starts with `--` when the text after `--`, up to the first `=` if any, is a non-empty prefix of `name`. So `-o<file>`, `-uo<file>`, `--o=<file>`, `--o`, `--out` and `--output=<file>` all match.\n2a. Trusted split only. The plain-read test runs only when every `;`, `&`, `|`, carriage return and line feed in the normalized text is also an unquoted, unescaped separator in the raw command. When any of those characters sits inside single quotes, double quotes or `$'...'`, follows a backslash, or comes from a `$'...'` or `\\xHH` decode, no segment counts as a plain read and a mention is refused as today.\n3. `xargs`. An `xargs` segment counts as a plain read only when every word between `xargs` and the program is on this closed list, matched exactly after normalization: `-0`, `--null`, `-r`, `--no-run-if-empty`, `-t`, `--verbose`, `-n` followed by a separate all-digit word, `-n` with all digits attached, `--max-args=` with all digits, and `--max-args` followed by a separate all-digit word. Any other word that starts with `-` before the program (another option, a cluster such as `-0r`, an abbreviation such as `--nu`, `--arg-file` or `-a`, or a lone `--`) means the segment is not a plain read. `XARGS_VALUE_OPTIONS` is replaced by this list; the guard never guesses whether an unknown option takes a value. Behind `xargs`, `sort`, `sed`, `git`, `file`, `less`, `more` and `rg` never count as plain reads; `cat`, `grep`, `head`, `cut`, `jq` and the other flag-free readers keep counting.\n4. Heredoc data. In the mention test, the body of a quoted-delimiter heredoc is not a mention when all of these hold: its command is `cat` with exactly one `>` or `>>` redirect, or `tee` with an optional `-a` and one or more operands; every destination is a literal path (no `$`, backtick, glob character, `<(` or `>(`, and not `-`); no destination mentions the flag; and that command is the only command in the call (no pipe, no `;`, `&&`, `||`, `&` or newline-separated second command, and no `$(`, backtick, `<(` or `>(` outside the removed body). These checks read the raw call with the heredoc body removed; a quoted or escaped separator anywhere outside the body fails the rule. Otherwise the body is read as today. An unquoted heredoc body is always read as today.\n5. Routing text. The kill-switch deny for a shell command adds one sentence: to edit a scratch file whose text names the flag, use the Edit or Write tool, which checks the target's name rather than its contents; other write checks still apply.\n6. Docs. `content/docs/deft-directive-disable.md` (agent self-serve ban section) states the plain reads, the option test, the `xargs` rule, the heredoc rule and the Edit/Write route, each with its limit.\n7. One PR, with tests beside `classify.ts`. No new verb, flag, policy field or stored file.\n\n## Acceptance Criteria\n\n- Given a command that names the flag file and is `git grep -n <flag> HEAD -- p | cut -c1-200`, `grep -rn <flag> p | sort -u`, `sed -n 1,20p a.md | grep <flag>`, or `grep <flag> a | tr a b | nl | jq -R .`, then the mention rule allows it.\n- Given `sort -o <flag> x`, `sort -o<flag> x`, `sort -uo<flag> x`, `sort --out=<flag> x`, `sort --o=<flag> x`, `sort --o <flag> x`, `sort -T -- -o<flag> /dev/null`, `sort -T ';cat' -o<flag> /dev/null`, `sort -T '|cat' -o<flag> /dev/null`, `sort -T '&cat' -o<flag> /dev/null`, `sort -T \\;cat -o<flag> /dev/null`, a `sort -T` whose quoted value holds a line break before `cat -o<flag>`, `sort -T $'\\x3bcat' -o<flag> /dev/null`, `sort --compress=sh x <flag>`, `git grep -O <flag>`, `git grep --open=sh <flag>`, `git grep --textconv <flag>`, `less -o<flag> f`, `rg --hostname-bin=x <flag>`, `printf '%s\\n' -o <flag> /dev/null | xargs sort`, `xargs less -o <flag>`, `sed -n 'w <flag>' a`, `sed -i s/a/b/ <flag>`, `cut -c1 /dev/null | xargs --arg-file cat touch <flag>`, `echo x | xargs -a cat touch <flag>`, `echo x | xargs --a cat touch <flag>`, `echo x | xargs -i cat touch <flag>`, `echo x | xargs -p cat touch <flag>`, `echo x | xargs -0r cat <flag>`, `echo x | xargs -n x cat <flag>`, or a `sed -i` whose script names the flag, then the mention rule refuses.\n- Given `grep -l <flag> p | xargs -0 -r -n 1 cat` or `grep -l <flag> p | xargs --null --max-args=2 grep x`, then the mention rule allows it.\n- Given `cat > /tmp/b.md <<'EOF'` or `tee -a /tmp/b.md <<'EOF'` whose body names the flag, as the only command in the call, then the mention rule allows it.\n- Given the same body with `tee >(sh)`, `cat <<'EOF' | sh`, an unquoted delimiter, a destination holding `$`, a destination that names the flag, or any second command in the call (including `rg --hostname-bin=/tmp/h x /dev/null` or `cat /tmp/b.md`), then the mention rule refuses.\n- Given a shell command refused by the mention rule, then the deny text names the Edit and Write tools as the route for a scratch file whose text names the flag.\n- Given `content/docs/deft-directive-disable.md`, then it states each rule above and its limit.\n\n\n",
+      "Constraint": "- Matching long unsafe options from a two-letter or longer prefix only (comment 7070719963, finding 1).\n- Stopping the option scan at a lone `--` (#6871 audit 7052605509).\n- Splitting the quote-removed text and trusting the parts when a separator was quoted, escaped or decoded (audit 7070753317, finding 1).\n- A heredoc data rule that trusts any other command in the same call, including a plain read (finding 2).\n- Counting an argument-sensitive reader as a plain read behind `xargs`, or skipping an unknown `xargs` option to find the program (audit 7070797080, finding 1).\n- Changing the direct-write plant test, the shell-write destination check, or any polfer-owned surface.",
+      "Labels": "design-critique:ingest-ready, framework-gap"
+    },
+    "items": [
+      {
+        "title": "Plain reads. `PLAIN_READ_BINS` gains `cut`, `tr`, `nl`, `jq`, `sort` and `sed`; `PLAIN_READ_GIT_SUBCOMMANDS` gains `grep`. Unsafe options: `sort`: `-o`, `--output`, `--compress-program`; `git grep`: `-o` (the text is lowercased, so `-O` is caught), `--open-files-in-pager`, `--textconv`; `rg`: `--pre`, `--hostname-bin`; `file`: `-c`, `--compile`; `less`: `-o`, `-k`, `--log-file`, `--lesskey-file`; `more`: `-o`. `sed` is a plain read only when every option word is exactly one of `-n`, `--quiet`, `--silent`, `-e`, `--expression`, `-r`, `-z`, `-u`, `-s` (any other spelling, abbreviation or attached value fails) and every script is a line-range print (`N`, `N,M`, `$` or `N,$`, then `p`).",
+        "status": "proposed",
+        "id": "clause.1"
+      },
+      {
+        "title": "One unsafe-option test, replacing the exact-word match in `usesUnsafeReadFlag` for every reader with unsafe options. It reads every word of the segment after the program name, a lone `--` and every word after it included. A short unsafe option `-x` matches any word that starts with a single `-` and holds the letter `x` anywhere after it. A long unsafe option `--name` matches any word that starts with `--` when the text after `--`, up to the first `=` if any, is a non-empty prefix of `name`. So `-o<file>`, `-uo<file>`, `--o=<file>`, `--o`, `--out` and `--output=<file>` all match.",
+        "status": "proposed",
+        "id": "clause.2"
+      },
+      {
+        "title": "`xargs`. An `xargs` segment counts as a plain read only when every word between `xargs` and the program is on this closed list, matched exactly after normalization: `-0`, `--null`, `-r`, `--no-run-if-empty`, `-t`, `--verbose`, `-n` followed by a separate all-digit word, `-n` with all digits attached, `--max-args=` with all digits, and `--max-args` followed by a separate all-digit word. Any other word that starts with `-` before the program (another option, a cluster such as `-0r`, an abbreviation such as `--nu`, `--arg-file` or `-a`, or a lone `--`) means the segment is not a plain read. `XARGS_VALUE_OPTIONS` is replaced by this list; the guard never guesses whether an unknown option takes a value. Behind `xargs`, `sort`, `sed`, `git`, `file`, `less`, `more` and `rg` never count as plain reads; `cat`, `grep`, `head`, `cut`, `jq` and the other flag-free readers keep counting.",
+        "status": "proposed",
+        "id": "clause.3"
+      },
+      {
+        "title": "Heredoc data. In the mention test, the body of a quoted-delimiter heredoc is not a mention when all of these hold: its command is `cat` with exactly one `>` or `>>` redirect, or `tee` with an optional `-a` and one or more operands; every destination is a literal path (no `$`, backtick, glob character, `<(` or `>(`, and not `-`); no destination mentions the flag; and that command is the only command in the call (no pipe, no `;`, `&&`, `||`, `&` or newline-separated second command, and no `$(`, backtick, `<(` or `>(` outside the removed body). These checks read the raw call with the heredoc body removed; a quoted or escaped separator anywhere outside the body fails the rule. Otherwise the body is read as today. An unquoted heredoc body is always read as today.",
+        "status": "proposed",
+        "id": "clause.4"
+      },
+      {
+        "title": "Routing text. The kill-switch deny for a shell command adds one sentence: to edit a scratch file whose text names the flag, use the Edit or Write tool, which checks the target's name rather than its contents; other write checks still apply.",
+        "status": "proposed",
+        "id": "clause.5"
+      },
+      {
+        "title": "Docs. `content/docs/deft-directive-disable.md` (agent self-serve ban section) states the plain reads, the option test, the `xargs` rule, the heredoc rule and the Edit/Write route, each with its limit.",
+        "status": "proposed",
+        "id": "clause.6"
+      },
+      {
+        "title": "One PR, with tests beside `classify.ts`. No new verb, flag, policy field or stored file.",
+        "status": "proposed",
+        "id": "clause.7"
+      },
+      {
+        "title": "Given a command that names the flag file and is `git grep -n <flag> HEAD -- p | cut -c1-200`, `grep -rn <flag> p | sort -u`, `sed -n 1,20p a.md | grep <flag>`, or `grep <flag> a | tr a b | nl | jq -R .`, then the mention rule allows it.",
+        "status": "proposed",
+        "id": "clause.8"
+      },
+      {
+        "title": "Given `sort -o <flag> x`, `sort -o<flag> x`, `sort -uo<flag> x`, `sort --out=<flag> x`, `sort --o=<flag> x`, `sort --o <flag> x`, `sort -T -- -o<flag> /dev/null`, `sort -T ';cat' -o<flag> /dev/null`, `sort -T '|cat' -o<flag> /dev/null`, `sort -T '&cat' -o<flag> /dev/null`, `sort -T \\;cat -o<flag> /dev/null`, a `sort -T` whose quoted value holds a line break before `cat -o<flag>`, `sort -T $'\\x3bcat' -o<flag> /dev/null`, `sort --compress=sh x <flag>`, `git grep -O <flag>`, `git grep --open=sh <flag>`, `git grep --textconv <flag>`, `less -o<flag> f`, `rg --hostname-bin=x <flag>`, `printf '%s\\n' -o <flag> /dev/null | xargs sort`, `xargs less -o <flag>`, `sed -n 'w <flag>' a`, `sed -i s/a/b/ <flag>`, `cut -c1 /dev/null | xargs --arg-file cat touch <flag>`, `echo x | xargs -a cat touch <flag>`, `echo x | xargs --a cat touch <flag>`, `echo x | xargs -i cat touch <flag>`, `echo x | xargs -p cat touch <flag>`, `echo x | xargs -0r cat <flag>`, `echo x | xargs -n x cat <flag>`, or a `sed -i` whose script names the flag, then the mention rule refuses.",
+        "status": "proposed",
+        "id": "clause.9"
+      },
+      {
+        "title": "Given `grep -l <flag> p | xargs -0 -r -n 1 cat` or `grep -l <flag> p | xargs --null --max-args=2 grep x`, then the mention rule allows it.",
+        "status": "proposed",
+        "id": "clause.10"
+      },
+      {
+        "title": "Given `cat > /tmp/b.md <<'EOF'` or `tee -a /tmp/b.md <<'EOF'` whose body names the flag, as the only command in the call, then the mention rule allows it.",
+        "status": "proposed",
+        "id": "clause.11"
+      },
+      {
+        "title": "Given the same body with `tee >(sh)`, `cat <<'EOF' | sh`, an unquoted delimiter, a destination holding `$`, a destination that names the flag, or any second command in the call (including `rg --hostname-bin=/tmp/h x /dev/null` or `cat /tmp/b.md`), then the mention rule refuses.",
+        "status": "proposed",
+        "id": "clause.12"
+      },
+      {
+        "title": "Given a shell command refused by the mention rule, then the deny text names the Edit and Write tools as the route for a scratch file whose text names the flag.",
+        "status": "proposed",
+        "id": "clause.13"
+      },
+      {
+        "title": "Given `content/docs/deft-directive-disable.md`, then it states each rule above and its limit.",
+        "status": "proposed",
+        "id": "clause.14"
+      }
+    ],
+    "tags": [
+      "design-critique:ingest-ready",
+      "framework-gap"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6941",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6941: fix(hooks): kill-switch mention rule refuses read-only and data-only commands that name the flag file"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6871",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6871"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "git",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L7"
+        },
+        {
+          "command": "rg",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L7"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/authz/classify.ts",
+          "packages/core/src/authz/classify.test.ts",
+          "packages/core/src/authz/kill-switch-mention.test.ts",
+          "packages/core/src/authz/incident-regression.test.ts",
+          "packages/core/src/authz/evaluate.test.ts",
+          "packages/core/src/hooks/dispatcher.ts",
+          "packages/core/src/hooks/dispatcher.test.ts",
+          "content/docs/deft-directive-disable.md",
+          "changelog.d/6941-kill-switch-mention-read-relief.md"
+        ],
+        "verify_commands": [
+          "npx vitest run packages/core/src/authz/kill-switch-mention.test.ts packages/core/src/authz/classify.test.ts packages/core/src/authz/incident-regression.test.ts",
+          "npx vitest run packages/core/src/hooks/dispatcher.test.ts -t 6136"
+        ],
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "depends_on": [],
+        "expected_outputs": [
+          "mention rule plain-read relief (classify.ts): new readers, one unsafe-option test, trusted split, closed xargs option list, single-command heredoc data",
+          "kill-switch-mention.test.ts: every allowed case and every refusal named in the acceptance criteria, plus the current-guard xargs --arg-file form",
+          "Edit/Write routing sentence on the shell kill-switch deny (dispatcher.ts)",
+          "deft-directive-disable.md agent self-serve ban section states each rule and its limit",
+          "one changelog fragment changelog.d/6941-kill-switch-mention-read-relief.md"
+        ],
+        "model_tier": "standard",
+        "conflict_group": "authz-kill-switch-guard"
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: triage\n```\n\nStop 1 — Gate (arc 6941; no-ingest)\n\nmechanism-shaped: true\ndesign-critique: warranted, because the fix loosens the fail-closed kill-switch mention rule, and a wrong narrowing would let an agent plant the kill-switch flag file in one shell call.\n\nTarget-digest: sha256:b5d331d6fa5228aa89e665bc55ab1e2d2c14141de7520f67b04aad58d81fbc96\ndispatch-sha: 838433b5b45bc24a1d28680fb136c9aacd874ccb\ndest: C:/Repos/deft/wt/arc-6941 (pinKind origin-default, created by `deft design-critique:ensure-arc-dest` with install mode process-only-no-install, read-only, no lease)\narc-mode: no-ingest\nyolo-standing: on\ncharter: open critique\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\nspend-why: one narrowing of one gate in one source file, already audited twice on #6871; the open risk is a one-call escape through a reader's options. One critic of a different model family, plus one pain audit.\ncritic-post cap: 3 (one recut allowed; the operator's setting for this same mechanism on #6871, carried over for this split arc)\nmateriality-bar: open\ntarget-kind: issue\nceiling-kind: comment-id\nverification-path: pin-read git show 838433b5b45bc24a1d28680fb136c9aacd874ccb: + dest cwd-without-occupy\npain: P1\n\nCharter note: this issue carries the open question of the last Handoff on #6871 (comment 7052614494), split off by the operator on 2026-11-21 (comment 7070642561). It is treated as a post-Handoff Stop 1: open critique, and no refutation target.\n\n## In plain English\nThe kill-switch guard refuses shell commands whose text names the kill-switch flag file, so that an agent cannot create that file. It also refuses ordinary reads and data writes that only name the file, for example a `grep` piped into `sort`, or a comment body written to a scratch file. Agents working on any kill-switch issue hit this on every read.\n\nThe recommended fix counts a few more programs as plain reads when they carry none of their write or run options, and treats a quoted heredoc written to a literal scratch file as data. The design was audited twice on #6871. Each audit found one way to make an added reader write the flag file in one call: an output option with its value attached (`sort -o<flag>`), and an option whose value is a lone `--` (`sort -T -- -o<flag>`). This version closes both by reading every word of the command for unsafe options, with no stop at `--`. That refuses a few more harmless commands, and it must keep the protection: no plant of the flag file.\n\n## Pains\n- P1 — The kill-switch mention rule (#6681) refuses read-only and data-only commands that name the flag file: a read piped into `cut`, `sort` or `sed -n`, a `git grep`, and a quoted heredoc whose text is written as data to a scratch file.\n\n## Out of scope (named, not pains)\n- The direct-write plant test (target basename only) and `decideShellWriteReissue` (every recognized shell write destination) are unchanged.\n- polfer-owned surfaces (`docs/installer-refactor-ovpr/LLM-CONTEXT.md` section 5), including the AC9.12 entry guard for the disable flag: no change.\n- The commit gate and the Write class (#6871), and the `session:start` lease (#6942).\n\n## Anchors at the dispatch SHA\n- `packages/core/src/authz/classify.ts` 4042-4052: `normalizeMentionText` (quotes removed, lowercased). 4150-4164: `mentionsKillSwitchText`. 4167: `PLAIN_READ_BINS`. 4211: `PLAIN_READ_GIT_SUBCOMMANDS` (no `grep`). 4237: `PLAIN_READ_UNSAFE_FLAGS`. 4276: `usesUnsafeReadFlag` (exact-word match for short flags). 4285: `segmentIsPlainRead`. 4300: `allSegmentsPlainRead`. 4316: `mentionRefused`. 4327: `hasKillSwitchShellWrite`. 2052 and 2064: `shellWithoutHereDocBodies` and `shellCommandChunksWithoutQuotedHereDocBodies`.\n- `packages/core/src/hooks/shell-write-targets.ts` 8-14 and 225-243: no `cat`, `tee` or `sort` destination recognition.\n- `packages/core/src/hooks/dispatcher.ts`: the kill-switch plant test near 2112, and `decideShellWriteReissue` near 3549.\n- `content/docs/deft-directive-disable.md` 85-89 (agent self-serve ban).\n- These files are unchanged between 880c91ed0 (the #6871 dispatch SHA) and this dispatch SHA.\n\n## Recommended mechanism (the thing to critique)\n- R1. Plain reads. `PLAIN_READ_BINS` gains `cut`, `tr`, `nl`, `jq`, `sort` and `sed`; `PLAIN_READ_GIT_SUBCOMMANDS` gains `grep`. `sort` has the unsafe options `-o`, `--output` and `--compress-program`. `git grep` has the unsafe options `-o` (the text is lowercased, so `-O` is caught), `--open-files-in-pager` and `--textconv`. The existing entries keep their unsafe options (`file`: `-c`, `--compile`; `less`: `-o`, `-k`, `--log-file`, `--lesskey-file`; `more`: `-o`; `rg`: `--pre`). `sed` is a plain read only when every option word is exactly one of `-n`, `--quiet`, `--silent`, `-e`, `--expression`, `-r`, `-z`, `-u`, `-s` (any other spelling, abbreviation or attached value fails) and every script is a line-range print (`N`, `N,M`, `$` or `N,$`, then `p`).\n- R2. One unsafe-option test, replacing the exact-word match in `usesUnsafeReadFlag` for every reader with unsafe options. A short unsafe option `-x` matches any word that starts with a single `-` and holds the letter `x` anywhere after it, so an attached value (`-o<file>`) and a cluster (`-uo<file>`) match. A long unsafe option matches any word that starts with `--` followed by the option's first two letters, so `--out=<file>`, `--compress` and `--open` match. The test reads every word of the segment after the program name, a lone `--` and every word after it included; there is no end-of-options boundary. It fails closed: some harmless spellings (`git grep --or`, `sort -to`, a file operand after `--` whose name starts with `-o`) stop counting as plain reads.\n- R3. Nothing argument-sensitive behind `xargs`. Behind `xargs`, a program counts as a plain read only when its plain-read status does not depend on its arguments. `sort`, `sed`, `git`, `file`, `less`, `more` and `rg` never count as plain reads behind `xargs`; `cat`, `grep`, `head`, `cut`, `jq` and the other flag-free readers keep counting.\n- R4. Literal-file heredoc data. In the mention test, the body of a quoted-delimiter heredoc is not a mention when all of these hold: its command is `cat` with exactly one `>` or `>>` redirect, or `tee` with an optional `-a` and one or more operands; every destination is a literal path (no `$`, backtick, glob character, `<(` or `>(`, and not `-`); no destination mentions the flag; the heredoc command is the only command in its segment and is not joined by a pipe; the call holds no `$(`, backtick, `<(` or `>(` outside the removed body; and every other segment of the call is a plain read. Otherwise the body is read as today. An unquoted heredoc body is always read as today. No other shell-write check is claimed to catch these destinations.\n- R5. Routing text. The kill-switch deny for a shell command adds one sentence: to edit a scratch file whose text names the flag, use the Edit or Write tool, which checks the target's name rather than its contents; other write checks still apply.\n- R6. Docs: `content/docs/deft-directive-disable.md` (agent self-serve ban section) states the plain reads, the option test, the `xargs` rule, the heredoc rule and the Edit/Write route.\n- R7. Tests beside `classify.ts`: each allowed case and each refusal that must stay, including `sort -o <flag> x`, `sort -o<flag> x`, `sort -uo<flag> x`, `sort --out=<flag> x`, `sort -T -- -o<flag> /dev/null`, `sort --compress=sh x <flag>`, `git grep -O <flag>`, `git grep --open=sh <flag>`, `git grep --textconv <flag>`, `less -o<flag> f`, `printf '%s\\n' -o <flag> /dev/null | xargs sort`, `sed -n 'w <flag>' a`, `sed -i s/a/b/ <flag>`, a heredoc through `tee >(sh)` or `| sh`, an unquoted heredoc, and a `cat >` whose destination is the flag. One PR. No new verb, flag, policy field or stored file.\n\nQuestions for the critic:\n1. With R2 reading every word of a segment, with no boundary at a lone `--`, can any reader counted as a plain read under R1-R3 still write a file or run a program in one call?\n2. Are the unsafe-option lists in R1 complete for `sort`, `git grep`, `sed`, `jq`, `cut`, `tr` and `nl` at the versions an agent meets (GNU, BSD and Git for Windows)? Name any missing option that writes a file or runs a program.\n3. The text is lowercased before the scan. With no `--` boundary, does lowercasing still hide any unsafe spelling?\n4. Does R4 still hold when combined with R1-R3 in one call?\n\n",
+          "id": 7070669467,
+          "html_url": "https://github.com/deftai/directive/issues/6941#issuecomment-7070669467",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-21T23:08:17Z",
+          "updated_at": "2026-11-21T23:08:17Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 1\ninput-ceiling: 7070673003\nseat: codex launcher: codex (exec --ephemeral --sandbox read-only -C dest)\n\ncharter: open critique\nspend: N=1\narc-mode: no-ingest\nmateriality-bar: open\ndispatch-sha: 838433b5b45bc24a1d28680fb136c9aacd874ccb\ndest: C:/Repos/deft/wt/arc-6941\nverification-path: pin-read git show 838433b5b45bc24a1d28680fb136c9aacd874ccb: + dest cwd-without-occupy\naudit-targets: none\nStop 1 cite: comment 7070669467\n\n## Launch posture (disclosed)\n- The parent is Claude Code (claude-opus-5-5). The one critic seat is Codex, a different model family, run with a read-only launcher against the dest.\n- The Codex seat has no GitHub access. It reads a parent-written thread snapshot (issue body, thread up to the ceiling, this deposit, and the linked #6871 design thread) and reads code with `git show <dispatch-sha>:<path>`. The parent posts the critic's final message verbatim.\n- This deposit was created and then edited once, only to record its own comment id as the input ceiling.\n\n",
+          "id": 7070673003,
+          "html_url": "https://github.com/deftai/directive/issues/6941#issuecomment-7070673003",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-21T23:08:35Z",
+          "updated_at": "2026-11-21T23:08:36Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\n\nThe guard blocks useful reads and scratch-file writes because their text names the kill-switch file. Narrowing it is reasonable, but this mechanism cannot bind as written: a shorter `sort` option escapes R2, and a retained reader can execute a heredoc-written program.\n\nAnswers to the four Stop 1 questions:\n\n1. **Yes.** `sort --o=.deft-directive-disable /dev/null` can create the flag while satisfying the proposed read classification.\n2. **The option coverage is insufficient.** GNU `sort` accepts `--o` for `--output`. Beyond the seven newly considered programs, the retained `rg` entry lacks `--hostname-bin`, which runs a program. I found no additional missing write/run option for the other six named programs, but did not establish exhaustive GNU/BSD/Git-for-Windows version coverage.\n3. **No additional lowercasing escape was established.** The two findings below do not depend on case. Scanning every word closes the earlier `-T --` boundary escape, but does not cure incomplete option recognition.\n4. **No.** R4 can write executable content that a supposedly plain reader then runs in the same call.\n\nR3’s exclusion of argument-sensitive programs behind `xargs` survives these counterexamples. R1–R2 and R4’s composition do not.\n\n### 1. blocks-the-design — A one-letter long-option abbreviation escapes R2\n\n**Pinned evidence:** At `838433b5b45bc24a1d28680fb136c9aacd874ccb`, `packages/core/src/authz/classify.ts:4276–4281` contains the option predicate R2 replaces; `4285–4319` admits commands when every segment qualifies as a plain read. `packages/core/src/hooks/shell-write-targets.ts:225–243` has no `sort` destination recognition.\n\nUnexecuted counterexample:\n\n```sh\nsort --o=.deft-directive-disable /dev/null\n```\n\nGNU accepts unambiguous long-option abbreviations. In Coreutils 9.5, `output` is the only long option beginning with `o`, and `sort` uses `getopt_long`. Thus `--o` selects the output file. This follows from the [GNU abbreviation contract](https://www.gnu.org/s/coreutils/manual/html_node/Common-options.html) and [version-pinned sort source](https://raw.githubusercontent.com/coreutils/coreutils/v9.5/src/sort.c), lines 514–546 and 4159–4160.\n\nR2 rejects single-dash words containing `o`, and double-dash words starting with `--ou`; this word satisfies neither condition. Reading every word does not help. Empty input still permits creation of the output file.\n\n**Disposition:** R2 cannot bind. Recognize every nonempty prefix of an unsafe long option, including one-letter prefixes, while retaining the all-words scan. Conservative over-refusal is consistent with the stated design. Add refusal cases for both `--o=<flag>` and `--o <flag>`. A platform-specific option parser could preserve more harmless calls, but is unnecessary for this correction.\n\n### 2. blocks-the-design — R4 can feed a program launcher retained as a plain reader\n\n**Pinned evidence:** `packages/core/src/authz/classify.ts:4167–4175` admits `rg`; `4237–4242` lists only `--pre` as unsafe for it; `4294–4296` relies on that list. R1 explicitly retains it. The heredoc helpers at `1997–2065` remove bodies without proving how their output will subsequently be consumed. `packages/core/src/hooks/shell-write-targets.ts:225–243` provides no `cat` or `rg` destination backstop.\n\nRipgrep 14.1.1’s `--hostname-bin` executes its argument without additional arguments. Its [flag definition](https://raw.githubusercontent.com/BurntSushi/ripgrep/14.1.1/crates/core/flags/defs.rs), lines 2614–2646, documents this; [argument processing](https://raw.githubusercontent.com/BurntSushi/ripgrep/14.1.1/crates/core/flags/hiargs.rs), lines 1207–1224 and 1258–1272, invokes the executable.\n\nUnexecuted counterexample, with an explicit precondition: `/tmp/hostname-helper` is an existing, writable, executable regular file on an executable filesystem.\n\n```sh\ncat > /tmp/hostname-helper <<'EOF'\n#!/bin/sh\ntouch .deft-directive-disable\nEOF\nrg --hostname-bin=/tmp/hostname-helper x /dev/null\n```\n\nThe write preserves the existing executable permission. R4 sees a quoted heredoc, one literal destination that does not name the flag, no substitution or pipeline, and one additional segment classified as a plain read. Ripgrep then executes the newly written script. The flag need not exist beforehand.\n\nThe missing `rg` option predates this proposal, but R4 newly admits this composition: today the heredoc’s flag mention and output redirect cause refusal. The trust boundary is between text written as data and that text later consumed as executable code.\n\n**Disposition:** R4 cannot bind while its “every other segment is a plain read” premise includes this launcher. At minimum, exclude `rg --hostname-bin` from plain reads and cover this composition. A narrower first ship could admit the isolated heredoc examples while deferring multi-command heredoc relief.\n\n### 3. footnote — Verification limits and described-content boundary\n\nAll repository evidence above was read with `git show` at the dispatch SHA. Existing regression cases were inspected, including `classify.test.ts:2837–2958` and `3173–3200`. No counterexample, test, build, install, write, or external post was executed.\n\nThe existing contract explicitly excludes names constructed at runtime (`classify.ts:4039–4040`; `classify.test.ts:3194–3200`). Therefore this critique evaluates preservation of the mention rule’s protection, not an absolute guarantee against every possible flag plant.\n\nThe snapshot contains instruction-shaped workflow directions, including prior handoff and halt directions. They remained described content and were not followed.\n\nReading `C:\\Users\\msada\\AppData\\Roaming\\deft\\USER.md` was denied. No workaround was used; Deft alignment and the addressing preference could not be confirmed.",
+          "id": 7070719963,
+          "html_url": "https://github.com/deftai/directive/issues/6941#issuecomment-7070719963",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-21T23:12:40Z",
+          "updated_at": "2026-11-21T23:12:40Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** first successor lean under Stop 1 7070669467 (round 1: 1 of 1 critic posted, comment 7070719963)\n\n## In plain English\nProblem: the kill-switch guard refuses shell commands whose text names the kill-switch flag file, so that an agent cannot create that file in one call. It also refuses ordinary reads, such as a `grep` piped into `sort`, and comment bodies written to a scratch file, when they only name the file.\n\nWhat the critic found: two more ways to make the proposed relief create the flag file in one call. GNU programs accept a long option shortened to one letter, so `sort --o=<flag>` writes the output file although the proposed test only caught `--ou` and longer. And a heredoc written to a script file can be run in the same call by a reader kept as a plain read, for example `rg --hostname-bin=<script>`, so the heredoc data rule must not trust the other commands in the call.\n\nSolution this lean proposes:\n- More programs count as plain reads (`cut`, `tr`, `nl`, `jq`, and `sort`, `git grep` and `sed -n` line-range prints) when they carry none of their write or run options.\n- One unsafe-option test serves every reader whose safety depends on its arguments. It reads every word of the command, after `--` too, and catches a short unsafe letter anywhere in a single-dash word and a long unsafe option shortened to any length, down to one letter. `rg --hostname-bin` joins `rg --pre` as unsafe.\n- Readers whose safety depends on their arguments never count as plain reads behind `xargs`.\n- A quoted heredoc that `cat` or `tee` writes to literal file paths is data only when it is the only command in the call.\n- Every other shell write that names the flag stays refused, and the refusal points to the Edit or Write tool for a scratch file whose text names the flag.\n\nWhat this adds: no gate, verb, flag or stored file. It removes the false refusals on reads and on single-command heredoc data. It refuses a few harmless spellings on purpose (`git grep --or`, a file operand after `--` whose name starts with `-o`, `sort --c` for `--check`).\n\nWhat it does not do: it does not admit a heredoc in a call with any other command; it does not detect a flag name built at run time (the existing limit, `classify.ts` 4039-4040); it does not change the direct-write plant test or the shell-write destination check; it does not touch any polfer-owned surface. It is a guardrail over the commands the gate reads, not a security boundary.\n\nTarget-digest: sha256:b5d331d6fa5228aa89e665bc55ab1e2d2c14141de7520f67b04aad58d81fbc96\n**Spec-path:** Bound remedy on this lean\n\nrelieves: P1\n\n`P1` is relieved for the named reads and for a quoted heredoc written as data by a call that holds only that command. A heredoc in a call with other commands stays refused, as today.\n\n## Bound remedy\n1. Plain reads. `PLAIN_READ_BINS` gains `cut`, `tr`, `nl`, `jq`, `sort` and `sed`; `PLAIN_READ_GIT_SUBCOMMANDS` gains `grep`. Unsafe options: `sort`: `-o`, `--output`, `--compress-program`; `git grep`: `-o` (the text is lowercased, so `-O` is caught), `--open-files-in-pager`, `--textconv`; `rg`: `--pre`, `--hostname-bin`; `file`: `-c`, `--compile`; `less`: `-o`, `-k`, `--log-file`, `--lesskey-file`; `more`: `-o`. `sed` is a plain read only when every option word is exactly one of `-n`, `--quiet`, `--silent`, `-e`, `--expression`, `-r`, `-z`, `-u`, `-s` (any other spelling, abbreviation or attached value fails) and every script is a line-range print (`N`, `N,M`, `$` or `N,$`, then `p`).\n2. One unsafe-option test, replacing the exact-word match in `usesUnsafeReadFlag` for every reader with unsafe options. It reads every word of the segment after the program name, a lone `--` and every word after it included. A short unsafe option `-x` matches any word that starts with a single `-` and holds the letter `x` anywhere after it. A long unsafe option `--name` matches any word that starts with `--` when the text after `--`, up to the first `=` if any, is a non-empty prefix of `name`. So `-o<file>`, `-uo<file>`, `--o=<file>`, `--o`, `--out` and `--output=<file>` all match.\n3. Nothing argument-sensitive behind `xargs`. Behind `xargs`, `sort`, `sed`, `git`, `file`, `less`, `more` and `rg` never count as plain reads; `cat`, `grep`, `head`, `cut`, `jq` and the other flag-free readers keep counting.\n4. Heredoc data. In the mention test, the body of a quoted-delimiter heredoc is not a mention when all of these hold: its command is `cat` with exactly one `>` or `>>` redirect, or `tee` with an optional `-a` and one or more operands; every destination is a literal path (no `$`, backtick, glob character, `<(` or `>(`, and not `-`); no destination mentions the flag; and that command is the only command in the call (no pipe, no `;`, `&&`, `||`, `&` or newline-separated second command, and no `$(`, backtick, `<(` or `>(` outside the removed body). Otherwise the body is read as today. An unquoted heredoc body is always read as today.\n5. Routing text. The kill-switch deny for a shell command adds one sentence: to edit a scratch file whose text names the flag, use the Edit or Write tool, which checks the target's name rather than its contents; other write checks still apply.\n6. Docs. `content/docs/deft-directive-disable.md` (agent self-serve ban section) states the plain reads, the option test, the `xargs` rule, the heredoc rule and the Edit/Write route, each with its limit.\n7. One PR, with tests beside `classify.ts`. No new verb, flag, policy field or stored file.\n\n## Acceptance Criteria\n- Given a command that names the flag file and is `git grep -n <flag> HEAD -- p | cut -c1-200`, `grep -rn <flag> p | sort -u`, `sed -n 1,20p a.md | grep <flag>`, or `grep <flag> a | tr a b | nl | jq -R .`, then the mention rule allows it.\n- Given `sort -o <flag> x`, `sort -o<flag> x`, `sort -uo<flag> x`, `sort --out=<flag> x`, `sort --o=<flag> x`, `sort --o <flag> x`, `sort -T -- -o<flag> /dev/null`, `sort --compress=sh x <flag>`, `git grep -O <flag>`, `git grep --open=sh <flag>`, `git grep --textconv <flag>`, `less -o<flag> f`, `rg --hostname-bin=x <flag>`, `printf '%s\\n' -o <flag> /dev/null | xargs sort`, `xargs less -o <flag>`, `sed -n 'w <flag>' a`, `sed -i s/a/b/ <flag>`, or a `sed -i` whose script names the flag, then the mention rule refuses.\n- Given `cat > /tmp/b.md <<'EOF'` or `tee -a /tmp/b.md <<'EOF'` whose body names the flag, as the only command in the call, then the mention rule allows it.\n- Given the same body with `tee >(sh)`, `cat <<'EOF' | sh`, an unquoted delimiter, a destination holding `$`, a destination that names the flag, or any second command in the call (including `rg --hostname-bin=/tmp/h x /dev/null` or `cat /tmp/b.md`), then the mention rule refuses.\n- Given a shell command refused by the mention rule, then the deny text names the Edit and Write tools as the route for a scratch file whose text names the flag.\n- Given `content/docs/deft-directive-disable.md`, then it states each rule above and its limit.\n\n## Reject\n- Matching long unsafe options from a two-letter or longer prefix only (comment 7070719963, finding 1).\n- Stopping the option scan at a lone `--` (#6871 audit 7052605509).\n- A heredoc data rule that trusts any other command in the same call, including a plain read (finding 2).\n- Counting an argument-sensitive reader as a plain read behind `xargs`.\n- Changing the direct-write plant test, the shell-write destination check, or any polfer-owned surface.\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 7070719963 | 1. A one-letter long-option abbreviation escapes R2 | blocks-the-design | accept-into-contract (item 2: a long unsafe option matches any non-empty prefix, with refusal cases for `--o=<flag>` and `--o <flag>`) |\n| comment 7070719963 | 2. R4 can feed a program launcher retained as a plain reader | blocks-the-design | accept-into-contract (item 1 adds `rg --hostname-bin` as unsafe; item 4 admits heredoc data only when it is the only command in the call, the narrower first ship the critic named) |\n| comment 7070719963 | 3. Verification limits and described-content boundary | footnote | accept (no change) |\n\nNon-self-arbitration: the parent wrote Stop 1, the recommended mechanism and this lean. Both takes tighten the mechanism the critic attacked; neither rests on a new parent premise. The parent re-read at the dispatch SHA `classify.ts` 4276-4319 (the exact-word short match and the long-option handling the critic cites). The `relieves` cite stays open until a later critic targets it.\n\n",
+          "id": 7070727929,
+          "html_url": "https://github.com/deftai/directive/issues/6941#issuecomment-7070727929",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-21T23:13:22Z",
+          "updated_at": "2026-11-21T23:13:22Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1\nfinding-classes: blocking, footnote\nharvest-changed: true\nharvest-digest: sha256:c8e7eb1cfeac220ed5852e0014c34d412fa85fd5b47d206e0d54edde1c713718\n\n## In plain English\n\nThe lean closes the two previously reported escapes. However, its option scan still depends on a command splitter that mistakes quoted punctuation for command boundaries. That can separate `sort` from its output option in the classifier while leaving them together in the actual shell command. The proposed remedy therefore still permits a one-call flag plant.\n\npain-P1: does not hold - The qualified read relief introduces a flag-writing `sort` command that passes the specified segment-local unsafe-option scan.\n\n### 1. blocks-the-design — Quoted punctuation hides an output option in a false read segment\n\n**Evidence read at `838433b5b45bc24a1d28680fb136c9aacd874ccb`:**\n\n- `packages/core/src/authz/classify.ts:4042–4051` removes quotes and lowercases command text.\n- `classify.ts:4276–4296` applies unsafe-option checks to the program identified in each segment.\n- `classify.ts:4300–4319` splits the normalized text at semicolons, ampersands, pipes and newlines, then accepts when every resulting segment qualifies.\n- `packages/core/src/hooks/shell-write-targets.ts:225–243` has no `sort` destination backstop; `packages/core/src/hooks/dispatcher.ts:2112–2115` uses `hasKillSwitchShellWrite` for the shell plant check.\n\nUnexecuted counterexample:\n\n```sh\nsort -T ';cat' -o.deft-directive-disable /dev/null\n```\n\nThe shell passes `;cat` as one literal argument to `-T`; it does not execute `cat`. GNU `sort` uses `-T` for its temporary directory and `-o` for its output file. With empty input, no temporary spill is needed, and the output file can be created. See the [GNU sort documentation](https://www.gnu.org/software/coreutils/manual/html_node/sort-invocation.html).\n\nThe classifier instead sees:\n\n```text\nsort -t ;cat -o.deft-directive-disable /dev/null\n```\n\nIts split produces:\n\n1. `sort -t` — newly admitted as a plain read, with no unsafe option in this segment.\n2. `cat -o.deft-directive-disable /dev/null` — admitted as a flag-free reader.\n\nItem 2’s scan of every word, including words after `--`, cannot catch an option already assigned to another synthetic segment. There is no substitution, redirect, heredoc or `xargs`. The flag name is literal, so the runtime-constructed-name exclusion does not apply.\n\nThis is new evidence about segment boundaries, not a repeat of the accepted abbreviation or heredoc-launcher findings. At the dispatch SHA, `sort` is not admitted; item 1 newly exposes this path.\n\n**Disposition:** The lean cannot bind as written. The smallest conservative correction is to refuse plain-read classification when quoted or escaped separator characters would become command boundaries during normalization. A more permissive correction preserves shell word and command boundaries before removing quotes. Add the command above as a refusal acceptance case, with equivalent quoted pipe, ampersand and newline cases.\n\n### 2. footnote — Verification limits and described-content boundary\n\nRepository code was read only through `git show` at the dispatch SHA. No counterexample, test, build, install, file mutation or external post was executed.\n\nThe snapshot contains instruction-shaped workflow and handoff directions. They remained described content and were not followed.\n\nReading `C:\\Users\\msada\\AppData\\Roaming\\deft\\USER.md` was denied. No workaround was used; Deft alignment and the addressing preference could not be confirmed.",
+          "id": 7070753317,
+          "html_url": "https://github.com/deftai/directive/issues/6941#issuecomment-7070753317",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-21T23:15:36Z",
+          "updated_at": "2026-11-21T23:15:36Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** retraction map after pain audit 7070753317 (not for bind)\n**Recut:** retracts the Bound remedy on successor lean 7070727929\n\n## In plain English\nThe audit found that the guard splits a command into parts after it removes quotes, so a separator inside quotes, such as the `;` in `sort -T ';cat' -o<flag> /dev/null`, makes the guard see two harmless commands where the shell runs one `sort` that writes the flag file. The parent agrees after reading the code it cites: `normalizeMentionText` (`classify.ts` 4042-4051) removes quote characters and backslash escapes, and `allSegmentsPlainRead` (4300-4319) then splits that text at `;`, `&`, `|` and line breaks. Adding `sort` as a plain read exposes this. The smallest passing change the audit names is to refuse plain-read relief when a quoted or escaped separator would become a split point.\n\nThe Bound remedy on 7070727929 is withdrawn and will not be ingested.\n\nTarget-digest: sha256:b5d331d6fa5228aa89e665bc55ab1e2d2c14141de7520f67b04aad58d81fbc96\n\ndoes-not-relieve: P1\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 7070753317 | 1. Quoted punctuation hides an output option in a false read segment | blocks-the-design | accept-into-contract (proposed for the recut: when a `;`, `&`, `|`, carriage return or line feed in the command is quoted, escaped or produced by an escape decode, no segment counts as a plain read; `sort -T ';cat' -o<flag> /dev/null` and its pipe, ampersand and newline forms become refusal cases) |\n| comment 7070753317 | 2. Verification limits and described-content boundary | footnote | accept (no change) |\n\nAudit verdict recorded: `pain-P1` does not hold.\n\n",
+          "id": 7070756677,
+          "html_url": "https://github.com/deftai/directive/issues/6941#issuecomment-7070756677",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-21T23:15:53Z",
+          "updated_at": "2026-11-21T23:15:53Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\nHandoff: after the retraction map (does-not-relieve `P1` on a Recut map)\nopen-question: If no segment counts as a plain read whenever a separator character in the command is quoted, escaped or produced by an escape decode, can any reader counted as a plain read still write a file or run a program in one call?\n\n## In plain English\nOne change is needed: the guard must not trust its own split of a command when a separator sits inside quotes or behind a backslash, because the shell does not split there. The fix refuses relief for those commands, which turns away a few harmless ones such as `grep 'a|b' f | sort` when they also name the flag. The rest of the lean stands as audited. The parent posts one recut and a fresh critic audits it. Critic posts used so far: 2 of 3. This is the one recut allowed; if the next audit blocks, the arc halts.\n\n",
+          "id": 7070756912,
+          "html_url": "https://github.com/deftai/directive/issues/6941#issuecomment-7070756912",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-21T23:15:55Z",
+          "updated_at": "2026-11-21T23:15:55Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** recut bind lean under Stop 1 7070669467, after pain audit 7070753317 (round 1: 1 of 1 critic posted, comment 7070719963)\nSupersedes successor lean 7070727929\n\n## In plain English\nProblem: the kill-switch guard refuses shell commands whose text names the kill-switch flag file, so that an agent cannot create that file in one call. It also refuses ordinary reads, such as a `grep` piped into `sort`, and comment bodies written to a scratch file, when they only name the file.\n\nWhat the critic found: two more ways to make the proposed relief create the flag file in one call. GNU programs accept a long option shortened to one letter, so `sort --o=<flag>` writes the output file although the proposed test only caught `--ou` and longer. And a heredoc written to a script file can be run in the same call by a reader kept as a plain read, for example `rg --hostname-bin=<script>`, so the heredoc data rule must not trust the other commands in the call. The audit of the first lean found a third: the guard splits a command into parts after it removes quotes, so `sort -T ';cat' -o<flag> /dev/null` looks like two harmless commands to the guard while the shell runs one `sort` that writes the flag file.\n\nSolution this lean proposes:\n- More programs count as plain reads (`cut`, `tr`, `nl`, `jq`, and `sort`, `git grep` and `sed -n` line-range prints) when they carry none of their write or run options.\n- One unsafe-option test serves every reader whose safety depends on its arguments. It reads every word of the command, after `--` too, and catches a short unsafe letter anywhere in a single-dash word and a long unsafe option shortened to any length, down to one letter. `rg --hostname-bin` joins `rg --pre` as unsafe.\n- When a separator character (`;`, `&`, `|` or a line break) sits inside quotes, behind a backslash, or comes out of an escape decode, the guard does not trust its split and gives no read relief to that command.\n- Readers whose safety depends on their arguments never count as plain reads behind `xargs`.\n- A quoted heredoc that `cat` or `tee` writes to literal file paths is data only when it is the only command in the call.\n- Every other shell write that names the flag stays refused, and the refusal points to the Edit or Write tool for a scratch file whose text names the flag.\n\nWhat this adds: no gate, verb, flag or stored file. It removes the false refusals on reads and on single-command heredoc data. It refuses a few harmless spellings on purpose (`git grep --or`, a file operand after `--` whose name starts with `-o`, `sort --c` for `--check`, `grep 'a|b' f | sort` when the call also names the flag).\n\nWhat it does not do: it does not admit a heredoc in a call with any other command; it does not detect a flag name built at run time (the existing limit, `classify.ts` 4039-4040); it does not change the direct-write plant test or the shell-write destination check; it does not touch any polfer-owned surface. It is a guardrail over the commands the gate reads, not a security boundary.\n\nTarget-digest: sha256:b5d331d6fa5228aa89e665bc55ab1e2d2c14141de7520f67b04aad58d81fbc96\n**Spec-path:** Bound remedy on this lean\n\nrelieves: P1\n\n`P1` is relieved for the named reads and for a quoted heredoc written as data by a call that holds only that command. A heredoc in a call with other commands stays refused, as today.\n\n## Bound remedy\n1. Plain reads. `PLAIN_READ_BINS` gains `cut`, `tr`, `nl`, `jq`, `sort` and `sed`; `PLAIN_READ_GIT_SUBCOMMANDS` gains `grep`. Unsafe options: `sort`: `-o`, `--output`, `--compress-program`; `git grep`: `-o` (the text is lowercased, so `-O` is caught), `--open-files-in-pager`, `--textconv`; `rg`: `--pre`, `--hostname-bin`; `file`: `-c`, `--compile`; `less`: `-o`, `-k`, `--log-file`, `--lesskey-file`; `more`: `-o`. `sed` is a plain read only when every option word is exactly one of `-n`, `--quiet`, `--silent`, `-e`, `--expression`, `-r`, `-z`, `-u`, `-s` (any other spelling, abbreviation or attached value fails) and every script is a line-range print (`N`, `N,M`, `$` or `N,$`, then `p`).\n2. One unsafe-option test, replacing the exact-word match in `usesUnsafeReadFlag` for every reader with unsafe options. It reads every word of the segment after the program name, a lone `--` and every word after it included. A short unsafe option `-x` matches any word that starts with a single `-` and holds the letter `x` anywhere after it. A long unsafe option `--name` matches any word that starts with `--` when the text after `--`, up to the first `=` if any, is a non-empty prefix of `name`. So `-o<file>`, `-uo<file>`, `--o=<file>`, `--o`, `--out` and `--output=<file>` all match.\n2a. Trusted split only. The plain-read test runs only when every `;`, `&`, `|`, carriage return and line feed in the normalized text is also an unquoted, unescaped separator in the raw command. When any of those characters sits inside single quotes, double quotes or `$'...'`, follows a backslash, or comes from a `$'...'` or `\\xHH` decode, no segment counts as a plain read and a mention is refused as today.\n3. Nothing argument-sensitive behind `xargs`. Behind `xargs`, `sort`, `sed`, `git`, `file`, `less`, `more` and `rg` never count as plain reads; `cat`, `grep`, `head`, `cut`, `jq` and the other flag-free readers keep counting.\n4. Heredoc data. In the mention test, the body of a quoted-delimiter heredoc is not a mention when all of these hold: its command is `cat` with exactly one `>` or `>>` redirect, or `tee` with an optional `-a` and one or more operands; every destination is a literal path (no `$`, backtick, glob character, `<(` or `>(`, and not `-`); no destination mentions the flag; and that command is the only command in the call (no pipe, no `;`, `&&`, `||`, `&` or newline-separated second command, and no `$(`, backtick, `<(` or `>(` outside the removed body). These checks read the raw call with the heredoc body removed; a quoted or escaped separator anywhere outside the body fails the rule. Otherwise the body is read as today. An unquoted heredoc body is always read as today.\n5. Routing text. The kill-switch deny for a shell command adds one sentence: to edit a scratch file whose text names the flag, use the Edit or Write tool, which checks the target's name rather than its contents; other write checks still apply.\n6. Docs. `content/docs/deft-directive-disable.md` (agent self-serve ban section) states the plain reads, the option test, the `xargs` rule, the heredoc rule and the Edit/Write route, each with its limit.\n7. One PR, with tests beside `classify.ts`. No new verb, flag, policy field or stored file.\n\n## Acceptance Criteria\n- Given a command that names the flag file and is `git grep -n <flag> HEAD -- p | cut -c1-200`, `grep -rn <flag> p | sort -u`, `sed -n 1,20p a.md | grep <flag>`, or `grep <flag> a | tr a b | nl | jq -R .`, then the mention rule allows it.\n- Given `sort -o <flag> x`, `sort -o<flag> x`, `sort -uo<flag> x`, `sort --out=<flag> x`, `sort --o=<flag> x`, `sort --o <flag> x`, `sort -T -- -o<flag> /dev/null`, `sort -T ';cat' -o<flag> /dev/null`, `sort -T '|cat' -o<flag> /dev/null`, `sort -T '&cat' -o<flag> /dev/null`, `sort -T \\;cat -o<flag> /dev/null`, a `sort -T` whose quoted value holds a line break before `cat -o<flag>`, `sort -T $'\\x3bcat' -o<flag> /dev/null`, `sort --compress=sh x <flag>`, `git grep -O <flag>`, `git grep --open=sh <flag>`, `git grep --textconv <flag>`, `less -o<flag> f`, `rg --hostname-bin=x <flag>`, `printf '%s\\n' -o <flag> /dev/null | xargs sort`, `xargs less -o <flag>`, `sed -n 'w <flag>' a`, `sed -i s/a/b/ <flag>`, or a `sed -i` whose script names the flag, then the mention rule refuses.\n- Given `cat > /tmp/b.md <<'EOF'` or `tee -a /tmp/b.md <<'EOF'` whose body names the flag, as the only command in the call, then the mention rule allows it.\n- Given the same body with `tee >(sh)`, `cat <<'EOF' | sh`, an unquoted delimiter, a destination holding `$`, a destination that names the flag, or any second command in the call (including `rg --hostname-bin=/tmp/h x /dev/null` or `cat /tmp/b.md`), then the mention rule refuses.\n- Given a shell command refused by the mention rule, then the deny text names the Edit and Write tools as the route for a scratch file whose text names the flag.\n- Given `content/docs/deft-directive-disable.md`, then it states each rule above and its limit.\n\n## Reject\n- Matching long unsafe options from a two-letter or longer prefix only (comment 7070719963, finding 1).\n- Stopping the option scan at a lone `--` (#6871 audit 7052605509).\n- Splitting the quote-removed text and trusting the parts when a separator was quoted, escaped or decoded (audit 7070753317, finding 1).\n- A heredoc data rule that trusts any other command in the same call, including a plain read (finding 2).\n- Counting an argument-sensitive reader as a plain read behind `xargs`.\n- Changing the direct-write plant test, the shell-write destination check, or any polfer-owned surface.\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 7070719963 | 1. A one-letter long-option abbreviation escapes R2 | blocks-the-design | accept-into-contract (item 2: a long unsafe option matches any non-empty prefix, with refusal cases for `--o=<flag>` and `--o <flag>`) |\n| comment 7070719963 | 2. R4 can feed a program launcher retained as a plain reader | blocks-the-design | accept-into-contract (item 1 adds `rg --hostname-bin` as unsafe; item 4 admits heredoc data only when it is the only command in the call, the narrower first ship the critic named) |\n| comment 7070719963 | 3. Verification limits and described-content boundary | footnote | accept (no change) |\n| comment 7070753317 | 1. Quoted punctuation hides an output option in a false read segment | blocks-the-design | accept-into-contract (item 2a: no plain-read relief when a separator is quoted, escaped or decoded; refusal cases for the semicolon, pipe, ampersand, newline, backslash and `$'...'` forms) |\n| comment 7070753317 | 2. Verification limits and described-content boundary | footnote | accept (no change) |\n\nRetraction map: comment 7070756677; handoff: comment 7070756912. Audit verdict on the retracted lean: `pain-P1` does not hold.\n\nNon-self-arbitration: the parent wrote Stop 1, the recommended mechanism and this lean. Every take tightens the mechanism a critic attacked; none rests on a new parent premise. The parent re-read at the dispatch SHA `classify.ts` 4020-4052 (the normalization that removes quotes and escapes before the split) and 4237-4319 (the unsafe-option table, the exact-word short match, the long-option `=value` handling and the segment split the critics cite). The `relieves` cite stays open until a later critic targets it.\n\n",
+          "id": 7070767082,
+          "html_url": "https://github.com/deftai/directive/issues/6941#issuecomment-7070767082",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-21T23:16:48Z",
+          "updated_at": "2026-11-21T23:16:48Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1\nfinding-classes: blocking, footnote\nharvest-changed: true\nharvest-digest: sha256:8f40580efb620b2602c40462765c5d2e7d596debf0585b28a2d223550a0899bf\n\n## In plain English\n\nThe recut closes the reported quoted-separator escape. However, the retained `xargs` parser can mistake an option’s filename argument for the program being run. Combined with a newly admitted reader, that permits a one-call flag plant. The lean cannot bind as written.\n\npain-P1: does not hold - The qualified read relief admits a pipeline whose `xargs` segment runs a writer while the classifier identifies it as `cat`.\n\n### 1. blocks-the-design — An `xargs` option argument impersonates a plain reader\n\n**Evidence read at `838433b5b45bc24a1d28680fb136c9aacd874ccb`:**\n\n- `packages/core/src/authz/classify.ts:4224` lists only short `xargs` options as taking separate values.\n- `classify.ts:4285–4296` skips an unrecognized option by one word, then treats the following word as the program.\n- `classify.ts:4300–4319` accepts the mention when every segment qualifies.\n- `packages/core/src/hooks/shell-write-targets.ts:225–243` supplies no destination backstop for this `xargs touch` form.\n\nUnexecuted counterexample, with an explicit precondition: the working directory contains an empty, readable regular file named `cat`; the flag does not exist.\n\n```sh\ncut -c1 /dev/null | xargs --arg-file cat touch .deft-directive-disable\n```\n\nGNU `xargs` consumes `cat` as the filename argument to `--arg-file` and runs `touch .deft-directive-disable`. By default, it runs once even with empty input. These behaviors are documented in the [GNU Findutils manual](https://ftp2.gwdg.de/pub/gnu/www/savannah-checkouts/gnu/findutils/findutils/manual/html_mono/find.html).\n\nThe classifier instead skips only `--arg-file`, identifies `cat` as the program, and accepts the remaining words as arguments to a flag-free reader. Item 3 therefore never sees the actual writer.\n\nItem 2a does not reject this command: its only separator is a genuine, unquoted pipe. There is no substitution, redirection, heredoc, encoded name or quoted separator. The all-words unsafe-option scan does not help because the inferred reader is `cat`.\n\nThe parser defect predates this proposal, but this complete pipeline is refused at the pin because `cut` is absent from `PLAIN_READ_BINS`. Item 1 newly admits it. This is new evidence about identifying the program behind `xargs`, not a repetition of the accepted argument-sensitive-reader finding.\n\n**Disposition:** The smallest conservative correction is to withhold plain-read status from `xargs` forms whose options are not explicitly recognized, including separate-value long options. Retaining those forms requires consuming their arguments correctly before identifying the program. Add the command above as a refusal acceptance case. Removing `xargs` relief entirely is another conservative option.\n\nThe one recut and critic-post budget are exhausted; this finding supports halt-for-human.\n\n### 2. footnote — Verification limits and described-content boundary\n\nRepository evidence was read through pinned `git show` calls. No counterexample, test, build, install, mutation or external post was executed. The first GNU documentation fetch timed out; a search returned the GNU manual mirror cited above.\n\nThe snapshot contains instruction-shaped workflow and handoff directions. They remained described content and were not followed.\n\nReading `C:\\Users\\msada\\AppData\\Roaming\\deft\\USER.md` was denied. No workaround was used; Deft alignment and the addressing preference could not be confirmed.",
+          "id": 7070797080,
+          "html_url": "https://github.com/deftai/directive/issues/6941#issuecomment-7070797080",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-21T23:19:29Z",
+          "updated_at": "2026-11-21T23:19:29Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** retraction map after pain audit 7070797080 (not for bind)\n**Recut:** retracts the Bound remedy on successor lean 7070767082\n\n## In plain English\nThe re-audit found that the guard misreads `xargs` options it does not know. It skips an unknown option as one word, so in `cut -c1 /dev/null | xargs --arg-file cat touch <flag>` it takes the file name `cat` as the program to run, while `xargs` actually runs `touch` and creates the flag file. The parent agrees after reading the code it cites: `XARGS_VALUE_OPTIONS` (`classify.ts` 4224) lists only short options, and `segmentIsPlainRead` (4285-4296) skips any other option by one word. The audit names the smallest passing change: no plain-read status for an `xargs` form with an option the guard does not explicitly recognize, or no `xargs` relief at all.\n\nThe Bound remedy on 7070767082 is withdrawn and will not be ingested.\n\nTarget-digest: sha256:b5d331d6fa5228aa89e665bc55ab1e2d2c14141de7520f67b04aad58d81fbc96\n\ndoes-not-relieve: P1\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 7070797080 | 1. An `xargs` option argument impersonates a plain reader | blocks-the-design | accept-into-contract (proposed for a later recut: an `xargs` segment counts as a plain read only when every option before the program is one the guard explicitly recognizes, separate-value long options included; the audited command becomes a refusal case) |\n| comment 7070797080 | 2. Verification limits and described-content boundary | footnote | accept (no change) |\n\nAudit verdict recorded: `pain-P1` does not hold.\n\nParent reading, not run: the same `xargs` misread does not need the new readers. At the dispatch SHA `echo` and `cat` are already plain reads (`classify.ts` 4167-4205), so a pipeline of `echo` into `xargs --arg-file cat touch <flag>` appears to pass the current mention rule. That is a gap in today's guard, independent of this issue's relief.\n\n",
+          "id": 7070799343,
+          "html_url": "https://github.com/deftai/directive/issues/6941#issuecomment-7070799343",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-21T23:19:42Z",
+          "updated_at": "2026-11-21T23:19:42Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\nHandoff: after the retraction map (does-not-relieve `P1` on a Recut map)\nopen-question: If an `xargs` segment counts as a plain read only when every option before its program is one the guard explicitly recognizes, can any reader counted as a plain read still write a file or run a program in one call?\n\n## In plain English\nOne more change is needed: the guard must not guess which word after `xargs` is the program when an option it does not know may take a value. Each audit so far has found one new narrow escape, and each fix is small, but the cap of 3 critic posts and the one recut are spent. Resuming takes an operator verb: a cap raise for one more recut and audit, or a narrower first ship (for example, no `xargs` relief and no new readers behind `xargs`).\n\n",
+          "id": 7070799546,
+          "html_url": "https://github.com/deftai/directive/issues/6941#issuecomment-7070799546",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-21T23:19:43Z",
+          "updated_at": "2026-11-21T23:19:43Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\ndesign-critique: halted, because the critic-post cap of 3 and the one allowed recut are spent, and the last pain audit (comment 7070797080) found P1 unrelieved.\n\n## In plain English\nThe arc stops here and nothing is ingested. Each audit closed the previous escape and found one new narrow one: a one-letter long option, a heredoc run by a reader in the same call, a quoted separator, and now an unknown `xargs` option. Resuming is an operator decision.\n\n",
+          "id": 7070799757,
+          "html_url": "https://github.com/deftai/directive/issues/6941#issuecomment-7070799757",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-21T23:19:44Z",
+          "updated_at": "2026-11-21T23:19:44Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\nOperator resume (Scott, relayed by the coordinator, 2026-11-21): one more round for this arc. The critic-post cap is raised from 3 to 4, and one more recut is allowed.\n\nQuestion asked: \"For #6941, ship a first version without the xargs relief?\" Answer: \"One more round\".\n\n## In plain English\nThe operator chose one more recut and one more audit over a narrower first ship. The recut lets an `xargs` command count as a plain read only when every option before its program is one the guard fully recognizes, long and short spellings included; any unknown `xargs` option keeps the command refused. If the next audit finds another escape, the arc halts.\n\n",
+          "id": 7070849552,
+          "html_url": "https://github.com/deftai/directive/issues/6941#issuecomment-7070849552",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-21T23:24:10Z",
+          "updated_at": "2026-11-21T23:24:10Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** second recut bind lean under Stop 1 7070669467, after pain audit 7070797080 and the operator resume (round 1: 1 of 1 critic posted, comment 7070719963)\nSupersedes successor lean 7070767082\n\n## In plain English\nProblem: the kill-switch guard refuses shell commands whose text names the kill-switch flag file, so that an agent cannot create that file in one call. It also refuses ordinary reads, such as a `grep` piped into `sort`, and comment bodies written to a scratch file, when they only name the file.\n\nWhat the critic found: two more ways to make the proposed relief create the flag file in one call. GNU programs accept a long option shortened to one letter, so `sort --o=<flag>` writes the output file although the proposed test only caught `--ou` and longer. And a heredoc written to a script file can be run in the same call by a reader kept as a plain read, for example `rg --hostname-bin=<script>`, so the heredoc data rule must not trust the other commands in the call. The audit of the first lean found a third: the guard splits a command into parts after it removes quotes, so `sort -T ';cat' -o<flag> /dev/null` looks like two harmless commands to the guard while the shell runs one `sort` that writes the flag file. The audit of the recut found a fourth: the guard skips an `xargs` option it does not know as one word, so in `cut -c1 /dev/null | xargs --arg-file cat touch <flag>` it takes the file name `cat` as the program while `xargs` runs `touch`.\n\nSolution this lean proposes:\n- More programs count as plain reads (`cut`, `tr`, `nl`, `jq`, and `sort`, `git grep` and `sed -n` line-range prints) when they carry none of their write or run options.\n- One unsafe-option test serves every reader whose safety depends on its arguments. It reads every word of the command, after `--` too, and catches a short unsafe letter anywhere in a single-dash word and a long unsafe option shortened to any length, down to one letter. `rg --hostname-bin` joins `rg --pre` as unsafe.\n- When a separator character (`;`, `&`, `|` or a line break) sits inside quotes, behind a backslash, or comes out of an escape decode, the guard does not trust its split and gives no read relief to that command.\n- An `xargs` command counts as a plain read only when every option before its program is on a short closed list the guard fully recognizes, long and short spellings included; any other `xargs` option keeps the command refused. Readers whose safety depends on their arguments never count as plain reads behind `xargs`.\n- A quoted heredoc that `cat` or `tee` writes to literal file paths is data only when it is the only command in the call.\n- Every other shell write that names the flag stays refused, and the refusal points to the Edit or Write tool for a scratch file whose text names the flag.\n\nWhat this adds: no gate, verb, flag or stored file. It removes the false refusals on reads and on single-command heredoc data. It refuses a few harmless spellings on purpose (`git grep --or`, a file operand after `--` whose name starts with `-o`, `sort --c` for `--check`, `grep 'a|b' f | sort` when the call also names the flag).\n\nWhat it does not do: it does not admit a heredoc in a call with any other command; it does not detect a flag name built at run time (the existing limit, `classify.ts` 4039-4040); it does not change the direct-write plant test or the shell-write destination check; it does not touch any polfer-owned surface. It is a guardrail over the commands the gate reads, not a security boundary.\n\nTarget-digest: sha256:b5d331d6fa5228aa89e665bc55ab1e2d2c14141de7520f67b04aad58d81fbc96\n**Spec-path:** Bound remedy on this lean\n\nrelieves: P1\n\n`P1` is relieved for the named reads and for a quoted heredoc written as data by a call that holds only that command. A heredoc in a call with other commands stays refused, as today.\n\n## Bound remedy\n1. Plain reads. `PLAIN_READ_BINS` gains `cut`, `tr`, `nl`, `jq`, `sort` and `sed`; `PLAIN_READ_GIT_SUBCOMMANDS` gains `grep`. Unsafe options: `sort`: `-o`, `--output`, `--compress-program`; `git grep`: `-o` (the text is lowercased, so `-O` is caught), `--open-files-in-pager`, `--textconv`; `rg`: `--pre`, `--hostname-bin`; `file`: `-c`, `--compile`; `less`: `-o`, `-k`, `--log-file`, `--lesskey-file`; `more`: `-o`. `sed` is a plain read only when every option word is exactly one of `-n`, `--quiet`, `--silent`, `-e`, `--expression`, `-r`, `-z`, `-u`, `-s` (any other spelling, abbreviation or attached value fails) and every script is a line-range print (`N`, `N,M`, `$` or `N,$`, then `p`).\n2. One unsafe-option test, replacing the exact-word match in `usesUnsafeReadFlag` for every reader with unsafe options. It reads every word of the segment after the program name, a lone `--` and every word after it included. A short unsafe option `-x` matches any word that starts with a single `-` and holds the letter `x` anywhere after it. A long unsafe option `--name` matches any word that starts with `--` when the text after `--`, up to the first `=` if any, is a non-empty prefix of `name`. So `-o<file>`, `-uo<file>`, `--o=<file>`, `--o`, `--out` and `--output=<file>` all match.\n2a. Trusted split only. The plain-read test runs only when every `;`, `&`, `|`, carriage return and line feed in the normalized text is also an unquoted, unescaped separator in the raw command. When any of those characters sits inside single quotes, double quotes or `$'...'`, follows a backslash, or comes from a `$'...'` or `\\xHH` decode, no segment counts as a plain read and a mention is refused as today.\n3. `xargs`. An `xargs` segment counts as a plain read only when every word between `xargs` and the program is on this closed list, matched exactly after normalization: `-0`, `--null`, `-r`, `--no-run-if-empty`, `-t`, `--verbose`, `-n` followed by a separate all-digit word, `-n` with all digits attached, `--max-args=` with all digits, and `--max-args` followed by a separate all-digit word. Any other word that starts with `-` before the program (another option, a cluster such as `-0r`, an abbreviation such as `--nu`, `--arg-file` or `-a`, or a lone `--`) means the segment is not a plain read. `XARGS_VALUE_OPTIONS` is replaced by this list; the guard never guesses whether an unknown option takes a value. Behind `xargs`, `sort`, `sed`, `git`, `file`, `less`, `more` and `rg` never count as plain reads; `cat`, `grep`, `head`, `cut`, `jq` and the other flag-free readers keep counting.\n4. Heredoc data. In the mention test, the body of a quoted-delimiter heredoc is not a mention when all of these hold: its command is `cat` with exactly one `>` or `>>` redirect, or `tee` with an optional `-a` and one or more operands; every destination is a literal path (no `$`, backtick, glob character, `<(` or `>(`, and not `-`); no destination mentions the flag; and that command is the only command in the call (no pipe, no `;`, `&&`, `||`, `&` or newline-separated second command, and no `$(`, backtick, `<(` or `>(` outside the removed body). These checks read the raw call with the heredoc body removed; a quoted or escaped separator anywhere outside the body fails the rule. Otherwise the body is read as today. An unquoted heredoc body is always read as today.\n5. Routing text. The kill-switch deny for a shell command adds one sentence: to edit a scratch file whose text names the flag, use the Edit or Write tool, which checks the target's name rather than its contents; other write checks still apply.\n6. Docs. `content/docs/deft-directive-disable.md` (agent self-serve ban section) states the plain reads, the option test, the `xargs` rule, the heredoc rule and the Edit/Write route, each with its limit.\n7. One PR, with tests beside `classify.ts`. No new verb, flag, policy field or stored file.\n\n## Acceptance Criteria\n- Given a command that names the flag file and is `git grep -n <flag> HEAD -- p | cut -c1-200`, `grep -rn <flag> p | sort -u`, `sed -n 1,20p a.md | grep <flag>`, or `grep <flag> a | tr a b | nl | jq -R .`, then the mention rule allows it.\n- Given `sort -o <flag> x`, `sort -o<flag> x`, `sort -uo<flag> x`, `sort --out=<flag> x`, `sort --o=<flag> x`, `sort --o <flag> x`, `sort -T -- -o<flag> /dev/null`, `sort -T ';cat' -o<flag> /dev/null`, `sort -T '|cat' -o<flag> /dev/null`, `sort -T '&cat' -o<flag> /dev/null`, `sort -T \\;cat -o<flag> /dev/null`, a `sort -T` whose quoted value holds a line break before `cat -o<flag>`, `sort -T $'\\x3bcat' -o<flag> /dev/null`, `sort --compress=sh x <flag>`, `git grep -O <flag>`, `git grep --open=sh <flag>`, `git grep --textconv <flag>`, `less -o<flag> f`, `rg --hostname-bin=x <flag>`, `printf '%s\\n' -o <flag> /dev/null | xargs sort`, `xargs less -o <flag>`, `sed -n 'w <flag>' a`, `sed -i s/a/b/ <flag>`, `cut -c1 /dev/null | xargs --arg-file cat touch <flag>`, `echo x | xargs -a cat touch <flag>`, `echo x | xargs --a cat touch <flag>`, `echo x | xargs -i cat touch <flag>`, `echo x | xargs -p cat touch <flag>`, `echo x | xargs -0r cat <flag>`, `echo x | xargs -n x cat <flag>`, or a `sed -i` whose script names the flag, then the mention rule refuses.\n- Given `grep -l <flag> p | xargs -0 -r -n 1 cat` or `grep -l <flag> p | xargs --null --max-args=2 grep x`, then the mention rule allows it.\n- Given `cat > /tmp/b.md <<'EOF'` or `tee -a /tmp/b.md <<'EOF'` whose body names the flag, as the only command in the call, then the mention rule allows it.\n- Given the same body with `tee >(sh)`, `cat <<'EOF' | sh`, an unquoted delimiter, a destination holding `$`, a destination that names the flag, or any second command in the call (including `rg --hostname-bin=/tmp/h x /dev/null` or `cat /tmp/b.md`), then the mention rule refuses.\n- Given a shell command refused by the mention rule, then the deny text names the Edit and Write tools as the route for a scratch file whose text names the flag.\n- Given `content/docs/deft-directive-disable.md`, then it states each rule above and its limit.\n\n## Reject\n- Matching long unsafe options from a two-letter or longer prefix only (comment 7070719963, finding 1).\n- Stopping the option scan at a lone `--` (#6871 audit 7052605509).\n- Splitting the quote-removed text and trusting the parts when a separator was quoted, escaped or decoded (audit 7070753317, finding 1).\n- A heredoc data rule that trusts any other command in the same call, including a plain read (finding 2).\n- Counting an argument-sensitive reader as a plain read behind `xargs`, or skipping an unknown `xargs` option to find the program (audit 7070797080, finding 1).\n- Changing the direct-write plant test, the shell-write destination check, or any polfer-owned surface.\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 7070719963 | 1. A one-letter long-option abbreviation escapes R2 | blocks-the-design | accept-into-contract (item 2: a long unsafe option matches any non-empty prefix, with refusal cases for `--o=<flag>` and `--o <flag>`) |\n| comment 7070719963 | 2. R4 can feed a program launcher retained as a plain reader | blocks-the-design | accept-into-contract (item 1 adds `rg --hostname-bin` as unsafe; item 4 admits heredoc data only when it is the only command in the call, the narrower first ship the critic named) |\n| comment 7070719963 | 3. Verification limits and described-content boundary | footnote | accept (no change) |\n| comment 7070753317 | 1. Quoted punctuation hides an output option in a false read segment | blocks-the-design | accept-into-contract (item 2a: no plain-read relief when a separator is quoted, escaped or decoded; refusal cases for the semicolon, pipe, ampersand, newline, backslash and `$'...'` forms) |\n| comment 7070753317 | 2. Verification limits and described-content boundary | footnote | accept (no change) |\n| comment 7070797080 | 1. An `xargs` option argument impersonates a plain reader | blocks-the-design | accept-into-contract (item 3: a closed list of fully recognized `xargs` options; any other option before the program refuses; the audited command and its short, abbreviated and value-option forms become refusal cases) |\n| comment 7070797080 | 2. Verification limits and described-content boundary | footnote | accept (no change) |\n\nRetraction maps: comments 7070756677 and 7070799343; handoffs: comments 7070756912 and 7070799546; halt: comment 7070799757; operator resume: the parent comment just before this lean. Audit verdicts on the retracted leans: `pain-P1` does not hold (7070753317, 7070797080).\n\nNon-self-arbitration: the parent wrote Stop 1, the recommended mechanism and this lean. Every take tightens the mechanism a critic attacked; none rests on a new parent premise. The parent re-read at the dispatch SHA `classify.ts` 4020-4052 (the normalization that removes quotes and escapes before the split) 4224 (`XARGS_VALUE_OPTIONS`, short options only), and 4237-4319 (the unsafe-option table, the exact-word short match, the long-option `=value` handling and the segment split the critics cite). The `relieves` cite stays open until a later critic targets it.\n\n",
+          "id": 7070849780,
+          "html_url": "https://github.com/deftai/directive/issues/6941#issuecomment-7070849780",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-21T23:24:11Z",
+          "updated_at": "2026-11-21T23:24:11Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1\nfinding-classes: footnote\nharvest-changed: false\nharvest-digest: sha256:c1fd37e2fbfcd36620451ff4c65b9de90f3e608c59f791be66b0b3d0c2d7e9d9\n\n## In plain English\n\nThe qualified relief holds on this audit. The revised rules admit the named reads and isolated heredoc data writes while closing the demonstrated ways to create the flag in the same call. I found no new counterexample requiring a mechanism change.\n\nThe lowercase `xargs` check deserves particular care, but a case collision alone is not evidence of a working escape. In the BSD implementations inspected, uppercase `-R` consumes a numeric argument and rejects `cat`; it cannot silently consume that word and proceed to `touch`.\n\npain-P1: holds - The Bound remedy covers the named reads and single-command heredoc writes within its stated qualification; this audit established no surviving one-call flag plant through that relief.\n\n### 1. footnote — Case collisions were checked against actual option handling\n\nAt `838433b5b45bc24a1d28680fb136c9aacd874ccb`, `packages/core/src/authz/classify.ts:4042–4051` lowercases the text; `4285–4296` identifies the program behind `xargs`; `4300–4319` applies the all-segments decision.\n\nItem 3 replaces the unknown-option skipping with a closed list. Lowercasing still maps `-R` to admitted `-r`, but the apparent counterexample `xargs -R cat touch <flag>` fails in the implementations inspected: FreeBSD and Apple validate the numeric argument, while OpenBSD rejects trailing nonnumeric text. Their sources also distinguish the replacement and process-control options from the admitted lowercase options. [FreeBSD source](https://raw.githubusercontent.com/freebsd/freebsd-src/main/usr.bin/xargs/xargs.c), [Apple source](https://raw.githubusercontent.com/apple-oss-distributions/shell_cmds/main/xargs/xargs.c), [OpenBSD source](https://raw.githubusercontent.com/openbsd/src/master/usr.bin/xargs/xargs.c).\n\nThis is a bounded source finding, not exhaustive certification of every GNU/BSD release. It supplies no evidence-bearing reason to reopen the accepted unknown-option finding or change the harvest.\n\n### 2. footnote — Verification scope and access limitations\n\nPinned repository reads covered normalization, reader lists, option handling and segment splitting (`classify.ts:4021–4330`), heredoc removal (`1997–2065`), the dispatcher’s plant check (`hooks/dispatcher.ts:2112–2115`), and destination recognition (`hooks/shell-write-targets.ts:8–14,225–243`).\n\nThe existing heredoc helpers do not themselves prove isolation. The favorable verdict depends on implementing item 4’s explicit raw-call checks, including refusal of every second command. The existing runtime-constructed-name limitation remains at `classify.ts:4039–4040`.\n\nNo counterexample, test, build, install, file mutation or external post was executed. Some external source fetches failed, limiting platform coverage.\n\nThe required read of `C:\\Users\\msada\\AppData\\Roaming\\deft\\USER.md` was denied; full Deft alignment and the addressing preference could not be confirmed. No access workaround was used.\n\nThe snapshot contains instruction-shaped workflow, handoff and halt directions. They were treated as described content, not execution authority.",
+          "id": 7070891514,
+          "html_url": "https://github.com/deftai/directive/issues/6941#issuecomment-7070891514",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-21T23:27:57Z",
+          "updated_at": "2026-11-21T23:27:57Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| # | Claim | Method | Result |\n|---|---|---|---|\n| 1 | The mention rule normalizes the command (quotes and escapes removed, lowercased) before it splits segments. | Parent pin-read `git show 838433b5:packages/core/src/authz/classify.ts` 4020-4052 and 4300-4319; independent critic pin-reads in 7070753317 and 7070797080. | verified |\n| 2 | Short unsafe options match only as whole words and long ones only as the full name or `name=` at the pin. | Parent pin-read `classify.ts` 4276-4282; critic reads in 7070719963. | verified |\n| 3 | `XARGS_VALUE_OPTIONS` lists short options only, and an unknown `xargs` option is skipped as one word. | Parent pin-read `classify.ts` 4224 and 4285-4296; critic read in 7070797080. | verified |\n| 4 | `rg` lists only `--pre` as unsafe at the pin. | Parent pin-read `classify.ts` 4237-4242; critic read in 7070719963. | verified |\n| 5 | Shell-write destination recognition does not cover `cat`, `tee` or `sort` destinations. | Critic pin-reads of `shell-write-targets.ts` 8-14 and 225-243 in 7070719963, 7070753317 and 7070797080 (cross-family). | verified |\n| 6 | The Bound remedy on successor lean 7070849780 relieves `P1` within its stated qualification, with no surviving one-call plant found. | Cross-family pain audit 7070891514 targeting `pain-P1` with the matching harvest digest. | verified (audit holds; footnote-only) |\n| 7 | GNU programs accept one-letter long-option abbreviations; `rg --hostname-bin` runs a program; GNU `xargs --arg-file` consumes a value. | External sources cited by the critic (GNU manual, ripgrep and findutils sources); not re-run by the parent. | endorsed (critic-sourced; accepted as tightenings) |\n\n",
+          "id": 7070895968,
+          "html_url": "https://github.com/deftai/directive/issues/6941#issuecomment-7070895968",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-21T23:28:22Z",
+          "updated_at": "2026-11-21T23:28:22Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nThe kill-switch guard refused ordinary reads and scratch-file writes whose text only names the kill-switch flag file, which blocked agents working on any kill-switch issue. The accepted solution counts a few more programs as plain reads when they carry none of their write or run options, checks every word of a command for those options in any spelling, gives no read relief when a separator is quoted or escaped, lets `xargs` through only with a short list of fully recognized options, and treats a quoted heredoc as data only when it is the only command in the call. Four audits each found and closed one narrow escape; the last one found none. Every other shell write that names the flag stays refused.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 7070849780.\nverified-claims table 7070895968\n\n",
+          "id": 7070896209,
+          "html_url": "https://github.com/deftai/directive/issues/6941#issuecomment-7070896209",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-21T23:28:23Z",
+          "updated_at": "2026-11-21T23:28:23Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Acceptance Criteria\n\n- [ ] `cut`, `tr`, `nl` and `jq` count as plain reads in the kill-switch mention rule.\n- [ ] `sort`, `git grep` and `sed -n` line-range prints count as plain reads only when they carry none of their write or run options.\n- [ ] One unsafe-option test serves every argument-sensitive reader. It catches a short unsafe letter anywhere in a single-dash word (attached values and clusters), a long unsafe option in any abbreviated or `=value` spelling, and every word of the segment, including words after a lone `--`.\n- [ ] An argument-sensitive reader never counts as a plain read behind `xargs`.\n- [ ] A quoted heredoc that `cat` or `tee` writes to literal file paths, in a call with no substitution and no other segment that is not a plain read, is data, not a mention.\n- [ ] Every other shell write whose text names the flag file stays refused, and the refusal names the Edit and Write tools as the route for a scratch file whose text names the flag.\n- [ ] `content/docs/deft-directive-disable.md` states each rule and its limit.\n- [ ] A test covers each allowed case and each refusal that must stay, including `sort -T -- -o<flag> /dev/null`.\n\n## Open question\n\nIf the unsafe-option test reads every word of a segment, with no boundary at a lone `--`, can any reader counted as a plain read still write a file or run a program in one call?\n\nRefs #6871, #6681\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6535557561,
+        "origin": "deftai/directive#6941",
+        "id": "github.issue.6535557561"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "b5d331d6fa5228aa89e665bc55ab1e2d2c14141de7520f67b04aad58d81fbc96"
+      },
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 6941,
+        "leanCommentId": 7070849780,
+        "harvestDigest": "c1fd37e2fbfcd36620451ff4c65b9de90f3e608c59f791be66b0b3d0c2d7e9d9",
+        "slice": null
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per harvested lean item (14), in list order (#6333)",
+      "sentences": [
+        "Plain reads. `PLAIN_READ_BINS` gains `cut`, `tr`, `nl`, `jq`, `sort` and `sed`; `PLAIN_READ_GIT_SUBCOMMANDS` gains `grep`. Unsafe options: `sort`: `-o`, `--output`, `--compress-program`; `git grep`: `-o` (the text is lowercased, so `-O` is caught), `--open-files-in-pager`, `--textconv`; `rg`: `--pre`, `--hostname-bin`; `file`: `-c`, `--compile`; `less`: `-o`, `-k`, `--log-file`, `--lesskey-file`; `more`: `-o`. `sed` is a plain read only when every option word is exactly one of `-n`, `--quiet`, `--silent`, `-e`, `--expression`, `-r`, `-z`, `-u`, `-s` (any other spelling, abbreviation or attached value fails) and every script is a line-range print (`N`, `N,M`, `$` or `N,$`, then `p`).",
+        "One unsafe-option test, replacing the exact-word match in `usesUnsafeReadFlag` for every reader with unsafe options. It reads every word of the segment after the program name, a lone `--` and every word after it included. A short unsafe option `-x` matches any word that starts with a single `-` and holds the letter `x` anywhere after it. A long unsafe option `--name` matches any word that starts with `--` when the text after `--`, up to the first `=` if any, is a non-empty prefix of `name`. So `-o<file>`, `-uo<file>`, `--o=<file>`, `--o`, `--out` and `--output=<file>` all match.",
+        "`xargs`. An `xargs` segment counts as a plain read only when every word between `xargs` and the program is on this closed list, matched exactly after normalization: `-0`, `--null`, `-r`, `--no-run-if-empty`, `-t`, `--verbose`, `-n` followed by a separate all-digit word, `-n` with all digits attached, `--max-args=` with all digits, and `--max-args` followed by a separate all-digit word. Any other word that starts with `-` before the program (another option, a cluster such as `-0r`, an abbreviation such as `--nu`, `--arg-file` or `-a`, or a lone `--`) means the segment is not a plain read. `XARGS_VALUE_OPTIONS` is replaced by this list; the guard never guesses whether an unknown option takes a value. Behind `xargs`, `sort`, `sed`, `git`, `file`, `less`, `more` and `rg` never count as plain reads; `cat`, `grep`, `head`, `cut`, `jq` and the other flag-free readers keep counting.",
+        "Heredoc data. In the mention test, the body of a quoted-delimiter heredoc is not a mention when all of these hold: its command is `cat` with exactly one `>` or `>>` redirect, or `tee` with an optional `-a` and one or more operands; every destination is a literal path (no `$`, backtick, glob character, `<(` or `>(`, and not `-`); no destination mentions the flag; and that command is the only command in the call (no pipe, no `;`, `&&`, `||`, `&` or newline-separated second command, and no `$(`, backtick, `<(` or `>(` outside the removed body). These checks read the raw call with the heredoc body removed; a quoted or escaped separator anywhere outside the body fails the rule. Otherwise the body is read as today. An unquoted heredoc body is always read as today.",
+        "Routing text. The kill-switch deny for a shell command adds one sentence: to edit a scratch file whose text names the flag, use the Edit or Write tool, which checks the target's name rather than its contents; other write checks still apply.",
+        "Docs. `content/docs/deft-directive-disable.md` (agent self-serve ban section) states the plain reads, the option test, the `xargs` rule, the heredoc rule and the Edit/Write route, each with its limit.",
+        "One PR, with tests beside `classify.ts`. No new verb, flag, policy field or stored file.",
+        "Given a command that names the flag file and is `git grep -n <flag> HEAD -- p | cut -c1-200`, `grep -rn <flag> p | sort -u`, `sed -n 1,20p a.md | grep <flag>`, or `grep <flag> a | tr a b | nl | jq -R .`, then the mention rule allows it.",
+        "Given `sort -o <flag> x`, `sort -o<flag> x`, `sort -uo<flag> x`, `sort --out=<flag> x`, `sort --o=<flag> x`, `sort --o <flag> x`, `sort -T -- -o<flag> /dev/null`, `sort -T ';cat' -o<flag> /dev/null`, `sort -T '|cat' -o<flag> /dev/null`, `sort -T '&cat' -o<flag> /dev/null`, `sort -T \\;cat -o<flag> /dev/null`, a `sort -T` whose quoted value holds a line break before `cat -o<flag>`, `sort -T $'\\x3bcat' -o<flag> /dev/null`, `sort --compress=sh x <flag>`, `git grep -O <flag>`, `git grep --open=sh <flag>`, `git grep --textconv <flag>`, `less -o<flag> f`, `rg --hostname-bin=x <flag>`, `printf '%s\\n' -o <flag> /dev/null | xargs sort`, `xargs less -o <flag>`, `sed -n 'w <flag>' a`, `sed -i s/a/b/ <flag>`, `cut -c1 /dev/null | xargs --arg-file cat touch <flag>`, `echo x | xargs -a cat touch <flag>`, `echo x | xargs --a cat touch <flag>`, `echo x | xargs -i cat touch <flag>`, `echo x | xargs -p cat touch <flag>`, `echo x | xargs -0r cat <flag>`, `echo x | xargs -n x cat <flag>`, or a `sed -i` whose script names the flag, then the mention rule refuses.",
+        "Given `grep -l <flag> p | xargs -0 -r -n 1 cat` or `grep -l <flag> p | xargs --null --max-args=2 grep x`, then the mention rule allows it.",
+        "Given `cat > /tmp/b.md <<'EOF'` or `tee -a /tmp/b.md <<'EOF'` whose body names the flag, as the only command in the call, then the mention rule allows it.",
+        "Given the same body with `tee >(sh)`, `cat <<'EOF' | sh`, an unquoted delimiter, a destination holding `$`, a destination that names the flag, or any second command in the call (including `rg --hostname-bin=/tmp/h x /dev/null` or `cat /tmp/b.md`), then the mention rule refuses.",
+        "Given a shell command refused by the mention rule, then the deny text names the Edit and Write tools as the route for a scratch file whose text names the flag.",
+        "Given `content/docs/deft-directive-disable.md`, then it states each rule above and its limit."
+      ],
+      "admitted_source_sentences": [
+        "Plain reads. `PLAIN_READ_BINS` gains `cut`, `tr`, `nl`, `jq`, `sort` and `sed`; `PLAIN_READ_GIT_SUBCOMMANDS` gains `grep`. Unsafe options: `sort`: `-o`, `--output`, `--compress-program`; `git grep`: `-o` (the text is lowercased, so `-O` is caught), `--open-files-in-pager`, `--textconv`; `rg`: `--pre`, `--hostname-bin`; `file`: `-c`, `--compile`; `less`: `-o`, `-k`, `--log-file`, `--lesskey-file`; `more`: `-o`. `sed` is a plain read only when every option word is exactly one of `-n`, `--quiet`, `--silent`, `-e`, `--expression`, `-r`, `-z`, `-u`, `-s` (any other spelling, abbreviation or attached value fails) and every script is a line-range print (`N`, `N,M`, `$` or `N,$`, then `p`).",
+        "One unsafe-option test, replacing the exact-word match in `usesUnsafeReadFlag` for every reader with unsafe options. It reads every word of the segment after the program name, a lone `--` and every word after it included. A short unsafe option `-x` matches any word that starts with a single `-` and holds the letter `x` anywhere after it. A long unsafe option `--name` matches any word that starts with `--` when the text after `--`, up to the first `=` if any, is a non-empty prefix of `name`. So `-o<file>`, `-uo<file>`, `--o=<file>`, `--o`, `--out` and `--output=<file>` all match.",
+        "`xargs`. An `xargs` segment counts as a plain read only when every word between `xargs` and the program is on this closed list, matched exactly after normalization: `-0`, `--null`, `-r`, `--no-run-if-empty`, `-t`, `--verbose`, `-n` followed by a separate all-digit word, `-n` with all digits attached, `--max-args=` with all digits, and `--max-args` followed by a separate all-digit word. Any other word that starts with `-` before the program (another option, a cluster such as `-0r`, an abbreviation such as `--nu`, `--arg-file` or `-a`, or a lone `--`) means the segment is not a plain read. `XARGS_VALUE_OPTIONS` is replaced by this list; the guard never guesses whether an unknown option takes a value. Behind `xargs`, `sort`, `sed`, `git`, `file`, `less`, `more` and `rg` never count as plain reads; `cat`, `grep`, `head`, `cut`, `jq` and the other flag-free readers keep counting.",
+        "Heredoc data. In the mention test, the body of a quoted-delimiter heredoc is not a mention when all of these hold: its command is `cat` with exactly one `>` or `>>` redirect, or `tee` with an optional `-a` and one or more operands; every destination is a literal path (no `$`, backtick, glob character, `<(` or `>(`, and not `-`); no destination mentions the flag; and that command is the only command in the call (no pipe, no `;`, `&&`, `||`, `&` or newline-separated second command, and no `$(`, backtick, `<(` or `>(` outside the removed body). These checks read the raw call with the heredoc body removed; a quoted or escaped separator anywhere outside the body fails the rule. Otherwise the body is read as today. An unquoted heredoc body is always read as today.",
+        "Routing text. The kill-switch deny for a shell command adds one sentence: to edit a scratch file whose text names the flag, use the Edit or Write tool, which checks the target's name rather than its contents; other write checks still apply.",
+        "Docs. `content/docs/deft-directive-disable.md` (agent self-serve ban section) states the plain reads, the option test, the `xargs` rule, the heredoc rule and the Edit/Write route, each with its limit.",
+        "One PR, with tests beside `classify.ts`. No new verb, flag, policy field or stored file.",
+        "Given a command that names the flag file and is `git grep -n <flag> HEAD -- p | cut -c1-200`, `grep -rn <flag> p | sort -u`, `sed -n 1,20p a.md | grep <flag>`, or `grep <flag> a | tr a b | nl | jq -R .`, then the mention rule allows it.",
+        "Given `sort -o <flag> x`, `sort -o<flag> x`, `sort -uo<flag> x`, `sort --out=<flag> x`, `sort --o=<flag> x`, `sort --o <flag> x`, `sort -T -- -o<flag> /dev/null`, `sort -T ';cat' -o<flag> /dev/null`, `sort -T '|cat' -o<flag> /dev/null`, `sort -T '&cat' -o<flag> /dev/null`, `sort -T \\;cat -o<flag> /dev/null`, a `sort -T` whose quoted value holds a line break before `cat -o<flag>`, `sort -T $'\\x3bcat' -o<flag> /dev/null`, `sort --compress=sh x <flag>`, `git grep -O <flag>`, `git grep --open=sh <flag>`, `git grep --textconv <flag>`, `less -o<flag> f`, `rg --hostname-bin=x <flag>`, `printf '%s\\n' -o <flag> /dev/null | xargs sort`, `xargs less -o <flag>`, `sed -n 'w <flag>' a`, `sed -i s/a/b/ <flag>`, `cut -c1 /dev/null | xargs --arg-file cat touch <flag>`, `echo x | xargs -a cat touch <flag>`, `echo x | xargs --a cat touch <flag>`, `echo x | xargs -i cat touch <flag>`, `echo x | xargs -p cat touch <flag>`, `echo x | xargs -0r cat <flag>`, `echo x | xargs -n x cat <flag>`, or a `sed -i` whose script names the flag, then the mention rule refuses.",
+        "Given `grep -l <flag> p | xargs -0 -r -n 1 cat` or `grep -l <flag> p | xargs --null --max-args=2 grep x`, then the mention rule allows it.",
+        "Given `cat > /tmp/b.md <<'EOF'` or `tee -a /tmp/b.md <<'EOF'` whose body names the flag, as the only command in the call, then the mention rule allows it.",
+        "Given the same body with `tee >(sh)`, `cat <<'EOF' | sh`, an unquoted delimiter, a destination holding `$`, a destination that names the flag, or any second command in the call (including `rg --hostname-bin=/tmp/h x /dev/null` or `cat /tmp/b.md`), then the mention rule refuses.",
+        "Given a shell command refused by the mention rule, then the deny text names the Edit and Write tools as the route for a scratch file whose text names the flag.",
+        "Given `content/docs/deft-directive-disable.md`, then it states each rule above and its limit."
+      ],
+      "admitted_source_digest": "cb516d30f8623c9590a54716b9b89f217cc103b4fb27ff1cfb3fdb2bbc4ae20c",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Plain reads. `PLAIN_READ_BINS` gains `cut`, `tr`, `nl`, `jq`, `sort` and `sed`; `PLAIN_READ_GIT_SUBCOMMANDS` gains `grep`. Unsafe options: `sort`: `-o`, `--output`, `--compress-program`; `git grep`: `-o` (the text is lowercased, so `-O` is caught), `--open-files-in-pager`, `--textconv`; `rg`: `--pre`, `--hostname-bin`; `file`: `-c`, `--compile`; `less`: `-o`, `-k`, `--log-file`, `--lesskey-file`; `more`: `-o`. `sed` is a plain read only when every option word is exactly one of `-n`, `--quiet`, `--silent`, `-e`, `--expression`, `-r`, `-z`, `-u`, `-s` (any other spelling, abbreviation or attached value fails) and every script is a line-range print (`N`, `N,M`, `$` or `N,$`, then `p`).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "One unsafe-option test, replacing the exact-word match in `usesUnsafeReadFlag` for every reader with unsafe options. It reads every word of the segment after the program name, a lone `--` and every word after it included. A short unsafe option `-x` matches any word that starts with a single `-` and holds the letter `x` anywhere after it. A long unsafe option `--name` matches any word that starts with `--` when the text after `--`, up to the first `=` if any, is a non-empty prefix of `name`. So `-o<file>`, `-uo<file>`, `--o=<file>`, `--o`, `--out` and `--output=<file>` all match.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "`xargs`. An `xargs` segment counts as a plain read only when every word between `xargs` and the program is on this closed list, matched exactly after normalization: `-0`, `--null`, `-r`, `--no-run-if-empty`, `-t`, `--verbose`, `-n` followed by a separate all-digit word, `-n` with all digits attached, `--max-args=` with all digits, and `--max-args` followed by a separate all-digit word. Any other word that starts with `-` before the program (another option, a cluster such as `-0r`, an abbreviation such as `--nu`, `--arg-file` or `-a`, or a lone `--`) means the segment is not a plain read. `XARGS_VALUE_OPTIONS` is replaced by this list; the guard never guesses whether an unknown option takes a value. Behind `xargs`, `sort`, `sed`, `git`, `file`, `less`, `more` and `rg` never count as plain reads; `cat`, `grep`, `head`, `cut`, `jq` and the other flag-free readers keep counting.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Heredoc data. In the mention test, the body of a quoted-delimiter heredoc is not a mention when all of these hold: its command is `cat` with exactly one `>` or `>>` redirect, or `tee` with an optional `-a` and one or more operands; every destination is a literal path (no `$`, backtick, glob character, `<(` or `>(`, and not `-`); no destination mentions the flag; and that command is the only command in the call (no pipe, no `;`, `&&`, `||`, `&` or newline-separated second command, and no `$(`, backtick, `<(` or `>(` outside the removed body). These checks read the raw call with the heredoc body removed; a quoted or escaped separator anywhere outside the body fails the rule. Otherwise the body is read as today. An unquoted heredoc body is always read as today.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Routing text. The kill-switch deny for a shell command adds one sentence: to edit a scratch file whose text names the flag, use the Edit or Write tool, which checks the target's name rather than its contents; other write checks still apply.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Docs. `content/docs/deft-directive-disable.md` (agent self-serve ban section) states the plain reads, the option test, the `xargs` rule, the heredoc rule and the Edit/Write route, each with its limit.",
+          "artifact_path": "content/docs/deft-directive-disable.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "One PR, with tests beside `classify.ts`. No new verb, flag, policy field or stored file.",
+          "artifact_path": "packages/core/src/authz/kill-switch-mention.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Given a command that names the flag file and is `git grep -n <flag> HEAD -- p | cut -c1-200`, `grep -rn <flag> p | sort -u`, `sed -n 1,20p a.md | grep <flag>`, or `grep <flag> a | tr a b | nl | jq -R .`, then the mention rule allows it.",
+          "artifact_path": "packages/core/src/authz/kill-switch-mention.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Given `sort -o <flag> x`, `sort -o<flag> x`, `sort -uo<flag> x`, `sort --out=<flag> x`, `sort --o=<flag> x`, `sort --o <flag> x`, `sort -T -- -o<flag> /dev/null`, `sort -T ';cat' -o<flag> /dev/null`, `sort -T '|cat' -o<flag> /dev/null`, `sort -T '&cat' -o<flag> /dev/null`, `sort -T \\;cat -o<flag> /dev/null`, a `sort -T` whose quoted value holds a line break before `cat -o<flag>`, `sort -T $'\\x3bcat' -o<flag> /dev/null`, `sort --compress=sh x <flag>`, `git grep -O <flag>`, `git grep --open=sh <flag>`, `git grep --textconv <flag>`, `less -o<flag> f`, `rg --hostname-bin=x <flag>`, `printf '%s\\n' -o <flag> /dev/null | xargs sort`, `xargs less -o <flag>`, `sed -n 'w <flag>' a`, `sed -i s/a/b/ <flag>`, `cut -c1 /dev/null | xargs --arg-file cat touch <flag>`, `echo x | xargs -a cat touch <flag>`, `echo x | xargs --a cat touch <flag>`, `echo x | xargs -i cat touch <flag>`, `echo x | xargs -p cat touch <flag>`, `echo x | xargs -0r cat <flag>`, `echo x | xargs -n x cat <flag>`, or a `sed -i` whose script names the flag, then the mention rule refuses.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Given `grep -l <flag> p | xargs -0 -r -n 1 cat` or `grep -l <flag> p | xargs --null --max-args=2 grep x`, then the mention rule allows it.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Given `cat > /tmp/b.md <<'EOF'` or `tee -a /tmp/b.md <<'EOF'` whose body names the flag, as the only command in the call, then the mention rule allows it.",
+          "artifact_path": "packages/core/src/authz/kill-switch-mention.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "Given the same body with `tee >(sh)`, `cat <<'EOF' | sh`, an unquoted delimiter, a destination holding `$`, a destination that names the flag, or any second command in the call (including `rg --hostname-bin=/tmp/h x /dev/null` or `cat /tmp/b.md`), then the mention rule refuses.",
+          "artifact_path": "packages/core/src/authz/kill-switch-mention.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "Given a shell command refused by the mention rule, then the deny text names the Edit and Write tools as the route for a scratch file whose text names the flag.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "Given `content/docs/deft-directive-disable.md`, then it states each rule above and its limit.",
+          "artifact_path": "content/docs/deft-directive-disable.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.6535557561",
+    "updated": "2026-11-22T03:41:12Z"
+  }
+}
