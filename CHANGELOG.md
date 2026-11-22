@@ -25,7 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- The Cursor hook matcher includes Claude Code's `PowerShell` and `Monitor` tools; consumers run `directive install --repair` after upgrading (#6981).
+- (Correction 2026-11-22: an earlier version of these notes said the hook matcher covers Claude Code's `PowerShell` and `Monitor` tools. That change merged after this release was cut and is not in 0.131.2; it ships in the next release. No `install --repair` is needed for it in 0.131.2. See #7093.)
 - Complete #7029 after merge of #7066.
 - Complete #7056 after merge of #7070.
 - `directive upgrade` no longer runs the vbrief→xbrief data migration without asking (#7056, safe interim for #7009). When the migration would process a `vbrief/` tree that holds files, the plan names it, gives the number of files found under `vbrief/`, says it deletes `vbrief/`, and gives how many of the files Git tracks (Git restores only committed contents). The migration runs only with the new `--migrate-xbrief` flag or an interactive yes to a separate question; `--yes` alone neither asks nor migrates. Without consent the upgrade finishes the rest, does not call the runtime `migrate` entry, leaves `vbrief/` untouched, and names `deft migrate:xbrief` and a version-pinned `directive upgrade --migrate-xbrief --yes`. With consent the migration runs as before, and the summary says it ran. What the migration does is unchanged; a project without files under `vbrief/` upgrades as before.
