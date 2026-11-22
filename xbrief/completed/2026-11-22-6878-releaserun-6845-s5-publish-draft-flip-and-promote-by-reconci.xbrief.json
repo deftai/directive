@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6878",
-    "updated": "2026-11-22T08:24:52Z"
+    "updated": "2026-11-22T09:29:44Z"
   },
   "plan": {
     "title": "release:run (#6845 S5): publish, draft flip and promote by reconciliation, and the runbook",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "After the tag, the operator still watches the npm publish, flips the draft release and decides on promotion by hand, and a run that stops part-way leaves the state to work out by hand (#6878, S5 of #6845). This story builds the publish-watch, draft-flip and promote phases of `deft release:run` by reconciliation with GitHub and npm, the GitHub-release check on a resumed finish, and the operator runbook. It builds clauses 6, 9, 10, 11, 24, 26, 27, 28, 29 and 30 of the accepted #6845 lean 7032154033 (split comment 7048165729).",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6878",
@@ -19,82 +19,152 @@
     "items": [
       {
         "title": "Approved scope. The approval covers source tree T at M, built by the tag-triggered npm workflow at M, and release notes read from M. The draft release notes and the upgrade banner are read from M with `git show`, not from the local checkout. The run publishes only by the tag push and never dispatches the manual republish workflow; a failed publish run stops the run.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "Approved scope. The approval covers source tree T at M, built by the tag-triggered npm workflow at M, and release notes read from M. The draft release notes and the upgrade banner are read from M with `git show`, not from the local checkout. The run publishes only by the tag push and never dispatches the manual republish workflow; a failed publish run stops the run."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7cd68e662687a63c81add8d5044c620838521ec6",
+          "recorded_at": "2026-11-22T09:29:44Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Resume by reconciliation. The run record (`.deft-scratch/release-run/<version>.json`) keeps B, T, the PR number, the grant ids and the retry counts. Each phase decides from observed state. A tag that peels to M only locally is pushed; a remote tag that peels to M is done; a tag on any other commit stops the run. npm is done only when both packages carry the version on `maintainer` and the tag-triggered workflow run, with its post-publish fixture, concluded `success`; a run in progress is waited on; a failed run stops. The GitHub release is done when it exists for the tag, and the flip is done when it is not a draft. An expired or spent grant that an unfinished phase needs stops the run and names the mint command. Any other state stops the run; nothing is overwritten.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "Resume by reconciliation. The run record (`.deft-scratch/release-run/<version>.json`) keeps B, T, the PR number, the grant ids and the retry counts. Each phase decides from observed state. A tag that peels to M only locally is pushed; a remote tag that peels to M is done; a tag on any other commit stops the run. npm is done only when both packages carry the version on `maintainer` and the tag-triggered workflow run, with its post-publish fixture, concluded `success`; a run in progress is waited on; a failed run stops. The GitHub release is done when it exists for the tag, and the flip is done when it is not a draft. An expired or spent grant that an unfinished phase needs stops the run and names the mint command. Any other state stops the run; nothing is overwritten."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7cd68e662687a63c81add8d5044c620838521ec6",
+          "recorded_at": "2026-11-22T09:29:44Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Promote. The promote phase runs only with its up-front grant and after the post-publish fixture passed. It first looks for a promote-latest workflow run for the version: a run in progress is waited on; a run that concluded `success`, with both packages on `latest` at the version, is done; a failed run or a partial state stops the run without a new dispatch. With no run found it dispatches once. An unknown dispatch result after the grant was spent stops the run; it is not retried.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "Promote. The promote phase runs only with its up-front grant and after the post-publish fixture passed. It first looks for a promote-latest workflow run for the version: a run in progress is waited on; a run that concluded `success`, with both packages on `latest` at the version, is done; a failed run or a partial state stops the run without a new dispatch. With no run found it dispatches once. An unknown dispatch result after the grant was spent stops the run; it is not retried."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7cd68e662687a63c81add8d5044c620838521ec6",
+          "recorded_at": "2026-11-22T09:29:44Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Docs. The release skill Stable cut runbook and `docs/RELEASING.md` become this command, its approval step and the post-run pin steps. The merge-freeze rule and the routine-cut skip path leave the runbook.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "Docs. The release skill Stable cut runbook and `docs/RELEASING.md` become this command, its approval step and the post-run pin steps. The merge-freeze rule and the routine-cut skip path leave the runbook."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7cd68e662687a63c81add8d5044c620838521ec6",
+          "recorded_at": "2026-11-22T09:29:44Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given one package published and a failed publish workflow run, then the run stops and does not dispatch a republish.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "Given one package published and a failed publish workflow run, then the run stops and does not dispatch a republish."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7cd68e662687a63c81add8d5044c620838521ec6",
+          "recorded_at": "2026-11-22T09:29:44Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given an expired `release-publish` grant when the draft flip is due, then the run stops and names the mint command.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "narrative": {
           "Acceptance": "Given an expired `release-publish` grant when the draft flip is due, then the run stops and names the mint command."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7cd68e662687a63c81add8d5044c620838521ec6",
+          "recorded_at": "2026-11-22T09:29:44Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given a promote grant minted up front and a green post-publish fixture, then promote dispatches once.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
         "narrative": {
           "Acceptance": "Given a promote grant minted up front and a green post-publish fixture, then promote dispatches once."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7cd68e662687a63c81add8d5044c620838521ec6",
+          "recorded_at": "2026-11-22T09:29:44Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given both packages on `latest` and the promote workflow run still in progress, when `--resume` runs, then it waits and does not mark promote done; given a failed promote run, then it stops and does not dispatch again.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.8",
         "narrative": {
           "Acceptance": "Given both packages on `latest` and the promote workflow run still in progress, when `--resume` runs, then it waits and does not mark promote done; given a failed promote run, then it stops and does not dispatch again."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7cd68e662687a63c81add8d5044c620838521ec6",
+          "recorded_at": "2026-11-22T09:29:44Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given a spent promote grant and an unknown dispatch result, then the run stops.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.9",
         "narrative": {
           "Acceptance": "Given a spent promote grant and an unknown dispatch result, then the run stops."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7cd68e662687a63c81add8d5044c620838521ec6",
+          "recorded_at": "2026-11-22T09:29:44Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given no promote grant, then the run ends with `latest` unchanged.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.10",
         "narrative": {
           "Acceptance": "Given no promote grant, then the run ends with `latest` unchanged."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7cd68e662687a63c81add8d5044c620838521ec6",
+          "recorded_at": "2026-11-22T09:29:44Z",
+          "recorded_by": "scope:complete"
         }
       }
     ],
@@ -268,7 +338,36 @@
         "origin": "deftai/directive#6878",
         "id": "github.issue.6517863228"
       },
-      "kind": "story"
+      "kind": "story",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "5ce96537bb83e3b8c504253af6ff30d4b6188c04",
+        "prNumber": 7027,
+        "prBase": "master",
+        "mergeCommit": "7cd68e662687a63c81add8d5044c620838521ec6",
+        "deliveryBranch": "master",
+        "deliveryCommit": "7cd68e662687a63c81add8d5044c620838521ec6",
+        "verifiedAt": "2026-11-22T09:29:44Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:ZTYxMTJjZWUtZTUxNC00NjVlLTk1ZjUtN2QwZDljMmE5OWVl",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          7026
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-22T09:29:44Z",
+      "completedSessionId": "host:claude:v1:ZTYxMTJjZWUtZTUxNC00NjVlLTk1ZjUtN2QwZDljMmE5OWVl",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-22T09:29:44Z"
+      }
     },
     "acceptance": {
       "commands": [],
@@ -376,6 +475,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.6517863228",
-    "updated": "2026-11-22T08:24:52Z"
+    "updated": "2026-11-22T09:29:44Z"
   }
 }
