@@ -166,6 +166,43 @@ describe("deft pre-pr:run --project-root (#6902)", () => {
     expect(err.join("")).toMatch(/required phase|omitted|incomplete/i);
   });
 
+  it("completes a full run from another cwd; completion re-hashes reviewed files under the root", () => {
+    process.chdir(dirB);
+    const root = ["--project-root", dirA];
+    expect(run([...START, "--run-id", "ppr_6902_c", ...root, "--json"])).toBe(0);
+    const hashA = computeControllerObservedHash({ reviewedFiles: ["reviewed.ts"], cwd: dirA });
+    const passGates = () => [
+      { gate: "verify:class-checks" as const, exitCode: 0, message: "clean" },
+      { gate: "verify:evaluator-surface" as const, exitCode: 0, message: "skip" },
+    ];
+    for (const spec of PRE_PR_PHASES.filter((p) => p.required)) {
+      const argv =
+        spec.kind === "command-observable"
+          ? ["--observe-command", "--phase", spec.id, "--exit-code", "0"]
+          : [
+              "--observe-semantic",
+              "--phase",
+              spec.id,
+              "--supplied-contents-hash",
+              hashA ?? "",
+              "--reviewed-file",
+              "reviewed.ts",
+            ];
+      expect(
+        run([...argv, "--run-id", "ppr_6902_c", ...root, "--json"], { gateChecks: passGates }),
+      ).toBe(0);
+    }
+    const err = captureStderr();
+    expect(
+      run(["--complete", "--run-id", "ppr_6902_c", ...root, "--json"], {
+        skipNamedMergeGate: true,
+        verifyAc: () => ({ kind: "evaluated-pass" as const, output: "" }),
+      }),
+    ).toBe(0);
+    expect(err.join("")).toBe("");
+    expect(new FileBackedPrePrStore(dirA).getById("ppr_6902_c")?.outcome).toBe("pass");
+  });
+
   it("without --project-root, another cwd reports the run missing", () => {
     process.chdir(dirA);
     expect(run([...START, "--run-id", "ppr_6902_m", "--json"])).toBe(0);
