@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6965",
-    "updated": "2026-11-22T03:00:55Z"
+    "updated": "2026-11-22T03:53:41Z"
   },
   "plan": {
     "title": "install: two-pass fixture allowlist drifted from owned-paths (data-schema.json, seed placeholder)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "The post-publish two-pass fixture (#4271) fails because installerManagedMatchers() does not list .deft/directive/data-schema.json or the xbrief seed marker that install writes. This story adds both as exact matchers in packages/core/src/init-deposit/hygiene.ts, with a hygiene test.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6965",
@@ -19,18 +19,32 @@
     "items": [
       {
         "title": "`installerManagedMatchers()` lists `.deft/directive/data-schema.json` and `xbrief/.directive-seed-placeholder` as exact paths, and `isPass2CommitPath` accepts both.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "When isPass2CommitPath runs on the data-schema.json path or the xbrief seed marker path, then it returns true, because both are exact installerManagedMatchers entries."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5d9983b32e4c841f5365931102a0a8bed2ac72fe",
+          "recorded_at": "2026-11-22T03:53:41Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "A hygiene test covers both paths and a nearby non-owned path that stays rejected.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "When the hygiene test runs, then both paths are installer-managed and a nearby non-owned path is rejected."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5d9983b32e4c841f5365931102a0a8bed2ac72fe",
+          "recorded_at": "2026-11-22T03:53:41Z",
+          "recorded_by": "scope:complete"
         }
       }
     ],
@@ -177,9 +191,36 @@
         ],
         "model_tier": "standard",
         "conflict_group": "install-hygiene"
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "efbeea2538e3df13021b53eaacd118c160df6826",
+        "prNumber": 6974,
+        "prBase": "master",
+        "mergeCommit": "5d9983b32e4c841f5365931102a0a8bed2ac72fe",
+        "deliveryBranch": "master",
+        "deliveryCommit": "c28007bfb7dcd38e0db2de4d85412bda0512875d",
+        "verifiedAt": "2026-11-22T03:53:41Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          6971
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-22T03:53:41Z",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-22T03:53:41Z"
       }
     },
     "id": "github.issue.6537584258",
-    "updated": "2026-11-22T03:00:55Z"
+    "updated": "2026-11-22T03:53:41Z"
   }
 }

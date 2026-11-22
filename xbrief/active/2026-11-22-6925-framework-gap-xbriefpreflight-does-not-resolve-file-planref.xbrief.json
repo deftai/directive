@@ -1,0 +1,216 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6925",
+    "updated": "2026-11-22T03:49:50Z"
+  },
+  "plan": {
+    "title": "[framework-gap] xbrief:preflight does not resolve file:// planRef that xbrief:validate accepts",
+    "status": "running",
+    "narratives": {
+      "Description": "`xbrief:validate` strips a `file://` scheme from `plan.planRef` before it resolves the parent, but the parent-lineage check that `xbrief:preflight` runs does not, so a planRef such as `file://proposed/<epic>.xbrief.json` validates cleanly and then fails preflight with `parent not found at <repo>/xbrief/file:/proposed/...` (#6925). This story moves the scheme strip into one shared helper in `vbrief-validate/paths.ts` and has the parent-lineage resolver use it, keeping its exact-path, absolute-path and traversal rules unchanged.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6925",
+      "Overview": "- Given a story whose `plan.planRef` is `file://proposed/<epic>.xbrief.json` and that epic exists, when `xbrief:preflight` runs the parent-lineage check, then it loads the epic from `<lifecycle root>/proposed/` and does not report `parent not found`.\n- Given a `plan.planRef` of `file://xbrief/proposed/<epic>.xbrief.json`, when the parent-lineage check resolves it, then it returns the same path as the planRef without the scheme.\n- Given a `plan.planRef` of `file:///<absolute path>` or `file://../<epic>.xbrief.json`, when the parent-lineage check resolves it, then it still refuses with the absolute-path or parent-traversal error.\n- Given a `plan.planRef` without a scheme, when the parent-lineage check resolves it, then the result is unchanged from today.\n- `xbrief:validate` and the parent-lineage check strip the `file://` scheme through one shared helper in `vbrief-validate/paths.ts`.\n\n",
+      "UserStory": "As a consumer who links stories to an epic with a `file://` planRef, I want `xbrief:preflight` to resolve the same planRef forms that `xbrief:validate` accepts, so that stories that pass validate and swarm:readiness do not all fail preflight at dispatch time.",
+      "ImplementationPlan": "1. packages/core/src/vbrief-validate/paths.ts: add an exported `stripFileScheme(uri)` helper and use it in `resolveRefPath` and `scopeIdsForRefUri` in place of the inline `file://` slices.\n2. packages/core/src/scope/parent-lineage.ts: `resolveParentPathFromRef` strips the scheme with `stripFileScheme` before its absolute, traversal and leading `xbrief/` checks; the plan-reference branch of `resolveParentRefFromChild` uses the same helper.\n3. Tests: packages/core/src/scope/parent-lineage.test.ts covers a `file://proposed/` planRef that loads the parent, a `file://xbrief/proposed/` planRef, `file:///abs` and `file://../x` refusals, and an unchanged scheme-less planRef; packages/core/src/vbrief-validate/paths.test.ts covers `stripFileScheme` and `resolveRefPath`.\n4. One changelog.d fragment; verify with the vitest commands in verify_commands.",
+      "Traces": "#6925"
+    },
+    "items": [
+      {
+        "title": "Given a story whose `plan.planRef` is `file://proposed/<epic>.xbrief.json` and that epic exists, when `xbrief:preflight` runs the parent-lineage check, then it loads the epic from `<lifecycle root>/proposed/` and does not report `parent not found`.",
+        "status": "proposed",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "When a story planRef is file://proposed/<epic>.xbrief.json and the epic exists, then preflight parent lineage loads it and reports no parent-not-found error."
+        }
+      },
+      {
+        "title": "Given a `plan.planRef` of `file://xbrief/proposed/<epic>.xbrief.json`, when the parent-lineage check resolves it, then it returns the same path as the planRef without the scheme.",
+        "status": "proposed",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "When a planRef is file://xbrief/proposed/<epic>.xbrief.json, then the resolver returns the same path as the scheme-less planRef."
+        }
+      },
+      {
+        "title": "Given a `plan.planRef` of `file:///<absolute path>` or `file://../<epic>.xbrief.json`, when the parent-lineage check resolves it, then it still refuses with the absolute-path or parent-traversal error.",
+        "status": "proposed",
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "When a planRef is file:///<absolute> or file://../<epic>, then the resolver still refuses with the absolute-path or traversal error."
+        }
+      },
+      {
+        "title": "Given a `plan.planRef` without a scheme, when the parent-lineage check resolves it, then the result is unchanged from today.",
+        "status": "proposed",
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "When a planRef has no scheme, then the resolver returns the same result as before this change."
+        }
+      },
+      {
+        "title": "`xbrief:validate` and the parent-lineage check strip the `file://` scheme through one shared helper in `vbrief-validate/paths.ts`.",
+        "status": "proposed",
+        "id": "clause.5",
+        "narrative": {
+          "Acceptance": "When validate or parent lineage strips file://, then both call the one stripFileScheme helper in vbrief-validate/paths.ts."
+        }
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6925",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6925: [framework-gap] xbrief:preflight does not resolve file:// planRef that xbrief:validate accepts"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per harvested lean item (5), in list order (#6333)",
+      "sentences": [
+        "Given a story whose `plan.planRef` is `file://proposed/<epic>.xbrief.json` and that epic exists, when `xbrief:preflight` runs the parent-lineage check, then it loads the epic from `<lifecycle root>/proposed/` and does not report `parent not found`.",
+        "Given a `plan.planRef` of `file://xbrief/proposed/<epic>.xbrief.json`, when the parent-lineage check resolves it, then it returns the same path as the planRef without the scheme.",
+        "Given a `plan.planRef` of `file:///<absolute path>` or `file://../<epic>.xbrief.json`, when the parent-lineage check resolves it, then it still refuses with the absolute-path or parent-traversal error.",
+        "Given a `plan.planRef` without a scheme, when the parent-lineage check resolves it, then the result is unchanged from today.",
+        "`xbrief:validate` and the parent-lineage check strip the `file://` scheme through one shared helper in `vbrief-validate/paths.ts`."
+      ],
+      "admitted_source_sentences": [
+        "Given a story whose `plan.planRef` is `file://proposed/<epic>.xbrief.json` and that epic exists, when `xbrief:preflight` runs the parent-lineage check, then it loads the epic from `<lifecycle root>/proposed/` and does not report `parent not found`.",
+        "Given a `plan.planRef` of `file://xbrief/proposed/<epic>.xbrief.json`, when the parent-lineage check resolves it, then it returns the same path as the planRef without the scheme.",
+        "Given a `plan.planRef` of `file:///<absolute path>` or `file://../<epic>.xbrief.json`, when the parent-lineage check resolves it, then it still refuses with the absolute-path or parent-traversal error.",
+        "Given a `plan.planRef` without a scheme, when the parent-lineage check resolves it, then the result is unchanged from today.",
+        "`xbrief:validate` and the parent-lineage check strip the `file://` scheme through one shared helper in `vbrief-validate/paths.ts`."
+      ],
+      "admitted_source_digest": "4a09251a0978fb8d0e50488c450e8b68e19c092e5ab320836215cf1c5021eef0",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Given a story whose `plan.planRef` is `file://proposed/<epic>.xbrief.json` and that epic exists, when `xbrief:preflight` runs the parent-lineage check, then it loads the epic from `<lifecycle root>/proposed/` and does not report `parent not found`.",
+          "artifact_path": "packages/core/src/scope/parent-lineage.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Given a `plan.planRef` of `file://xbrief/proposed/<epic>.xbrief.json`, when the parent-lineage check resolves it, then it returns the same path as the planRef without the scheme.",
+          "artifact_path": "packages/core/src/scope/parent-lineage.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Given a `plan.planRef` of `file:///<absolute path>` or `file://../<epic>.xbrief.json`, when the parent-lineage check resolves it, then it still refuses with the absolute-path or parent-traversal error.",
+          "artifact_path": "packages/core/src/scope/parent-lineage.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Given a `plan.planRef` without a scheme, when the parent-lineage check resolves it, then the result is unchanged from today.",
+          "artifact_path": "packages/core/src/scope/parent-lineage.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "`xbrief:validate` and the parent-lineage check strip the `file://` scheme through one shared helper in `vbrief-validate/paths.ts`.",
+          "artifact_path": "packages/core/src/vbrief-validate/paths.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "design-critique: not warranted, because the fix is one scheme strip in the preflight parent-lineage resolver so it reads `file://` planRefs the way `xbrief:validate` already does; the exact-path, absolute and traversal rules stay as they are.\n\nTarget-digest: sha256:3ddf5ba7812c4877139a49e4043da2ab3acfb62e05b1c24dcb6f91684f82b0ef\n\n## Acceptance Criteria\n- Given a story whose `plan.planRef` is `file://proposed/<epic>.xbrief.json` and that epic exists, when `xbrief:preflight` runs the parent-lineage check, then it loads the epic from `<lifecycle root>/proposed/` and does not report `parent not found`.\n- Given a `plan.planRef` of `file://xbrief/proposed/<epic>.xbrief.json`, when the parent-lineage check resolves it, then it returns the same path as the planRef without the scheme.\n- Given a `plan.planRef` of `file:///<absolute path>` or `file://../<epic>.xbrief.json`, when the parent-lineage check resolves it, then it still refuses with the absolute-path or parent-traversal error.\n- Given a `plan.planRef` without a scheme, when the parent-lineage check resolves it, then the result is unchanged from today.\n- `xbrief:validate` and the parent-lineage check strip the `file://` scheme through one shared helper in `vbrief-validate/paths.ts`.\n\n",
+          "id": 7073759277,
+          "html_url": "https://github.com/deftai/directive/issues/6925#issuecomment-7073759277",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T03:45:36Z",
+          "updated_at": "2026-11-22T03:45:36Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n`xbrief:preflight` and `xbrief:validate` resolve `plan.planRef` differently, so a planRef that validates cleanly fails preflight.\n\n## Context\nA story xBRIEF links to its epic with `\"planRef\": \"file://proposed/2026-11-21-1840-desk-p1-epic.xbrief.json\"`. `deft xbrief:validate` (`vbrief-validate/epic-links.js` → `resolveRefPath`) strips `file://` and resolves relative to the lifecycle root, so D4 passes.\n\n## Expected behavior\n`deft xbrief:preflight -- xbrief/active/<story>.xbrief.json` accepts the same planRef forms that `xbrief:validate` accepts (or validate rejects the forms preflight cannot resolve).\n\n## Actual behavior / gap\nPreflight's parent-lineage check does not strip the scheme and fails closed:\n\n`parent not found at <repo>/xbrief/file:/proposed/2026-11-21-1840-desk-p1-epic.xbrief.json ... [defect_class=child_spec]`\n\nSo all 12 activated stories in a cohort passed validate and swarm:readiness, then every one failed preflight at dispatch time. Workaround: write planRef without the scheme (`proposed/<epic>.xbrief.json`).\n\n## Session notes\nSuggest one shared planRef resolver for validate, readiness and preflight, and a validate warning when a form is not preflight-resolvable.\n\n---\n_Filed from a consumer session (deftai/evolution, runtime @deftai/directive-runtime 0.129.13, launcher @deftai/directive 0.129.14). Refs #1709_\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6525748969,
+        "origin": "deftai/directive#6925",
+        "id": "github.issue.6525748969"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "3ddf5ba7812c4877139a49e4043da2ab3acfb62e05b1c24dcb6f91684f82b0ef"
+      },
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 6925,
+        "leanCommentId": 7073759277,
+        "harvestDigest": "b8140a60877c385ae6b9b4999e3d5ade9f90e06f8b5ec9111599883f7712bb92",
+        "slice": null,
+        "kind": "criteria-only"
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/scope/parent-lineage.ts",
+          "packages/core/src/scope/parent-lineage.test.ts",
+          "packages/core/src/vbrief-validate/paths.ts",
+          "packages/core/src/vbrief-validate/paths.test.ts",
+          "changelog.d/6925-preflight-file-planref.md",
+          "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "xbrief/.audit/spec-drift/github.issue.6525748969.json"
+        ],
+        "verify_commands": [
+          "npx vitest run packages/core/src/scope/parent-lineage.test.ts packages/core/src/vbrief-validate/paths.test.ts"
+        ],
+        "size": "small",
+        "file_scope_confidence": "high",
+        "depends_on": [],
+        "expected_outputs": [
+          "stripFileScheme helper in vbrief-validate/paths.ts used by resolveRefPath, scopeIdsForRefUri and the parent-lineage resolver",
+          "xbrief:preflight parent lineage resolves file:// planRefs the way xbrief:validate does; absolute and traversal refusals unchanged",
+          "one changelog fragment changelog.d/6925-preflight-file-planref.md"
+        ],
+        "conflict_group": "parent-lineage-planref",
+        "model_tier": "standard"
+      }
+    },
+    "id": "github.issue.6525748969",
+    "updated": "2026-11-22T03:49:50Z"
+  }
+}
