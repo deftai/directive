@@ -1,9 +1,17 @@
 import { resolve } from "node:path";
-import { resolveDefaultFrameworkRoot, resolveScriptDir } from "../doctor/paths.js";
+import { resolveScriptDir } from "../doctor/paths.js";
 import { DEFAULT_REPO } from "./constants.js";
 import { spawnText } from "./spawn.js";
 import type { ReleaseSeams } from "./types.js";
 
+/**
+ * Project root for the release verbs: `--project-root`, then
+ * `DEFT_PROJECT_ROOT`, else the current working directory (#6864). The
+ * working directory is where `authz:grant` mints grants by default and what
+ * `task release:*` passes, so the mint and the gate read one store. There is
+ * no framework-root fallback: from the installed CLI that is the runtime
+ * package, not the operator's repository.
+ */
 export function resolveProjectRoot(argRoot: string | null): string {
   if (argRoot !== null) {
     return resolve(argRoot);
@@ -12,7 +20,7 @@ export function resolveProjectRoot(argRoot: string | null): string {
   if (envRoot) {
     return resolve(envRoot);
   }
-  return resolveDefaultFrameworkRoot();
+  return resolve(process.cwd());
 }
 
 export function resolveRepo(

@@ -59,8 +59,8 @@ export const RELEASE_E2E_HELP =
   "  --destroy-repo       Attempt gh repo delete after rehearsal (privileged\n" +
   "                       environments with delete_repo permission only; default\n" +
   "                       keeps the temp repo and reports manual cleanup).\n" +
-  "  --project-root PATH  Repository root (default: $DEFT_PROJECT_ROOT or\n" +
-  "                       scripts/.. ).\n" +
+  "  --project-root PATH  Repository root (default: $DEFT_PROJECT_ROOT, else the\n" +
+  "                       current working directory).\n" +
   "  --skip-npm           Skip the npm publish dry-run rehearsal step (#1910).\n" +
   "                       The step installs + builds the workspace, which exceeds\n" +
   "                       the <90s fast budget that --skip-ci/--skip-build\n" +
