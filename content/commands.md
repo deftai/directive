@@ -218,6 +218,7 @@ Directive exposes the logical field as `plan.policy.allowDirectCommitsToMaster`,
 - Allow confirmed #1019 preflight-gh opt-out: `deft policy:allow-destructive-gh-verbs -- --confirm`
 - Re-enforce #1019: `deft policy:enforce-destructive-gh-verbs`
 - Store Phase 2 narratives without policy keys: `deft project:write-narratives --project-root <root> --narratives-file <path>`
+- Set the AGENTS.md scaffold one-liner (#6973): `deft project:write-header-line [--line "<one sentence>"] [--project-root <root>]`. It writes the first sentence of the confirmed Overview (at most 120 characters, never truncated) or `--line` over the exact placeholder only, prints the line, and does not commit. It writes nothing in a linked worktree. Commit AGENTS.md on a feature branch; prospective scope-cover admits that exact change without a story scope. Nothing else writes this line: product writes, `deft check`, occupancy release and `scope:complete` only refuse while the placeholder stays.
 - Draft Phase 2 narratives from a design document or answers file (thin wrapper; draft-only): `deft setup:seed --from <design.md>` or `deft setup:seed --answers <file>` (#4961). Confirm via setup Post-Interview Confirmation Gate, then durable-write with `project:write-narratives`. Optional `--merge-existing` / `--expected-revision` on `project:write-narratives` preserve absent fields and refuse stale approvals. v1 is narratives-only (no proposed-scope seed). Interview remains the fallback when no seed flags are used.
 
 

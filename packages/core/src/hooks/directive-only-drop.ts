@@ -8,7 +8,8 @@
  *   and its HEAD mode, when present, is a plain file;
  * - its HEAD side and staged side read cleanly (a read error is never "absent");
  * - the installer's ownership API (`classifyDirectiveOwnedChange`, #6615) calls
- *   the change `directive-only`.
+ *   the change `directive-only`, or the entry is the root AGENTS.md and its only
+ *   change is the scaffold one-liner replaced by a qualifying line (#6973).
  *
  * Every other entry stays product with one exact reason. Dropping is by raw
  * staged entry, so a distinct raw path that normalizes to the same string is
@@ -18,6 +19,7 @@
 
 import { execFileSync } from "node:child_process";
 import { classifyDirectiveOwnedChange } from "../install-health/owned-paths.js";
+import { isConsumerHeaderOneLinerOnlyChange } from "../platform/agents-consumer-header.js";
 import { SUBPROCESS_MAX_BUFFER } from "../subprocess/max-buffer.js";
 import { readStagedBlob, type StagedIndexEntry } from "./planning-publication.js";
 
@@ -78,6 +80,9 @@ export interface PartitionDirectiveOnlyInput {
 }
 
 const PLAIN_FILE_MODES: ReadonlySet<string> = new Set(["100644", "100755"]);
+
+/** The consumer AGENTS.md whose unmanaged one-liner #6973 admits. */
+const CONSUMER_AGENTS_MD_PATH = "AGENTS.md";
 
 /** The raw path is already in the form the ownership API reads. */
 export function isCanonicalStagedPath(raw: string): boolean {
@@ -191,7 +196,18 @@ function classifyCandidate(
     // Not shown to be Directive-only, so it stays product.
     return "mixed";
   }
-  return verdict === "directive-only" ? "drop" : verdict;
+  if (verdict === "directive-only") return "drop";
+  // #6973: the root AGENTS.md change that only replaces the scaffold one-liner
+  // with a qualifying line (what `deft project:write-header-line` writes) needs
+  // no story scope. Any other unmanaged-header change stays product.
+  if (
+    verdict === "mixed" &&
+    entry.path === CONSUMER_AGENTS_MD_PATH &&
+    isConsumerHeaderOneLinerOnlyChange(before, after)
+  ) {
+    return "drop";
+  }
+  return verdict;
 }
 
 type GitRun =

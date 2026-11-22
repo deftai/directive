@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { contentRoot } from "../content-root.js";
+import { containedWrite } from "../fs/contained-write.js";
 import { type AgentsMdSeams, frameworkRoot } from "./agents-md.js";
 import { findManagedOpenMarker } from "./linear-scan.js";
 
@@ -24,13 +25,101 @@ export type HeaderOneLinerCasReason =
   | "empty-overview"
   | "already-matches";
 
-/** First non-empty line of confirmed Overview. Not a live-prompt interpolator. */
-export function oneLinerFromConfirmedOverview(overview: string): string {
-  for (const raw of overview.replace(/\r\n/g, "\n").split("\n")) {
-    const line = raw.trim().replace(/^#+\s*/, "");
-    if (line.length > 0) return line;
+/**
+ * Longest header one-liner (#6973). The unmanaged AGENTS.md line is a one-line
+ * project description, read by every agent at session start; a longer first
+ * sentence is not written and the operator supplies `--line` instead.
+ */
+export const CONSUMER_HEADER_ONELINER_MAX_CHARS = 120;
+
+/** Why a candidate header line does not qualify (#6973). */
+export type ConsumerHeaderLineIssue =
+  | "empty"
+  | "too-long"
+  | "markup"
+  | "multi-line"
+  | "placeholder";
+
+export type ConsumerHeaderLineCheck =
+  | { readonly ok: true; readonly line: string }
+  | { readonly ok: false; readonly issue: ConsumerHeaderLineIssue; readonly line: string };
+
+/**
+ * Checks one candidate one-liner (#6973): one line, at most
+ * {@link CONSUMER_HEADER_ONELINER_MAX_CHARS} characters, no HTML comment or
+ * heading mark, and not the scaffold placeholder.
+ */
+export function checkConsumerHeaderLine(raw: string): ConsumerHeaderLineCheck {
+  if (/[\r\n]/.test(raw.trim())) return { ok: false, issue: "multi-line", line: raw };
+  const line = raw.trim();
+  if (line.length === 0) return { ok: false, issue: "empty", line };
+  if (line.includes("<!--") || line.startsWith("#")) return { ok: false, issue: "markup", line };
+  if (line === CONSUMER_HEADER_PLACEHOLDER_ONELINER) {
+    return { ok: false, issue: "placeholder", line };
   }
-  return "";
+  if (line.length > CONSUMER_HEADER_ONELINER_MAX_CHARS) {
+    return { ok: false, issue: "too-long", line };
+  }
+  return { ok: true, line };
+}
+
+/** Closed abbreviations that do not end a sentence (#6973). */
+const NON_TERMINAL_ABBREVIATIONS = new Set(["e.g", "i.e", "etc", "vs"]);
+
+function isSourceLine(line: string): boolean {
+  return /^source\s*:/i.test(line);
+}
+
+/** First sentence of one line: up to the first `.`/`!`/`?` that ends a word, skipping closed abbreviations. */
+function firstSentence(line: string): string {
+  for (let i = 0; i < line.length; i += 1) {
+    const ch = line[i];
+    if (ch !== "." && ch !== "!" && ch !== "?") continue;
+    const next = line[i + 1];
+    if (next !== undefined && !/\s/.test(next)) continue;
+    if (ch === ".") {
+      const word = (line.slice(0, i).match(/(\S+)$/)?.[1] ?? "").toLowerCase();
+      if (NON_TERMINAL_ABBREVIATIONS.has(word.replace(/^[("'`]+/, ""))) continue;
+    }
+    return line.slice(0, i + 1).trim();
+  }
+  return line.trim();
+}
+
+export type ConsumerHeaderDerivation =
+  | { readonly ok: true; readonly line: string }
+  | {
+      readonly ok: false;
+      readonly issue: ConsumerHeaderLineIssue | "no-sentence";
+      /** The candidate sentence that did not qualify, or "" when none was found. */
+      readonly candidate: string;
+    };
+
+/**
+ * Derive the header one-liner from confirmed Overview (#6973): the first
+ * sentence of the first line that is not a heading and not a `Source:` line.
+ * Never truncates; a sentence that does not pass
+ * {@link checkConsumerHeaderLine} derives nothing.
+ */
+export function deriveConsumerHeaderOneLiner(overview: string): ConsumerHeaderDerivation {
+  for (const raw of overview.replace(/\r\n/g, "\n").split("\n")) {
+    const line = raw.trim();
+    if (line.length === 0 || line.startsWith("#") || isSourceLine(line)) continue;
+    const sentence = firstSentence(line);
+    const checked = checkConsumerHeaderLine(sentence);
+    if (checked.ok) return { ok: true, line: checked.line };
+    return { ok: false, issue: checked.issue, candidate: sentence };
+  }
+  return { ok: false, issue: "no-sentence", candidate: "" };
+}
+
+/**
+ * Header one-liner from confirmed Overview (#6973): the derived sentence, or ""
+ * when no sentence qualifies. Not a live-prompt interpolator.
+ */
+export function oneLinerFromConfirmedOverview(overview: string): string {
+  const derived = deriveConsumerHeaderOneLiner(overview);
+  return derived.ok ? derived.line : "";
 }
 
 /** Unmanaged region above the managed-section open marker (or whole file). */
@@ -120,6 +209,97 @@ export function compareAndSetConsumerHeaderOneLiner(input: {
   };
 }
 
+/**
+ * True when the only change from `before` to `after` is the scaffold
+ * placeholder one-liner replaced by a line that passes
+ * {@link checkConsumerHeaderLine} (#6973). Prospective scope-cover admits that
+ * exact change without a story scope; any other AGENTS.md change stays product.
+ */
+export function isConsumerHeaderOneLinerOnlyChange(
+  before: string | null,
+  after: string | null,
+): boolean {
+  if (before === null || after === null) return false;
+  const b = before.replace(/\r\n/g, "\n");
+  const a = after.replace(/\r\n/g, "\n");
+  if (unmanagedHeaderOneLiner(b) !== CONSUMER_HEADER_PLACEHOLDER_ONELINER) return false;
+  const next = unmanagedHeaderOneLiner(a);
+  if (next === null) return false;
+  const checked = checkConsumerHeaderLine(next);
+  if (!checked.ok) return false;
+  return (
+    replaceUnmanagedHeaderOneLiner(b, CONSUMER_HEADER_PLACEHOLDER_ONELINER, checked.line) === a
+  );
+}
+
+export type WriteConsumerHeaderLineResult =
+  | { readonly kind: "written"; readonly path: string; readonly line: string }
+  | { readonly kind: "no-agents-md"; readonly path: string }
+  | { readonly kind: "not-placeholder"; readonly path: string; readonly current: string | null }
+  | { readonly kind: "no-overview" }
+  | {
+      readonly kind: "no-line";
+      readonly issue: ConsumerHeaderLineIssue | "no-sentence";
+      readonly candidate: string;
+    }
+  | { readonly kind: "failed"; readonly path: string; readonly detail: string };
+
+/**
+ * The one writer of the unmanaged one-liner (#6973): `line` when given, else
+ * the first qualifying Overview sentence; placeholder-only compare-and-set with
+ * a re-read guard. Never commits.
+ */
+export function writeConsumerHeaderLineAtRoot(
+  projectRoot: string,
+  input: { readonly line: string | null; readonly readOverview: () => string | null },
+): WriteConsumerHeaderLineResult {
+  const root = resolve(projectRoot);
+  const path = join(root, "AGENTS.md");
+  const read = (): string | null => {
+    try {
+      return existsSync(path) ? readFileSync(path, "utf8") : null;
+    } catch {
+      return null;
+    }
+  };
+  const before = read();
+  if (before === null) return { kind: "no-agents-md", path };
+  const current = unmanagedHeaderOneLiner(before.replace(/\r\n/g, "\n"));
+  if (current !== CONSUMER_HEADER_PLACEHOLDER_ONELINER) {
+    return { kind: "not-placeholder", path, current };
+  }
+  let line: string;
+  if (input.line !== null) {
+    const checked = checkConsumerHeaderLine(input.line);
+    if (!checked.ok) return { kind: "no-line", issue: checked.issue, candidate: input.line };
+    line = checked.line;
+  } else {
+    const overview = input.readOverview();
+    if (overview === null || overview.trim().length === 0) return { kind: "no-overview" };
+    const derived = deriveConsumerHeaderOneLiner(overview);
+    if (!derived.ok) return { kind: "no-line", issue: derived.issue, candidate: derived.candidate };
+    line = derived.line;
+  }
+  const replaced = replaceUnmanagedHeaderOneLiner(
+    before.replace(/\r\n/g, "\n"),
+    CONSUMER_HEADER_PLACEHOLDER_ONELINER,
+    line,
+  );
+  if (replaced === null) return { kind: "not-placeholder", path, current };
+  // Re-read at write time so a concurrent AGENTS.md edit is not overwritten (#4544).
+  if (read() !== before) {
+    return { kind: "failed", path, detail: "AGENTS.md changed while the line was derived; re-run" };
+  }
+  // Keep the file's line endings so the diff is the one line only.
+  const data = before.includes("\r\n") ? replaced.replace(/\n/g, "\r\n") : replaced;
+  try {
+    containedWrite({ root, target: path, data, mode: "replace", mkdir: false });
+  } catch (err) {
+    return { kind: "failed", path, detail: err instanceof Error ? err.message : String(err) };
+  }
+  return { kind: "written", path, line };
+}
+
 export interface ConsumerHeaderSeams {
   readonly frameworkRoot?: string;
   readonly readTemplate?: () => string | null;
@@ -181,8 +361,13 @@ export function agentsMdContainsExactPlaceholder(agentsMd: string): boolean {
 export const FIRST_SHIP_HEADER_PLACEHOLDER_CAUSE =
   "unmanaged AGENTS.md header still equals scaffold edit-me after product-mutation completion";
 
+/** The command that sets the one-liner (#6973); nothing else writes that line. */
+export const CONSUMER_HEADER_LINE_COMMAND = "deft project:write-header-line";
+
 export const FIRST_SHIP_HEADER_PLACEHOLDER_REMEDY =
-  "confirm Overview then compareAndSetConsumerHeaderOneLiner (setup Phase 3); leave custom headers untouched; Process-only exits may keep the placeholder";
+  `run ${CONSUMER_HEADER_LINE_COMMAND} (or add --line "<one sentence>") in the primary checkout, ` +
+  "then commit AGENTS.md on a feature branch; in a linked worktree, land the line from the " +
+  "primary checkout and rebase this branch; custom headers pass; Process-only exits may keep the placeholder";
 
 export type FirstShipHeaderPlaceholderReason =
   | "no-agents-md"

@@ -240,95 +240,60 @@ describe("readConfirmedOverviewAtRoot (#4544 residual)", () => {
   });
 });
 
-describe("enforceConsumerHeaderPlaceholderAtCompletionChokepoint (#4544 residual)", () => {
-  it("refuses placeholder after product completion when Overview is unavailable", () => {
-    const root = tempRoot();
-    writeFileSync(
-      join(root, "AGENTS.md"),
-      `# Project\n\n${CONSUMER_HEADER_PLACEHOLDER_ONELINER}\n`,
-      "utf8",
-    );
-    const result = enforceConsumerHeaderPlaceholderAtCompletionChokepoint(root, {
-      recordedAt: new Date("2026-10-02T12:00:00Z"),
-      confirmedOverview: null,
-    });
-    expect(result.ok).toBe(false);
-    expect(result.message).toContain(CONSUMER_HEADER_COMPLETION_CHOKEPOINT_ID);
-    expect(result.message).toMatch(/Overview is unavailable/i);
-    expect(result.remediation.overviewAvailable).toBe(false);
-    expect(productMutationCompletionAtRoot(root)).toBe(true);
-    expect(evaluateConsumerHeaderPlaceholderAtRoot(root).ok).toBe(false);
-  });
-
-  it("remediates via confirmed-Overview CAS then Prefer-A passes", () => {
-    const root = tempRoot();
-    writeFileSync(
-      join(root, "AGENTS.md"),
-      `# Project\n\n${CONSUMER_HEADER_PLACEHOLDER_ONELINER}\n\n## Session orientation\n`,
-      "utf8",
-    );
-    const result = enforceConsumerHeaderPlaceholderAtCompletionChokepoint(root, {
-      recordedAt: new Date("2026-10-02T12:00:00Z"),
-      confirmedOverview: "Garden notes CRUD app",
-    });
-    expect(result.ok).toBe(true);
-    expect(result.remediation.attempted).toBe(true);
-    expect(result.remediation.wroteAgentsMd).toBe(true);
-    expect(result.remediation.casReason).toBe("replaced-placeholder");
-    const agents = readFileSync(join(root, "AGENTS.md"), "utf8");
-    expect(agents).toContain("Garden notes CRUD app");
-    expect(agents).not.toContain(CONSUMER_HEADER_PLACEHOLDER_ONELINER);
-    expect(evaluateConsumerHeaderPlaceholderAtRoot(root).ok).toBe(true);
-    expect(evaluateConsumerHeaderPlaceholderAtRoot(root).reason).toBe("not-placeholder");
-  });
-
-  it("refuses Overview CAS when AGENTS.md changed after the snapshot (#4544 P1)", () => {
-    const root = tempRoot();
-    const snapshot = `# Project\n\n${CONSUMER_HEADER_PLACEHOLDER_ONELINER}\n`;
-    writeFileSync(join(root, "AGENTS.md"), snapshot, "utf8");
-    let reads = 0;
-    const result = enforceConsumerHeaderPlaceholderAtCompletionChokepoint(root, {
-      recordedAt: new Date("2026-10-02T12:00:00Z"),
-      confirmedOverview: "Garden notes CRUD app",
-      readAgentsMd: () => {
-        reads += 1;
-        // evaluate + CAS snapshot share the pre-write text; write-time re-read drifts.
-        if (reads <= 2) return snapshot;
-        return "# Project\n\nCustom concurrent header.\n";
-      },
-    });
-    expect(result.ok).toBe(false);
-    expect(result.remediation.attempted).toBe(true);
-    expect(result.remediation.wroteAgentsMd).toBe(false);
-    expect(result.message).toMatch(/changed after the CAS snapshot/i);
-    expect(readFileSync(join(root, "AGENTS.md"), "utf8")).toBe(snapshot);
-  });
-
-  it("reads Overview from PROJECT-DEFINITION when seam is omitted", () => {
-    const root = tempRoot();
-    writeFileSync(
-      join(root, "AGENTS.md"),
-      `# Project\n\n${CONSUMER_HEADER_PLACEHOLDER_ONELINER}\n`,
-      "utf8",
-    );
+describe("enforceConsumerHeaderPlaceholderAtCompletionChokepoint (#4544 residual / #6973)", () => {
+  function withOverview(root: string, overview: string): void {
     mkdirSync(join(root, "xbrief"), { recursive: true });
     writeFileSync(
       join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
       `${JSON.stringify({
         xBRIEFInfo: { version: "0.8" },
-        plan: {
-          title: "demo",
-          narratives: { Overview: "PD-confirmed one-liner", "tech stack": "node" },
-        },
+        plan: { title: "demo", narratives: { Overview: overview, "tech stack": "node" } },
       })}\n`,
+      "utf8",
+    );
+  }
+
+  it("refuses placeholder after product completion, stamps the marker, names the command", () => {
+    const root = tempRoot();
+    writeFileSync(
+      join(root, "AGENTS.md"),
+      `# Project\n\n${CONSUMER_HEADER_PLACEHOLDER_ONELINER}\n`,
       "utf8",
     );
     const result = enforceConsumerHeaderPlaceholderAtCompletionChokepoint(root, {
       recordedAt: new Date("2026-10-02T12:00:00Z"),
     });
-    expect(result.ok).toBe(true);
-    expect(result.remediation.wroteAgentsMd).toBe(true);
-    expect(readFileSync(join(root, "AGENTS.md"), "utf8")).toContain("PD-confirmed one-liner");
+    expect(result.ok).toBe(false);
+    expect(result.message).toContain(CONSUMER_HEADER_COMPLETION_CHOKEPOINT_ID);
+    expect(result.message).toContain("deft project:write-header-line");
+    expect(productMutationCompletionAtRoot(root)).toBe(true);
+    expect(evaluateConsumerHeaderPlaceholderAtRoot(root).ok).toBe(false);
+  });
+
+  it("never writes AGENTS.md, even with a confirmed Overview (#6973)", () => {
+    const root = tempRoot();
+    const scaffold = `# Project\n\n${CONSUMER_HEADER_PLACEHOLDER_ONELINER}\n\n## Session orientation\n`;
+    writeFileSync(join(root, "AGENTS.md"), scaffold, "utf8");
+    withOverview(
+      root,
+      "Garden notes is a small CRUD app. It tracks sowings and harvests. Source: design.md",
+    );
+    const result = enforceConsumerHeaderPlaceholderAtCompletionChokepoint(root, {
+      recordedAt: new Date("2026-10-02T12:00:00Z"),
+    });
+    expect(result.ok).toBe(false);
+    expect(readFileSync(join(root, "AGENTS.md"), "utf8")).toBe(scaffold);
+  });
+
+  it("a reverted header is not rewritten by a later product write (#6973)", () => {
+    const root = tempRoot();
+    const scaffold = `# Project\n\n${CONSUMER_HEADER_PLACEHOLDER_ONELINER}\n`;
+    writeFileSync(join(root, "AGENTS.md"), scaffold, "utf8");
+    withOverview(root, "Garden notes CRUD app.");
+    for (const at of ["2026-10-02T12:00:00Z", "2026-10-02T12:30:00Z"]) {
+      enforceConsumerHeaderPlaceholderAtCompletionChokepoint(root, { recordedAt: new Date(at) });
+      expect(readFileSync(join(root, "AGENTS.md"), "utf8")).toBe(scaffold);
+    }
   });
 
   it("keeps custom headers and absent AGENTS.md legal at the chokepoint", () => {
@@ -336,20 +301,31 @@ describe("enforceConsumerHeaderPlaceholderAtCompletionChokepoint (#4544 residual
     writeFileSync(join(custom, "AGENTS.md"), "# Garden\n\nCustom one-liner.\n", "utf8");
     const customResult = enforceConsumerHeaderPlaceholderAtCompletionChokepoint(custom, {
       recordedAt: new Date("2026-10-02T12:00:00Z"),
-      confirmedOverview: null,
     });
     expect(customResult.ok).toBe(true);
     expect(customResult.evaluation.reason).toBe("not-placeholder");
-    expect(customResult.remediation.attempted).toBe(false);
 
     const absent = tempRoot();
     const absentResult = enforceConsumerHeaderPlaceholderAtCompletionChokepoint(absent, {
       recordedAt: new Date("2026-10-02T12:00:00Z"),
-      confirmedOverview: null,
     });
     expect(absentResult.ok).toBe(true);
     expect(absentResult.evaluation.reason).toBe("no-agents-md");
     expect(existsSync(productMutationCompletionMarkerPath(absent))).toBe(true);
+  });
+
+  it("refuses in a linked-worktree-shaped checkout too and writes nothing (#6973)", () => {
+    const root = tempRoot();
+    writeFileSync(join(root, ".git"), "gitdir: /elsewhere/.git/worktrees/w\n", "utf8");
+    const scaffold = `# Project\n\n${CONSUMER_HEADER_PLACEHOLDER_ONELINER}\n`;
+    writeFileSync(join(root, "AGENTS.md"), scaffold, "utf8");
+    withOverview(root, "Garden notes CRUD app.");
+    const result = enforceConsumerHeaderPlaceholderAtCompletionChokepoint(root, {
+      recordedAt: new Date("2026-10-02T12:00:00Z"),
+    });
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/linked worktree/);
+    expect(readFileSync(join(root, "AGENTS.md"), "utf8")).toBe(scaffold);
   });
 
   it("Process-only Prefer-A evaluator still allows placeholder without the chokepoint", () => {
@@ -431,13 +407,10 @@ describe("dirty product evidence reachability (#4544 Prefer-A Bound 6000271029)"
     ).toBe(false);
   });
 
-  it("evaluate reaches enforce via dirty product evidence then remediates Overview CAS", () => {
+  it("evaluate counts dirty product evidence for the call only: no stamp, no write (#6973)", () => {
     const root = tempRoot();
-    writeFileSync(
-      join(root, "AGENTS.md"),
-      `# Project\n\n${CONSUMER_HEADER_PLACEHOLDER_ONELINER}\n`,
-      "utf8",
-    );
+    const scaffold = `# Project\n\n${CONSUMER_HEADER_PLACEHOLDER_ONELINER}\n`;
+    writeFileSync(join(root, "AGENTS.md"), scaffold, "utf8");
     mkdirSync(join(root, "xbrief"), { recursive: true });
     writeFileSync(
       join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
@@ -453,12 +426,11 @@ describe("dirty product evidence reachability (#4544 Prefer-A Bound 6000271029)"
     const result = evaluateConsumerHeaderPlaceholderAtRoot(root, {
       dirtyProductEvidence: true,
     });
-    expect(result.ok).toBe(true);
-    expect(result.reason).toBe("not-placeholder");
-    expect(productMutationCompletionAtRoot(root)).toBe(true);
-    const agents = readFileSync(join(root, "AGENTS.md"), "utf8");
-    expect(agents).toContain("Notes hello corecap");
-    expect(agents).not.toContain(CONSUMER_HEADER_PLACEHOLDER_ONELINER);
+    expect(result.ok).toBe(false);
+    expect(result.reason).toBe("placeholder-with-product-mutation");
+    expect(result.message).toContain("deft project:write-header-line");
+    expect(productMutationCompletionAtRoot(root)).toBe(false);
+    expect(readFileSync(join(root, "AGENTS.md"), "utf8")).toBe(scaffold);
   });
 
   it("evaluate Process-only still passes without marker and without dirty product evidence", () => {
@@ -476,7 +448,7 @@ describe("dirty product evidence reachability (#4544 Prefer-A Bound 6000271029)"
     expect(productMutationCompletionAtRoot(root)).toBe(false);
   });
 
-  it("enforceWhenProductEvidence skips Process-only and enforces on dirty product", () => {
+  it("enforceWhenProductEvidence skips Process-only and evaluates dirty product without writing", () => {
     const skipRoot = tempRoot();
     writeFileSync(
       join(skipRoot, "AGENTS.md"),
@@ -490,19 +462,16 @@ describe("dirty product evidence reachability (#4544 Prefer-A Bound 6000271029)"
     expect("skipped" in skipped && skipped.skipped).toBe(true);
 
     const dirtyRoot = tempRoot();
-    writeFileSync(
-      join(dirtyRoot, "AGENTS.md"),
-      `# Project\n\n${CONSUMER_HEADER_PLACEHOLDER_ONELINER}\n`,
-      "utf8",
-    );
+    const scaffold = `# Project\n\n${CONSUMER_HEADER_PLACEHOLDER_ONELINER}\n`;
+    writeFileSync(join(dirtyRoot, "AGENTS.md"), scaffold, "utf8");
     const enforced = enforceConsumerHeaderPlaceholderWhenProductEvidence(dirtyRoot, {
       dirtyProductEvidence: true,
-      confirmedOverview: null,
-      recordedAt: new Date("2026-10-05T12:00:00Z"),
     });
     expect(enforced.ok).toBe(false);
     expect(enforced.message).toContain(CONSUMER_HEADER_COMPLETION_CHOKEPOINT_ID);
-    expect(productMutationCompletionAtRoot(dirtyRoot)).toBe(true);
+    // #6973: release / scope:complete evaluate only — no stamp, no write.
+    expect(productMutationCompletionAtRoot(dirtyRoot)).toBe(false);
+    expect(readFileSync(join(dirtyRoot, "AGENTS.md"), "utf8")).toBe(scaffold);
   });
 
   it("honesty: pin 7c775edf had only two production enforce callers; residual adds reachability", () => {

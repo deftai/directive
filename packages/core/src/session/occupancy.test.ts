@@ -589,6 +589,65 @@ describe("worktree occupancy lease (#3433)", () => {
     expect(readOccupancy(root)?.lastWriteAt).toBeNull();
   });
 
+  it("fresh-lease product write records the Prefer-A marker when absent (#6973)", () => {
+    const root = tempRoot();
+    const claimedAt = new Date("2026-08-17T12:00:00Z");
+    applyWorktreeOccupancy(root, { sessionId: "owner", now: claimedAt });
+    const marker = join(root, ".deft", "cache", "product-mutation-completion.json");
+    expect(existsSync(marker)).toBe(false);
+    const soon = new Date(claimedAt.getTime() + 1000);
+    const gate = evaluateOccupancyWriteGate(root, {
+      sessionId: "owner",
+      now: soon,
+      refresh: true,
+      persistProductMutationMarker: true,
+    });
+    expect(gate.allow).toBe(true);
+    expect(gate.refreshed).toBe(false);
+    expect(existsSync(marker)).toBe(true);
+  });
+
+  it("fresh-lease product write refuses the scaffold line and never writes AGENTS.md (#6973)", () => {
+    const root = tempRoot();
+    const claimedAt = new Date("2026-08-17T12:00:00Z");
+    applyWorktreeOccupancy(root, { sessionId: "owner", now: claimedAt });
+    const scaffold = `# Project\n\n${CONSUMER_HEADER_PLACEHOLDER_ONELINER}\n`;
+    writeFileSync(join(root, "AGENTS.md"), scaffold, "utf8");
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      `${JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: { title: "demo", narratives: { Overview: "Garden notes CRUD app. More." } },
+      })}\n`,
+      "utf8",
+    );
+    const gate = evaluateOccupancyWriteGate(root, {
+      sessionId: "owner",
+      now: new Date(claimedAt.getTime() + 1000),
+      refresh: true,
+      persistProductMutationMarker: true,
+    });
+    expect(gate.allow).toBe(false);
+    expect(gate.message).toContain("deft project:write-header-line");
+    expect(readFileSync(join(root, "AGENTS.md"), "utf8")).toBe(scaffold);
+  });
+
+  it("Process-only fresh-lease write records no marker (#6973)", () => {
+    const root = tempRoot();
+    const claimedAt = new Date("2026-08-17T12:00:00Z");
+    applyWorktreeOccupancy(root, { sessionId: "owner", now: claimedAt });
+    const gate = evaluateOccupancyWriteGate(root, {
+      sessionId: "owner",
+      now: new Date(claimedAt.getTime() + 1000),
+      refresh: true,
+    });
+    expect(gate.allow).toBe(true);
+    expect(existsSync(join(root, ".deft", "cache", "product-mutation-completion.json"))).toBe(
+      false,
+    );
+  });
+
   it("write-gate product refresh fails closed when Prefer-A marker cannot be written (#5176)", () => {
     const root = tempRoot();
     const claimedAt = new Date("2026-08-17T12:00:00Z");

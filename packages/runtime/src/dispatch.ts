@@ -225,6 +225,7 @@ export const CLI_MODULE_VERBS = [
   "verify-ac",
   "verify-agents-md-budget",
   "verify-consumer-header-placeholder",
+  "project-write-header-line",
   "verify-agents-md-advisory",
   "verify-persisted-planning-narratives",
   "verify-eval-health-relocation",
@@ -564,6 +565,7 @@ export const VERB_ALIASES: Readonly<Record<string, string>> = {
   "prd:render": "prd-render",
   "project:render": "project-render",
   "project:write-narratives": "project-write-narratives",
+  "project:write-header-line": "project-write-header-line",
   "docs:rule-map": "rule-map",
   "docs:capability-map": "capability-map",
   "project:export-spec": "export-spec",
@@ -3350,6 +3352,10 @@ const CURATED_HELP_GROUPS: readonly HelpGroup[] = [
       {
         name: "project:write-narratives",
         summary: "Store Phase 2 narratives in PROJECT-DEFINITION without policy keys",
+      },
+      {
+        name: "project:write-header-line",
+        summary: "Set the AGENTS.md scaffold one-liner from Overview or --line (no commit)",
       },
       {
         name: "setup:seed",
