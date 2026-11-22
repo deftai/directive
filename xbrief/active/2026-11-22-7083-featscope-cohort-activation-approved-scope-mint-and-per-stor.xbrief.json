@@ -1,0 +1,288 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #7083",
+    "updated": "2026-11-22T20:29:54Z"
+  },
+  "plan": {
+    "title": "feat(scope): cohort activation, approved-scope mint and per-story launch (slice of #7062)",
+    "status": "running",
+    "narratives": {
+      "Description": "Slice cohort-mint of the accepted #7062 lean (comment 7082701528), built after cohort-lifecycle (#7082). At onePrScopeProof: off, one brief-only PR activates several briefs with one deft-story-part: N line per brief, offline and live. At mint, scope:record-approved-scope --manifest prints every story's plan id, brief, worktree, file_scope, acceptance criteria and intent digest, asks for the typed mint once, and writes each approved-scope record pair into that story's own worktree; swarm:launch then admits each story at its own one-PR branch. The commands reference, the scope-provenance doc, a consumer doc section and the CHANGELOG describe the batched flow and its PR counts.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/7083",
+      "Overview": "- Cohort activation (`onePrScopeProof: off`). `evaluatePathBActivationAdmit` (`packages/core/src/pr-closing-keywords/main.ts`) counts one `deft-story-part: N` line per changed brief as mark coverage, offline and live, so one brief-only PR activates several briefs with the lines per-story activation PRs carry today.\n- Cohort approved-scope mint. `scope:record-approved-scope` takes `--manifest <file>` whose entries name `xbrief_path` and `worktree_path`. It reads each brief from its worktree with the duplicate-key-rejecting parser, builds both files of every pair with the existing approved-scope builder, and freezes them before the prompt. It prints, per story, the plan id, brief path, worktree, full `file_scope`, acceptance criteria and intent digest, asks for the typed `mint` once, and writes both files of each pair into that story's worktree by exclusive create. An identical existing pair is left untouched; a differing or half-present pair, a glob entry or a duplicate key refuses the whole set before the prompt; a failed run removes only files it created. `cohortDigest` is metadata, not authority. `--add-path` stays single-brief; the human-presence gate is unchanged.\n- Per-story one-PR launch. `swarm:launch` admits each story at its own worktree-map row `base_branch` with the existing two one-PR checks at that branch's tip, and builds that story's dest from that row's pinned commit, instead of pinning the first admitted commit for the whole cohort. Each branch carries only its story's activated brief and record pair. A cohort that names one `--base-branch` behaves as today.\n- Docs: `content/commands.md`, `content/docs/scope-provenance.md` and a short section in `content/docs/directive-lifecycle.md` describe the batched flow (prepare one branch per story, one mint, launch, in-PR completion, one cohort lifecycle PR) and its counts when every post-merge completion fits one lifecycle sweep: at `mint`, N product PRs, at most one lifecycle PR and one mint; at `off`, one activation PR, N product PRs and at most one lifecycle PR; each further sweep adds one lifecycle PR. CHANGELOG line.\n- Activation, mint and launch tests: a several-brief activation PR with part lines passes offline and live; a cohort mint writes every pair after one prompt, refuses a differing or half pair, a glob brief and a duplicate-key brief before the prompt, and removes only its own files after a failure following the first file of a pair or a concurrent create; two stories launched from their own branches each pass scope-provenance and the story-line check with only their own brief and pair.\n- One brief-only PR activates several briefs with one `deft-story-part: N` line per brief, offline and live.\n- One typed mint writes an approved-scope record pair into each story's worktree for a whole cohort after printing each story's file list, acceptance criteria and intent digest; a differing or half pair, a glob brief or a duplicate-key brief refuses before the prompt, and a failed run removes only its own files.\n- `swarm:launch` admits each story at its own one-PR branch, and each product PR passes scope-provenance and the story-line check carrying only its own brief and record pair.\n- The commands reference, the scope-provenance doc and a consumer doc section describe the batched flow and its counts (for 10 stories whose post-merge completions fit one sweep, at most 12 PRs, or at most 11 PRs and one mint at `onePrScopeProof: mint`; each further sweep adds one lifecycle PR), with a CHANGELOG line.\n\n",
+      "Constraint": "- Every cohort worker deferring completion to the closer when in-PR completion admits the story (comment 7082620305, finding 1).\n- One shared cohort branch whose product PRs carry every peer brief and record pair, and a free-path rule for peer record pairs (comment 7082620305, findings 2 and 3).\n- Full `deft-story: N` marks on a product PR for stories it does not deliver (comment 7082620305, finding 3).\n- A cohort mint that shows only file paths, or reuses the one-file cohort runner without the approved-scope parser and pair builder (comment 7082620305, finding 5).\n- Dropping the terminal mint for approved-scope (#7031), or folding #6284's allowance and expiry grant into this change.",
+      "UserStory": "As a maintainer launching a cohort on the one-PR path, I want one activation PR or one typed mint for the whole cohort, so that ten stories cost at most eleven or twelve PRs instead of thirty.",
+      "ImplementationPlan": "1. packages/core/src/pr-closing-keywords/main.ts (evaluatePathBActivationAdmit) and packages/core/src/verify-ac/evaluate.ts: count one deft-story-part: N line per changed brief as mark coverage, offline and live.\n2. packages/runtime/src/scope-record-approved-scope.ts (+ new scope-record-approved-scope-cohort.ts): --manifest <file> with xbrief_path and worktree_path entries; read each brief with the duplicate-key-rejecting parser; build both files of each pair with the existing approved-scope builder (packages/core/src/scope-provenance/digest.ts); freeze, print per-story plan id, brief, worktree, file_scope, acceptance and intent digest; one typed mint; exclusive-create writes into each worktree; identical pair untouched; differing or half pair, glob entry or duplicate key refuses the whole set before the prompt; a failed run removes only its own files; --add-path stays single-brief; human-presence gate unchanged.\n3. packages/core/src/swarm/launch.ts (+ launch-cli.ts, worktrees.ts, origin-active-brief.ts): admit each story at its own worktree-map row base_branch with the two existing one-PR checks at that tip and build its dest from that row's pinned commit; one --base-branch behaves as today.\n4. Docs: content/commands.md, content/docs/scope-provenance.md, content/docs/directive-lifecycle.md (batched flow and counts), swarm reference core-phase-1-2.md, tasks/scope.yml and tasks/swarm.yml descriptions; changelog.d/7083-cohort-mint.md.\n5. Tests: packages/core/src/pr-closing-keywords/cohort-activation-7083.test.ts, packages/runtime/src/scope-record-approved-scope-cohort.test.ts, packages/core/src/swarm/launch-per-story-base-7083.test.ts, and packages/core/src/content-contracts/standards/cohort_mint_docs_7083.test.ts for the doc clauses. Regenerate docs/RULE-MAP.md and the evaluator-surface disposition if the gates ask.",
+      "Traces": "#7083 clauses 1-9 trace to the cohort-mint slice of the accepted #7062 lean 7082701528: Bound remedy items 4, 5, 6, 7 and 9 and Acceptance Criteria 4-7 (synthesis 7082734597, verified-claims table 7082732735)."
+    },
+    "items": [
+      {
+        "title": "Cohort activation (`onePrScopeProof: off`). `evaluatePathBActivationAdmit` (`packages/core/src/pr-closing-keywords/main.ts`) counts one `deft-story-part: N` line per changed brief as mark coverage, offline and live, so one brief-only PR activates several briefs with the lines per-story activation PRs carry today.",
+        "status": "proposed",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "When a brief-only PR changes several briefs and its body carries one deft-story-part: N line per brief, evaluatePathBActivationAdmit admits it offline and live."
+        }
+      },
+      {
+        "title": "Cohort approved-scope mint. `scope:record-approved-scope` takes `--manifest <file>` whose entries name `xbrief_path` and `worktree_path`. It reads each brief from its worktree with the duplicate-key-rejecting parser, builds both files of every pair with the existing approved-scope builder, and freezes them before the prompt. It prints, per story, the plan id, brief path, worktree, full `file_scope`, acceptance criteria and intent digest, asks for the typed `mint` once, and writes both files of each pair into that story's worktree by exclusive create. An identical existing pair is left untouched; a differing or half-present pair, a glob entry or a duplicate key refuses the whole set before the prompt; a failed run removes only files it created. `cohortDigest` is metadata, not authority. `--add-path` stays single-brief; the human-presence gate is unchanged.",
+        "status": "proposed",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "When scope:record-approved-scope --manifest runs, it prints each story's plan id, brief, worktree, file_scope, acceptance criteria and intent digest, takes one typed mint, writes both files of each pair into that story's worktree, refuses a differing or half pair, glob or duplicate key before the prompt, and removes only its own files on failure."
+        }
+      },
+      {
+        "title": "Per-story one-PR launch. `swarm:launch` admits each story at its own worktree-map row `base_branch` with the existing two one-PR checks at that branch's tip, and builds that story's dest from that row's pinned commit, instead of pinning the first admitted commit for the whole cohort. Each branch carries only its story's activated brief and record pair. A cohort that names one `--base-branch` behaves as today.",
+        "status": "proposed",
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "When swarm:launch runs with a worktree map whose rows name their own base_branch, each story is admitted at its own branch tip with the two one-PR checks and its dest is built from that row's pinned commit; a single --base-branch behaves as today."
+        }
+      },
+      {
+        "title": "Docs: `content/commands.md`, `content/docs/scope-provenance.md` and a short section in `content/docs/directive-lifecycle.md` describe the batched flow (prepare one branch per story, one mint, launch, in-PR completion, one cohort lifecycle PR) and its counts when every post-merge completion fits one lifecycle sweep: at `mint`, N product PRs, at most one lifecycle PR and one mint; at `off`, one activation PR, N product PRs and at most one lifecycle PR; each further sweep adds one lifecycle PR. CHANGELOG line.",
+        "status": "proposed",
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "When the commands reference, scope-provenance doc and directive-lifecycle doc are read, they describe the batched flow and its counts for one sweep, and a CHANGELOG fragment names the change."
+        }
+      },
+      {
+        "title": "Activation, mint and launch tests: a several-brief activation PR with part lines passes offline and live; a cohort mint writes every pair after one prompt, refuses a differing or half pair, a glob brief and a duplicate-key brief before the prompt, and removes only its own files after a failure following the first file of a pair or a concurrent create; two stories launched from their own branches each pass scope-provenance and the story-line check with only their own brief and pair.",
+        "status": "proposed",
+        "id": "clause.5",
+        "narrative": {
+          "Acceptance": "When the activation, mint and launch tests run, they cover a several-brief part-line activation offline and live, the cohort mint write and refusal and cleanup cases, and two stories launched from their own branches passing scope-provenance and the story-line check."
+        }
+      },
+      {
+        "title": "One brief-only PR activates several briefs with one `deft-story-part: N` line per brief, offline and live.",
+        "status": "proposed",
+        "id": "clause.6",
+        "narrative": {
+          "Acceptance": "When one brief-only PR activates several briefs with one deft-story-part: N line per brief, the offline and live activation checks admit it."
+        }
+      },
+      {
+        "title": "One typed mint writes an approved-scope record pair into each story's worktree for a whole cohort after printing each story's file list, acceptance criteria and intent digest; a differing or half pair, a glob brief or a duplicate-key brief refuses before the prompt, and a failed run removes only its own files.",
+        "status": "proposed",
+        "id": "clause.7",
+        "narrative": {
+          "Acceptance": "When one typed mint runs for a cohort, each story's worktree gets its approved-scope record pair after the per-story print, and a differing or half pair, glob brief or duplicate-key brief refuses before the prompt, and a failed run removes only its own files."
+        }
+      },
+      {
+        "title": "`swarm:launch` admits each story at its own one-PR branch, and each product PR passes scope-provenance and the story-line check carrying only its own brief and record pair.",
+        "status": "proposed",
+        "id": "clause.8",
+        "narrative": {
+          "Acceptance": "When each story launches from its own one-PR branch, each product PR carries only its own brief and record pair and passes scope-provenance and the story-line check."
+        }
+      },
+      {
+        "title": "The commands reference, the scope-provenance doc and a consumer doc section describe the batched flow and its counts (for 10 stories whose post-merge completions fit one sweep, at most 12 PRs, or at most 11 PRs and one mint at `onePrScopeProof: mint`; each further sweep adds one lifecycle PR), with a CHANGELOG line.",
+        "status": "proposed",
+        "id": "clause.9",
+        "narrative": {
+          "Acceptance": "When the docs are read, the commands reference, scope-provenance doc and consumer doc section state the batched flow and its counts (10 stories: at most 12 PRs, or 11 PRs and one mint at onePrScopeProof: mint; one more lifecycle PR per further sweep), with a CHANGELOG line."
+        }
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/7083",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #7083: feat(scope): cohort activation, approved-scope mint and per-story launch (slice of #7062)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/7062",
+        "type": "x-xbrief/refs",
+        "title": "Issue #7062"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "--manifest <file>",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L4"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": false,
+        "file_scope": [
+          "packages/core/src/pr-closing-keywords/main.ts",
+          "packages/core/src/verify-ac/evaluate.ts",
+          "packages/core/src/pr-closing-keywords/main.test.ts",
+          "packages/core/src/pr-closing-keywords/cohort-activation-7083.test.ts",
+          "packages/runtime/src/scope-record-approved-scope.ts",
+          "packages/runtime/src/scope-record-approved-scope-cohort.ts",
+          "packages/runtime/src/scope-record-approved-scope.test.ts",
+          "packages/runtime/src/scope-record-approved-scope-cohort.test.ts",
+          "packages/core/src/scope-provenance/digest.ts",
+          "packages/core/src/swarm/launch.ts",
+          "packages/core/src/swarm/launch-cli.ts",
+          "packages/core/src/swarm/worktrees.ts",
+          "packages/core/src/swarm/origin-active-brief.ts",
+          "packages/core/src/swarm/launch.test.ts",
+          "packages/core/src/swarm/launch-per-story-base-7083.test.ts",
+          "packages/core/src/content-contracts/standards/cohort_mint_docs_7083.test.ts",
+          "tasks/scope.yml",
+          "tasks/swarm.yml",
+          "content/commands.md",
+          "content/docs/scope-provenance.md",
+          "content/docs/directive-lifecycle.md",
+          "content/skills/deft-directive-swarm/references/core-phase-1-2.md",
+          "docs/RULE-MAP.md",
+          "xbrief/evaluator-surface-disposition.json",
+          "changelog.d/7083-cohort-mint.md"
+        ],
+        "verify_commands": [
+          "npx vitest run packages/core/src/pr-closing-keywords/cohort-activation-7083.test.ts packages/core/src/swarm/launch-per-story-base-7083.test.ts",
+          "npx vitest run packages/runtime/src/scope-record-approved-scope-cohort.test.ts packages/core/src/content-contracts/standards/cohort_mint_docs_7083.test.ts"
+        ],
+        "size": "large",
+        "file_scope_confidence": "medium",
+        "depends_on": [
+          "github.issue.6547311015"
+        ],
+        "expected_outputs": [
+          "a brief-only PR changing several briefs with one deft-story-part line per brief passes the activation check offline and live",
+          "scope:record-approved-scope --manifest prints every story then writes each record pair into its own worktree after one typed mint; refusals before the prompt; failed run removes only its own files",
+          "swarm:launch admits each story at its own worktree-map base_branch; commands, scope-provenance and directive-lifecycle docs state the batched flow and counts"
+        ],
+        "conflict_group": "cohort-mint-7062",
+        "model_tier": "strong",
+        "acceptance_criteria_justification": "Nine clauses because the slice harvest is fixed by the accepted lean: five Bound remedy items and four Acceptance Criteria of the cohort-mint slice. Each binds to one of four test files."
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueBody": "Slice 2 of #7062 (build after `cohort-lifecycle`). Scope is the `cohort-mint` slice of the accepted lean on #7062 (comment 7082701528): one brief-only PR activates several briefs with `deft-story-part` lines, one typed mint writes an approved-scope record pair into each story's worktree, `swarm:launch` admits each story at its own one-PR branch, and the docs and CHANGELOG describe the batched flow.\n\nAcceptance comes from the lean slice at ingest, not from this body.\n\nRefs #7062\n\ndeft-slice: #7062 cohort-mint\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6547311178,
+        "origin": "deftai/directive#7083",
+        "id": "github.issue.6547311178"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "e4bfa306f0c8c0a2ce718e5bb528bf27d042a42be5527853d1514e4f1d2ed3b7"
+      },
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 7062,
+        "leanCommentId": 7082701528,
+        "harvestDigest": "5b6020381d230a41ed3bea3538be539db8e6a473ee8b805ebf6cf5313e71116c",
+        "slice": "cohort-mint"
+      },
+      "kind": "story"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per harvested lean item (9), in list order (#6333)",
+      "sentences": [
+        "Cohort activation (`onePrScopeProof: off`). `evaluatePathBActivationAdmit` (`packages/core/src/pr-closing-keywords/main.ts`) counts one `deft-story-part: N` line per changed brief as mark coverage, offline and live, so one brief-only PR activates several briefs with the lines per-story activation PRs carry today.",
+        "Cohort approved-scope mint. `scope:record-approved-scope` takes `--manifest <file>` whose entries name `xbrief_path` and `worktree_path`. It reads each brief from its worktree with the duplicate-key-rejecting parser, builds both files of every pair with the existing approved-scope builder, and freezes them before the prompt. It prints, per story, the plan id, brief path, worktree, full `file_scope`, acceptance criteria and intent digest, asks for the typed `mint` once, and writes both files of each pair into that story's worktree by exclusive create. An identical existing pair is left untouched; a differing or half-present pair, a glob entry or a duplicate key refuses the whole set before the prompt; a failed run removes only files it created. `cohortDigest` is metadata, not authority. `--add-path` stays single-brief; the human-presence gate is unchanged.",
+        "Per-story one-PR launch. `swarm:launch` admits each story at its own worktree-map row `base_branch` with the existing two one-PR checks at that branch's tip, and builds that story's dest from that row's pinned commit, instead of pinning the first admitted commit for the whole cohort. Each branch carries only its story's activated brief and record pair. A cohort that names one `--base-branch` behaves as today.",
+        "Docs: `content/commands.md`, `content/docs/scope-provenance.md` and a short section in `content/docs/directive-lifecycle.md` describe the batched flow (prepare one branch per story, one mint, launch, in-PR completion, one cohort lifecycle PR) and its counts when every post-merge completion fits one lifecycle sweep: at `mint`, N product PRs, at most one lifecycle PR and one mint; at `off`, one activation PR, N product PRs and at most one lifecycle PR; each further sweep adds one lifecycle PR. CHANGELOG line.",
+        "Activation, mint and launch tests: a several-brief activation PR with part lines passes offline and live; a cohort mint writes every pair after one prompt, refuses a differing or half pair, a glob brief and a duplicate-key brief before the prompt, and removes only its own files after a failure following the first file of a pair or a concurrent create; two stories launched from their own branches each pass scope-provenance and the story-line check with only their own brief and pair.",
+        "One brief-only PR activates several briefs with one `deft-story-part: N` line per brief, offline and live.",
+        "One typed mint writes an approved-scope record pair into each story's worktree for a whole cohort after printing each story's file list, acceptance criteria and intent digest; a differing or half pair, a glob brief or a duplicate-key brief refuses before the prompt, and a failed run removes only its own files.",
+        "`swarm:launch` admits each story at its own one-PR branch, and each product PR passes scope-provenance and the story-line check carrying only its own brief and record pair.",
+        "The commands reference, the scope-provenance doc and a consumer doc section describe the batched flow and its counts (for 10 stories whose post-merge completions fit one sweep, at most 12 PRs, or at most 11 PRs and one mint at `onePrScopeProof: mint`; each further sweep adds one lifecycle PR), with a CHANGELOG line."
+      ],
+      "admitted_source_sentences": [
+        "Cohort activation (`onePrScopeProof: off`). `evaluatePathBActivationAdmit` (`packages/core/src/pr-closing-keywords/main.ts`) counts one `deft-story-part: N` line per changed brief as mark coverage, offline and live, so one brief-only PR activates several briefs with the lines per-story activation PRs carry today.",
+        "Cohort approved-scope mint. `scope:record-approved-scope` takes `--manifest <file>` whose entries name `xbrief_path` and `worktree_path`. It reads each brief from its worktree with the duplicate-key-rejecting parser, builds both files of every pair with the existing approved-scope builder, and freezes them before the prompt. It prints, per story, the plan id, brief path, worktree, full `file_scope`, acceptance criteria and intent digest, asks for the typed `mint` once, and writes both files of each pair into that story's worktree by exclusive create. An identical existing pair is left untouched; a differing or half-present pair, a glob entry or a duplicate key refuses the whole set before the prompt; a failed run removes only files it created. `cohortDigest` is metadata, not authority. `--add-path` stays single-brief; the human-presence gate is unchanged.",
+        "Per-story one-PR launch. `swarm:launch` admits each story at its own worktree-map row `base_branch` with the existing two one-PR checks at that branch's tip, and builds that story's dest from that row's pinned commit, instead of pinning the first admitted commit for the whole cohort. Each branch carries only its story's activated brief and record pair. A cohort that names one `--base-branch` behaves as today.",
+        "Docs: `content/commands.md`, `content/docs/scope-provenance.md` and a short section in `content/docs/directive-lifecycle.md` describe the batched flow (prepare one branch per story, one mint, launch, in-PR completion, one cohort lifecycle PR) and its counts when every post-merge completion fits one lifecycle sweep: at `mint`, N product PRs, at most one lifecycle PR and one mint; at `off`, one activation PR, N product PRs and at most one lifecycle PR; each further sweep adds one lifecycle PR. CHANGELOG line.",
+        "Activation, mint and launch tests: a several-brief activation PR with part lines passes offline and live; a cohort mint writes every pair after one prompt, refuses a differing or half pair, a glob brief and a duplicate-key brief before the prompt, and removes only its own files after a failure following the first file of a pair or a concurrent create; two stories launched from their own branches each pass scope-provenance and the story-line check with only their own brief and pair.",
+        "One brief-only PR activates several briefs with one `deft-story-part: N` line per brief, offline and live.",
+        "One typed mint writes an approved-scope record pair into each story's worktree for a whole cohort after printing each story's file list, acceptance criteria and intent digest; a differing or half pair, a glob brief or a duplicate-key brief refuses before the prompt, and a failed run removes only its own files.",
+        "`swarm:launch` admits each story at its own one-PR branch, and each product PR passes scope-provenance and the story-line check carrying only its own brief and record pair.",
+        "The commands reference, the scope-provenance doc and a consumer doc section describe the batched flow and its counts (for 10 stories whose post-merge completions fit one sweep, at most 12 PRs, or at most 11 PRs and one mint at `onePrScopeProof: mint`; each further sweep adds one lifecycle PR), with a CHANGELOG line."
+      ],
+      "admitted_source_digest": "6efe65e4fdb20ae22c49fbe0c3c230ff036b0e040ff039673f1bf06d647ae531",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Cohort activation (`onePrScopeProof: off`). `evaluatePathBActivationAdmit` (`packages/core/src/pr-closing-keywords/main.ts`) counts one `deft-story-part: N` line per changed brief as mark coverage, offline and live, so one brief-only PR activates several briefs with the lines per-story activation PRs carry today.",
+          "artifact_path": "packages/core/src/pr-closing-keywords/cohort-activation-7083.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Cohort approved-scope mint. `scope:record-approved-scope` takes `--manifest <file>` whose entries name `xbrief_path` and `worktree_path`. It reads each brief from its worktree with the duplicate-key-rejecting parser, builds both files of every pair with the existing approved-scope builder, and freezes them before the prompt. It prints, per story, the plan id, brief path, worktree, full `file_scope`, acceptance criteria and intent digest, asks for the typed `mint` once, and writes both files of each pair into that story's worktree by exclusive create. An identical existing pair is left untouched; a differing or half-present pair, a glob entry or a duplicate key refuses the whole set before the prompt; a failed run removes only files it created. `cohortDigest` is metadata, not authority. `--add-path` stays single-brief; the human-presence gate is unchanged.",
+          "artifact_path": "packages/runtime/src/scope-record-approved-scope-cohort.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Per-story one-PR launch. `swarm:launch` admits each story at its own worktree-map row `base_branch` with the existing two one-PR checks at that branch's tip, and builds that story's dest from that row's pinned commit, instead of pinning the first admitted commit for the whole cohort. Each branch carries only its story's activated brief and record pair. A cohort that names one `--base-branch` behaves as today.",
+          "artifact_path": "packages/core/src/swarm/launch-per-story-base-7083.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Docs: `content/commands.md`, `content/docs/scope-provenance.md` and a short section in `content/docs/directive-lifecycle.md` describe the batched flow (prepare one branch per story, one mint, launch, in-PR completion, one cohort lifecycle PR) and its counts when every post-merge completion fits one lifecycle sweep: at `mint`, N product PRs, at most one lifecycle PR and one mint; at `off`, one activation PR, N product PRs and at most one lifecycle PR; each further sweep adds one lifecycle PR. CHANGELOG line.",
+          "artifact_path": "packages/core/src/content-contracts/standards/cohort_mint_docs_7083.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Activation, mint and launch tests: a several-brief activation PR with part lines passes offline and live; a cohort mint writes every pair after one prompt, refuses a differing or half pair, a glob brief and a duplicate-key brief before the prompt, and removes only its own files after a failure following the first file of a pair or a concurrent create; two stories launched from their own branches each pass scope-provenance and the story-line check with only their own brief and pair.",
+          "artifact_path": "packages/runtime/src/scope-record-approved-scope-cohort.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "One brief-only PR activates several briefs with one `deft-story-part: N` line per brief, offline and live.",
+          "artifact_path": "packages/core/src/pr-closing-keywords/cohort-activation-7083.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "One typed mint writes an approved-scope record pair into each story's worktree for a whole cohort after printing each story's file list, acceptance criteria and intent digest; a differing or half pair, a glob brief or a duplicate-key brief refuses before the prompt, and a failed run removes only its own files.",
+          "artifact_path": "packages/runtime/src/scope-record-approved-scope-cohort.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "`swarm:launch` admits each story at its own one-PR branch, and each product PR passes scope-provenance and the story-line check carrying only its own brief and record pair.",
+          "artifact_path": "packages/core/src/swarm/launch-per-story-base-7083.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "The commands reference, the scope-provenance doc and a consumer doc section describe the batched flow and its counts (for 10 stories whose post-merge completions fit one sweep, at most 12 PRs, or at most 11 PRs and one mint at `onePrScopeProof: mint`; each further sweep adds one lifecycle PR), with a CHANGELOG line.",
+          "artifact_path": "packages/core/src/content-contracts/standards/cohort_mint_docs_7083.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.6547311178",
+    "updated": "2026-11-22T20:29:54Z"
+  }
+}
