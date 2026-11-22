@@ -6,6 +6,7 @@ import {
   evaluateSmallChangeLaneGate,
   type SmallChangeLaneGateOverrides,
 } from "../policy/small-change-lane.js";
+import { sharedStoryIssueWarnings } from "../pr-closing-keywords/story-issue.js";
 import {
   evaluateParentLineage,
   formatParentLineageLine,
@@ -331,6 +332,13 @@ export function evaluate(vbriefPath: string, options: EvaluateOptions = {}): Eva
     : `OK ${path} -- lifecycle-ready.`;
   if (placementWarning !== undefined) {
     message = `${message} ${placementWarning}`;
+  }
+  // #6934: open story briefs sharing this brief's completion issue; a warning only.
+  for (const warning of sharedStoryIssueWarnings(
+    resolveProjectRootFromBrief(path, options.projectRoot),
+    [path],
+  )) {
+    message = `${message}\nWARN: ${warning}`;
   }
   if (lane.applies) {
     message = `${message}\n${lane.message}`;

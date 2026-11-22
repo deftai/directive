@@ -16,6 +16,7 @@ import {
   stripArtifactSuffix,
 } from "../layout/resolve.js";
 import { SERIALIZE_N_PRS } from "../one-pr-unit/types.js";
+import { sharedStoryIssueWarnings } from "../pr-closing-keywords/story-issue.js";
 import { clauseKeyedItemId } from "../scope/acceptance-evidence.js";
 import {
   acceptanceTextsFromItems,
@@ -706,6 +707,7 @@ function renderReport(
   candidates: Candidate[],
   graph: Map<string, string[]>,
   overlaps: Map<string, string[]>,
+  sharedIssues: readonly string[],
 ): string {
   const ready = readyStories(candidates);
   const blocked = candidates.filter(
@@ -773,6 +775,17 @@ function renderReport(
       lines.push(`- ${filePath}: ${ids.join(", ")}`);
     }
     lines.push("Overlap is not one-PR-unit consent; serialize N PRs, one origin per PR.");
+  } else {
+    lines.push("- none");
+  }
+  lines.push("");
+
+  // #6934: a warning only; it never changes the exit code.
+  lines.push("Shared story issues:");
+  if (sharedIssues.length > 0) {
+    for (const warning of sharedIssues) {
+      lines.push(`- ${warning}`);
+    }
   } else {
     lines.push("- none");
   }
@@ -862,7 +875,11 @@ export function readinessReport(
   }
   const graph = evaluateCandidates(projectRoot, candidates, fieldMode);
   const overlaps = fileOverlaps(candidates, graph);
-  let report = renderReport(candidates, graph, overlaps);
+  const sharedIssues = sharedStoryIssueWarnings(
+    projectRoot,
+    candidates.filter((c) => c.kind === "story").map((c) => c.path),
+  );
+  let report = renderReport(candidates, graph, overlaps, sharedIssues);
   if (fieldMode === "solo-headless") {
     report = `${report}\n\nField mode: solo-headless (N=1 ceremony fields relaxed: expected_outputs, conflict_group, model_tier).`;
   }

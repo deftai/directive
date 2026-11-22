@@ -4,6 +4,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { mintAcceptanceDispositionTemplateGrant } from "@deftai/directive-core/policy";
 import {
+  formatPartLineNote,
+  type RunGhFn,
+  writeStoryLineToBodyFile,
+} from "@deftai/directive-core/pr-closing-keywords";
+import {
   completeRun,
   computeControllerObservedHash,
   controllerPublisher,
@@ -765,6 +770,84 @@ describe("deft pre-pr:run", () => {
       bodyFile: "b.md",
       part: true,
     });
+  });
+
+  it("prints the part-line note on stderr when --json starts a controller run (#6934)", () => {
+    const root = join(tmpRoot, "proj6934");
+    const brief = "xbrief/active/s-6934.xbrief.json";
+    mkdirSync(join(root, "xbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(root, brief),
+      JSON.stringify({
+        plan: {
+          status: "running",
+          references: [
+            {
+              uri: "https://github.com/deftai/directive/issues/6934",
+              type: "x-xbrief/github-issue",
+            },
+          ],
+        },
+      }),
+      "utf8",
+    );
+    const bodyFile = join(tmpRoot, "body6934.md");
+    const BODY = "Refs #6934\n\ndeft-story-part: 6934\n";
+    writeFileSync(bodyFile, BODY, "utf8");
+    // A product branch: the brief plus a source file differ from the merge base.
+    const runGit: RunGhFn = (cmd) => {
+      if (cmd[0] === "merge-base") return { returncode: 0, stdout: "abc123\n", stderr: "" };
+      if (cmd[0] === "diff") {
+        return { returncode: 0, stdout: `M\0${brief}\0M\0packages/core/src/x.ts\0`, stderr: "" };
+      }
+      if (cmd.includes("rev-parse")) return { returncode: 0, stdout: "feat/x\n", stderr: "" };
+      return { returncode: 1, stdout: "", stderr: "unexpected" };
+    };
+    const out: string[] = [];
+    const err: string[] = [];
+    vi.spyOn(process.stdout, "write").mockImplementation((chunk) => {
+      out.push(String(chunk));
+      return true;
+    });
+    vi.spyOn(process.stderr, "write").mockImplementation((chunk) => {
+      err.push(String(chunk));
+      return true;
+    });
+    const startNoHash = START.filter(
+      (_, i) => START[i] !== "--pr-body-hash" && START[i - 1] !== "--pr-body-hash",
+    );
+    const code = run(
+      [
+        ...startNoHash,
+        "--run-id",
+        "ppr_6934",
+        "--body-file",
+        bodyFile,
+        "--project-root",
+        root,
+        "--json",
+      ],
+      { writeStoryLine: (a) => writeStoryLineToBodyFile({ ...a, runGit }) },
+    );
+    expect(code).toBe(0);
+    expect(readFileSync(bodyFile, "utf8")).toBe(BODY);
+    expect(err.join("")).toContain(formatPartLineNote(6934));
+    const payload = JSON.parse(out.join("").trim()) as Record<string, unknown>;
+    expect(payload).toMatchObject({ ok: true, runId: "ppr_6934" });
+
+    // Writer-only --json: stdout carries the writer JSON and stderr the note.
+    out.length = 0;
+    err.length = 0;
+    expect(
+      run(
+        ["--body-file", bodyFile, "--project-root", root, "--repo", "deftai/directive", "--json"],
+        {
+          writeStoryLine: (a) => writeStoryLineToBodyFile({ ...a, runGit }),
+        },
+      ),
+    ).toBe(0);
+    expect(err.join("")).toContain(formatPartLineNote(6934));
+    expect(JSON.parse(out.join("").trim())).toMatchObject({ code: 0 });
   });
 
   describe("--complete runs verify:ac itself (#6888)", () => {

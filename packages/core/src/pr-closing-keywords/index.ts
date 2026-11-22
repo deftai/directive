@@ -24,6 +24,7 @@ export {
   evaluateStoryLineRequirement,
   findStoryLineConflicts,
   findUnparseableDeftStoryPartLines,
+  formatPartLineNote,
   parseAllDeftStoryMarks,
   parseAllDeftStoryPartLines,
   parseAllowList,
@@ -36,6 +37,12 @@ export {
   WRITE_STORY_LINE_COMMAND,
   writeStoryLineToBodyFile,
 } from "./main.js";
+export {
+  findSharedStoryIssues,
+  formatSharedStoryIssueWarning,
+  type SharedStoryIssue,
+  sharedStoryIssueWarnings,
+} from "./story-issue.js";
 export type {
   ClosingKeywordMode,
   Hit,

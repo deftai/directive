@@ -2,11 +2,13 @@ import { describe, expect, it } from "vitest";
 import { readRepoFile } from "./helpers.js";
 
 /**
- * #6645 / #6882 item 1: the swarm worker prompt template names the story line
- * each task needs, so a parent does not give `deft-story-part` to a leaf that
- * delivers a whole story.
+ * #6645 / #6882 item 1 / #6934: the swarm worker prompt template names each
+ * task's story issue and offers no choice of story line. A leaf writes
+ * `deft-story: N`; `--part` is only for a task the envelope marks as split.
  */
 const CORE_OPS = "content/skills/deft-directive-swarm/references/core-ops.md";
+const CORE_PHASE_3 = "content/skills/deft-directive-swarm/references/core-phase-3.md";
+const SPLIT = "split: a later product PR completes this story";
 
 function promptTemplate(): string {
   const text = readRepoFile(CORE_OPS);
@@ -17,29 +19,40 @@ function promptTemplate(): string {
   return text.slice(start, end);
 }
 
-describe("swarm worker template story-line slot (#6645)", () => {
-  it("every task line carries a story-line slot", () => {
+describe("swarm worker template story line (#6645 / #6934)", () => {
+  it("every task line names the xBRIEF and issue, with no story-line choice", () => {
     const tasks = promptTemplate()
       .split("\n")
       .filter((line) => /^Task [A-Z] \(xBRIEF:/.test(line));
     expect(tasks.length).toBeGreaterThanOrEqual(2);
     for (const line of tasks) {
-      expect(line).toContain("story line: [deft-story: N | deft-story-part: N]");
+      expect(line).toContain("(xBRIEF: [filename], issue #[N])");
+      expect(line).not.toContain("story line:");
+      expect(line).not.toContain("deft-story-part");
     }
   });
 
-  it("the PR step says which line completes a story and points at the writer", () => {
+  it("the PR step writes deft-story: N and keeps --part for a split story", () => {
     const template = promptTemplate();
-    expect(template).toMatch(/`deft-story: N` when this PR completes story N/);
-    expect(template).toMatch(/a leaf that delivers a whole story uses it/);
-    expect(template).toContain("--write-story-line [--part]");
+    expect(template).toContain("write `deft-story: N` for each task's issue N");
+    expect(template).toContain("--write-story-line` (#6316 / #6645 / #6934)");
+    expect(template).not.toContain("--write-story-line [--part]");
+    const partAt = template.indexOf("Pass `--part`");
+    expect(partAt).toBeGreaterThan(0);
+    expect(template.slice(partAt, partAt + 200)).toContain(SPLIT);
   });
 
-  it("the template rules require the slot", () => {
-    const text = readRepoFile(CORE_OPS);
-    expect(text).toMatch(
-      /- ! Each task MUST include its xBRIEF filename, origin issue number and story line/,
-    );
-    expect(text).toMatch(/A leaf that delivers a whole story never gets `deft-story-part`/);
+  it("the template rules and phase 3 offer no choice and name the split marker", () => {
+    const ops = readRepoFile(CORE_OPS);
+    expect(ops).toMatch(/- ! Each task MUST include its xBRIEF filename and story issue number N/);
+    expect(ops).toContain("the task offers no choice of line");
+    expect(ops).toMatch(/A leaf that delivers a whole story never gets `deft-story-part`/);
+    const phase3 = readRepoFile(CORE_PHASE_3);
+    const at = phase3.indexOf("**Story line per story (#6316 / #6934):**");
+    expect(at).toBeGreaterThanOrEqual(0);
+    const rule = phase3.slice(at, phase3.indexOf("\n", at));
+    expect(rule).toContain("The worker writes `deft-story: N`");
+    expect(rule).toContain(SPLIT);
+    expect(rule).not.toContain("--write-story-line [--part]");
   });
 });

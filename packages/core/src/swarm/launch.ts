@@ -34,6 +34,7 @@ import {
 import type { PlanSequenceVerifyResult } from "../plan-sequence/types.js";
 import { DEFT_ALLOW_JUDGMENT_GATE_ENFORCE } from "../policy/capacity.js";
 import { resolveDeliveryBranch } from "../policy/delivery-branch.js";
+import { sharedStoryIssueWarnings } from "../pr-closing-keywords/story-issue.js";
 import { evaluate as preflightEvaluate } from "../preflight/evaluate.js";
 import { applyWorktreeOccupancy, liveOccupant, releaseOccupancy } from "../session/occupancy.js";
 import type { LockDeps } from "../slice/lock.js";
@@ -1877,6 +1878,14 @@ export function swarmLaunch(args: LaunchArgs): {
         `is not launch-ready -- ${gateFailure.reason}\n`,
     };
   }
+  // #6934: the gates drop passing output, so the shared-issue check runs here on
+  // the resolved stories. A warning on success stderr; the exit code is unchanged.
+  const sharedIssueNote = sharedStoryIssueWarnings(
+    projectRoot,
+    resolved.map((story) => story.path),
+  )
+    .map((warning) => `WARN: ${warning}\n`)
+    .join("");
 
   // Thin leftover-before-activation refuse at launch prepare/open (#5736 Recut-1).
   // Always evaluate (default clear evidence) so ordinary swarm:launch cannot skip the gate.
@@ -2359,7 +2368,7 @@ export function swarmLaunch(args: LaunchArgs): {
       return {
         exitCode: EXIT_OK,
         stdout: rendered,
-        stderr: `${advisoryNote}${skipRoutingNote}`,
+        stderr: `${advisoryNote}${sharedIssueNote}${skipRoutingNote}`,
         spawnEnvByStory,
       };
     },

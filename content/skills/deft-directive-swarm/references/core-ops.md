@@ -52,9 +52,11 @@ Read skills/deft-directive-review-cycle/SKILL.md.
 
 STEP 2 — Implement these N tasks (see assigned xBRIEF(s) for full acceptance criteria):
 
-Task A (xBRIEF: [filename], issue #[N], story line: [deft-story: N | deft-story-part: N]): [one-paragraph description with specific acceptance criteria]
+Task A (xBRIEF: [filename], issue #[N]): [one-paragraph description with specific acceptance criteria]
 
-Task B (xBRIEF: [filename], issue #[N], story line: [deft-story: N | deft-story-part: N]): [one-paragraph description with specific acceptance criteria]
+Task B (xBRIEF: [filename], issue #[N]): [one-paragraph description with specific acceptance criteria]
+
+[Only for a split story, add to that task: "split: a later product PR completes this story".]
 
 [...repeat for each task...]
 
@@ -66,11 +68,12 @@ A host-kill must not leave the only copy unversioned (#3730).
 Commit with message: [type]([scope]): [description] — with bullet-point body.
 
 STEP 5 — Push and PR: Push branch to origin. Create PR targeting <configured-base-branch> using gh CLI.
-Story line: put each task's story line in the PR body. `deft-story: N` when this PR completes story N
-(a leaf that delivers a whole story uses it); `deft-story-part: N` only on another product PR of a
-story that a later PR completes (activation, mint and widen PRs also take it). Never `Closes #N`
-for an active story. Write it with
-`task pr:check-closing-keywords -- --body-file <path> --write-story-line [--part]` (#6316 / #6645).
+Story line: write `deft-story: N` for each task's issue N with
+`task pr:check-closing-keywords -- --body-file <path> --write-story-line` (#6316 / #6645 / #6934).
+Pass `--part` (it writes `deft-story-part: N`) only when the task says
+"split: a later product PR completes this story". If the writer prints a `deft-story-part` note
+for a story this PR delivers in full, replace that line with `deft-story: N`.
+Never `Closes #N` for an active story.
 Note: --body-file must use a temp file in the OS temp directory ($env:TEMP on PowerShell,
 $TMPDIR or /tmp on Unix) -- do NOT write temp files in the worktree. See scm/github.md.
 
@@ -92,7 +95,7 @@ CONSTRAINTS:
 
 - ! First line MUST start with `TASK:` followed by an imperative statement
 - ! Include a drive-to-completion instruction that is **subordinate to dual-stop** (#2442): complete all steps unless a multi-iteration failure/budget envelope is exhausted — then `BLOCKED` with an operator-visible report (do not use unconditional "DO NOT STOP" language that overrides the failure stop)
-- ! Each task MUST include its xBRIEF filename, origin issue number and story line: `deft-story: N` when the worker's PR completes story N, `deft-story-part: N` only when a later PR completes it (#6316 / #6645). A leaf that delivers a whole story never gets `deft-story-part`
+- ! Each task MUST include its xBRIEF filename and story issue number N (the brief's first GitHub issue reference). The worker writes `deft-story: N`; the task offers no choice of line. Mark a task "split: a later product PR completes this story" only for a split story; only then does the worker pass `--part` (#6316 / #6645 / #6934). A leaf that delivers a whole story never gets `deft-story-part`
 - ! CONSTRAINTS section MUST list files the agent must not touch (other agents' scope)
 - ! Review cycle step MUST reference `skills/deft-directive-review-cycle/SKILL.md` explicitly
 - ! Multi-iteration prompts MUST name dual-stop defaults (or point at `main.md` / build skill #2442) so workers do not thrash without a failure envelope
