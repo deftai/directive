@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6912",
-    "updated": "2026-11-22T05:05:37Z"
+    "updated": "2026-11-22T06:26:55Z"
   },
   "plan": {
     "title": "cli: lone -- after a multi-token verb (cache:clear -- ...) is still rejected (#6887 follow-up)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "cli: lone -- after a multi-token verb (cache:clear -- ...) is still rejected (#6887 follow-up)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6912",
@@ -17,58 +17,135 @@
     "items": [
       {
         "title": "Router boundary. In `packages/runtime/src/cli-router/route-argv.ts`, every `kind: \"dispatch\"` result of `routeArgv` passes through one function before it is returned. The function returns the result unchanged when its argv is empty, when the routed head `argv[0]` is `scm`, or when the head is a meta form (`--help`, `-h`, `help`, `--version`, `-V`); stub results are also returned unchanged. Otherwise it finds the boundary: index 2 when the head is a subcommand handler and `argv[1]` is a word (not empty and not starting with `-`), otherwise index 1. The subcommand handlers are the first elements of the `SUBCOMMAND_ROUTES` values, plus `scope-lifecycle`; the function derives the set from that exported table. If the token at the boundary is exactly `--`, it removes that one token and keeps every other token. It reuses `dropLeadingDoubleDash` (still exported from `dispatch.ts`) on the arguments after the boundary. Examples (parent prototype on the real `routeArgv`): `cache:clear -- --x` gives `[\"cache\",\"clear\",\"--x\"]`; `vbrief reconcile graph -- --x` gives `[\"vbrief-reconcile\",\"graph\",\"--x\"]`; `vbrief reconcile -- --all` gives `[\"vbrief-reconcile\",\"--all\"]`; `vbrief reconcile parity -- --all` gives `[\"vbrief-reconcile\",\"parity\",\"--all\"]`; `policy resolve -- --project-root x` gives `[\"policy\",\"resolve\",\"--project-root\",\"x\"]`; `triage-queue --limit -- 3` is unchanged; `verify orphan-active -- --issue 7` gives `[\"verify:orphan-active\",\"--issue\",\"7\"]`; `policy:show -- --x` gives `[\"policy:show\",\"--x\"]` and `dispatch` then inserts `show`; `scm:body:issue:fetch -- --x` gives `[\"github-body\",\"issue-fetch\",\"--x\"]`; `policy set f -- --y` and `scm issue list -- --limit 1` are unchanged. Why a word is safe: every subcommand handler refuses or ignores a word that is not one of its subcommands, so dropping a `--` after it never turns a refused or ignored call into different work. Parent runs through the real `routeAndDispatch` of `<handler> zzz -- --no-such-flag` and `<handler> zzz --no-such-flag` for all 13 handlers: each exits non-zero in both forms. `slice` refuses the word (`packages/core/src/slice/cli.ts` 144, `unrecognized arguments: zzz`); `triage-queue` ignores a word and already skips every `--` (`packages/runtime/src/triage-queue.ts` 147, 234); `vbrief-reconcile`, `cache`, `policy`, `authz`, `escalation-cli`, `product-signal`, `github-body` and `scope-lifecycle` refuse it as an unknown subcommand; `triage-actions`, `triage-bulk` and `plan-sequence` refuse it as an unknown subcommand or action (parent runs of `<handler> zzz`, `<handler> zzz x` and `<handler> zzz -- x` all exit 2). Shorthand targets that are words but not subcommands, `grant-*` for `authz revoke` and `esc-*` for `escalation resolve`, are safe too: both parsers already strip a following `--` (audit 7070758592, finding 2). Handlers outside this set, such as `vbrief-validate` with its `conformance` subcommand, are not covered; the operator moved them to #6944.",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a534fd404ce90c09ec7aa5e1da8f07fa258d434d",
+          "recorded_at": "2026-11-22T06:26:55Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Dispatcher. `dispatch` no longer drops a `--` (the `dropLeadingDoubleDash(rawRest)` call added by #6910 is removed, so `rest` is `rawRest`). One invocation therefore loses at most one `--`. Per-verb parsers are not edited.",
-        "status": "proposed",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a534fd404ce90c09ec7aa5e1da8f07fa258d434d",
+          "recorded_at": "2026-11-22T06:26:55Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Real-router test. Extend `packages/runtime/src/dispatch-double-dash-real-parser.test.ts` (real `routeAndDispatch`, empty temporary directory, dispatch io and process streams captured, nothing stubbed, no `--help`): `[\"cache:clear\",\"--no-such-flag\"]` and `[\"cache:clear\",\"--\",\"--no-such-flag\"]` both exit 1 with the same output (`cmdClear` has no value check, so an unknown flag is its refuse-before-work form: it throws before `clearTaskCache`); `[\"policy\",\"show\",\"--format=invalid\"]` and `[\"policy\",\"show\",\"--\",\"--format=invalid\"]` both exit 2 with the same output (`policy: invalid choice: 'invalid'`, from `parseShowArgs` before any read); `[\"policy\",\"resolve\",\"--project-root\"]` and `[\"policy\",\"resolve\",\"--\",\"--project-root\"]` both exit 2 with the same output (`policy: argument --project-root: expected one argument`, from `parseProjectRoot` before `runResolve`); `[\"review-monitor:register\",\"--\",\"--\",\"--pr=abc\"]` exits 2 with `unrecognized argument: --` (no second drop); `[\"triage-queue\",\"--limit\",\"--\",\"3\"]` exits 2 with `argument --limit: invalid int value: '--'` (the `--` that is a flag value reaches the parser; `runQueue` returns on the parse error before resolving a repo). The two #6910 pairs stay as regression checks. The cache, policy show and policy resolve pairs fail without items 1-2 (parent runs: the `--` forms exit with `unexpected argument: --` and `unrecognized argument: --`).",
-        "status": "proposed",
-        "id": "clause.3"
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a534fd404ce90c09ec7aa5e1da8f07fa258d434d",
+          "recorded_at": "2026-11-22T06:26:55Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Router-only test. A vitest file for `routeArgv` alone, with no handler run: (a) for every `SUBCOMMAND_ROUTES` key with exactly one colon, in the colon spelling and the space spelling `[ns, verb]`, and for every `SCOPE_LIFECYCLE_VERBS` entry as `scope:<v>` and `scope-<v>`: `[...form, \"--\", \"--x\"]` routes to the same argv as `[...form, \"--x\"]`, and `[...form, \"--\", \"--\", \"--x\"]` keeps exactly one `--`; (b) exact expected argv for every item 1 example, for `review-monitor:register -- --pr 1`, `check -- --x`, and `cache:clear --x -- y` (a later `--` is kept); (c) `scm issue list -- --limit 1`, `policy set f -- --y`, `triage-queue --limit -- 3` and `--help` route unchanged. This covers every router-chosen subcommand route plus named forms; it does not claim every possible spelling.",
-        "status": "proposed",
-        "id": "clause.4"
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a534fd404ce90c09ec7aa5e1da8f07fa258d434d",
+          "recorded_at": "2026-11-22T06:26:55Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Docs: none. The #6910 helper tests stay; only their comments that say `dispatch` applies the helper are updated to name the router.",
-        "status": "proposed",
-        "id": "clause.5"
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a534fd404ce90c09ec7aa5e1da8f07fa258d434d",
+          "recorded_at": "2026-11-22T06:26:55Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "`deft cache:clear -- --project-root <dir>` and `deft cache:clear --project-root <dir>` give the cache handler the same arguments.",
-        "status": "proposed",
-        "id": "clause.6"
+        "status": "completed",
+        "id": "clause.6",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a534fd404ce90c09ec7aa5e1da8f07fa258d434d",
+          "recorded_at": "2026-11-22T06:26:55Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "`routeArgv` drops at most one lone `--`, at the first token after the routed head, or after the next token when the head is a subcommand handler (a first element of a `SUBCOMMAND_ROUTES` value, or `scope-lifecycle`) and that token is a word not starting with `-`; it keeps every other token, leaves `scm` results, meta forms and stubs unchanged, and `dispatch` no longer drops a `--`.",
-        "status": "proposed",
-        "id": "clause.7"
+        "status": "completed",
+        "id": "clause.7",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a534fd404ce90c09ec7aa5e1da8f07fa258d434d",
+          "recorded_at": "2026-11-22T06:26:55Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "`deft vbrief reconcile -- --all` routes to `vbrief-reconcile --all`, `deft policy resolve -- --project-root <dir>` routes to `policy resolve --project-root <dir>`, and `deft triage-queue --limit -- 3` keeps its `--` as the flag value.",
-        "status": "proposed",
-        "id": "clause.8"
+        "status": "completed",
+        "id": "clause.8",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a534fd404ce90c09ec7aa5e1da8f07fa258d434d",
+          "recorded_at": "2026-11-22T06:26:55Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "`deft verify orphan-active -- --issue <N>`, the `scope:promote`, `scope:activate` and `scope:complete` forms with `--`, `review-monitor:register -- ...`, `occupancy:release -- ...`, `policy:show -- ...` and `check -- ...` keep working, and `deft policy set <field> -- ...`, `deft scm issue <sub> -- ...` and `deft vbrief validate conformance -- ...` (moved to #6944) are unchanged.",
-        "status": "proposed",
-        "id": "clause.9"
+        "status": "completed",
+        "id": "clause.9",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a534fd404ce90c09ec7aa5e1da8f07fa258d434d",
+          "recorded_at": "2026-11-22T06:26:55Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "A vitest test runs the real `routeAndDispatch` from an empty temporary directory with nothing stubbed and no `--help`, and asserts that `cache:clear --no-such-flag` and `cache:clear -- --no-such-flag` exit 1 with the same output, that `policy show --format=invalid` and `policy show -- --format=invalid` exit 2 with the same output, that `policy resolve --project-root` and `policy resolve -- --project-root` exit 2 with the same output, that `review-monitor:register -- -- --pr=abc` exits 2 with `unrecognized argument: --`, and that `triage-queue --limit -- 3` exits 2 with `argument --limit: invalid int value: '--'`.",
-        "status": "proposed",
-        "id": "clause.10"
+        "status": "completed",
+        "id": "clause.10",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a534fd404ce90c09ec7aa5e1da8f07fa258d434d",
+          "recorded_at": "2026-11-22T06:26:55Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "A `routeArgv` test asserts that every one-colon `SUBCOMMAND_ROUTES` key (colon and space spellings) and every scope lifecycle verb (`scope:<v>` and `scope-<v>`) routes the same with and without a lone `--` and keeps exactly one `--` from `-- --`, checks exact argv for `cache:clear`, `vbrief reconcile graph`, `vbrief reconcile -- --all`, `vbrief reconcile parity`, `policy resolve`, `verify orphan-active`, `policy:show`, `scm:body:issue:fetch`, `review-monitor:register`, `check` and a later `--`, and checks that `scm issue list -- ...`, `policy set <field> -- ...` and `triage-queue --limit -- 3` route unchanged.",
-        "status": "proposed",
-        "id": "clause.11"
+        "status": "completed",
+        "id": "clause.11",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a534fd404ce90c09ec7aa5e1da8f07fa258d434d",
+          "recorded_at": "2026-11-22T06:26:55Z",
+          "recorded_by": "scope:complete"
+        }
       }
     ],
     "tags": [
@@ -1113,6 +1190,35 @@
         "leanCommentId": 7070845518,
         "harvestDigest": "8510257368750dedffe1db95085bf28fa6f0b47e1277dbb1eae311126a700098",
         "slice": null
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "24dae7f0bdf9e456f7cc6f4ac8827c47d9c78ae6",
+        "prNumber": 7006,
+        "prBase": "master",
+        "mergeCommit": "a534fd404ce90c09ec7aa5e1da8f07fa258d434d",
+        "deliveryBranch": "master",
+        "deliveryCommit": "4a3dbaa9b26b9efb810b7c3030878bd2f81a262d",
+        "verifiedAt": "2026-11-22T06:26:55Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:ZTYxMTJjZWUtZTUxNC00NjVlLTk1ZjUtN2QwZDljMmE5OWVl",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          6999
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-22T06:26:55Z",
+      "completedSessionId": "host:claude:v1:ZTYxMTJjZWUtZTUxNC00NjVlLTk1ZjUtN2QwZDljMmE5OWVl",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-22T06:26:55Z"
       }
     },
     "acceptance": {
@@ -1229,6 +1335,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.6520463611",
-    "updated": "2026-11-22T05:05:37Z"
+    "updated": "2026-11-22T06:26:55Z"
   }
 }
