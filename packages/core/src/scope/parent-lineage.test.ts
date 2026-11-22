@@ -489,6 +489,10 @@ describe("file:// planRef (#6925)", () => {
   it("loads the parent from a file://proposed/ planRef with no parent-not-found error", () => {
     const { base, root, active } = lifecycle("deft-pl-file-");
     writeFileSync(join(root, "proposed", "epic.xbrief.json"), JSON.stringify(abcParent), "utf8");
+    // A second artifact with the same plan.id makes parent_plan_id recovery
+    // ambiguous, so this passes only when the exact file:// path resolves.
+    mkdirSync(join(root, "completed"), { recursive: true });
+    writeFileSync(join(root, "completed", "copy.xbrief.json"), JSON.stringify(abcParent), "utf8");
     const child = childWithLineage({
       planRef: "file://proposed/epic.xbrief.json",
       coverage_map: fullCoverageMap,
