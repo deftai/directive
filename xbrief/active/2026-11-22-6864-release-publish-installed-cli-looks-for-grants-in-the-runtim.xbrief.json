@@ -1,0 +1,514 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6864",
+    "updated": "2026-11-22T03:44:23Z"
+  },
+  "plan": {
+    "title": "release-publish: installed CLI looks for grants in the runtime package, not the repo (promote-latest denied after a valid mint)",
+    "status": "running",
+    "narratives": {
+      "Description": "release-publish: installed CLI looks for grants in the runtime package, not the repo (promote-latest denied after a valid mint)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6864",
+      "Overview": "\n1. One default. In `packages/core/src/release/paths.ts`, `resolveProjectRoot(argRoot)` returns `resolve(argRoot)` for a flag, then `resolve(DEFT_PROJECT_ROOT)` when that is set and not empty, and otherwise `resolve(process.cwd())`. The `resolveDefaultFrameworkRoot()` fallback is removed, so `DEFT_ROOT` no longer selects the release project root. The four callers (`release/main.ts`, `release-publish/main.ts`, `release-rollback/main.ts`, `release-e2e/main.ts`) are unchanged.\n2. One deny suffix. The three release closed-verb deny lines, `[publish] denied`, `[promote-latest] denied` (`release-publish/pipeline.ts`) and `[release] denied` (`release/closed-verb-gate.ts`, tag push), end with ` projectRoot=<path>`, the root whose grant store the gate read. No other runtime output changes.\n3. Help texts. The `--project-root` help in `release/constants.ts`, `release-publish/constants.ts`, `release-rollback/constants.ts` and `release-e2e/constants.ts` says the default is `$DEFT_PROJECT_ROOT`, else the current working directory. Tests that pin those strings change with them.\n4. CHANGELOG. One line states the new default, that a release verb started outside the repository root now uses that directory, and that `--project-root` or `DEFT_PROJECT_ROOT` selects another root.\n5. One PR. No new verb, flag, env, policy field or refusal.\n\n## Acceptance Criteria\n\n- Given no `--project-root` and no `DEFT_PROJECT_ROOT`, and a working directory that is not the module checkout, then `resolveProjectRoot(null)` returns that working directory.\n- Given `--project-root` or `DEFT_PROJECT_ROOT`, then `resolveProjectRoot` returns it as today.\n- Given a temporary repository as the working directory, a valid `release-promote-latest` grant on disk under its `.deft/authz/grants`, and no root flag or env, then `release-publish --promote-latest X --dry-run` passes the gate.\n- Given the same repository with a valid `release-publish` grant and no root flag or env, then `release-publish X` passes the gate (GitHub calls through seams).\n- Given no matching grant, then each of the `[publish]`, `[promote-latest]` and `[release]` deny lines names the project root it searched.\n- Given `--help` for each of the four release verbs, then the `--project-root` line names the current working directory as the default.\n\n\n",
+      "Constraint": "- A git-toplevel or sentinel-walk default while `authz:grant` mints under the current working directory (comment 7052382092, answer 1).\n- Keeping the framework-root fallback, or a heuristic that tells a source checkout from an installed CLI (comment 7052382092 finding 1).\n- Claiming unchanged behavior for every invocation directory (comment 7052382092 finding 1).\n- A resolver test that runs only from the repository root, where the old and new defaults agree (comment 7052382092 finding 3).\n- Any change to `resolveRepo`, the #6875 grant binding or the `release:run` stories.",
+      "Labels": "design-critique:ingest-ready, framework-gap"
+    },
+    "items": [
+      {
+        "title": "One default. In `packages/core/src/release/paths.ts`, `resolveProjectRoot(argRoot)` returns `resolve(argRoot)` for a flag, then `resolve(DEFT_PROJECT_ROOT)` when that is set and not empty, and otherwise `resolve(process.cwd())`. The `resolveDefaultFrameworkRoot()` fallback is removed, so `DEFT_ROOT` no longer selects the release project root. The four callers (`release/main.ts`, `release-publish/main.ts`, `release-rollback/main.ts`, `release-e2e/main.ts`) are unchanged.",
+        "status": "proposed",
+        "id": "clause.1"
+      },
+      {
+        "title": "One deny suffix. The three release closed-verb deny lines, `[publish] denied`, `[promote-latest] denied` (`release-publish/pipeline.ts`) and `[release] denied` (`release/closed-verb-gate.ts`, tag push), end with ` projectRoot=<path>`, the root whose grant store the gate read. No other runtime output changes.",
+        "status": "proposed",
+        "id": "clause.2"
+      },
+      {
+        "title": "Help texts. The `--project-root` help in `release/constants.ts`, `release-publish/constants.ts`, `release-rollback/constants.ts` and `release-e2e/constants.ts` says the default is `$DEFT_PROJECT_ROOT`, else the current working directory. Tests that pin those strings change with them.",
+        "status": "proposed",
+        "id": "clause.3"
+      },
+      {
+        "title": "CHANGELOG. One line states the new default, that a release verb started outside the repository root now uses that directory, and that `--project-root` or `DEFT_PROJECT_ROOT` selects another root.",
+        "status": "proposed",
+        "id": "clause.4"
+      },
+      {
+        "title": "One PR. No new verb, flag, env, policy field or refusal.",
+        "status": "proposed",
+        "id": "clause.5"
+      },
+      {
+        "title": "Given no `--project-root` and no `DEFT_PROJECT_ROOT`, and a working directory that is not the module checkout, then `resolveProjectRoot(null)` returns that working directory.",
+        "status": "proposed",
+        "id": "clause.6"
+      },
+      {
+        "title": "Given `--project-root` or `DEFT_PROJECT_ROOT`, then `resolveProjectRoot` returns it as today.",
+        "status": "proposed",
+        "id": "clause.7"
+      },
+      {
+        "title": "Given a temporary repository as the working directory, a valid `release-promote-latest` grant on disk under its `.deft/authz/grants`, and no root flag or env, then `release-publish --promote-latest X --dry-run` passes the gate.",
+        "status": "proposed",
+        "id": "clause.8"
+      },
+      {
+        "title": "Given the same repository with a valid `release-publish` grant and no root flag or env, then `release-publish X` passes the gate (GitHub calls through seams).",
+        "status": "proposed",
+        "id": "clause.9"
+      },
+      {
+        "title": "Given no matching grant, then each of the `[publish]`, `[promote-latest]` and `[release]` deny lines names the project root it searched.",
+        "status": "proposed",
+        "id": "clause.10"
+      },
+      {
+        "title": "Given `--help` for each of the four release verbs, then the `--project-root` line names the current working directory as the default.",
+        "status": "proposed",
+        "id": "clause.11"
+      }
+    ],
+    "tags": [
+      "design-critique:ingest-ready",
+      "framework-gap"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6864",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6864: release-publish: installed CLI looks for grants in the runtime package, not the repo (promote-latest denied after a valid mint)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/5852",
+        "type": "x-xbrief/refs",
+        "title": "Issue #5852"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "release-publish --promote-latest X --dry-run",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L14"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/release-publish/pipeline.ts",
+          "packages/core/src/release-publish/constants.ts",
+          "packages/core/src/release-publish/pipeline.test.ts",
+          "packages/core/src/release-publish/promote-latest.test.ts",
+          "packages/core/src/release-publish/flags.test.ts",
+          "packages/core/src/release-publish/project-root.test.ts",
+          "packages/core/src/release/paths.ts",
+          "packages/core/src/release/paths.test.ts",
+          "packages/core/src/release/closed-verb-gate.ts",
+          "packages/core/src/release/closed-verb-gate.test.ts",
+          "packages/core/src/release/constants.ts",
+          "packages/core/src/release-rollback/constants.ts",
+          "packages/core/src/release-e2e/constants.ts",
+          "changelog.d/6864-release-publish-deny-names-root.md",
+          "changelog.d/6864-release-project-root-cwd.md"
+        ],
+        "verify_commands": [
+          "npx vitest run packages/core/src/release/paths.test.ts packages/core/src/release/closed-verb-gate.test.ts packages/core/src/release-publish/project-root.test.ts",
+          "npx vitest run packages/core/src/release-publish/pipeline.test.ts packages/core/src/release-publish/promote-latest.test.ts packages/core/src/release-publish/flags.test.ts"
+        ],
+        "size": "small",
+        "file_scope_confidence": "high",
+        "depends_on": [],
+        "expected_outputs": [
+          "release/paths.ts resolveProjectRoot: flag, then DEFT_PROJECT_ROOT, else resolve(process.cwd()); no framework-root fallback",
+          "[publish], [promote-latest] and [release] deny lines end with projectRoot=<path>",
+          "four --project-root help texts name $DEFT_PROJECT_ROOT, else the current working directory",
+          "two product PRs: release-publish/ is a class-4 protected path and lands on its own (part 1, deft-story-part); the release/ half closes the story (deft-story)",
+          "changelog fragments changelog.d/6864-release-publish-deny-names-root.md and changelog.d/6864-release-project-root-cwd.md"
+        ],
+        "model_tier": "standard",
+        "conflict_group": "release-verbs"
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: triage\n```\n\nStop 1 — Gate (arc 6864; no-ingest)\n\nmechanism-shaped: true\ndesign-critique: warranted, because the fix changes where four release verbs look for the repository (grants, verb classification and the origin remote), and the default must agree with where `authz:grant` writes grants and with what `task release:*` passes, without breaking in-repo use or the `release:run` work now being built on the same files.\n\nTarget-digest: sha256:e47ca9134908ed7ef0762822b6907d66f970d6e8e5a40df3ec762b6eb2cc3473\ndispatch-sha: 880c91ed079578e900c1f2ef680efbfa6e6d61af\ndest: C:/Repos/deft/wt/arc-6864 (pinKind origin-default, guarded-prep)\narc-mode: no-ingest\nyolo-standing: on\ncharter: open critique\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\nspend-why: one resolver in one file, three deny lines and their tests. One critic of a different model family (Codex), then one pain audit of the lean.\ncritic-post cap: 2 (set by the operator for this arc: one round-1 critic and one pain audit)\nmateriality-bar: open\ntarget-kind: issue\nceiling-kind: comment-id\nverification-path: pin-read git show 880c91ed079578e900c1f2ef680efbfa6e6d61af: + dest cwd-without-occupy\npain: P1, P2\n\n## In plain English\nThe release skill tells the operator to run `deft release-publish --promote-latest <version>` from the maintainer checkout. With the installed CLI and no `--project-root`, the gate refused a grant the operator had just minted. The release verbs resolve their project root with their own function, and when no flag or `DEFT_PROJECT_ROOT` is given it falls back to the framework root, which for the installed CLI is the runtime package folder. So the gate read grants, the verb classification and the origin remote from the wrong place. `task release:publish` works only because the Taskfile passes `--project-root \"{{.USER_WORKING_DIR}}\"`. The deny message did not say which root it searched, so the cause was not visible.\n\nThe recommended fix makes the default the current working directory, which is what `authz:grant` and the Taskfile already use, and adds the searched root to each release closed-verb deny line. One small PR.\n\n## Pains\n- P1 — From the installed CLI, `deft release-publish`, `deft release`, `deft release-rollback` and `deft release-e2e` without `--project-root` or `DEFT_PROJECT_ROOT` use the runtime package folder as the project root, so a grant minted in the repository is not found and the gate refuses.\n- P2 — A release closed-verb deny does not name the project root whose grant store was searched, so a wrong root is not visible from the message.\n\n## Out of scope (named, not pains)\n- The issue body's third bullet (pass `--project-root` in the skill command until the fix lands). The fix makes it unnecessary; the skill text is not changed.\n- `resolveRepo` falling back to `deftai/directive` when the origin remote cannot be read. With the right root it reads the repository's own origin; the fallback is unchanged.\n- The `deft release:run` orchestrator (#6845 S3 to S5: #6876, #6877, #6878). This fix does not add or change any `release:run` behavior; S3 can call the same resolver.\n- The other `resolveProjectRoot` (the sentinel walk in `scope/project-context.ts`) and every non-release verb.\n\n## Anchors at the dispatch SHA\n- `packages/core/src/release/paths.ts` 7-16: `resolveProjectRoot(argRoot)` returns the flag, then `DEFT_PROJECT_ROOT`, then `resolveDefaultFrameworkRoot()`. 18-42: `resolveRepo` reads `git -C <projectRoot> remote get-url origin` and falls back to `DEFAULT_REPO`.\n- `packages/core/src/doctor/paths.ts` 113-136: `resolveDefaultFrameworkRoot()` is `DEFT_ROOT` or the first ancestor of the module file with `main.md` and `agents-entry.md`; for the installed CLI that is the runtime package.\n- Callers of the release `resolveProjectRoot`: `release/main.ts` 37, `release-publish/main.ts` 49, `release-rollback/main.ts` 44, `release-e2e/main.ts` 94.\n- `packages/core/src/release-publish/pipeline.ts` 52-108: both gates load the verb classification, the authz state and the active grants from `projectRoot`. 126-145: promote-latest deny (`[promote-latest] denied code=…`). 387-404: publish deny (`[publish] denied code=…`). `packages/core/src/release/closed-verb-gate.ts` 170-190: tag-push deny (`[release] denied code=…`). None prints the root.\n- `packages/core/src/authz/paths.ts` 4-14: grants live under `<projectRoot>/.deft/authz/grants`. `packages/runtime/src/authz.ts` 166 and 227-228: `authz:grant` defaults its project root to `process.cwd()` unless `--project-root` is given.\n- `Taskfile.yml` 798-840: `release`, `release:publish`, `release:rollback` and `release:e2e` run with `dir: '{{.USER_WORKING_DIR}}'` and pass `--project-root \"{{.USER_WORKING_DIR}}\"`.\n- `packages/core/src/scope/project-context.ts` 1-59: the consumer resolver walks up from cwd to the first directory holding `xbrief`, `vbrief` or `.git`; at the pin `content/vbrief` and `packages/core/src/xbrief` exist, so from those subtrees the walk stops below the repository root.\n- `packages/core/src/release/paths.test.ts` 65-74: \"resolveProjectRoot uses framework root by default\" asserts only a non-empty string. `release-publish/main.test.ts` calls `cmdReleasePublish` without a root flag.\n\n## Recommended mechanism (the thing to critique)\n- R1. One default. In `release/paths.ts`, `resolveProjectRoot(argRoot)` keeps the flag and `DEFT_PROJECT_ROOT`, and otherwise returns `resolve(process.cwd())`. The framework-root fallback is removed. This is the root `authz:grant` writes grants under by default and the root the Taskfile passes, so the mint and the gate agree with no flag. It applies to all four release verbs because they share the function.\n- R2. One deny line. The three release closed-verb deny lines (`[publish]`, `[promote-latest]`, `[release]` tag push) gain ` projectRoot=<path>` naming the root whose grant store was read. No other output changes.\n- R3. Tests. `paths.test.ts`: with no flag and no env, the root is `resolve(process.cwd())` (replaces the framework-root test). `release-publish` tests: from a temporary repository cwd with a valid `release-promote-latest` grant on disk and no flag or env, `--promote-latest X --dry-run` passes the gate; with a `release-publish` grant, `release-publish X` passes the gate (seams for the GitHub calls); a deny prints the searched root. The tag-push deny prints the root.\n- R4. One PR. No new verb, flag, env, policy field or refusal.\n\nQuestions for the critic:\n1. Is the current working directory the right default, or should it be the git toplevel of the cwd (as the issue proposes) or the consumer sentinel walk? The mint uses cwd; a toplevel default would read a different store when the operator mints from a subdirectory, and the sentinel walk stops at `content/vbrief` or `packages/core/src/xbrief`.\n2. Does anything still need the framework-root fallback (in-repo scripts, tests run with a different cwd, `release-e2e` from a temporary directory)? Is removing it safe for all four verbs?\n3. Does R1 change behavior for `deft release` (the cut) or `release-rollback` in a way that matters, for example a cut started from a directory that is not the repository root?\n4. Is a ` projectRoot=<path>` suffix enough for P2, and are these three deny lines all of them?\n5. Does this collide with the `release:run` stories (#6876, #6877, #6878) or the merged #6875 work on `pipeline.ts` and `closed-verb-gate.ts`? Should any of it move into an S-story instead?\n6. Does this fit one PR for the next build?\n\n",
+          "id": 7052341368,
+          "html_url": "https://github.com/deftai/directive/issues/6864#issuecomment-7052341368",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:39:03Z",
+          "updated_at": "2026-11-20T22:39:03Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 1\ninput-ceiling: 7052341648\nseat: codex launcher: codex (exec --ephemeral --sandbox read-only -C dest)\n\ncharter: open critique\nspend: N=1\narc-mode: no-ingest\nmateriality-bar: open\ndispatch-sha: 880c91ed079578e900c1f2ef680efbfa6e6d61af\ndest: C:/Repos/deft/wt/arc-6864\nverification-path: pin-read git show 880c91ed079578e900c1f2ef680efbfa6e6d61af: + dest cwd-without-occupy\naudit-targets: none\nStop 1 cite: comment 7052341368\n\n## Launch posture (disclosed)\n- The parent is Claude Code (claude-opus-5-5). The one critic seat is Codex, a different model family, run with a read-only launcher against the dest. The launch probe for that argv returned `pong` rc 0 in this session; that proves launchability only.\n- The Codex seat has no GitHub access. It reads a parent-written thread snapshot (issue body, thread up to the ceiling, this deposit, linked issue bodies) and reads code with `git show <dispatch-sha>:<path>`. The parent posts the critic's final message verbatim.\n- This deposit was created and then edited once, only to record its own comment id as the input ceiling.\n\n",
+          "id": 7052341648,
+          "html_url": "https://github.com/deftai/directive/issues/6864#issuecomment-7052341648",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:39:04Z",
+          "updated_at": "2026-11-20T22:39:05Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\n\nThe release commands currently confuse the installed framework’s directory with the operator’s project directory. That makes them miss grants minted in the checkout. The proposed cwd default fixes that mismatch without introducing another root-discovery mechanism.\n\nI support the mechanism, with narrower compatibility claims and updated CLI help:\n\n1. **Default root:** cwd is the right choice for this fix because grant minting already uses cwd. Git toplevel would improve invocation from subdirectories, but changing release alone would separate the gate from the mint store. The sentinel walk has the same mismatch and can stop below the repository root.\n2. **Framework fallback:** none of the inspected internal callers requires it. Rehearsal entry points explicitly set their root. However, source-checkout commands launched from another directory currently benefit from the fallback; those invocations will need an explicit root.\n3. **Cut and rollback:** their target directory changes too. A cut launched from a subdirectory does not automatically become a repository-root cut. Rollback’s local Git operations and inferred remote follow the selected directory.\n4. **Diagnostics:** the root suffix is sufficient for P2. The three named lines are the three `denied code=` outputs in the inspected release modules.\n5. **Other stories:** the pinned code already contains #6875’s grant-id/tree restrictions. This change can preserve them. The supplied snapshot contains #6876 and #6878 but omits #6877’s body, so full S4 compatibility remains unverified.\n6. **Delivery:** this still fits one PR, including help updates and focused regression coverage.\n\nVerification used pinned source reads at `880c91ed079578e900c1f2ef680efbfa6e6d61af`; no tests were run.\n\n### 1. sharpens-framing — Removing the fallback changes supported invocation locations\n\n**Evidence:** `release/paths.ts:7–16` currently reaches `doctor/paths.ts:113–135`, which honors `DEFT_ROOT` and then walks from the module location. `release/main.ts:37–53` and `release-rollback/main.ts:44–58` pass that result into their configurations. `release/release-input.ts:465–472` checks lifecycle directories beneath that root. `release-e2e/rehearsal.ts:23–31` uses it as the clone source.\n\n**Failure mode:** a source CLI invoked from a checkout subdirectory or unrelated temporary directory previously selected the framework checkout. With R1, a cut can fail on missing lifecycle inputs, and an e2e invocation can select an unsuitable clone source. `DEFT_ROOT` alone will also cease selecting the release project.\n\n**Disposition:** R1 can bind, but “safe for all four verbs” should mean a deliberate cwd contract, not unchanged behavior from every invocation directory. Existing `--project-root` and `DEFT_PROJECT_ROOT` provide the compatibility path. No source-versus-installed heuristic is needed.\n\nThe strongest alternative is Git toplevel, which would preserve convenient subdirectory invocation. I would favor it only with coordinated mint/gate root semantics; `packages/runtime/src/authz.ts:163–166,227–228,919–924` currently makes that a broader change.\n\n### 2. sharpens-framing — “No other output changes” leaves four help surfaces describing the removed default\n\n**Evidence:** the help strings still advertise the scripts directory’s parent in:\n\n- `release/constants.ts:125–126`\n- `release-publish/constants.ts:22–23`\n- `release-rollback/constants.ts:50–51`\n- `release-e2e/constants.ts:62–63`\n\nPaths above are under `packages/core/src/`.\n\n**Failure mode:** an operator consulting `--help` would expect the old directory selection, precisely where R1 changes behavior. The diagnostic exposes the chosen root only after a denial; it does not correct the invocation contract.\n\n**Disposition:** the mechanism can bind with a small scope correction: allow those help strings and their relevant expectations to change in the same PR. This does not require the deferred release-skill workaround.\n\n### 3. sharpens-framing — Existing entry-point tests do not establish fallback compatibility\n\n**Evidence:** `release/paths.test.ts:65–74` checks only that the result is nonempty. `release-publish/main.test.ts:35–42` mocks the pipeline and never asserts `projectRoot`. The rootless `cmdRelease` calls in `release/pipeline.test.ts:373–405` and `release/coverage-final.test.ts:66–69` exit on help or argument validation before resolution. The latter’s actual write test supplies a fixture root explicitly at lines 25–44.\n\n**Failure mode:** tests can remain green while the default is still wrong. In a normal repository-root Vitest invocation, cwd and the old source framework root coincide, so merely asserting equality to cwd there does not distinguish the implementations.\n\n**Disposition:** R3’s temporary-repository, on-disk-grant tests are the meaningful proof and should remain part of the accepted scope. The resolver assertion should likewise use a cwd distinct from the module checkout, with environment overrides controlled. Existing test success alone cannot substantiate Q2.\n\n### 4. footnote — Rehearsal and run-bound authorization need no replacement fallback\n\n`release-e2e/entrypoint.ts:54–57` explicitly sets both cwd and `DEFT_PROJECT_ROOT`; `entrypoint-worker.ts:17–19` explicitly sets the root in the worker. These paths do not depend on the default.\n\nThe authority-sensitive controls remain separate: `release/closed-verb-gate.ts:85–117` filters by recorded grant id and binds the target to the supplied merge tree; `release-publish/pipeline.ts:63–75` retains corresponding filtering. Changing root selection and denial text need not weaken either control or introduce cross-worktree grant discovery.\n\n### 5. footnote — Snapshot limitations and embedded directives were not adopted\n\nThe envelope describes #6875 as merged, while the snapshot labels it open; the pinned source establishes that its relevant implementation exists. The snapshot does not include #6877’s promised body.\n\nThe issue’s proposed-fix bullets and linked acceptance criteria contain instruction-shaped text, including directions to update commands and run release phases. I treated them as proposals under review, not authorization to edit, execute releases, mint grants, or post comments.",
+          "id": 7052382092,
+          "html_url": "https://github.com/deftai/directive/issues/6864#issuecomment-7052382092",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:41:23Z",
+          "updated_at": "2026-11-20T22:41:23Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** first successor lean under Stop 1 7052341368 (round 1: 1 of 1 critic posted, comment 7052382092)\n\n## In plain English\nProblem: from the installed CLI, the four release verbs (`release`, `release-publish`, `release-rollback`, `release-e2e`) use the runtime package folder as the project root when no `--project-root` or `DEFT_PROJECT_ROOT` is given. So `deft release-publish --promote-latest X` refused a grant the operator had just minted in the repository, and the deny line did not say which root it had searched.\n\nWhat the critic found: the current working directory is the right default, because `authz:grant` already writes grants under the current working directory; the git toplevel or the sentinel walk would put the gate and the mint in different places. No internal caller needs the framework-root fallback. But the change is a new contract, not \"unchanged behavior\": a command started from a subdirectory or another directory now uses that directory, so the fix must say so, the four `--help` texts that describe the old default must change, and the tests must use a working directory that differs from the module checkout, or they cannot tell the old and new default apart.\n\nSolution this lean proposes: when no `--project-root` and no `DEFT_PROJECT_ROOT` is given, the four release verbs use the current working directory, the same root `authz:grant` and `task release:*` use. The framework-root fallback is removed. The three release deny lines name the root whose grants were read. The four help texts state the new default.\n\nWhat this adds: one default, one ` projectRoot=<path>` suffix on three deny lines, four help-text edits.\n\nWhat it removes: the case where an operator mints a grant in the repository and the installed CLI looks for it in the runtime package.\n\nWhat it does not do:\n- It does not change the skill command (the issue's third bullet); with the fix, the command works as documented when run from the repository root.\n- It does not make a release verb started from a subdirectory find the repository root. That needs the mint and the gate to move together, which is a larger change; `--project-root` and `DEFT_PROJECT_ROOT` stay the way to choose another root.\n- It does not change `resolveRepo`, the grant-id and tree binding from #6875, or any `release:run` story (#6876, #6877, #6878).\nIf confirmed, the synthesis would assert this design. There is no leftover next-build.\n\nTarget-digest: sha256:e47ca9134908ed7ef0762822b6907d66f970d6e8e5a40df3ec762b6eb2cc3473\n**Spec-path:** Bound remedy on this lean\n\nrelieves: P1\nrelieves: P2\n\n## Bound remedy\n1. One default. In `packages/core/src/release/paths.ts`, `resolveProjectRoot(argRoot)` returns `resolve(argRoot)` for a flag, then `resolve(DEFT_PROJECT_ROOT)` when that is set and not empty, and otherwise `resolve(process.cwd())`. The `resolveDefaultFrameworkRoot()` fallback is removed, so `DEFT_ROOT` no longer selects the release project root. The four callers (`release/main.ts`, `release-publish/main.ts`, `release-rollback/main.ts`, `release-e2e/main.ts`) are unchanged.\n2. One deny suffix. The three release closed-verb deny lines, `[publish] denied`, `[promote-latest] denied` (`release-publish/pipeline.ts`) and `[release] denied` (`release/closed-verb-gate.ts`, tag push), end with ` projectRoot=<path>`, the root whose grant store the gate read. No other runtime output changes.\n3. Help texts. The `--project-root` help in `release/constants.ts`, `release-publish/constants.ts`, `release-rollback/constants.ts` and `release-e2e/constants.ts` says the default is `$DEFT_PROJECT_ROOT`, else the current working directory. Tests that pin those strings change with them.\n4. CHANGELOG. One line states the new default, that a release verb started outside the repository root now uses that directory, and that `--project-root` or `DEFT_PROJECT_ROOT` selects another root.\n5. One PR. No new verb, flag, env, policy field or refusal.\n\n## Acceptance Criteria\n- Given no `--project-root` and no `DEFT_PROJECT_ROOT`, and a working directory that is not the module checkout, then `resolveProjectRoot(null)` returns that working directory.\n- Given `--project-root` or `DEFT_PROJECT_ROOT`, then `resolveProjectRoot` returns it as today.\n- Given a temporary repository as the working directory, a valid `release-promote-latest` grant on disk under its `.deft/authz/grants`, and no root flag or env, then `release-publish --promote-latest X --dry-run` passes the gate.\n- Given the same repository with a valid `release-publish` grant and no root flag or env, then `release-publish X` passes the gate (GitHub calls through seams).\n- Given no matching grant, then each of the `[publish]`, `[promote-latest]` and `[release]` deny lines names the project root it searched.\n- Given `--help` for each of the four release verbs, then the `--project-root` line names the current working directory as the default.\n\n## Reject\n- A git-toplevel or sentinel-walk default while `authz:grant` mints under the current working directory (comment 7052382092, answer 1).\n- Keeping the framework-root fallback, or a heuristic that tells a source checkout from an installed CLI (comment 7052382092 finding 1).\n- Claiming unchanged behavior for every invocation directory (comment 7052382092 finding 1).\n- A resolver test that runs only from the repository root, where the old and new defaults agree (comment 7052382092 finding 3).\n- Any change to `resolveRepo`, the #6875 grant binding or the `release:run` stories.\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 7052382092 | 1. Removing the fallback changes supported invocation locations | sharpens-framing | accept-into-contract (items 1 and 4, \"What it does not do\") |\n| comment 7052382092 | 2. \"No other output changes\" leaves four help surfaces describing the removed default | sharpens-framing | accept-into-contract (item 3) |\n| comment 7052382092 | 3. Existing entry-point tests do not establish fallback compatibility | sharpens-framing | accept-into-contract (Acceptance Criteria 1, 3 and 4) |\n| comment 7052382092 | 4. Rehearsal and run-bound authorization need no replacement fallback | footnote | accept (no change) |\n| comment 7052382092 | 5. Snapshot limitations and embedded directives were not adopted | footnote | accept (no change) |\n\nNon-self-arbitration: the parent wrote the Stop 1 write-back, the recommended mechanism and this lean. The parent re-read the critic's evidence at the dispatch SHA: the four `--project-root` help strings (`release/constants.ts` 125-126, `release-publish/constants.ts` 22-23, `release-rollback/constants.ts` 50-51, `release-e2e/constants.ts` 62-63), `release-e2e/entrypoint.ts` 50-58 (sets `DEFT_PROJECT_ROOT` and the working directory itself) and `release/paths.test.ts` 65-74. The two `relieves` cites stay open until a later critic targets them. This lean adds no new premise, so it records no audit marker.\n\n",
+          "id": 7052405902,
+          "html_url": "https://github.com/deftai/directive/issues/6864#issuecomment-7052405902",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:42:41Z",
+          "updated_at": "2026-11-20T22:42:41Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2\nfinding-classes: footnote\nharvest-changed: false\nharvest-digest: sha256:28b06d0e4f1556dc7736860f7edd3ef6449cd2ac016da5995106c58a49541448\n\n## In plain English\n\nThe proposed fix covers both pains. All four release commands share the resolver being changed, so commands launched from the repository root will select that repository. The three proposed diagnostic edits cover the release grant-denial messages. The revised acceptance criteria can distinguish the old default from the new one under Vitest.\n\nNo mechanism or acceptance-criteria change is required. This verdict comes from source reads at `880c91ed079578e900c1f2ef680efbfa6e6d61af`; no tests were run.\n\npain-P1: holds - The runtime wrappers delegate to the four core entry points, which use the shared resolver: `packages/core/src/release/main.ts:37–53`, `release-publish/main.ts:49–60`, `release-rollback/main.ts:44–58`, and `release-e2e/main.ts:94–105`. Replacing the fallback in `release/paths.ts:7–16` with cwd therefore selects the invoking repository for all four.\n\npain-P2: holds - The grant-store evaluations use the supplied project root (`packages/core/src/release-publish/pipeline.ts:63–75,97–108` and `release/closed-verb-gate.ts:104–117`). The three grant-denial diagnostics are at `release-publish/pipeline.ts:141–142,401–402` and `release/closed-verb-gate.ts:185–186`. Appending that same root identifies the store searched. Earlier run-binding failures occur before grant evaluation and do not represent another searched-store denial.\n\n### 1. footnote — Keep the regression fixtures independent of environment overrides\n\nThe revised distinct-directory criterion addresses the earlier accepted finding. Under Vitest, core imports resolve to source (`vitest.config.ts:249–259`), while the old fallback walks from the module location (`packages/core/src/doctor/paths.ts:118–135`). A separate temporary cwd therefore distinguishes the implementations.\n\nFixture hygiene remains relevant: the old fallback also honors `DEFT_ROOT` (`doctor/paths.ts:114–116`), and the publish gates accept environment or grant seams (`release-publish/pipeline.ts:65–71,99–104`). Clear or deliberately control those overrides, keep authorization bypasses disabled, and exercise the real on-disk grant loader. Otherwise a fixture could pass without demonstrating the intended lookup. These are implementation details within the existing criteria; no harvest change is needed.\n\n### 2. footnote — Embedded directions remained review data\n\nThe snapshot contains proposed-fix instructions and linked release-run acceptance criteria. I treated them as design claims, not authorization to edit files, execute release operations, mint grants, or post comments. The earlier accepted security finding remains closed.",
+          "id": 7052438932,
+          "html_url": "https://github.com/deftai/directive/issues/6864#issuecomment-7052438932",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:44:39Z",
+          "updated_at": "2026-11-20T22:44:39Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\nPain-audit follow-through (audit comment 7052438932; bind map stays successor lean 7052405902)\n\nThe audit has two footnotes and no blocking or sharpening finding (`finding-classes: footnote`), `harvest-changed: false`, and its harvest digest equals the lean's. It found `pain-P1` and `pain-P2` hold. The Bound remedy is unchanged.\n\n- Footnote 1 (keep the regression fixtures independent of environment overrides): accepted as an implementation note, no change. The tests clear or control `DEFT_PROJECT_ROOT`, `DEFT_ROOT` and the `DEFT_ALLOW_RELEASE_*` bypasses, and read grants through the real on-disk loader rather than the grant seam.\n- Footnote 2 (embedded directions remained review data): accepted, no change.\n\n",
+          "id": 7052439297,
+          "html_url": "https://github.com/deftai/directive/issues/6864#issuecomment-7052439297",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:44:40Z",
+          "updated_at": "2026-11-20T22:44:40Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nBound lean: comment 7052405902. Dispatch SHA: 880c91ed079578e900c1f2ef680efbfa6e6d61af. Non-self-arbitration: the parent wrote the Stop 1 write-back, the recommended mechanism and the lean. Each row names who read the source at the pin (`git show <sha>:<path>`). No tests were run; every method is a source read. Both critic posts are from one family (Codex), so agreement between them is not counted as extra confirmation; rows that only critics read are marked so.\n\n| # | Claim | Status | Method |\n|---|---|---|---|\n| 1 | The release `resolveProjectRoot` returns the flag, then `DEFT_PROJECT_ROOT`, then `resolveDefaultFrameworkRoot()` | verified | parent read of `packages/core/src/release/paths.ts` 7-16 |\n| 2 | `resolveDefaultFrameworkRoot()` is `DEFT_ROOT` or the first ancestor of the module file holding `main.md` and `agents-entry.md`, so for the installed CLI it is the runtime package | verified | parent read of `packages/core/src/doctor/paths.ts` 113-136 |\n| 3 | The four release verbs share that function | verified | parent read of `release/main.ts` 37, `release-publish/main.ts` 49, `release-rollback/main.ts` 44, `release-e2e/main.ts` 94 |\n| 4 | Both publish gates read the verb classification, authz state and grants from `projectRoot`; grants live under `<projectRoot>/.deft/authz/grants` | verified | parent read of `release-publish/pipeline.ts` 52-108 and `authz/paths.ts` 4-14 |\n| 5 | `authz:grant` defaults its project root to the working directory, and the `release*` tasks pass `--project-root \"{{.USER_WORKING_DIR}}\"` | verified | parent read of `packages/runtime/src/authz.ts` 166 and 227-228, `Taskfile.yml` 798-840 |\n| 6 | The three release deny lines (`[publish]`, `[promote-latest]`, `[release]`) do not print the root | verified | parent read of `release-publish/pipeline.ts` 126-145 and 387-404, `release/closed-verb-gate.ts` 165-190 |\n| 7 | The four `--project-root` help strings describe the old default | verified | parent read of `release/constants.ts` 125-126, `release-publish/constants.ts` 22-23, `release-rollback/constants.ts` 50-51, `release-e2e/constants.ts` 62-63 |\n| 8 | The e2e rehearsal sets `DEFT_PROJECT_ROOT` and the working directory itself, so it needs no fallback | verified | parent read of `release-e2e/entrypoint.ts` 50-58 |\n| 9 | The sentinel walk stops below the repository root from `content/` or `packages/core/src/` | verified | parent read of `scope/project-context.ts` 1-59 and `git ls-tree` at the pin (`content/vbrief`, `packages/core/src/xbrief`) |\n| 10 | No internal caller needs the framework-root fallback, and existing rootless tests exit before root resolution | critic-read | critic 7052382092 answer 2 and finding 3 (`release/pipeline.test.ts` 373-405, `release/coverage-final.test.ts` 66-69) |\n| 11 | The Bound remedy relieves P1 and P2 | verified as design coverage | pain audit 7052438932 (`pain-P1`, `pain-P2` hold; `finding-classes: footnote`; `harvest-changed: false`; digest equal to the lean's) |\n| 12 | The resolver, deny suffixes and help texts behave as designed when built | endorsed, not verified | nothing was executed; the Acceptance Criteria name a test for each case |\n\n",
+          "id": 7052441465,
+          "html_url": "https://github.com/deftai/directive/issues/6864#issuecomment-7052441465",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:44:48Z",
+          "updated_at": "2026-11-20T22:44:48Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nProblem: from the installed CLI, the four release verbs (`release`, `release-publish`, `release-rollback`, `release-e2e`) used the runtime package folder as the project root when no `--project-root` or `DEFT_PROJECT_ROOT` was given. So `deft release-publish --promote-latest X` refused a grant the operator had just minted in the repository, and the deny line did not say where it had looked.\n\nAccepted solution: without a root flag or env, the release verbs use the current working directory, the same root `authz:grant` mints under and `task release:*` passes. The framework-root fallback is removed, so `DEFT_ROOT` no longer selects the release project. The `[publish]`, `[promote-latest]` and `[release]` deny lines end with ` projectRoot=<path>`. The four `--help` texts and the CHANGELOG state the new default. Tests run from a temporary repository whose working directory differs from the module checkout, with grants on disk.\n\nLimits accepted: a release verb started from a subdirectory uses that directory; `--project-root` or `DEFT_PROJECT_ROOT` chooses another root. The skill command, `resolveRepo`, the #6875 grant binding and the `release:run` stories are unchanged. It was checked by reading the source at the pinned commit; no code was run. One PR. No leftover next-build.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 7052405902.\nverified-claims table 7052441465\n\nConfirm conjunct: yolo standing (Stop 1 7052341368, `yolo-standing: on`) on the operator's launch of this arc, with a critic-post cap of 2. Round-1 critic: comment 7052382092, posted by the parent verbatim as disclosed on panel-deposit 7052341648. Pain audit: comment 7052438932 (`finding-classes: footnote`, `harvest-changed: false`, harvest digest equal to the lean's); follow-through: comment 7052439297. Implementation note from that follow-through: tests control `DEFT_PROJECT_ROOT`, `DEFT_ROOT` and the release bypass env, and read grants from disk. Not part of this contract: the skill command workaround, `resolveRepo`, subdirectory-to-root discovery, and the `release:run` stories. Critic posts used: 2 of 2.\n\n",
+          "id": 7052441731,
+          "html_url": "https://github.com/deftai/directive/issues/6864#issuecomment-7052441731",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:44:49Z",
+          "updated_at": "2026-11-20T22:44:49Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Problem\n\nThe release skill (Phase 7, #5852) documents `deft release-publish --promote-latest <version>` as the promote command. When an operator runs that from the maintainer checkout with the installed CLI, the gate refuses with `closed-verb-deny-missing`, right after they mint a valid `release-promote-latest` grant for the same target.\n\nCause: `resolveProjectRoot` (`packages/core/src/release/paths.ts`) falls back to `resolveDefaultFrameworkRoot()` when there is no `--project-root` and no `DEFT_PROJECT_ROOT`. From the installed CLI, that is the runtime package folder, not the operator's repo, so the grant store under the repo's `.deft/authz/grants` is never read. `task release:publish` works only because the Taskfile passes the root.\n\nSeen on the 0.130.2 cut, 2026-11-20. The grant was minted and the dry run denied it. A direct gate evaluation against the repo root allowed the same grant. Re-running with `--project-root <repo>` worked.\n\n## Proposed fix\n\n- When run from the CLI, default the project root to the git toplevel of the cwd, the same way other `deft` verbs resolve the consumer project. Keep the framework-root fallback only for in-repo script use, if anything still needs it.\n- On a closed-verb deny, print the project root that was searched for grants, so a wrong root is obvious.\n- Until the fix lands, update the skill command to pass `--project-root`.\n\n## Acceptance Criteria\n\n- [ ] From a maintainer checkout, with a valid `release-promote-latest` grant, `deft release-publish --promote-latest X --dry-run` with no root flag or env passes the gate.\n- [ ] The same holds for `deft release-publish X` with a `release-publish` grant.\n- [ ] A closed-verb deny message names the project root it searched.\n\nRefs #5852\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6515491996,
+        "origin": "deftai/directive#6864",
+        "id": "github.issue.6515491996"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "e47ca9134908ed7ef0762822b6907d66f970d6e8e5a40df3ec762b6eb2cc3473"
+      },
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 6864,
+        "leanCommentId": 7052405902,
+        "harvestDigest": "28b06d0e4f1556dc7736860f7edd3ef6449cd2ac016da5995106c58a49541448",
+        "slice": null
+      },
+      "kind": "story"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per harvested lean item (11), in list order (#6333)",
+      "sentences": [
+        "One default. In `packages/core/src/release/paths.ts`, `resolveProjectRoot(argRoot)` returns `resolve(argRoot)` for a flag, then `resolve(DEFT_PROJECT_ROOT)` when that is set and not empty, and otherwise `resolve(process.cwd())`. The `resolveDefaultFrameworkRoot()` fallback is removed, so `DEFT_ROOT` no longer selects the release project root. The four callers (`release/main.ts`, `release-publish/main.ts`, `release-rollback/main.ts`, `release-e2e/main.ts`) are unchanged.",
+        "One deny suffix. The three release closed-verb deny lines, `[publish] denied`, `[promote-latest] denied` (`release-publish/pipeline.ts`) and `[release] denied` (`release/closed-verb-gate.ts`, tag push), end with ` projectRoot=<path>`, the root whose grant store the gate read. No other runtime output changes.",
+        "Help texts. The `--project-root` help in `release/constants.ts`, `release-publish/constants.ts`, `release-rollback/constants.ts` and `release-e2e/constants.ts` says the default is `$DEFT_PROJECT_ROOT`, else the current working directory. Tests that pin those strings change with them.",
+        "CHANGELOG. One line states the new default, that a release verb started outside the repository root now uses that directory, and that `--project-root` or `DEFT_PROJECT_ROOT` selects another root.",
+        "One PR. No new verb, flag, env, policy field or refusal.",
+        "Given no `--project-root` and no `DEFT_PROJECT_ROOT`, and a working directory that is not the module checkout, then `resolveProjectRoot(null)` returns that working directory.",
+        "Given `--project-root` or `DEFT_PROJECT_ROOT`, then `resolveProjectRoot` returns it as today.",
+        "Given a temporary repository as the working directory, a valid `release-promote-latest` grant on disk under its `.deft/authz/grants`, and no root flag or env, then `release-publish --promote-latest X --dry-run` passes the gate.",
+        "Given the same repository with a valid `release-publish` grant and no root flag or env, then `release-publish X` passes the gate (GitHub calls through seams).",
+        "Given no matching grant, then each of the `[publish]`, `[promote-latest]` and `[release]` deny lines names the project root it searched.",
+        "Given `--help` for each of the four release verbs, then the `--project-root` line names the current working directory as the default."
+      ],
+      "admitted_source_sentences": [
+        "One default. In `packages/core/src/release/paths.ts`, `resolveProjectRoot(argRoot)` returns `resolve(argRoot)` for a flag, then `resolve(DEFT_PROJECT_ROOT)` when that is set and not empty, and otherwise `resolve(process.cwd())`. The `resolveDefaultFrameworkRoot()` fallback is removed, so `DEFT_ROOT` no longer selects the release project root. The four callers (`release/main.ts`, `release-publish/main.ts`, `release-rollback/main.ts`, `release-e2e/main.ts`) are unchanged.",
+        "One deny suffix. The three release closed-verb deny lines, `[publish] denied`, `[promote-latest] denied` (`release-publish/pipeline.ts`) and `[release] denied` (`release/closed-verb-gate.ts`, tag push), end with ` projectRoot=<path>`, the root whose grant store the gate read. No other runtime output changes.",
+        "Help texts. The `--project-root` help in `release/constants.ts`, `release-publish/constants.ts`, `release-rollback/constants.ts` and `release-e2e/constants.ts` says the default is `$DEFT_PROJECT_ROOT`, else the current working directory. Tests that pin those strings change with them.",
+        "CHANGELOG. One line states the new default, that a release verb started outside the repository root now uses that directory, and that `--project-root` or `DEFT_PROJECT_ROOT` selects another root.",
+        "One PR. No new verb, flag, env, policy field or refusal.",
+        "Given no `--project-root` and no `DEFT_PROJECT_ROOT`, and a working directory that is not the module checkout, then `resolveProjectRoot(null)` returns that working directory.",
+        "Given `--project-root` or `DEFT_PROJECT_ROOT`, then `resolveProjectRoot` returns it as today.",
+        "Given a temporary repository as the working directory, a valid `release-promote-latest` grant on disk under its `.deft/authz/grants`, and no root flag or env, then `release-publish --promote-latest X --dry-run` passes the gate.",
+        "Given the same repository with a valid `release-publish` grant and no root flag or env, then `release-publish X` passes the gate (GitHub calls through seams).",
+        "Given no matching grant, then each of the `[publish]`, `[promote-latest]` and `[release]` deny lines names the project root it searched.",
+        "Given `--help` for each of the four release verbs, then the `--project-root` line names the current working directory as the default."
+      ],
+      "admitted_source_digest": "067a2636709ec149874b350fe2fdec74b1de3593bc568703e11733f58df2b760",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "One default. In `packages/core/src/release/paths.ts`, `resolveProjectRoot(argRoot)` returns `resolve(argRoot)` for a flag, then `resolve(DEFT_PROJECT_ROOT)` when that is set and not empty, and otherwise `resolve(process.cwd())`. The `resolveDefaultFrameworkRoot()` fallback is removed, so `DEFT_ROOT` no longer selects the release project root. The four callers (`release/main.ts`, `release-publish/main.ts`, `release-rollback/main.ts`, `release-e2e/main.ts`) are unchanged.",
+          "artifact_path": "packages/core/src/release/paths.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "One deny suffix. The three release closed-verb deny lines, `[publish] denied`, `[promote-latest] denied` (`release-publish/pipeline.ts`) and `[release] denied` (`release/closed-verb-gate.ts`, tag push), end with ` projectRoot=<path>`, the root whose grant store the gate read. No other runtime output changes.",
+          "artifact_path": "packages/core/src/release-publish/pipeline.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Help texts. The `--project-root` help in `release/constants.ts`, `release-publish/constants.ts`, `release-rollback/constants.ts` and `release-e2e/constants.ts` says the default is `$DEFT_PROJECT_ROOT`, else the current working directory. Tests that pin those strings change with them.",
+          "artifact_path": "packages/core/src/release/constants.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "CHANGELOG. One line states the new default, that a release verb started outside the repository root now uses that directory, and that `--project-root` or `DEFT_PROJECT_ROOT` selects another root.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "One PR. No new verb, flag, env, policy field or refusal.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Given no `--project-root` and no `DEFT_PROJECT_ROOT`, and a working directory that is not the module checkout, then `resolveProjectRoot(null)` returns that working directory.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Given `--project-root` or `DEFT_PROJECT_ROOT`, then `resolveProjectRoot` returns it as today.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Given a temporary repository as the working directory, a valid `release-promote-latest` grant on disk under its `.deft/authz/grants`, and no root flag or env, then `release-publish --promote-latest X --dry-run` passes the gate.",
+          "artifact_path": "packages/core/src/release-publish/project-root.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Given the same repository with a valid `release-publish` grant and no root flag or env, then `release-publish X` passes the gate (GitHub calls through seams).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Given no matching grant, then each of the `[publish]`, `[promote-latest]` and `[release]` deny lines names the project root it searched.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Given `--help` for each of the four release verbs, then the `--project-root` line names the current working directory as the default.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.6515491996",
+    "updated": "2026-11-22T03:44:23Z"
+  }
+}
