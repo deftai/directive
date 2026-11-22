@@ -1,0 +1,669 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6897",
+    "updated": "2026-11-22T22:39:13Z"
+  },
+  "plan": {
+    "title": "test(cli): guard every documented deft <verb> -- form with a real-parser test",
+    "status": "running",
+    "narratives": {
+      "Description": "test(cli): guard every documented deft <verb> -- form with a real-parser test",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6897",
+      "Overview": "\n1. File. A new test, `packages/runtime/src/dispatch-double-dash-documented-forms.test.ts`. It may move the run harness of `dispatch-double-dash-real-parser.test.ts` (empty-cwd run, captured dispatch io and `process.stdout`/`stderr`) into a small shared test helper used by both files. No product code, parser or doc changes.\n2. Case list. At test time the test reads `AGENTS.md`, `content/templates/agents-entry.md`, `content/templates/agent-prompt-preamble.md`, `content/skills/deft-directive-swarm/SKILL.md` and `content/skills/deft-directive-review-cycle/SKILL.md` from the repo root and collects each `deft <verb> -- ` form, where the verb is a colon verb or a two-word namespace form. Each form is kept as its user-facing token list (`[\"review-monitor:register\"]`, or `[\"policy\", \"show\"]` for a two-word form), with a display key and the files it appears in. The set must not be empty. A documented key with no probe-table entry fails, naming the key and its files. A table entry whose key is no longer documented fails as stale.\n3. Probe table. Each entry gives the probe arguments, the expected exit code, the exact expected text, whether the verb's parser refuses `--` (`refusesDash`), and a one-line note naming the check that returns before any work. The default probe is one unknown flag, `--deft-6897-no-such-flag`, for parsers that refuse unknown flags. Four named exceptions:\n   - `xbrief:activate`: two positional paths, `missing-6897-a.xbrief.json missing-6897-b.xbrief.json`; exit 2, `unrecognized arguments: missing-6897-b.xbrief.json`; `refusesDash: true`.\n   - `authz:grant`: `--generation invalid`; exit 2, `--generation requires a non-negative integer`; `refusesDash: false`.\n   - `swarm:pre-dispatch`: `--action invalid`; exit 2, `--action must be one of: begin, complete, cancel.`; `refusesDash: false`.\n   - `escalation:file`: `--type cmd_approval` with no title; exit 2, `escalation:file requires --title <text>`. This is the required-field check in `main` before `fileEscalation`, not a parser refusal; `refusesDash: false`.\n4. Equality run. For each entry the test runs `routeAndDispatch([...tokens, ...probe])` and `routeAndDispatch([...tokens, \"--\", ...probe])`. Both must exit with the expected code, both outputs must contain the expected text, and the two results (exit code, stdout, stderr) must be equal. No probe contains `--help` or `-h`, and no handler, router or parser is stubbed or mocked.\n5. Sensitivity run. For each entry the test builds the argument list a dispatcher would get if the router's boundary drop were bypassed: `routeArgv([...tokens, ...probe]).argv` with `--` put back just before the probe arguments. It asserts that list exactly, then calls `dispatch` with it. For every `refusesDash: true` entry the result must differ from the plain run, and at least one entry must be `refusesDash: true`. This shows sensitivity to bypassing today's drop; it is not a run of an older tree. In addition, the PR records one implementation check: with `applyDoubleDashBoundary` changed to return its input unchanged, the new test fails.\n6. `scope:*` entries. `routeArgv` sends these to `scope-lifecycle`, which spawns the built core CLI that the source-aliased suite does not provide. For these the test asserts the router result with and without `--` (`[\"scope-lifecycle\", sub, ...probe]`), and runs the core parser in-process, `lifecycleMain([sub, ...probe])` and `lifecycleMain([sub, \"--\", ...probe])`, with the same equality and expected-text checks (unknown-flag probe; exit 2; the scope usage line). They are `refusesDash: false` (`scope/main.ts` 175). The test names this as an exception to item 4: the spawn adapter is not run.\n7. Isolation. The test makes one fresh fixture root with an empty `.git` directory, so project-root discovery stops there (`scope/project-context.ts` sentinels `xbrief`, `vbrief`, `.git`). Every run directory and a temp home live inside it. While the test runs, HOME, USERPROFILE, APPDATA, LOCALAPPDATA, XDG_CONFIG_HOME and GH_CONFIG_DIR point into the temp home, `GH_TOKEN` and `GITHUB_TOKEN` hold an invalid value, and every `DEFT_*` variable is unset; all are restored after. After every run, sensitivity runs included, the test lists the whole fixture root and compares it with the list taken before the runs; only the fixture's own entries may exist. Safety rests on each entry's early return (item 3 note and expected text); the environment redirection is a second line of defence.\n8. One PR: the new test file, the optional shared helper, and one `changelog.d/` fragment.\n\n## Acceptance Criteria\n\n- Given the five docs at HEAD, when the test runs, then it collects every `deft <verb> -- ` form (today 26 single-token colon verbs) as token lists and finds a probe-table entry for each.\n- Given a documented verb whose probe-table entry is removed, when the test runs, then it fails and names the verb and the files it appears in; given a table entry for a verb no doc shows, then it fails as stale.\n- Given any entry, when the test runs its form with and without the leading `--` through `routeAndDispatch`, then both runs exit with the entry's expected code, both outputs contain its expected text, and the exit code, stdout and stderr are equal.\n- Given `xbrief:activate`, `authz:grant`, `swarm:pre-dispatch` and `escalation:file`, then their runs use the item 3 probes and show the item 3 texts.\n- Given a `scope:*` entry, then the router maps both forms to `[\"scope-lifecycle\", sub, ...probe]` and `lifecycleMain` gives equal exit 2 results with the scope usage text for both forms.\n- Given a `refusesDash: true` entry, when `dispatch` gets the routed tokens with `--` put back before the probe (an argument list the test asserts exactly), then the result differs from the plain run; at least one entry is `refusesDash: true`.\n- Given `applyDoubleDashBoundary` changed to return its input unchanged, then the test fails (recorded in the PR, not committed).\n- Given any run, sensitivity runs included, then the fixture root's file list is unchanged afterwards, no probe contains `--help` or `-h`, and the test mocks no handler, router or parser.\n\n\n",
+      "Constraint": "- One unknown-flag probe for every verb (comment 7086778199, finding 1 and 2): it does not reach the parser of `escalation:file`, `authz:grant`, `swarm:pre-dispatch` or `xbrief:activate`.\n- Giving a required-argument verb all its required arguments (finding 1): that reaches application work.\n- Calling the sensitivity run a run of the old tree (finding 3).\n- Claiming the `scope:*` cases run through the real handler (finding 4).\n- Checking only the run directories and the temp home for writes (finding 5).\n- Joining a two-word verb into one token (finding 6).\n- Stub handlers and `--help` probes (#6887 audits 7049322242 and 7049900978).",
+      "Labels": "design-critique:ingest-ready, framework-gap"
+    },
+    "items": [
+      {
+        "title": "File. A new test, `packages/runtime/src/dispatch-double-dash-documented-forms.test.ts`. It may move the run harness of `dispatch-double-dash-real-parser.test.ts` (empty-cwd run, captured dispatch io and `process.stdout`/`stderr`) into a small shared test helper used by both files. No product code, parser or doc changes.",
+        "status": "proposed",
+        "id": "clause.1"
+      },
+      {
+        "title": "Case list. At test time the test reads `AGENTS.md`, `content/templates/agents-entry.md`, `content/templates/agent-prompt-preamble.md`, `content/skills/deft-directive-swarm/SKILL.md` and `content/skills/deft-directive-review-cycle/SKILL.md` from the repo root and collects each `deft <verb> -- ` form, where the verb is a colon verb or a two-word namespace form. Each form is kept as its user-facing token list (`[\"review-monitor:register\"]`, or `[\"policy\", \"show\"]` for a two-word form), with a display key and the files it appears in. The set must not be empty. A documented key with no probe-table entry fails, naming the key and its files. A table entry whose key is no longer documented fails as stale.",
+        "status": "proposed",
+        "id": "clause.2"
+      },
+      {
+        "title": "Probe table. Each entry gives the probe arguments, the expected exit code, the exact expected text, whether the verb's parser refuses `--` (`refusesDash`), and a one-line note naming the check that returns before any work. The default probe is one unknown flag, `--deft-6897-no-such-flag`, for parsers that refuse unknown flags. Four named exceptions:",
+        "status": "proposed",
+        "id": "clause.3"
+      },
+      {
+        "title": "`xbrief:activate`: two positional paths, `missing-6897-a.xbrief.json missing-6897-b.xbrief.json`; exit 2, `unrecognized arguments: missing-6897-b.xbrief.json`; `refusesDash: true`.",
+        "status": "proposed",
+        "id": "clause.4"
+      },
+      {
+        "title": "`authz:grant`: `--generation invalid`; exit 2, `--generation requires a non-negative integer`; `refusesDash: false`.",
+        "status": "proposed",
+        "id": "clause.5"
+      },
+      {
+        "title": "`swarm:pre-dispatch`: `--action invalid`; exit 2, `--action must be one of: begin, complete, cancel.`; `refusesDash: false`.",
+        "status": "proposed",
+        "id": "clause.6"
+      },
+      {
+        "title": "`escalation:file`: `--type cmd_approval` with no title; exit 2, `escalation:file requires --title <text>`. This is the required-field check in `main` before `fileEscalation`, not a parser refusal; `refusesDash: false`.",
+        "status": "proposed",
+        "id": "clause.7"
+      },
+      {
+        "title": "Equality run. For each entry the test runs `routeAndDispatch([...tokens, ...probe])` and `routeAndDispatch([...tokens, \"--\", ...probe])`. Both must exit with the expected code, both outputs must contain the expected text, and the two results (exit code, stdout, stderr) must be equal. No probe contains `--help` or `-h`, and no handler, router or parser is stubbed or mocked.",
+        "status": "proposed",
+        "id": "clause.8"
+      },
+      {
+        "title": "Sensitivity run. For each entry the test builds the argument list a dispatcher would get if the router's boundary drop were bypassed: `routeArgv([...tokens, ...probe]).argv` with `--` put back just before the probe arguments. It asserts that list exactly, then calls `dispatch` with it. For every `refusesDash: true` entry the result must differ from the plain run, and at least one entry must be `refusesDash: true`. This shows sensitivity to bypassing today's drop; it is not a run of an older tree. In addition, the PR records one implementation check: with `applyDoubleDashBoundary` changed to return its input unchanged, the new test fails.",
+        "status": "proposed",
+        "id": "clause.9"
+      },
+      {
+        "title": "`scope:*` entries. `routeArgv` sends these to `scope-lifecycle`, which spawns the built core CLI that the source-aliased suite does not provide. For these the test asserts the router result with and without `--` (`[\"scope-lifecycle\", sub, ...probe]`), and runs the core parser in-process, `lifecycleMain([sub, ...probe])` and `lifecycleMain([sub, \"--\", ...probe])`, with the same equality and expected-text checks (unknown-flag probe; exit 2; the scope usage line). They are `refusesDash: false` (`scope/main.ts` 175). The test names this as an exception to item 4: the spawn adapter is not run.",
+        "status": "proposed",
+        "id": "clause.10"
+      },
+      {
+        "title": "Isolation. The test makes one fresh fixture root with an empty `.git` directory, so project-root discovery stops there (`scope/project-context.ts` sentinels `xbrief`, `vbrief`, `.git`). Every run directory and a temp home live inside it. While the test runs, HOME, USERPROFILE, APPDATA, LOCALAPPDATA, XDG_CONFIG_HOME and GH_CONFIG_DIR point into the temp home, `GH_TOKEN` and `GITHUB_TOKEN` hold an invalid value, and every `DEFT_*` variable is unset; all are restored after. After every run, sensitivity runs included, the test lists the whole fixture root and compares it with the list taken before the runs; only the fixture's own entries may exist. Safety rests on each entry's early return (item 3 note and expected text); the environment redirection is a second line of defence.",
+        "status": "proposed",
+        "id": "clause.11"
+      },
+      {
+        "title": "One PR: the new test file, the optional shared helper, and one `changelog.d/` fragment.",
+        "status": "proposed",
+        "id": "clause.12"
+      },
+      {
+        "title": "Given the five docs at HEAD, when the test runs, then it collects every `deft <verb> -- ` form (today 26 single-token colon verbs) as token lists and finds a probe-table entry for each.",
+        "status": "proposed",
+        "id": "clause.13"
+      },
+      {
+        "title": "Given a documented verb whose probe-table entry is removed, when the test runs, then it fails and names the verb and the files it appears in; given a table entry for a verb no doc shows, then it fails as stale.",
+        "status": "proposed",
+        "id": "clause.14"
+      },
+      {
+        "title": "Given any entry, when the test runs its form with and without the leading `--` through `routeAndDispatch`, then both runs exit with the entry's expected code, both outputs contain its expected text, and the exit code, stdout and stderr are equal.",
+        "status": "proposed",
+        "id": "clause.15"
+      },
+      {
+        "title": "Given `xbrief:activate`, `authz:grant`, `swarm:pre-dispatch` and `escalation:file`, then their runs use the item 3 probes and show the item 3 texts.",
+        "status": "proposed",
+        "id": "clause.16"
+      },
+      {
+        "title": "Given a `scope:*` entry, then the router maps both forms to `[\"scope-lifecycle\", sub, ...probe]` and `lifecycleMain` gives equal exit 2 results with the scope usage text for both forms.",
+        "status": "proposed",
+        "id": "clause.17"
+      },
+      {
+        "title": "Given a `refusesDash: true` entry, when `dispatch` gets the routed tokens with `--` put back before the probe (an argument list the test asserts exactly), then the result differs from the plain run; at least one entry is `refusesDash: true`.",
+        "status": "proposed",
+        "id": "clause.18"
+      },
+      {
+        "title": "Given `applyDoubleDashBoundary` changed to return its input unchanged, then the test fails (recorded in the PR, not committed).",
+        "status": "proposed",
+        "id": "clause.19"
+      },
+      {
+        "title": "Given any run, sensitivity runs included, then the fixture root's file list is unchanged afterwards, no probe contains `--help` or `-h`, and the test mocks no handler, router or parser.",
+        "status": "proposed",
+        "id": "clause.20"
+      }
+    ],
+    "tags": [
+      "design-critique:ingest-ready",
+      "framework-gap"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6897",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6897: test(cli): guard every documented deft <verb> -- form with a real-parser test"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6887",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6887"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "routeAndDispatch([...tokens, ...probe])",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L11"
+        },
+        {
+          "command": "routeAndDispatch([...tokens, \"--\", ...probe])",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L11"
+        },
+        {
+          "command": "routeArgv([...tokens, ...probe]).argv",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L12"
+        },
+        {
+          "command": "refusesDash: true",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L12"
+        },
+        {
+          "command": "[\"scope-lifecycle\", sub, ...probe]",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L13"
+        },
+        {
+          "command": "lifecycleMain([sub, ...probe])",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L13"
+        },
+        {
+          "command": "lifecycleMain([sub, \"--\", ...probe])",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L13"
+        },
+        {
+          "command": "refusesDash: false",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L13"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/runtime/src/dispatch-double-dash-documented-forms.test.ts",
+          "packages/runtime/src/dispatch-double-dash-real-parser.test.ts",
+          "packages/runtime/src/dispatch-double-dash-fixtures.ts",
+          "changelog.d/6897-documented-double-dash-forms-test.md",
+          "docs/RULE-MAP.md",
+          "xbrief/evaluator-surface-disposition.json",
+          "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "xbrief/.audit/spec-drift/github.issue.6519260787.json"
+        ],
+        "verify_commands": [
+          "npx vitest run packages/runtime/src/dispatch-double-dash-documented-forms.test.ts packages/runtime/src/dispatch-double-dash-real-parser.test.ts"
+        ],
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "depends_on": [],
+        "expected_outputs": [
+          "dispatch-double-dash-documented-forms.test.ts: collects every documented `deft <verb> -- ` form from the five docs and requires a probe-table entry for each; a missing or stale entry fails",
+          "equality run: each form through routeAndDispatch with and without the leading `--` gives the same exit code and expected text",
+          "sensitivity run: refusesDash entries give a different result when `--` is put back after routing",
+          "scope:* entries checked at routeArgv and in-process lifecycleMain",
+          "isolation: one fixture root with an empty .git marker, redirected home variables, invalid GitHub token, unchanged after every run",
+          "optional shared run harness in dispatch-double-dash-fixtures.ts used by both double-dash test files",
+          "one changelog fragment changelog.d/6897-documented-double-dash-forms-test.md"
+        ],
+        "conflict_group": "runtime-dispatch-tests",
+        "model_tier": "high",
+        "acceptance_criteria_justification": "The 20 clauses are the Bound-remedy items and Acceptance Criteria of the accepted design-critique lean 7086803984 (synthesis 7086863400, ingest-ready), harvested and digest-pinned by issue:ingest (Spec-path); they cannot be merged or dropped without breaking the admitted-source pin."
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: triage\n```\n\nStop 1 — Gate (arc 6897; no-ingest)\n\nmechanism-shaped: true\ndesign-critique: warranted, because the guard test has to decide which documented forms it covers, which arguments make each verb's real parser refuse before any work, how it proves that the refusal came from the parser (not from a load failure), and how it keeps every run away from the project, the lease and GitHub; two earlier designs for this test failed review on #6887.\n\nTarget-digest: sha256:47ab5d1c730406521a69ca9538f44dafa400faf91c9806ca531fcc429ea521c3\ndispatch-sha: 53726f85c8afb6da74ce986c4b8e7ad90f6b2a7f\ndest: C:/Repos/deft/wt/arc-6897 (pinKind origin-default, guarded-prep)\narc-mode: no-ingest\nyolo-standing: on\ncharter: open critique\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\nspend-why: resolved by `deft design-critique:spend-resolve` on the issue's own words (no `n=` or `panel` token) with the parent recommend N=1. Stop 2 panel permission does not apply: the change is one test file with no product code, so the blast radius is low, and the solution space is already narrowed by the issue's acceptance criteria and the two refused designs. One critic of a different model family, plus a pain audit.\ncritic-post cap: 6 (contract default for spend N=1)\nmateriality-bar: open\ntarget-kind: issue\nceiling-kind: comment-id\nverification-path: pin-read git show 53726f85c8afb6da74ce986c4b8e7ad90f6b2a7f: + dest cwd-without-occupy\npain: P1, P2\n\n## In plain English\n#6887 and #6912 made the `deft` router drop one lone `--` between the verb and its arguments, so the documented `deft <verb> -- <args>` forms reach each verb's parser. Today two small tests guard that: one for the router (it checks the rewritten argument list) and one that runs the real parser for five verbs. Nothing checks every form the docs show. If a later change routes a documented verb around the drop, or adds a doc example for a verb whose parser refuses `--`, the docs break again and no test fails.\n\nThe recommended fix is one new vitest file. It reads the five files the issue names, collects every `deft <verb> -- ` example, and runs each verb twice through the real router and handler, with and without the `--`, from an empty temporary directory. Each run uses arguments that make the parser refuse before it does any work (by default, a flag no parser knows). The two runs must give the same exit code and the same output, and the output must show that the verb's own parser refused. The same test also re-runs each case through the dispatcher with the `--` put back, to prove that the cases would fail on a tree without the drop. No product code changes.\n\n## Pains\n- P1 — No test covers every documented `deft <verb> -- ` form, so a change that routes a documented verb around the router's `--` drop, or a new doc example for a verb whose parser refuses `--`, ships with no failing test (#6897; split from #6887 by the operator).\n- P2 — The two guard designs tried on #6887 could pass while the documented form fails: stub handlers cannot see a parser refusal, and `--help` as the probe is answered before the parser runs or hides its error (#6887 pain audits 7049322242 and 7049900978).\n\n## Out of scope (named, not pains)\n- Any change to the router drop itself, to a verb's parser, or to the docs.\n- `task <verb> -- ...` forms. In `task`, `--` separates Taskfile CLI arguments, a different mechanism.\n- Launcher-owned verbs (`install`, `upgrade`, `uninstall`, `doctor`), which #6887 left out of scope.\n- `scm` forms, whose `--` reaches `gh` on purpose (`route-argv.ts` 422).\n\n## Evidence\n- The five files hold 26 distinct verbs in `deft <verb> -- ` examples, all single-token colon verbs: `verify:session-ritual`, `session:start`, `policy:set-spec-guard-enforcement`, `authz:grant`, `verify:spec-drift`, `verify:review-monitor`, `verify:cohort-review-monitors`, `policy:enable-value-feedback`, `policy:allow-destructive-gh-verbs`, `verify:docs-impact`, `xbrief:preflight`, `policy:allow-bot-merge`, `scope:promote`, `scope:activate`, `scope:complete`, `xbrief:activate`, `pr:watch`, `escalation:file`, `review-monitor:register`, `verify:orphan-active`, `verify:completed-tracked`, `swarm:finalize-cohort`, `verify:subagent-alive`, `swarm:pre-dispatch`, `pr:merge-ready`, `verify:l4-owner` (parent grep at the pin).\n- Parent probe at the pin (a scratch script outside the repo; `tsx` with the vitest source aliases; each run from a fresh empty directory; HOME, USERPROFILE, APPDATA and LOCALAPPDATA pointed at a scratch folder; `GH_TOKEN` and `GITHUB_TOKEN` set to an invalid value). For each verb it ran `routeAndDispatch([verb, F])` and `routeAndDispatch([verb, \"--\", F])` with `F = --deft-6897-no-such-flag`, then simulated a tree without the drop by calling `dispatch` directly with `--` put back after the routed verb tokens. Results:\n  - All 26 pairs gave the same exit code and output, and no run wrote a file.\n  - The simulated no-drop run differed for 12 verbs (`verify:spec-drift`, `verify:review-monitor`, `verify:cohort-review-monitors`, `xbrief:activate`, `pr:watch`, `review-monitor:register`, `verify:orphan-active`, `verify:completed-tracked`, `swarm:finalize-cohort`, `verify:subagent-alive`, `pr:merge-ready`, `verify:l4-owner`), each with a refusal of `--` (`xbrief:activate`: `unrecognized arguments: --deft-6897-no-such-flag`).\n  - It was the same for the other 14. Their parsers skip `--` (`verify:session-ritual`, `session:start`, the four `policy:*` verbs, `verify:docs-impact`, `xbrief:preflight`), or a required-argument check refuses first (`authz:grant`: `requires --operations ...`; `escalation:file`: `requires --type`; `swarm:pre-dispatch`: `--scope-id is required`), or the case did not reach a parser at all (the three `scope:*` verbs).\n  - The three `scope:*` pairs were equal only because both runs failed with `Cannot find module ...@deftai/directive-core/dist/scope/cli.js`. The `scope-lifecycle` handler spawns the built core CLI, which the vitest source aliases do not provide. So \"same output\" can pass without any parser running.\n  - `xbrief:activate` read the unknown flag as a brief path (`vBRIEF not found at --deft-6897-no-such-flag.`, exit 1); its parser takes any token as the path.\n  - Run in-process with `lifecycleMain`, the core scope parser gave the same usage error (exit 2) for `promote --deft-6897-no-such-flag` with and without `--`. For a missing brief path it reported `File not found: C:\\Users\\...\\AppData\\Local\\Temp\\missing-6897.xbrief.json`: it resolved the project root to `%TEMP%`, an ancestor of the empty run directory, because a stray `xbrief/` folder exists there. An empty temporary directory alone does not keep a verb away from some other project.\n\n## Anchors at the dispatch SHA\n- `packages/runtime/src/cli-router/route-argv.ts` 397-438: `META_HEADS`, `SUBCOMMAND_HANDLERS`, `applyDoubleDashBoundary` (the drop at the verb boundary; `scm` and meta heads left alone), `routeArgv`.\n- `packages/runtime/src/dispatch.ts` 3523-3531 `dropLeadingDoubleDash`; 3533-3546 `dispatch` passes args as given (#6912 comment); 3631 `interceptHelp` (help answered before a handler's parser).\n- `packages/runtime/src/cli-router/index.ts` 41-63 `routeAndDispatch` (route, stub and init/update refusals, then `dispatch`).\n- `packages/runtime/src/dispatch-double-dash-real-parser.test.ts` 1-118: the #6887/#6912 harness (empty temp cwd, captured io and `process.stdout`/`stderr`, five verb pairs with a bad value, equal-result assertions plus a pinned refusal substring).\n- `packages/runtime/src/cli-router/route-argv-double-dash.test.ts` 1-177: router-level cases, including `scope:promote|activate|complete -- p.json` to `scope-lifecycle <sub> p.json` (99-110).\n- `packages/runtime/src/scope-lifecycle.ts` 16-32: `require.resolve(\"@deftai/directive-core/dist/scope/cli.js\")` then `spawnSync(process.execPath, ...)`.\n- `packages/core/src/scope/main.ts` 175 (`if (arg === \"--\") continue;`), 438 `lifecycleMain`; `packages/core/src/scope/cli.ts` `mainEntry`.\n- `vitest.config.ts` 87-130 and 248-260: source aliases, including the `@deftai/directive-core/dist/<path>.js` regex, which applies to imports in the test process and not to a spawned `node`.\n\n## Recommended mechanism (the thing to critique)\n- D1. File. One new test, `packages/runtime/src/dispatch-double-dash-documented-forms.test.ts`, reusing the run harness of `dispatch-double-dash-real-parser.test.ts` (moved to a small shared helper if both files need it). No product code, doc or parser changes.\n- D2. Case list from the docs. At test time the test reads `AGENTS.md`, `content/templates/agents-entry.md`, `content/templates/agent-prompt-preamble.md`, `content/skills/deft-directive-swarm/SKILL.md` and `content/skills/deft-directive-review-cycle/SKILL.md` from the repo root, and collects each verb that appears as `deft <verb> -- ` (a colon verb, or a namespace verb of two words, so a future multi-token example is caught). It asserts the set is not empty. Every collected verb must have an entry in a probe table in the test; a documented verb with no entry fails the test, naming the verb and the file, and a table entry whose verb is no longer documented fails as stale.\n- D3. Probe table. Each entry gives the probe arguments, the expected exit code, and an expected text that only the verb's own parser prints. The default probe is one unknown flag, `--deft-6897-no-such-flag`. A verb whose required-argument check refuses first (`authz:grant`, `escalation:file`, `swarm:pre-dispatch`) gets the required arguments with a bad value, so the expected text proves that the parser read them. Each entry also says whether the verb's parser refuses `--` (the 12 verbs that differed in the parent probe).\n- D4. Equality run. For each entry the test runs `routeAndDispatch([verb, ...probe])` and `routeAndDispatch([verb, \"--\", ...probe])`. Both must exit with the expected code, both outputs must contain the expected text, and the two results (exit code, stdout, stderr) must be equal. `--help` is never in a probe, and no handler, router or parser is stubbed.\n- D5. Sensitivity run (AC 3 inside the test). For each entry the test also calls `dispatch` directly with the routed verb tokens from `routeArgv([verb, ...probe])`, then `--`, then the probe: the argument list a tree without the router drop would hand the dispatcher. For each entry marked as refusing `--`, that result must differ from the plain run; and at least one entry must be so marked. So the test proves it would fail without the drop, without editing the source.\n- D6. `scope:*` entries. `routeArgv` sends these to `scope-lifecycle`, which spawns the built core CLI that the vitest aliases do not provide. For these the test asserts the router result (`scope-lifecycle <sub> <probe>` with and without `--`) and runs the core scope parser in-process (`lifecycleMain([sub, ...probe])` and `lifecycleMain([sub, \"--\", ...probe])`) with the same equality and expected-text checks. They are marked as not refusing `--` (`scope/main.ts` 175).\n- D7. Isolation. During the test: each run in a fresh `mkdtemp` directory under a fresh root; HOME, USERPROFILE, APPDATA, LOCALAPPDATA and XDG_CONFIG_HOME point into a fresh temp home; `GH_TOKEN` and `GITHUB_TOKEN` are set to an invalid value and `GH_CONFIG_DIR` points into the temp home; every `DEFT_*` variable is unset; all are restored after. After each pair the test asserts that the run directories and the temp home hold no files. Every probe refuses before any work, which the expected text checks. To stop project-root discovery walking up to an ancestor (the stray `%TEMP%\\xbrief` case), the fresh root holds an empty `.git` directory, so it is the nearest project root and has no project content.\n- D8. Cost. 26 entries, three in-process runs each, using the handler cache. Not marked slow unless it measures over 1 s per case; it does not spawn processes (D6).\n- D9. Scope. One PR: the new test file, an optional shared harness helper extracted from `dispatch-double-dash-real-parser.test.ts`, and one `changelog.d/` fragment.\n\nQuestions for the critic:\n1. Is reading the five files at test time, with a completeness check against a probe table (D2), better than a fixed list? Is the example pattern right, and should the stale-entry check stay?\n2. Does \"same exit and output, plus an expected text from the verb's own parser\" (D3, D4) shut out every vacuous pass (load failure, a required-argument refusal, a lenient positional such as `xbrief:activate`)? Which verbs need a probe other than the unknown flag?\n3. Is the sensitivity run (D5), which calls `dispatch` with the `--` put back, an honest proof of AC 3, or does it test a simulation rather than the old tree?\n4. For `scope:*` (D6), is the router check plus the in-process core parser enough, or must the case run through `scope-lifecycle` with a built core?\n5. Is D7 enough to meet AC 4 (no change to the project, the lease or GitHub)? Is the empty `.git` marker the right way to stop ancestor discovery, or should the probes pass `--project-root` (which changes the arguments)?\n6. Does this fit one PR?\n\n",
+          "id": 7086733379,
+          "html_url": "https://github.com/deftai/directive/issues/6897#issuecomment-7086733379",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T22:19:51Z",
+          "updated_at": "2026-11-22T22:19:51Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 1\ninput-ceiling: 7086733617\nseat: codex launcher: codex (exec --ephemeral --skip-git-repo-check --sandbox read-only -C dest -o outfile)\n\ncharter: open critique\nspend: N=1\narc-mode: no-ingest\nmateriality-bar: open\ndispatch-sha: 53726f85c8afb6da74ce986c4b8e7ad90f6b2a7f\ndest: C:/Repos/deft/wt/arc-6897\nverification-path: pin-read git show 53726f85c8afb6da74ce986c4b8e7ad90f6b2a7f: + dest cwd-without-occupy\naudit-targets: none\nStop 1 cite: comment 7086733379\n\n## Launch posture (disclosed)\n- The parent is Claude Code (claude-opus-5-5). The one critic seat is Codex, a different model family, run read-only against the dest with the launcher above. Codex writes its final message to an output file; the parent posts that file verbatim.\n- The seat has no GitHub access. It reads a parent-written thread snapshot (issue body, thread up to the ceiling, this deposit, linked issue bodies) and reads code with `git show <dispatch-sha>:<path>`.\n- Critic-post cap for this arc: 6 (contract default for spend N=1).\n- This deposit was created and then edited once, only to record its own comment id as the input ceiling.\n\n",
+          "id": 7086733617,
+          "html_url": "https://github.com/deftai/directive/issues/6897#issuecomment-7086733617",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T22:19:52Z",
+          "updated_at": "2026-11-22T22:19:53Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\n\nThe problem is that documented commands can stop accepting `--` while tests still pass because they never reach the relevant parser. The proposed documentation-driven test is a good direction, but the mechanism needs revision before acceptance: some probes do not fail in parsing, and one parser cannot produce the promised kind of refusal.\n\nMy answers to the six questions are:\n\n1. Read the five files and keep the stale-entry check. Represent commands as token arrays so two-word forms actually run correctly.\n2. Expected parser text excludes module-load failures, but does not by itself prove that supplied arguments were consumed or that no work occurred. Specific replacements are needed below.\n3. D5 is a useful sensitivity check for removing the current router drop. It is not an executed old-tree test.\n4. D6 is reasonable compositional coverage of routing and parsing, provided its bypass of the runtime adapter is explicit.\n5. The empty `.git` marker stops the scope resolver inspected here. D7 is not a general isolation boundary, and its filesystem assertion misses the common fixture root.\n6. The revised test still fits one PR without product-parser changes.\n\nThis review used source reads at `53726f85c8afb6da74ce986c4b8e7ad90f6b2a7f`. No tests were executed, and I do not independently certify the parent’s 26-case execution results.\n\n### 1. blocks-the-design — D3’s universal parser-refusal requirement cannot be implemented as written\n\n**Evidence:** `packages/runtime/src/escalation-cli.ts:85–179` accepts known fields and silently ignores unknown arguments. `--type` merely stores a string at lines 92–94. The required-field checks occur in `main` at lines 220–227, followed by `fileEscalation` at lines 229–242.\n\n**Failure mode:** Giving `escalation:file` its required arguments with a supposedly bad type does not cause its parser to refuse. Supplying both type and title reaches application work. Keeping the unknown-flag probe instead produces the missing-type response, which does not prove the probe was consumed. Thus neither choice meets D3’s stated contract.\n\n**Disposition:** Replace “every verb’s own parser refuses” with “a verified argument-validation path returns before effects,” and explicitly allow a required-field exception for this verb. For example, `--type <nonempty-value>` with title omitted reaches the title-required check; assert that exact response. Do not claim that this lenient parser detects removal of `--`.\n\n### 2. blocks-the-design — Name the safe probes instead of leaving the known exceptions unresolved\n\n**Evidence:**\n\n- `packages/core/src/vbrief-activate/main.ts:9–16,24–31` accepts any single token as a path and then calls `activate`.\n- `packages/runtime/src/authz.ts:364–380,448–456` provides a genuine parser rejection for invalid `--generation`, while unknown flags fall through.\n- `packages/core/src/swarm/pre-dispatch-cli.ts:66–124,169–181` ignores unknown flags but rejects invalid action/status values before calling `swarmPreDispatch`.\n\n**Failure mode:** The default `xbrief:activate` probe reaches application code and returns a missing-file result. An expected substring can authenticate that result without proving parsing refused. Likewise, filling required fields is unnecessary—and potentially advances execution—for the other two exceptions.\n\n**Disposition:** Specify concrete cases:\n\n- `xbrief:activate`: two positional tokens; expect exit 2 and the exact unrecognized-arguments response.\n- `authz:grant`: `--generation invalid`; expect its non-negative-integer error.\n- `swarm:pre-dispatch`: `--action invalid`; expect its allowed-actions error.\n\nTogether with finding 1, these replace the unsupported blanket recipe. Each remaining table entry still needs its own return-before-effects justification.\n\n### 3. sharpens-framing — D5 proves a precise mutation, not execution on a historical tree\n\n**Evidence:** `packages/runtime/src/cli-router/route-argv.ts:419–437` applies the drop after routing. `packages/runtime/src/cli-router/index.ts:41–63` subsequently dispatches the routed arguments. `packages/runtime/src/dispatch.ts:3523–3545` explicitly leaves boundary removal to the router.\n\n**Failure mode:** Calling the dispatcher with a reinserted delimiter exercises a constructed downstream input. It does not independently execute the router with the drop removed. Incorrectly extracting “routed verb tokens,” especially for multi-token commands, could make that construction diverge from the intended mutation.\n\n**Disposition:** Keep D5, but describe it as sensitivity to bypassing the current boundary drop. Assert the exact reconstructed argv. The argument for AC3 is then explicit: bypassing that drop would feed D4 the unequal result demonstrated by D5. If AC3 requires an actual changed-tree run, record that separately during implementation validation.\n\n### 4. sharpens-framing — D6 is compositional coverage with an adapter gap\n\n**Evidence:** `packages/runtime/src/scope-lifecycle.ts:16–32` resolves and spawns the built core CLI. `vitest.config.ts:251–258` aliases imports to source. `packages/core/src/scope/main.ts:175,438–452` skips `--` and returns parsing errors before lifecycle work.\n\n**Failure mode:** Separate router and `lifecycleMain` assertions can pass despite a broken runtime adapter, including its module resolution or argument forwarding. They also cannot make the lenient scope parser sensitive to boundary-drop removal.\n\n**Disposition:** Accept D6 for the narrowly stated router-plus-real-parser guard, but disclose the exception to D4’s “through the real router and handler” claim. A built-core integration case is necessary only if preserving that stronger claim. The compositional approach avoids imposing a build prerequisite on this source-based suite.\n\n### 5. sharpens-framing — D7 must inspect the root that discovery actually selects\n\n**Evidence:** `packages/core/src/scope/project-context.ts:5–8,27–56` accepts an existing `.git` sentinel and walks upward to it.\n\n**Failure mode:** With D7’s layout, discovery selects the common fresh root, not necessarily an individual run directory. A write to `<fresh-root>/.deft/...` escapes assertions limited to run directories and temporary home. Moreover, filesystem emptiness and invalid credentials do not demonstrate absence of attempted external calls.\n\n**Disposition:** Snapshot and compare the entire fixture root, allowing only intentional fixture entries, after every run—including sensitivity runs. Retain the empty `.git` marker for the inspected resolver. Ground safety primarily in each probe’s verified early-return path; describe environment redirection as defense in depth, not proof that all external effects are impossible.\n\n### 6. sharpens-framing — D2’s future two-word support conflicts with D4’s invocation shape\n\n**Evidence:** The existing real-parser test passes `[\"policy\", \"show\", \"--format=invalid\"]` in `packages/runtime/src/dispatch-double-dash-real-parser.test.ts:91–96`; routing destructures separate tokens in `packages/runtime/src/cli-router/route-argv.ts:445`.\n\n**Failure mode:** D2 can discover `policy show`, but D4’s literal `[verb, ...probe]` would send `\"policy show\"` as one token. A completeness table could therefore recognize a documented form without invoking it correctly.\n\n**Disposition:** Store user-facing verb tokens separately from the display/table key. Insert `--` after those tokens, and preserve source-file provenance for failures. Keep dynamic discovery and stale-entry checking; they are stronger than an independently maintained fixed list.",
+          "id": 7086778199,
+          "html_url": "https://github.com/deftai/directive/issues/6897#issuecomment-7086778199",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T22:23:20Z",
+          "updated_at": "2026-11-22T22:23:20Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** first successor lean under Stop 1 7086733379 (round 1: 1 of 1 critic posted, comment 7086778199)\n\n## In plain English\nProblem: the router drops one lone `--` after the verb, so the documented `deft <verb> -- <args>` forms work (#6887, #6912). No test covers every documented form, and the two test designs tried on #6887 (stub handlers, `--help` as the probe) could pass while a form was broken.\n\nWhat the critic found: reading the docs at test time with a completeness check is the right base, but the probe recipe was wrong for some verbs. `escalation:file`, `authz:grant` and `swarm:pre-dispatch` ignore unknown flags, and `xbrief:activate` takes any token as its path, so for them an unknown flag does not prove that the parser ran. The critic named a safe probe for each. It also asked for four sharpenings: call the sensitivity run what it is (it bypasses today's drop; it does not run an old tree); disclose that the `scope:*` cases skip the spawn adapter; check the whole fixture root, because project-root discovery stops at the root's `.git` marker, not at the run directory; and keep the verb as a token list so a two-word form runs correctly.\n\nSolution this lean proposes: one new test file. It reads the five docs, collects every `deft <verb> -- ` form as a token list, and requires a probe-table entry for each. Each entry names probe arguments, the expected exit code, the exact expected text and the check that returns before any work. The test runs each form through the real router and handler with and without the `--` and requires equal results that show that text. A sensitivity run puts the `--` back after the routed verb and shows that the verbs whose parsers refuse `--` would then differ. All runs happen under one fixture root that must be unchanged after every run.\n\nWhat this adds: one test file, an optional shared harness helper, one changelog fragment.\n\nWhat it removes: nothing.\n\nWhat it does not do:\n- It does not change the router drop, any parser or any doc.\n- The `scope:*` cases check the router and the core scope parser separately; they do not run the `scope-lifecycle` spawn adapter, which needs a built core.\n- `escalation:file` stops at a required-field check, not a parser refusal, and its parser does not notice a stray `--`; its case guards only that the documented form still reaches that check.\n- It does not prove that no external call is attempted; safety rests on each probe's early return, and the environment redirection is a second line of defence.\nIf confirmed, the synthesis would assert this design. Leftover next-build: none.\n\nTarget-digest: sha256:47ab5d1c730406521a69ca9538f44dafa400faf91c9806ca531fcc429ea521c3\n**Spec-path:** Bound remedy on this lean\nSupersedes: Stop 1 write-back, comment 7086733379. Sibling count: 1 (comment 7086778199). Panel deposit: comment 7086733617.\n\nrelieves: P1\nrelieves: P2\n\n## Bound remedy\n1. File. A new test, `packages/runtime/src/dispatch-double-dash-documented-forms.test.ts`. It may move the run harness of `dispatch-double-dash-real-parser.test.ts` (empty-cwd run, captured dispatch io and `process.stdout`/`stderr`) into a small shared test helper used by both files. No product code, parser or doc changes.\n2. Case list. At test time the test reads `AGENTS.md`, `content/templates/agents-entry.md`, `content/templates/agent-prompt-preamble.md`, `content/skills/deft-directive-swarm/SKILL.md` and `content/skills/deft-directive-review-cycle/SKILL.md` from the repo root and collects each `deft <verb> -- ` form, where the verb is a colon verb or a two-word namespace form. Each form is kept as its user-facing token list (`[\"review-monitor:register\"]`, or `[\"policy\", \"show\"]` for a two-word form), with a display key and the files it appears in. The set must not be empty. A documented key with no probe-table entry fails, naming the key and its files. A table entry whose key is no longer documented fails as stale.\n3. Probe table. Each entry gives the probe arguments, the expected exit code, the exact expected text, whether the verb's parser refuses `--` (`refusesDash`), and a one-line note naming the check that returns before any work. The default probe is one unknown flag, `--deft-6897-no-such-flag`, for parsers that refuse unknown flags. Four named exceptions:\n   - `xbrief:activate`: two positional paths, `missing-6897-a.xbrief.json missing-6897-b.xbrief.json`; exit 2, `unrecognized arguments: missing-6897-b.xbrief.json`; `refusesDash: true`.\n   - `authz:grant`: `--generation invalid`; exit 2, `--generation requires a non-negative integer`; `refusesDash: false`.\n   - `swarm:pre-dispatch`: `--action invalid`; exit 2, `--action must be one of: begin, complete, cancel.`; `refusesDash: false`.\n   - `escalation:file`: `--type cmd_approval` with no title; exit 2, `escalation:file requires --title <text>`. This is the required-field check in `main` before `fileEscalation`, not a parser refusal; `refusesDash: false`.\n4. Equality run. For each entry the test runs `routeAndDispatch([...tokens, ...probe])` and `routeAndDispatch([...tokens, \"--\", ...probe])`. Both must exit with the expected code, both outputs must contain the expected text, and the two results (exit code, stdout, stderr) must be equal. No probe contains `--help` or `-h`, and no handler, router or parser is stubbed or mocked.\n5. Sensitivity run. For each entry the test builds the argument list a dispatcher would get if the router's boundary drop were bypassed: `routeArgv([...tokens, ...probe]).argv` with `--` put back just before the probe arguments. It asserts that list exactly, then calls `dispatch` with it. For every `refusesDash: true` entry the result must differ from the plain run, and at least one entry must be `refusesDash: true`. This shows sensitivity to bypassing today's drop; it is not a run of an older tree. In addition, the PR records one implementation check: with `applyDoubleDashBoundary` changed to return its input unchanged, the new test fails.\n6. `scope:*` entries. `routeArgv` sends these to `scope-lifecycle`, which spawns the built core CLI that the source-aliased suite does not provide. For these the test asserts the router result with and without `--` (`[\"scope-lifecycle\", sub, ...probe]`), and runs the core parser in-process, `lifecycleMain([sub, ...probe])` and `lifecycleMain([sub, \"--\", ...probe])`, with the same equality and expected-text checks (unknown-flag probe; exit 2; the scope usage line). They are `refusesDash: false` (`scope/main.ts` 175). The test names this as an exception to item 4: the spawn adapter is not run.\n7. Isolation. The test makes one fresh fixture root with an empty `.git` directory, so project-root discovery stops there (`scope/project-context.ts` sentinels `xbrief`, `vbrief`, `.git`). Every run directory and a temp home live inside it. While the test runs, HOME, USERPROFILE, APPDATA, LOCALAPPDATA, XDG_CONFIG_HOME and GH_CONFIG_DIR point into the temp home, `GH_TOKEN` and `GITHUB_TOKEN` hold an invalid value, and every `DEFT_*` variable is unset; all are restored after. After every run, sensitivity runs included, the test lists the whole fixture root and compares it with the list taken before the runs; only the fixture's own entries may exist. Safety rests on each entry's early return (item 3 note and expected text); the environment redirection is a second line of defence.\n8. One PR: the new test file, the optional shared helper, and one `changelog.d/` fragment.\n\n## Acceptance Criteria\n- Given the five docs at HEAD, when the test runs, then it collects every `deft <verb> -- ` form (today 26 single-token colon verbs) as token lists and finds a probe-table entry for each.\n- Given a documented verb whose probe-table entry is removed, when the test runs, then it fails and names the verb and the files it appears in; given a table entry for a verb no doc shows, then it fails as stale.\n- Given any entry, when the test runs its form with and without the leading `--` through `routeAndDispatch`, then both runs exit with the entry's expected code, both outputs contain its expected text, and the exit code, stdout and stderr are equal.\n- Given `xbrief:activate`, `authz:grant`, `swarm:pre-dispatch` and `escalation:file`, then their runs use the item 3 probes and show the item 3 texts.\n- Given a `scope:*` entry, then the router maps both forms to `[\"scope-lifecycle\", sub, ...probe]` and `lifecycleMain` gives equal exit 2 results with the scope usage text for both forms.\n- Given a `refusesDash: true` entry, when `dispatch` gets the routed tokens with `--` put back before the probe (an argument list the test asserts exactly), then the result differs from the plain run; at least one entry is `refusesDash: true`.\n- Given `applyDoubleDashBoundary` changed to return its input unchanged, then the test fails (recorded in the PR, not committed).\n- Given any run, sensitivity runs included, then the fixture root's file list is unchanged afterwards, no probe contains `--help` or `-h`, and the test mocks no handler, router or parser.\n\n## Reject\n- One unknown-flag probe for every verb (comment 7086778199, finding 1 and 2): it does not reach the parser of `escalation:file`, `authz:grant`, `swarm:pre-dispatch` or `xbrief:activate`.\n- Giving a required-argument verb all its required arguments (finding 1): that reaches application work.\n- Calling the sensitivity run a run of the old tree (finding 3).\n- Claiming the `scope:*` cases run through the real handler (finding 4).\n- Checking only the run directories and the temp home for writes (finding 5).\n- Joining a two-word verb into one token (finding 6).\n- Stub handlers and `--help` probes (#6887 audits 7049322242 and 7049900978).\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 7086778199 | 1. D3's universal parser-refusal requirement cannot be implemented as written | blocks-the-design | accept-into-contract (item 3: early-return note per entry; `escalation:file` title-omitted probe, stated as a required-field check; \"What it does not do\") |\n| comment 7086778199 | 2. Name the safe probes instead of leaving the known exceptions unresolved | blocks-the-design | accept-into-contract (item 3 four named probes; AC 4) |\n| comment 7086778199 | 3. D5 proves a precise mutation, not execution on a historical tree | sharpens-framing | accept-into-contract (item 5: exact argv assertion, wording, recorded implementation check; AC 6 and 7) |\n| comment 7086778199 | 4. D6 is compositional coverage with an adapter gap | sharpens-framing | accept-into-contract (item 6 named exception; \"What it does not do\") |\n| comment 7086778199 | 5. D7 must inspect the root that discovery actually selects | sharpens-framing | accept-into-contract (item 7: whole-root comparison after every run; redirection as second line of defence) |\n| comment 7086778199 | 6. D2's future two-word support conflicts with D4's invocation shape | sharpens-framing | accept-into-contract (item 2 token lists; items 4 and 5 insert `--` after the tokens) |\n\nNon-self-arbitration: the parent wrote Stop 1, the recommended mechanism and this lean. The parent re-checked the critic's evidence at the dispatch SHA: `escalation-cli.ts` 218-232 (the `--type` and `--title` checks return 2 before `fileEscalation`) and `scope/project-context.ts` 5-15 (sentinels `xbrief`, `vbrief`, `.git`, walking up). It also ran the four named probes with the parent probe script described in Stop 1 (same sandbox): each gave equal results with and without `--`, the item 3 exit code and text, and no file written; the simulated bypass differed only for `xbrief:activate` (`unrecognized arguments: missing-6897-a.xbrief.json missing-6897-b.xbrief.json`). This lean adds no premise beyond the accepted findings and those checks, so it records no audit marker. The `relieves` cites stay open until a later critic targets them.\n\n",
+          "id": 7086803984,
+          "html_url": "https://github.com/deftai/directive/issues/6897#issuecomment-7086803984",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T22:25:21Z",
+          "updated_at": "2026-11-22T22:25:21Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2\nfinding-classes: none\nharvest-changed: false\nharvest-digest: sha256:57e14d396fbfd85a645b874f7104a65c0abfed858f3d8eaf1e24e936225d9205\n\n## In plain English\n\nThe revised design addresses both stated pains. Its probes reach real argument-validation paths, and the sensitivity check distinguishes a retained `--` for the parsers that reject it. The exceptions for scope commands and lenient parsers are explicit. I found no new reason to change the Bound remedy or Acceptance Criteria.\n\nThis verdict comes from source reads at `53726f85c8afb6da74ce986c4b8e7ad90f6b2a7f`. I ran no probes, builds or tests and do not independently certify the parent’s execution results.\n\npain-P1: holds - Documentation discovery covers the 26 current forms, missing entries fail, and equality plus sensitivity assertions detect loss of boundary removal for rejecting parsers. Scope forms additionally assert the exact routed argv.\n\npain-P2: holds - The proposed runs use real validation paths and check their expected responses, excluding the earlier stub-handler and help-shortcut passes. The limited scope and escalation claims match what those cases exercise.\n\nI independently recovered the same 26 documented verbs and checked their return paths:\n\n| Forms | Validation before application work |\n|---|---|\n| `session:start`, `verify:session-ritual` | Runtime `session-start.ts:515–523`, `verify-session-ritual.ts:119–127` return parser errors before session operations. |\n| All four documented `policy:*` forms | Runtime `policy.ts:414–460,635–637,955–960` rejects the unknown flag before dispatching policy changes. |\n| `xbrief:preflight` | Runtime `vbrief-preflight.ts:181–198` returns the parse error before ownership checks, evaluation or work-claim scanning. |\n| `verify:review-monitor`, `review-monitor:register`, `verify:l4-owner` | Their runtime handlers return argument errors at `214–217`, `151–153`, and `108–111`, respectively, before gate evaluation or registration. |\n| `verify:orphan-active`, `verify:completed-tracked`, `verify:subagent-alive` | Runtime handlers return argument errors at `113–115`, `126–128`, and `verify-subagent-alive.ts:114–123`, before evaluation or scratch-directory sweeping. |\n| `verify:cohort-review-monitors` | Core `swarm/cohort-review-monitors-cli.ts:219–229` returns before repository and open-PR discovery. |\n| `verify:docs-impact`, `verify:spec-drift` | Core `docs/docs-impact.ts:533–537,670–687` and `verify-source/spec-drift.ts:1931–1969` reject the probe before external calls or drift operations. |\n| `pr:watch`, `pr:merge-ready` | Core `pr-watch/main.ts:817–827` and `pr-merge-readiness/main.ts:126–134` return before polling, heartbeat writes or merge-readiness evaluation. |\n| `swarm:finalize-cohort` | Core `swarm/finalize-cohort-cli.ts:217–227` returns before finalization. |\n| Three `scope:*` forms | Core `scope/main.ts:286–297,438–452` rejects the unknown flag and prints scope usage before lifecycle work. |\n| Four named exceptions | Core `vbrief-activate/main.ts:9–16,24–31`; runtime `authz.ts:364–367,448–456`; core `swarm/pre-dispatch-cli.ts:162–181`; runtime `escalation-cli.ts:220–229` support the specified probes and early returns. |\n\nItem 5’s reconstruction matches the inspected routing mechanism: routing preserves the probe suffix while mapping the command prefix (`cli-router/route-argv.ts:253–291,340–357`), then boundary removal acts at that prefix boundary (`419–437`). Reinserting `--` immediately before the preserved probe therefore reproduces the downstream input when removal is bypassed, including two-word forms. It must use the **routed** prefix, as the lean specifies.\n\nItem 7 is defense in depth, not complete filesystem confinement. The `.git` marker stops the inspected scope resolver (`scope/project-context.ts:5–8,27–56`); a fixture-root comparison cannot observe arbitrary writes elsewhere. For these probes, the relevant protection is the verified return before application work. I found no probe path that requires writing to an unredirected user-level location before producing its expected refusal. The lean already states that limitation, so it needs no further change.",
+          "id": 7086854417,
+          "html_url": "https://github.com/deftai/directive/issues/6897#issuecomment-7086854417",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T22:29:24Z",
+          "updated_at": "2026-11-22T22:29:24Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\nPain-audit follow-through (audit comment 7086854417; bind map stays successor lean 7086803984)\n\nThe audit has no findings (`finding-classes: none`), `harvest-changed: false`, and its harvest digest equals the lean's (sha256:57e14d396fbfd85a645b874f7104a65c0abfed858f3d8eaf1e24e936225d9205). It found `pain-P1` and `pain-P2` hold. The Bound remedy is unchanged.\n\n- The audit's per-verb table names the check in each of the 26 documented verbs that returns before application work; it agrees with the lean's item 3 note requirement.\n- Its remark that item 7 is a second line of defence, not full confinement, matches the lean's \"What it does not do\"; no change.\n\n",
+          "id": 7086862869,
+          "html_url": "https://github.com/deftai/directive/issues/6897#issuecomment-7086862869",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T22:30:06Z",
+          "updated_at": "2026-11-22T22:30:06Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nBound lean: comment 7086803984. Dispatch SHA: 53726f85c8afb6da74ce986c4b8e7ad90f6b2a7f. Non-self-arbitration: the parent wrote the Stop 1 write-back, the recommended mechanism and the lean. Each row names who read the source at the pin (`git show <sha>:<path>`) or what the parent ran. Parent runs used a scratch script outside the repo (`tsx` with the vitest source aliases, an empty run directory per call, home variables redirected to a scratch folder, an invalid GitHub token). Both critic posts are from one family (Codex), so agreement between them is not counted as extra confirmation.\n\n| # | Claim | Status | Method |\n|---|---|---|---|\n| 1 | The five docs hold 26 distinct verbs in `deft <verb> -- ` examples, all single-token colon verbs | verified | parent grep at the pin; audit 7086854417 recovered the same 26 |\n| 2 | The router drops one lone `--` at the verb boundary (`applyDoubleDashBoundary`); `dispatch` passes args as given | verified | parent read of `cli-router/route-argv.ts` 397-438 and `dispatch.ts` 3523-3546; critic 7086778199 finding 3 |\n| 3 | With today's drop, all 26 verbs give equal exit code and output with and without `--` under the unknown-flag probe, and no run wrote a file | verified | parent run (Stop 1 evidence) |\n| 4 | Re-inserting `--` after the routed verb tokens makes 12 verbs' results differ; the other 14 skip `--`, refuse a required argument first, or (scope) never reached a parser | verified | parent run (Stop 1 evidence) |\n| 5 | `scope-lifecycle` spawns the built core CLI, so in the source-aliased suite both `scope:*` forms fail with the same module-not-found error | verified | parent run; parent read of `scope-lifecycle.ts` 16-32 and `vitest.config.ts` 248-260 |\n| 6 | Scope project-root discovery walks up to an `xbrief`, `vbrief` or `.git` sentinel, so an empty temp directory can resolve to an ancestor | verified | parent run (resolved to `%TEMP%`); parent read of `scope/project-context.ts` 5-15; critic 7086778199 finding 5 |\n| 7 | The four named probes (`xbrief:activate` two paths, `authz:grant --generation invalid`, `swarm:pre-dispatch --action invalid`, `escalation:file --type cmd_approval`) give equal results with the lean's exit codes and texts and write no file; only `xbrief:activate` differs when `--` is re-inserted | verified | parent run; parent read of `escalation-cli.ts` 218-232; critic 7086778199 findings 1 and 2 |\n| 8 | Each documented verb's probe reaches a check that returns before application work | endorsed, not verified | audit 7086854417 per-verb table (source reads); the parent checked only the four named exceptions and the scope parser |\n| 9 | The Bound remedy relieves pains P1 and P2 | verified as design coverage | audit 7086854417 (`pain-P1` and `pain-P2` hold; `finding-classes: none`; `harvest-changed: false`; digest equal to the lean's) |\n| 10 | The test, as built, collects the forms, runs the pairs, fails without the drop and leaves the fixture root unchanged | endorsed, not verified | nothing of the new test was built; the Acceptance Criteria name each check |\n\n",
+          "id": 7086863118,
+          "html_url": "https://github.com/deftai/directive/issues/6897#issuecomment-7086863118",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T22:30:07Z",
+          "updated_at": "2026-11-22T22:30:07Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nProblem: the router drops one lone `--` after the verb, so the documented `deft <verb> -- <args>` forms work (#6887, #6912), but no test covers every documented form, and the two test designs tried on #6887 (stub handlers, `--help` as the probe) could pass while a form was broken (#6897).\n\nAccepted solution: one new test file. At test time it reads the five docs and collects every `deft <verb> -- ` form as a token list; each needs a probe-table entry, and a stale entry fails. Each entry gives probe arguments that stop at a check before any work (an unknown flag by default; named probes for `xbrief:activate`, `authz:grant`, `swarm:pre-dispatch` and `escalation:file`), the expected exit code and text, and whether the parser refuses `--`. The test runs each form through the real router and handler with and without `--` and requires equal results showing that text. A sensitivity run hands `dispatch` the routed tokens with `--` put back and requires a different result for the verbs whose parsers refuse `--`; the PR also records that the test fails with the router drop bypassed. `scope:*` forms are checked at the router and in the core scope parser, since their handler spawns a built CLI. All runs happen under one fixture root with an empty `.git` marker, redirected home variables and an invalid GitHub token, and the root must be unchanged after every run.\n\nLimits accepted: it changes no product code, parser or doc; the `scope:*` spawn adapter is not run; `escalation:file` stops at a required-field check and cannot notice a stray `--`; the environment redirection is a second line of defence, not proof that no external call is tried. It was checked by reading the source at the pinned commit and by parent runs of the probes against today's code; the new test was not built. One PR; no leftover next-build.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 7086803984.\nverified-claims table 7086863118\n\nConfirm conjunct: yolo standing (Stop 1 7086733379, `yolo-standing: on`). Round-1 critic: comment 7086778199, posted by the parent verbatim as disclosed on panel-deposit 7086733617; its six classified findings are accepted on the lean. Audit: comment 7086854417 (`finding-classes: none`, `harvest-changed: false`, harvest digest equal to the lean's); follow-through: comment 7086862869. Spend N=1 was resolved by `deft design-critique:spend-resolve` from the parent recommend, as Stop 1 records. Critic posts used: 2 of 6.\n\n",
+          "id": 7086863400,
+          "html_url": "https://github.com/deftai/directive/issues/6897#issuecomment-7086863400",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T22:30:08Z",
+          "updated_at": "2026-11-22T22:30:08Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Problem\n\n#6887 makes the `deft` dispatcher drop one leading lone `--` for every runtime verb, so the documented `deft <verb> -- <args>` forms work. A guard test that every documented form keeps working was split out of that arc, because two test designs failed review:\n\n- **Stubbed handlers.** Replacing each verb's handler with a recorder that returns 0 cannot see a real parser refusal such as `unrecognized argument: --` (#6887 pain audit, comment 7049322242).\n- **`--help` as the probe.** Running each verb as `deft <verb> -- --help` hides the refusal it should catch (#6887 pain audit, comment 7049900978):\n  - The dispatcher prints help for `scope:promote`, `scope:activate` and `scope:complete` before their parser runs (`interceptHelp`, `packages/runtime/src/dispatch.ts`), so the scope parser is never tested.\n  - `swarm:finalize-cohort` records the `--` error but returns help first (`packages/core/src/swarm/finalize-cohort-cli.ts`), so its case already passes without the fix.\n  - `xbrief:activate` reads `--help` as a brief path. With a missing path in its place, the unfixed form fails with `unrecognized arguments: missing.xbrief.json`, which a check for the `--` refusal line does not catch (`packages/core/src/vbrief-activate/main.ts`).\n\n## Acceptance Criteria\n\n- [ ] A vitest test covers every `deft <verb> -- ` example in `AGENTS.md`, `content/templates/agents-entry.md`, `content/templates/agent-prompt-preamble.md`, `content/skills/deft-directive-swarm/SKILL.md` and `content/skills/deft-directive-review-cycle/SKILL.md`.\n- [ ] For each example, the test runs the real parser on the same arguments with and without the leading `--` and asserts the same exit code and output; no handler is stubbed and `--help` is not the probe.\n- [ ] The test fails on a tree without the #6887 dispatcher drop.\n- [ ] No case changes the project, the lease or GitHub.\n\nRefs #6887, #6647\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6519260787,
+        "origin": "deftai/directive#6897",
+        "id": "github.issue.6519260787"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "47ab5d1c730406521a69ca9538f44dafa400faf91c9806ca531fcc429ea521c3"
+      },
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 6897,
+        "leanCommentId": 7086803984,
+        "harvestDigest": "57e14d396fbfd85a645b874f7104a65c0abfed858f3d8eaf1e24e936225d9205",
+        "slice": null
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per harvested lean item (20), in list order (#6333)",
+      "sentences": [
+        "File. A new test, `packages/runtime/src/dispatch-double-dash-documented-forms.test.ts`. It may move the run harness of `dispatch-double-dash-real-parser.test.ts` (empty-cwd run, captured dispatch io and `process.stdout`/`stderr`) into a small shared test helper used by both files. No product code, parser or doc changes.",
+        "Case list. At test time the test reads `AGENTS.md`, `content/templates/agents-entry.md`, `content/templates/agent-prompt-preamble.md`, `content/skills/deft-directive-swarm/SKILL.md` and `content/skills/deft-directive-review-cycle/SKILL.md` from the repo root and collects each `deft <verb> -- ` form, where the verb is a colon verb or a two-word namespace form. Each form is kept as its user-facing token list (`[\"review-monitor:register\"]`, or `[\"policy\", \"show\"]` for a two-word form), with a display key and the files it appears in. The set must not be empty. A documented key with no probe-table entry fails, naming the key and its files. A table entry whose key is no longer documented fails as stale.",
+        "Probe table. Each entry gives the probe arguments, the expected exit code, the exact expected text, whether the verb's parser refuses `--` (`refusesDash`), and a one-line note naming the check that returns before any work. The default probe is one unknown flag, `--deft-6897-no-such-flag`, for parsers that refuse unknown flags. Four named exceptions:",
+        "`xbrief:activate`: two positional paths, `missing-6897-a.xbrief.json missing-6897-b.xbrief.json`; exit 2, `unrecognized arguments: missing-6897-b.xbrief.json`; `refusesDash: true`.",
+        "`authz:grant`: `--generation invalid`; exit 2, `--generation requires a non-negative integer`; `refusesDash: false`.",
+        "`swarm:pre-dispatch`: `--action invalid`; exit 2, `--action must be one of: begin, complete, cancel.`; `refusesDash: false`.",
+        "`escalation:file`: `--type cmd_approval` with no title; exit 2, `escalation:file requires --title <text>`. This is the required-field check in `main` before `fileEscalation`, not a parser refusal; `refusesDash: false`.",
+        "Equality run. For each entry the test runs `routeAndDispatch([...tokens, ...probe])` and `routeAndDispatch([...tokens, \"--\", ...probe])`. Both must exit with the expected code, both outputs must contain the expected text, and the two results (exit code, stdout, stderr) must be equal. No probe contains `--help` or `-h`, and no handler, router or parser is stubbed or mocked.",
+        "Sensitivity run. For each entry the test builds the argument list a dispatcher would get if the router's boundary drop were bypassed: `routeArgv([...tokens, ...probe]).argv` with `--` put back just before the probe arguments. It asserts that list exactly, then calls `dispatch` with it. For every `refusesDash: true` entry the result must differ from the plain run, and at least one entry must be `refusesDash: true`. This shows sensitivity to bypassing today's drop; it is not a run of an older tree. In addition, the PR records one implementation check: with `applyDoubleDashBoundary` changed to return its input unchanged, the new test fails.",
+        "`scope:*` entries. `routeArgv` sends these to `scope-lifecycle`, which spawns the built core CLI that the source-aliased suite does not provide. For these the test asserts the router result with and without `--` (`[\"scope-lifecycle\", sub, ...probe]`), and runs the core parser in-process, `lifecycleMain([sub, ...probe])` and `lifecycleMain([sub, \"--\", ...probe])`, with the same equality and expected-text checks (unknown-flag probe; exit 2; the scope usage line). They are `refusesDash: false` (`scope/main.ts` 175). The test names this as an exception to item 4: the spawn adapter is not run.",
+        "Isolation. The test makes one fresh fixture root with an empty `.git` directory, so project-root discovery stops there (`scope/project-context.ts` sentinels `xbrief`, `vbrief`, `.git`). Every run directory and a temp home live inside it. While the test runs, HOME, USERPROFILE, APPDATA, LOCALAPPDATA, XDG_CONFIG_HOME and GH_CONFIG_DIR point into the temp home, `GH_TOKEN` and `GITHUB_TOKEN` hold an invalid value, and every `DEFT_*` variable is unset; all are restored after. After every run, sensitivity runs included, the test lists the whole fixture root and compares it with the list taken before the runs; only the fixture's own entries may exist. Safety rests on each entry's early return (item 3 note and expected text); the environment redirection is a second line of defence.",
+        "One PR: the new test file, the optional shared helper, and one `changelog.d/` fragment.",
+        "Given the five docs at HEAD, when the test runs, then it collects every `deft <verb> -- ` form (today 26 single-token colon verbs) as token lists and finds a probe-table entry for each.",
+        "Given a documented verb whose probe-table entry is removed, when the test runs, then it fails and names the verb and the files it appears in; given a table entry for a verb no doc shows, then it fails as stale.",
+        "Given any entry, when the test runs its form with and without the leading `--` through `routeAndDispatch`, then both runs exit with the entry's expected code, both outputs contain its expected text, and the exit code, stdout and stderr are equal.",
+        "Given `xbrief:activate`, `authz:grant`, `swarm:pre-dispatch` and `escalation:file`, then their runs use the item 3 probes and show the item 3 texts.",
+        "Given a `scope:*` entry, then the router maps both forms to `[\"scope-lifecycle\", sub, ...probe]` and `lifecycleMain` gives equal exit 2 results with the scope usage text for both forms.",
+        "Given a `refusesDash: true` entry, when `dispatch` gets the routed tokens with `--` put back before the probe (an argument list the test asserts exactly), then the result differs from the plain run; at least one entry is `refusesDash: true`.",
+        "Given `applyDoubleDashBoundary` changed to return its input unchanged, then the test fails (recorded in the PR, not committed).",
+        "Given any run, sensitivity runs included, then the fixture root's file list is unchanged afterwards, no probe contains `--help` or `-h`, and the test mocks no handler, router or parser."
+      ],
+      "admitted_source_sentences": [
+        "File. A new test, `packages/runtime/src/dispatch-double-dash-documented-forms.test.ts`. It may move the run harness of `dispatch-double-dash-real-parser.test.ts` (empty-cwd run, captured dispatch io and `process.stdout`/`stderr`) into a small shared test helper used by both files. No product code, parser or doc changes.",
+        "Case list. At test time the test reads `AGENTS.md`, `content/templates/agents-entry.md`, `content/templates/agent-prompt-preamble.md`, `content/skills/deft-directive-swarm/SKILL.md` and `content/skills/deft-directive-review-cycle/SKILL.md` from the repo root and collects each `deft <verb> -- ` form, where the verb is a colon verb or a two-word namespace form. Each form is kept as its user-facing token list (`[\"review-monitor:register\"]`, or `[\"policy\", \"show\"]` for a two-word form), with a display key and the files it appears in. The set must not be empty. A documented key with no probe-table entry fails, naming the key and its files. A table entry whose key is no longer documented fails as stale.",
+        "Probe table. Each entry gives the probe arguments, the expected exit code, the exact expected text, whether the verb's parser refuses `--` (`refusesDash`), and a one-line note naming the check that returns before any work. The default probe is one unknown flag, `--deft-6897-no-such-flag`, for parsers that refuse unknown flags. Four named exceptions:",
+        "`xbrief:activate`: two positional paths, `missing-6897-a.xbrief.json missing-6897-b.xbrief.json`; exit 2, `unrecognized arguments: missing-6897-b.xbrief.json`; `refusesDash: true`.",
+        "`authz:grant`: `--generation invalid`; exit 2, `--generation requires a non-negative integer`; `refusesDash: false`.",
+        "`swarm:pre-dispatch`: `--action invalid`; exit 2, `--action must be one of: begin, complete, cancel.`; `refusesDash: false`.",
+        "`escalation:file`: `--type cmd_approval` with no title; exit 2, `escalation:file requires --title <text>`. This is the required-field check in `main` before `fileEscalation`, not a parser refusal; `refusesDash: false`.",
+        "Equality run. For each entry the test runs `routeAndDispatch([...tokens, ...probe])` and `routeAndDispatch([...tokens, \"--\", ...probe])`. Both must exit with the expected code, both outputs must contain the expected text, and the two results (exit code, stdout, stderr) must be equal. No probe contains `--help` or `-h`, and no handler, router or parser is stubbed or mocked.",
+        "Sensitivity run. For each entry the test builds the argument list a dispatcher would get if the router's boundary drop were bypassed: `routeArgv([...tokens, ...probe]).argv` with `--` put back just before the probe arguments. It asserts that list exactly, then calls `dispatch` with it. For every `refusesDash: true` entry the result must differ from the plain run, and at least one entry must be `refusesDash: true`. This shows sensitivity to bypassing today's drop; it is not a run of an older tree. In addition, the PR records one implementation check: with `applyDoubleDashBoundary` changed to return its input unchanged, the new test fails.",
+        "`scope:*` entries. `routeArgv` sends these to `scope-lifecycle`, which spawns the built core CLI that the source-aliased suite does not provide. For these the test asserts the router result with and without `--` (`[\"scope-lifecycle\", sub, ...probe]`), and runs the core parser in-process, `lifecycleMain([sub, ...probe])` and `lifecycleMain([sub, \"--\", ...probe])`, with the same equality and expected-text checks (unknown-flag probe; exit 2; the scope usage line). They are `refusesDash: false` (`scope/main.ts` 175). The test names this as an exception to item 4: the spawn adapter is not run.",
+        "Isolation. The test makes one fresh fixture root with an empty `.git` directory, so project-root discovery stops there (`scope/project-context.ts` sentinels `xbrief`, `vbrief`, `.git`). Every run directory and a temp home live inside it. While the test runs, HOME, USERPROFILE, APPDATA, LOCALAPPDATA, XDG_CONFIG_HOME and GH_CONFIG_DIR point into the temp home, `GH_TOKEN` and `GITHUB_TOKEN` hold an invalid value, and every `DEFT_*` variable is unset; all are restored after. After every run, sensitivity runs included, the test lists the whole fixture root and compares it with the list taken before the runs; only the fixture's own entries may exist. Safety rests on each entry's early return (item 3 note and expected text); the environment redirection is a second line of defence.",
+        "One PR: the new test file, the optional shared helper, and one `changelog.d/` fragment.",
+        "Given the five docs at HEAD, when the test runs, then it collects every `deft <verb> -- ` form (today 26 single-token colon verbs) as token lists and finds a probe-table entry for each.",
+        "Given a documented verb whose probe-table entry is removed, when the test runs, then it fails and names the verb and the files it appears in; given a table entry for a verb no doc shows, then it fails as stale.",
+        "Given any entry, when the test runs its form with and without the leading `--` through `routeAndDispatch`, then both runs exit with the entry's expected code, both outputs contain its expected text, and the exit code, stdout and stderr are equal.",
+        "Given `xbrief:activate`, `authz:grant`, `swarm:pre-dispatch` and `escalation:file`, then their runs use the item 3 probes and show the item 3 texts.",
+        "Given a `scope:*` entry, then the router maps both forms to `[\"scope-lifecycle\", sub, ...probe]` and `lifecycleMain` gives equal exit 2 results with the scope usage text for both forms.",
+        "Given a `refusesDash: true` entry, when `dispatch` gets the routed tokens with `--` put back before the probe (an argument list the test asserts exactly), then the result differs from the plain run; at least one entry is `refusesDash: true`.",
+        "Given `applyDoubleDashBoundary` changed to return its input unchanged, then the test fails (recorded in the PR, not committed).",
+        "Given any run, sensitivity runs included, then the fixture root's file list is unchanged afterwards, no probe contains `--help` or `-h`, and the test mocks no handler, router or parser."
+      ],
+      "admitted_source_digest": "ffcc8cbbaab5989231fb3cf41b2c66d30e29f2f49dc23a9516250b1aebb4666c",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "File. A new test, `packages/runtime/src/dispatch-double-dash-documented-forms.test.ts`. It may move the run harness of `dispatch-double-dash-real-parser.test.ts` (empty-cwd run, captured dispatch io and `process.stdout`/`stderr`) into a small shared test helper used by both files. No product code, parser or doc changes.",
+          "artifact_path": "packages/runtime/src/dispatch-double-dash-documented-forms.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Case list. At test time the test reads `AGENTS.md`, `content/templates/agents-entry.md`, `content/templates/agent-prompt-preamble.md`, `content/skills/deft-directive-swarm/SKILL.md` and `content/skills/deft-directive-review-cycle/SKILL.md` from the repo root and collects each `deft <verb> -- ` form, where the verb is a colon verb or a two-word namespace form. Each form is kept as its user-facing token list (`[\"review-monitor:register\"]`, or `[\"policy\", \"show\"]` for a two-word form), with a display key and the files it appears in. The set must not be empty. A documented key with no probe-table entry fails, naming the key and its files. A table entry whose key is no longer documented fails as stale.",
+          "artifact_path": "packages/runtime/src/dispatch-double-dash-documented-forms.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Probe table. Each entry gives the probe arguments, the expected exit code, the exact expected text, whether the verb's parser refuses `--` (`refusesDash`), and a one-line note naming the check that returns before any work. The default probe is one unknown flag, `--deft-6897-no-such-flag`, for parsers that refuse unknown flags. Four named exceptions:",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "`xbrief:activate`: two positional paths, `missing-6897-a.xbrief.json missing-6897-b.xbrief.json`; exit 2, `unrecognized arguments: missing-6897-b.xbrief.json`; `refusesDash: true`.",
+          "artifact_path": "packages/runtime/src/dispatch-double-dash-documented-forms.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "`authz:grant`: `--generation invalid`; exit 2, `--generation requires a non-negative integer`; `refusesDash: false`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "`swarm:pre-dispatch`: `--action invalid`; exit 2, `--action must be one of: begin, complete, cancel.`; `refusesDash: false`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "`escalation:file`: `--type cmd_approval` with no title; exit 2, `escalation:file requires --title <text>`. This is the required-field check in `main` before `fileEscalation`, not a parser refusal; `refusesDash: false`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Equality run. For each entry the test runs `routeAndDispatch([...tokens, ...probe])` and `routeAndDispatch([...tokens, \"--\", ...probe])`. Both must exit with the expected code, both outputs must contain the expected text, and the two results (exit code, stdout, stderr) must be equal. No probe contains `--help` or `-h`, and no handler, router or parser is stubbed or mocked.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Sensitivity run. For each entry the test builds the argument list a dispatcher would get if the router's boundary drop were bypassed: `routeArgv([...tokens, ...probe]).argv` with `--` put back just before the probe arguments. It asserts that list exactly, then calls `dispatch` with it. For every `refusesDash: true` entry the result must differ from the plain run, and at least one entry must be `refusesDash: true`. This shows sensitivity to bypassing today's drop; it is not a run of an older tree. In addition, the PR records one implementation check: with `applyDoubleDashBoundary` changed to return its input unchanged, the new test fails.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "`scope:*` entries. `routeArgv` sends these to `scope-lifecycle`, which spawns the built core CLI that the source-aliased suite does not provide. For these the test asserts the router result with and without `--` (`[\"scope-lifecycle\", sub, ...probe]`), and runs the core parser in-process, `lifecycleMain([sub, ...probe])` and `lifecycleMain([sub, \"--\", ...probe])`, with the same equality and expected-text checks (unknown-flag probe; exit 2; the scope usage line). They are `refusesDash: false` (`scope/main.ts` 175). The test names this as an exception to item 4: the spawn adapter is not run.",
+          "artifact_path": "packages/runtime/src/dispatch-double-dash-documented-forms.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Isolation. The test makes one fresh fixture root with an empty `.git` directory, so project-root discovery stops there (`scope/project-context.ts` sentinels `xbrief`, `vbrief`, `.git`). Every run directory and a temp home live inside it. While the test runs, HOME, USERPROFILE, APPDATA, LOCALAPPDATA, XDG_CONFIG_HOME and GH_CONFIG_DIR point into the temp home, `GH_TOKEN` and `GITHUB_TOKEN` hold an invalid value, and every `DEFT_*` variable is unset; all are restored after. After every run, sensitivity runs included, the test lists the whole fixture root and compares it with the list taken before the runs; only the fixture's own entries may exist. Safety rests on each entry's early return (item 3 note and expected text); the environment redirection is a second line of defence.",
+          "artifact_path": "packages/runtime/src/dispatch-double-dash-documented-forms.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "One PR: the new test file, the optional shared helper, and one `changelog.d/` fragment.",
+          "artifact_path": "packages/runtime/src/dispatch-double-dash-documented-forms.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "Given the five docs at HEAD, when the test runs, then it collects every `deft <verb> -- ` form (today 26 single-token colon verbs) as token lists and finds a probe-table entry for each.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "Given a documented verb whose probe-table entry is removed, when the test runs, then it fails and names the verb and the files it appears in; given a table entry for a verb no doc shows, then it fails as stale.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "Given any entry, when the test runs its form with and without the leading `--` through `routeAndDispatch`, then both runs exit with the entry's expected code, both outputs contain its expected text, and the exit code, stdout and stderr are equal.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "Given `xbrief:activate`, `authz:grant`, `swarm:pre-dispatch` and `escalation:file`, then their runs use the item 3 probes and show the item 3 texts.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 17,
+          "text": "Given a `scope:*` entry, then the router maps both forms to `[\"scope-lifecycle\", sub, ...probe]` and `lifecycleMain` gives equal exit 2 results with the scope usage text for both forms.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 18,
+          "text": "Given a `refusesDash: true` entry, when `dispatch` gets the routed tokens with `--` put back before the probe (an argument list the test asserts exactly), then the result differs from the plain run; at least one entry is `refusesDash: true`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 19,
+          "text": "Given `applyDoubleDashBoundary` changed to return its input unchanged, then the test fails (recorded in the PR, not committed).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 20,
+          "text": "Given any run, sensitivity runs included, then the fixture root's file list is unchanged afterwards, no probe contains `--help` or `-h`, and the test mocks no handler, router or parser.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.6519260787",
+    "updated": "2026-11-22T22:39:13Z"
+  }
+}
