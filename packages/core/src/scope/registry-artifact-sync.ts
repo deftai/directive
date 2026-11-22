@@ -10,12 +10,13 @@ import { relativeToVbrief, resolveVbriefRef, scopeIdsForFilename } from "./vbrie
 /**
  * Opt-in row policy for a registry that lists open scopes only (PROJECT-DEFINITION,
  * #6648). Rows are matched by source_path or filename stem, never by title. A move
- * into a folder outside `openFolders` removes the row; a move into an open folder
- * patches the matched row or inserts the row `buildRow` returns.
+ * into a folder outside `openFolders` removes the row. A move into an open folder
+ * inserts and patches no row (#6872): `project:render` refreshes open rows, so a
+ * brief-only activation leaves the registry unchanged. The top-level
+ * `plan.references` rewrite still runs on every move.
  */
 export interface OpenRowsOnlyPolicy {
   readonly openFolders: readonly string[];
-  readonly buildRow: () => Record<string, unknown> | null;
 }
 
 export interface RegistryArtifactPersistHooks {
@@ -58,7 +59,10 @@ function rewriteRegistryPlanReference(
   if (!referenceTypeMatches(String(r.type ?? ""), "plan")) {
     return false;
   }
-  const resolved = resolveVbriefRef(r.uri, vbriefRoot);
+  // Compare the path the reference names, not a cross-folder search hit: the
+  // transition removes the old file before this sync runs, and a search would
+  // resolve the old path to the moved file and miss the match (#6872).
+  const resolved = resolveVbriefRef(r.uri, vbriefRoot, { allowCrossFolderSearch: false });
   if (resolved === null || resolve(resolved) !== resolve(oldResolved)) {
     return false;
   }
@@ -205,39 +209,27 @@ export function syncRegistryArtifactAfterScopeMove(
     const targetIsOpen =
       rowPolicy?.openFolders.includes(dirname(resolve(newPath)).split(/[/\\]/).pop() ?? "") ===
       true;
-    if (rowPolicy !== undefined && Array.isArray(items)) {
-      // Open-rows-only registry (#6648): remove on a terminal move, insert on an
-      // open move that matches no row; open-move matches are patched below.
+    if (rowPolicy !== undefined && !targetIsOpen && Array.isArray(items)) {
+      // Open-rows-only registry (#6648): a terminal move removes the moved file's
+      // row. An open move inserts and patches no row (#6872).
       const matches = (item: unknown): boolean =>
         typeof item === "object" &&
         item !== null &&
         !Array.isArray(item) &&
         registryItemMatchesMovedFile(item as Record<string, unknown>, oldPath, newPath, vbriefRoot);
-      if (!targetIsOpen) {
-        const kept = items.filter((item) => !matches(item));
-        if (kept.length !== items.length) {
-          p.items = kept;
-          changed = true;
-        }
-      } else if (!items.some(matches)) {
-        const row = rowPolicy.buildRow();
-        if (row !== null) {
-          items.push(row);
-          changed = true;
-        }
+      const kept = items.filter((item) => !matches(item));
+      if (kept.length !== items.length) {
+        p.items = kept;
+        changed = true;
       }
     }
-    if (Array.isArray(p.items) && (rowPolicy === undefined || targetIsOpen)) {
+    if (Array.isArray(p.items) && rowPolicy === undefined) {
       for (const item of p.items as unknown[]) {
         if (typeof item !== "object" || item === null || Array.isArray(item)) {
           continue;
         }
         const i = item as Record<string, unknown>;
-        const matched =
-          rowPolicy === undefined
-            ? registryItemMatchesScope(i, scopeData, oldPath, newPath, vbriefRoot)
-            : registryItemMatchesMovedFile(i, oldPath, newPath, vbriefRoot);
-        if (!matched) {
+        if (!registryItemMatchesScope(i, scopeData, oldPath, newPath, vbriefRoot)) {
           continue;
         }
         if (i.status !== targetStatus) {

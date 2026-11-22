@@ -161,7 +161,7 @@ describe("undo", () => {
     expect(existsSync(join(root, "xbrief", "pending", "c.xbrief.json"))).toBe(true);
   });
 
-  it("cancel then undo puts the scope back into PROJECT-DEFINITION plan.items (#6648)", () => {
+  it("cancel then undo leaves PROJECT-DEFINITION unchanged (#6648 / #6872)", () => {
     root = mkdtempSync(join(tmpdir(), "undo-pd-"));
     mkdirSync(join(root, "xbrief", "cancelled"), { recursive: true });
     mkdirSync(join(root, "xbrief", ".triage-cache"), { recursive: true });
@@ -188,16 +188,13 @@ describe("undo", () => {
       actor: "operator",
     };
     append(entry, logPath);
+    const before = readFileSync(pdPath, "utf8");
     const result = undoOne(entry, root, { logPath });
     expect(result.ok).toBe(true);
     expect(result.message).not.toContain("PROJECT-DEFINITION sync failed");
-    const items = JSON.parse(readFileSync(pdPath, "utf8")).plan.items;
-    expect(items).toHaveLength(1);
-    expect(items[0]).toMatchObject({
-      id: "2026-05-01-c",
-      title: "Cancelled scope",
-      metadata: { source_path: "pending/2026-05-01-c.xbrief.json", lifecycle_folder: "pending" },
-    });
+    expect(existsSync(join(root, "xbrief", "pending", "2026-05-01-c.xbrief.json"))).toBe(true);
+    // A move back into an open folder inserts no row; project:render refreshes rows (#6872).
+    expect(readFileSync(pdPath, "utf8")).toBe(before);
   });
 
   it("reports a PROJECT-DEFINITION sync failure without failing the undo (#6648)", () => {

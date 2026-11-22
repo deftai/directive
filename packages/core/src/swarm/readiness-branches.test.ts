@@ -1,10 +1,15 @@
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { missingRequiredSwarmFields } from "../vbrief-validation/story-quality.js";
 import { enforceGates, type ResolvedStory } from "./launch.js";
-import { readinessReport, SWARM_BLOCK_REMEDIATION_HINT, scaffoldSwarmDraft } from "./readiness.js";
+import {
+  READINESS_DEFAULT_PATH_HINT,
+  readinessReport,
+  SWARM_BLOCK_REMEDIATION_HINT,
+  scaffoldSwarmDraft,
+} from "./readiness.js";
 import { readinessMain } from "./readiness-cli.js";
 
 function writeStory(
@@ -127,6 +132,54 @@ describe("readiness branch coverage", () => {
     });
     expect(readinessMain(["--project-root", project, path])).toBe(1);
     rmSync(project, { recursive: true, force: true });
+  });
+
+  it("prints the default-path hint only when no path is given (#6872)", () => {
+    const out: string[] = [];
+    const spy = vi.spyOn(process.stdout, "write").mockImplementation((chunk) => {
+      out.push(String(chunk));
+      return true;
+    });
+    const swarm = {
+      readiness: "ready",
+      parallel_safe: true,
+      file_scope: ["src/h.ts"],
+      verify_commands: ["pnpm exec vitest run packages/core/src/swarm/readiness-branches.test.ts"],
+      expected_outputs: ["ok"],
+      depends_on: [],
+      conflict_group: "g",
+      file_scope_confidence: "high",
+      model_tier: "medium",
+    };
+    try {
+      // No candidate: same exit 1 as before, with the hint.
+      const empty = mkdtempSync(join(tmpdir(), "sw-hint-empty-"));
+      mkdirSync(join(empty, "xbrief", "active"), { recursive: true });
+      expect(readinessMain(["--project-root", empty])).toBe(1);
+      expect(out.join("")).toContain("No candidate vBRIEFs found.");
+      expect(out.join("")).toContain(READINESS_DEFAULT_PATH_HINT);
+      rmSync(empty, { recursive: true, force: true });
+
+      // An active candidate with no path argument: the hint is printed and the
+      // exit code equals the explicit-path run.
+      const project = mkdtempSync(join(tmpdir(), "sw-hint-"));
+      const active = writeStory(project, "hint-a", swarm);
+      out.length = 0;
+      const defaultCode = readinessMain(["--project-root", project]);
+      expect(out.join("")).toContain(READINESS_DEFAULT_PATH_HINT);
+
+      // A path argument (active or proposed) prints no hint.
+      out.length = 0;
+      expect(readinessMain(["--project-root", project, active])).toBe(defaultCode);
+      expect(out.join("")).not.toContain(READINESS_DEFAULT_PATH_HINT);
+      const proposed = writeStory(project, "hint-p", swarm, "proposed");
+      out.length = 0;
+      readinessMain(["--project-root", project, proposed]);
+      expect(out.join("")).not.toContain(READINESS_DEFAULT_PATH_HINT);
+      rmSync(project, { recursive: true, force: true });
+    } finally {
+      spy.mockRestore();
+    }
   });
 
   it("lists missing required swarm metadata fields", () => {

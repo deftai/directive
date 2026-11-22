@@ -387,7 +387,16 @@ function runCurrent(parsed: Parsed, root: string): number {
   }
   const read = readDerived(root);
   if (read === null) {
-    return fail("No active ordered-plan sequence (.deft/plan-sequence.json missing).");
+    // readDerived is null only when the plan file is absent (a present but
+    // malformed file throws). No plan is a skip, not a failure (#6872).
+    if (parsed.emitJson) {
+      process.stdout.write(
+        `${JSON.stringify({ ok: true, skipped: true, reason: "no-active-sequence" }, null, 2)}\n`,
+      );
+    } else {
+      process.stdout.write("No active ordered-plan sequence (.deft/plan-sequence.json missing).\n");
+    }
+    return 0;
   }
   const { seq, cursor, authorized } = read;
   // The derived view: what readers act on (#6205). Stored fields stay visible.

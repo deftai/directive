@@ -14,8 +14,84 @@ afterEach(() => {
 });
 
 describe("verify-plan-sequence CLI (#2402)", () => {
-  it("requires target-kind and target", () => {
-    expect(main([])).toBe(2);
+  function captureOutput(): { out: string[]; err: string[] } {
+    const out: string[] = [];
+    const err: string[] = [];
+    vi.spyOn(process.stdout, "write").mockImplementation((c) => {
+      out.push(String(c));
+      return true;
+    });
+    vi.spyOn(process.stderr, "write").mockImplementation((c) => {
+      err.push(String(c));
+      return true;
+    });
+    return { out, err };
+  }
+
+  function writePlanFile(root: string): void {
+    mkdirSync(join(root, ".deft"), { recursive: true });
+    writeFileSync(join(root, ".deft", "plan-sequence.json"), "{}\n", "utf8");
+  }
+
+  it("no target and no plan file skips with exit 0, text and --json (#6872)", () => {
+    const root = mkdtempSync(join(tmpdir(), "vps-notarget-"));
+    roots.push(root);
+    const { out, err } = captureOutput();
+    try {
+      expect(main(["--project-root", root])).toBe(0);
+      expect(out.join("")).toBe(
+        "OK verify:plan-sequence skipped (no active ordered-plan sequence)\n",
+      );
+      out.length = 0;
+      expect(main(["--project-root", root, "--json"])).toBe(0);
+      expect(JSON.parse(out.join(""))).toEqual({
+        ok: true,
+        skipped: true,
+        reason: "no-active-sequence",
+      });
+      expect(err.join("")).toBe("");
+    } finally {
+      vi.restoreAllMocks();
+    }
+  });
+
+  it("with a plan file, no target or a partial target keeps the usage error and exit 2 (#6872)", () => {
+    const root = mkdtempSync(join(tmpdir(), "vps-notarget-live-"));
+    roots.push(root);
+    writePlanFile(root);
+    const { out, err } = captureOutput();
+    try {
+      expect(main(["--project-root", root])).toBe(2);
+      expect(main(["--project-root", root, "--target-kind", "issue"])).toBe(2);
+      expect(main(["--project-root", root, "--target", "1"])).toBe(2);
+      expect(err.join("")).toContain("usage: verify:plan-sequence -- ");
+      expect(out.join("")).toBe("");
+    } finally {
+      vi.restoreAllMocks();
+    }
+  });
+
+  it("without a plan file, a partial target or an invalid flag still exits 2 (#6872)", () => {
+    const root = mkdtempSync(join(tmpdir(), "vps-partial-"));
+    roots.push(root);
+    const { err } = captureOutput();
+    try {
+      expect(main(["--project-root", root, "--target-kind", "issue"])).toBe(2);
+      expect(main(["--project-root", root, "--target", "1"])).toBe(2);
+      expect(main(["--project-root", root, "--target-kind", "bogus"])).toBe(2);
+      expect(main(["--project-root", root, "--bogus"])).toBe(2);
+      expect(err.join("")).toContain("usage: verify:plan-sequence -- ");
+      expect(err.join("")).toContain("unknown flag: --bogus");
+    } finally {
+      vi.restoreAllMocks();
+    }
+  });
+
+  it("parseArgs marks the no-target form apart from a partial target (#6872)", () => {
+    expect(parseArgs([]).noTarget).toBe(true);
+    expect(parseArgs([]).error).toMatch(/^usage: /);
+    expect(parseArgs(["--target-kind", "issue"]).noTarget).toBeUndefined();
+    expect(parseArgs(["--target", "1"]).noTarget).toBeUndefined();
   });
 
   it("skips cleanly with no active sequence", () => {

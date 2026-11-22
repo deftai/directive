@@ -31,6 +31,11 @@ import {
 import { readAcceptanceClauses } from "../verify-ac/clauses.js";
 import { LIFECYCLE_FOLDERS, READY } from "./constants.js";
 
+/** Printed when `swarm:readiness` runs with no path argument (#6872). */
+export const READINESS_DEFAULT_PATH_HINT =
+  "Checked xbrief/active/ only (no path given). To check a proposed or pending brief, " +
+  "name its path or a glob, for example xbrief/proposed/*.xbrief.json.";
+
 /** Remediation when swarm block is missing/incomplete (#3718). */
 export const SWARM_BLOCK_REMEDIATION_HINT =
   "Swarm block missing or incomplete. xbrief:preflight exit 0 is lifecycle-ready, not swarm-ready. " +
