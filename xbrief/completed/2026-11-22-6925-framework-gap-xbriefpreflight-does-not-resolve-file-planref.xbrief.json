@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6925",
-    "updated": "2026-11-22T03:49:50Z"
+    "updated": "2026-11-22T04:38:40Z"
   },
   "plan": {
     "title": "[framework-gap] xbrief:preflight does not resolve file:// planRef that xbrief:validate accepts",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "`xbrief:validate` strips a `file://` scheme from `plan.planRef` before it resolves the parent, but the parent-lineage check that `xbrief:preflight` runs does not, so a planRef such as `file://proposed/<epic>.xbrief.json` validates cleanly and then fails preflight with `parent not found at <repo>/xbrief/file:/proposed/...` (#6925). This story moves the scheme strip into one shared helper in `vbrief-validate/paths.ts` and has the parent-lineage resolver use it, keeping its exact-path, absolute-path and traversal rules unchanged.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6925",
@@ -18,42 +18,77 @@
     "items": [
       {
         "title": "Given a story whose `plan.planRef` is `file://proposed/<epic>.xbrief.json` and that epic exists, when `xbrief:preflight` runs the parent-lineage check, then it loads the epic from `<lifecycle root>/proposed/` and does not report `parent not found`.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "When a story planRef is file://proposed/<epic>.xbrief.json and the epic exists, then preflight parent lineage loads it and reports no parent-not-found error."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "0048db9d60bcd304e8702f8d87422ffbf1d92a76",
+          "recorded_at": "2026-11-22T04:38:40Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given a `plan.planRef` of `file://xbrief/proposed/<epic>.xbrief.json`, when the parent-lineage check resolves it, then it returns the same path as the planRef without the scheme.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "When a planRef is file://xbrief/proposed/<epic>.xbrief.json, then the resolver returns the same path as the scheme-less planRef."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "0048db9d60bcd304e8702f8d87422ffbf1d92a76",
+          "recorded_at": "2026-11-22T04:38:40Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given a `plan.planRef` of `file:///<absolute path>` or `file://../<epic>.xbrief.json`, when the parent-lineage check resolves it, then it still refuses with the absolute-path or parent-traversal error.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "When a planRef is file:///<absolute> or file://../<epic>, then the resolver still refuses with the absolute-path or traversal error."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "0048db9d60bcd304e8702f8d87422ffbf1d92a76",
+          "recorded_at": "2026-11-22T04:38:40Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given a `plan.planRef` without a scheme, when the parent-lineage check resolves it, then the result is unchanged from today.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "When a planRef has no scheme, then the resolver returns the same result as before this change."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "0048db9d60bcd304e8702f8d87422ffbf1d92a76",
+          "recorded_at": "2026-11-22T04:38:40Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "`xbrief:validate` and the parent-lineage check strip the `file://` scheme through one shared helper in `vbrief-validate/paths.ts`.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "When validate or parent lineage strips file://, then both call the one stripFileScheme helper in vbrief-validate/paths.ts."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "0048db9d60bcd304e8702f8d87422ffbf1d92a76",
+          "recorded_at": "2026-11-22T04:38:40Z",
+          "recorded_by": "scope:complete"
         }
       }
     ],
@@ -208,9 +243,38 @@
         ],
         "conflict_group": "parent-lineage-planref",
         "model_tier": "standard"
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "a96d0f4586bae95e39cc7badd9f7c8a3892937f8",
+        "prNumber": 6986,
+        "prBase": "master",
+        "mergeCommit": "0048db9d60bcd304e8702f8d87422ffbf1d92a76",
+        "deliveryBranch": "master",
+        "deliveryCommit": "9d8349027d7e7f090300efec054349378af1a7d9",
+        "verifiedAt": "2026-11-22T04:38:40Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:ZTYxMTJjZWUtZTUxNC00NjVlLTk1ZjUtN2QwZDljMmE5OWVl",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          6978
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-22T04:38:40Z",
+      "completedSessionId": "host:claude:v1:ZTYxMTJjZWUtZTUxNC00NjVlLTk1ZjUtN2QwZDljMmE5OWVl",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-22T04:38:40Z"
       }
     },
     "id": "github.issue.6525748969",
-    "updated": "2026-11-22T03:49:50Z"
+    "updated": "2026-11-22T04:38:40Z"
   }
 }
