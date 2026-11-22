@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { evaluateReleasePromoteLatestGate, runPromoteLatest } from "./pipeline.js";
 
 describe("release-publish --promote-latest (#5852)", () => {
@@ -39,6 +39,26 @@ describe("release-publish --promote-latest (#5852)", () => {
         { closedVerbEnv: { DEFT_ALLOW_RELEASE_PROMOTE_LATEST: "1" } } as never,
       ),
     ).toBe(1);
+  });
+
+  it("names the searched project root on the [promote-latest] deny line (#6864)", () => {
+    const spy = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    try {
+      const root = process.cwd();
+      expect(
+        runPromoteLatest(
+          { version: "0.129.0", repo: "deftai/directive", projectRoot: root, dryRun: true },
+          { closedVerbEnv: {}, closedVerbGrants: [] } as never,
+        ),
+      ).toBe(1);
+      const deny = spy.mock.calls
+        .map((c) => String(c[0]))
+        .find((line) => line.startsWith("[promote-latest] denied code="));
+      expect(deny).toBeDefined();
+      expect(deny).toContain(`projectRoot=${root}\n`);
+    } finally {
+      spy.mockRestore();
+    }
   });
 
   it("dry-run refuses when gate denies", () => {

@@ -254,6 +254,36 @@ describe("runPublish", () => {
     expect(out).toMatch(/closed-verb-deny|DEFT_ALLOW_RELEASE_PUBLISH|authz:grant/i);
   });
 
+  it("names the searched project root on the [publish] deny line (#6864)", () => {
+    const spy = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const root = mkdtempSync(join(tmpdir(), "publish-deny-root-"));
+    try {
+      const seams = {
+        whichGh: () => "/usr/bin/gh",
+        closedVerbEnv: {} as Record<string, string>,
+        closedVerbGrants: [] as HumanOriginGrant[],
+        spawnText: (_cmd: string, args: readonly string[]) =>
+          args.includes("--paginate")
+            ? {
+                status: 0,
+                stdout: JSON.stringify([
+                  { id: 42, draft: true, tag_name: "v0.21.0", html_url: "https://example.com/r" },
+                ]),
+                stderr: "",
+              }
+            : { status: 0, stdout: "{}", stderr: "" },
+      };
+      expect(runPublish({ ...baseConfig, projectRoot: root }, seams)).toBe(EXIT_VIOLATION);
+      const deny = spy.mock.calls
+        .map((c) => String(c[0]))
+        .find((line) => line.startsWith("[publish] denied code="));
+      expect(deny).toBeDefined();
+      expect(deny).toContain(`projectRoot=${root}\n`);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   it("allows draft→public when matching operator-cli grant is present", () => {
     const spy = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
     let viewCalls = 0;

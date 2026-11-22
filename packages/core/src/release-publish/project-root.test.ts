@@ -114,6 +114,9 @@ describe("release-publish reads grants from the working directory (#6864)", () =
       spawnText: originSeam,
     } as never);
     expect(rc).toBe(1);
-    expect(stderrText(spy)).toContain("[promote-latest] denied code=");
+    const deny = spy.mock.calls
+      .map((c) => String(c[0]))
+      .find((line) => line.startsWith("[promote-latest] denied code="));
+    expect(deny).toContain(`projectRoot=${resolve(dir)}\n`);
   });
 });

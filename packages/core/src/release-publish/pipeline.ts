@@ -139,7 +139,8 @@ export function runPromoteLatest(config: PublishConfig, seams: ReleasePublishSea
     );
     process.stderr.write(
       `[promote-latest] denied code=${gate.code} — set ${bypassKey}=1 or ` +
-        `mint \`deft authz:grant -- --template release-promote-latest --target ${version}\`\n`,
+        `mint \`deft authz:grant -- --template release-promote-latest --target ${version}\`` +
+        ` projectRoot=${projectRoot}\n`,
     );
     return EXIT_VIOLATION;
   }
@@ -399,7 +400,8 @@ export function runPublish(
     emit(`Closed-verb gate release-publish ${tag}`, `FAIL (${gate.code}: ${gate.reason})`);
     process.stderr.write(
       `[publish] denied code=${gate.code} — set ${bypassKey}=1 or ` +
-        `mint \`deft authz:grant -- --template release-publish --target ${mintTarget}\`\n`,
+        `mint \`deft authz:grant -- --template release-publish --target ${mintTarget}\`` +
+        ` projectRoot=${projectRoot}\n`,
     );
     return EXIT_VIOLATION;
   }
