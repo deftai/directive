@@ -382,6 +382,7 @@ task test:coverage  # >=85% or PROJECT-DEFINITION.xbrief.json override
 At intake, capture the task statement's **exact** acceptance commands as executable AC (`plan.acceptance.commands` + #3267 `literal_acceptance_commands`). Empty is allowed only with `none_stated: true` (ladder: stated → derived → project_floor). Before declaring done, run them **verbatim** — same paths, same flags, same working directory. Self-chosen verification is supplementary, never a substitute. Extends #973. `task check` runs `verify:ac` **first** (fail-fast); hygiene is second and may become advisory under pressure. Rapid ceremony = **AC-only**.
 
 - ! When reading the active scope xBRIEF / issue body at story start, capture stated shell acceptance commands into `plan.acceptance.commands` (issue:ingest stamps this + the #3267 ledger automatically). Do not paraphrase.
+- ! Sliced lean (#7085): when the issue's accepted arc lean has a `## Slices` section, parent `issue:ingest` takes only the items with no label and refuses when every item has one. Ingest each slice from its own child issue whose body carries `deft-slice: #<parent> <label>`; keep the parent body unedited (Target-digest). One brief and one product PR per slice. Recipe: `commands.md` § Sliced leans (#7085).
 - ! Before claiming phase or story done (and before merge-chokepoint PR handoff), run:
 ```
 task verify:ac -- <active-story-path>

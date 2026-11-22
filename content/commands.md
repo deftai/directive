@@ -163,7 +163,7 @@ Common commands:
 - `task scope:record-observable-scope -- <brief> [<brief> ...]` / `task scope:record-intent-constraint -- <brief> [<brief> ...]`, or either with `--manifest <launch-manifest>`, plus optional `--actor <declared-by>` -- write the declaration: a declared record `.deft/observable-scope/<plan-id>.json` / `.deft/intent-constraint/<plan-id>.json` from the brief's contract (#7031). No terminal step: it writes from any shell, an agent's included, with `humanApproval: {kind: "declared", actor, mintedAt, mintedVia: <verb>}`. `--kind` and `--minted-via` are refused; `--actor` is a declared-by name and may name an agent. An active UAT lease still refuses. Land the record on the merge base before the product PR. A declared record is a declaration the product check holds the PR to, not consent, and never counts as human approval for approved-scope or the one-PR proof. One path is the single-story form. **Cohort form (#6937):** several paths or a launch manifest (its `xbrief_path` entries) load and check every brief first, print every record they will write, and write exactly those records. A cohort run never overwrites a record: a matching record (same plan id, brief path, `changeKind` and contract digest) is left untouched and listed; one that would change, or does not parse, refuses the whole set before any write -- change it with the single-story form. A named brief with no valid contract, or two plan ids that map to one file name, also refuse; with `--manifest`, a brief with no contract of that kind is listed as skipped. A failed write removes only the records that run created. Each cohort record carries `cohortDigest`, which ties it to one run. The records may ride in the activation PR when each one matches a brief that PR adds or changes (plan id, brief path, file name, `changeKind` and contract digest); the PR then stays brief-land shaped. The record's control is the merge that lands it: under `requireHumanMerge` the person who merges reviews it; under bot merge nothing human does (`contracts/human-origin-authz.md` § Operator mint inventory). Move the runtime pin to a release that reads declared records before writing one.
 - `task scope:stamp-evidence -- <brief>` -- evidence-only coherence writer: records kind test|review via stampMatchAnyFileEvidence onto clauses that already have a non-blank in-scope `artifact_path` (#4840 / #4986 / #5382). Pointers that fail the kind:test shape check (md/CHANGELOG/PR prose) stamp as review so stamp→complete stays coherent under #5105; repairs incoherent already-stamped kind:test markdown the same way. No --pr / --merge-commit / disposition argv.
 - `deft issue:sync-from-xbrief -- <path>` -- post a GitHub issue comment summarizing material AC/status changes for an origin-linked scope xBRIEF (`plan.references` with `x-xbrief/github-issue`). Supports `--dry-run` (print without posting), `--repo OWNER/NAME` when the reference URI lacks a repo slug, and `--allow-cross-repo` for intentional cross-repo sync (refused by default; #2633). Skips when no material changes since the last successful sync. Closes the reverse-sync gap after `task issue:ingest` (#2540).
-- `task issue:ingest -- <N>` / `task issue:ingest -- --all [--label L] [--status S] [--dry-run]` -- ingest GitHub issues as scope xBRIEFs (deduplicates via existing references).
+- `task issue:ingest -- <N>` / `task issue:ingest -- --all [--label L] [--status S] [--dry-run]` -- ingest GitHub issues as scope xBRIEFs (deduplicates via existing references). An issue whose accepted arc lean has a `## Slices` section ingests through child issues: see § Sliced leans (#7085) below.
 - `task issue:ingest --residual -- <N>` (alias `--re-scope`) -- Prefer-A residual re-ingest for reopened shipped issues (#5177): requires GitHub open + owned completed/ history; mints a distinct residual `plan.id` with lineage to the predecessor without quarantining `completed/`; keeps completed-arc / Target-digest gates. Stage A `needs-re-scope` (pre-admit only) and completed-duplicate messages name this same verb; once a non-terminal residual exists, validity becomes `residual-in-flight` and recovery is retired.
 - `task reconcile:issues [-- --apply-lifecycle-fixes]` -- scan origin-linked xBRIEFs for stale or closed GitHub issues.
 
@@ -205,6 +205,35 @@ flowchart TD
     Implement --> Checks["Focused checks and task check"]
     Checks --> Complete["task scope:complete"]
 ```
+
+### Sliced leans (#7085)
+
+An accepted arc lean can split its harvest into slices, so that parts that do not depend on each other ship as separate stories. Declare slices when the Bound remedy and Acceptance Criteria items fall into groups that can land in separate PRs. Leave them out when the items ship as one change. The mechanism is #6333 item 6.
+
+- The lean carries a `## Slices` section after its lists, one line per label: `- <label>: B<n>, A<n>` (`B` = Bound remedy item, `A` = Acceptance Criteria item, counted from 1). A label uses lowercase letters, digits and `-`. An item belongs to one label at most. Items with no label stay with the parent issue.
+- `issue:ingest` (and `triage:accept`) on the parent harvests only the items with no label. When every item has a label, it refuses with nothing written, and prints the slice labels and the `deft-slice:` line for each child issue.
+- Each label is ingested from its own child issue. The child body carries one line `deft-slice: #<parent> <label>`, outside code, quotes and fences. Child ingest reads the parent's completed-arc record, harvests that label's items from the cited lean (not from the child body), and checks the Target-digest against the parent body. A label that another brief already records for the same parent and lean is refused.
+- ⊗ Edit the parent issue body after the arc. Each child ingest checks the Target-digest against that body.
+- One child issue gives one brief and one product PR. Each slice brief runs the normal lifecycle (promote, activate, product PR, `scope:complete`). A parent brief with items that have no label is its own story. Ingest prints each slice label that no brief records yet.
+
+Recipe for one child issue per label. Write the body to a temp file:
+
+```text
+Slice <label> of #<parent>.
+
+Refs #<parent>
+
+deft-slice: #<parent> <label>
+```
+
+Then create and ingest the child:
+
+```bash
+gh issue create --repo <owner>/<repo> --title "<parent title> (slice <label>)" --body-file <body-file>
+task issue:ingest -- <child-number>
+```
+
+Live example: #7082 and #7083 are the slices of #7062.
 
 ---
 

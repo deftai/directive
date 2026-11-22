@@ -2501,6 +2501,23 @@ export function classifyOwningBriefPaths(
   ];
 }
 
+/**
+ * #7085: remedy for a lean whose items all belong to slice labels. Each label is
+ * ingested by its own child issue whose body carries the `deft-slice:` line;
+ * the parent body stays unedited (Target-digest).
+ */
+function slicedLeanRemedy(parent: number, labels: readonly string[] | undefined): string {
+  if (labels === undefined || labels.length === 0) {
+    return "";
+  }
+  const lines = labels.map((label) => `  deft-slice: #${parent} ${label}`).join("\n");
+  return (
+    `\nSlice labels: ${labels.join(", ")}. File one child issue per label; put its line ` +
+    `in the child body (outside code) and ingest the child. Keep the #${parent} body unedited.\n` +
+    `${lines}\nSee commands.md § Sliced leans (#7085).`
+  );
+}
+
 /** harvestSpecPathLean reason for an empty Bound remedy list (#4361 refusal kept). */
 const EMPTY_BOUND_REMEDY_REASON = "cited successor lean has no Bound-remedy list";
 
@@ -2839,7 +2856,7 @@ export function ingestOne(
           return [
             "refused",
             null,
-            `issue:ingest refused #${number}: ${harvested.reason} -- nothing written.`,
+            `issue:ingest refused #${number}: ${harvested.reason} -- nothing written.${slicedLeanRemedy(number, harvested.labels)}`,
           ];
         }
         if (repoSlug === null) {
