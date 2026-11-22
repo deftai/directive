@@ -1,24 +1,32 @@
+import { spawn } from "node:child_process";
 import { EventEmitter } from "node:events";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { MessageChannel } from "node:worker_threads";
 import { afterEach, describe, expect, it } from "vitest";
 import { SKIP_NOTICE } from "../ts-check-lane/run-lane.js";
 import {
   appendBoundedCapture,
   bindWorkerFailureToWaiter,
   boundedCaptureText,
+  collectTimedChildResult,
   confirmChildHandleForKill,
   createBoundedCapture,
+  isPidRunning,
   killDescendantTree,
   killTreeAndProveEmpty,
   listDescendantPids,
   mintSuiteRunId,
   ownerPidFromTeeName,
   pruneSuiteTees,
+  runDeadlineCleanup,
   SUITE_TEE_DIR_REL,
+  type SupervisedGateResult,
   sanitizeSessionDirName,
+  scanDescendantPids,
   selectFailureSignalLines,
+  settleTreeCleanup,
   suiteActuallyRan,
   suiteTeeRelativePath,
   superviseChild,
@@ -330,6 +338,159 @@ describe("listDescendantPids (#4801)", () => {
   it("stops walking when the verification budget has already expired", () => {
     const ids = listDescendantPids(1, "linux", () => [2, 3], -1);
     expect(ids).toEqual([]);
+    expect(scanDescendantPids(1, "linux", () => [2, 3], -1)).toEqual({ pids: [], complete: false });
+  });
+});
+
+describe("descendant scan completeness (#6904)", () => {
+  it("is complete after a full walk", () => {
+    const scan = scanDescendantPids(1, "linux", (pid) => (pid === 1 ? [2] : []));
+    expect(scan).toEqual({ pids: [2], complete: true });
+  });
+
+  it("is incomplete when a listing fails", () => {
+    const scan = scanDescendantPids(1, "linux", (pid) => (pid === 1 ? [2] : null));
+    expect(scan).toEqual({ pids: [2], complete: false });
+    expect(listDescendantPids(1, "linux", () => null)).toEqual([]);
+  });
+
+  it("killTreeAndProveEmpty reports an incomplete scan for a failed listing and an expired budget", () => {
+    const noop = () => undefined;
+    const dead = () => false;
+    expect(
+      killTreeAndProveEmpty(1, { killTree: noop, listDirect: () => null, isPidAlive: dead }),
+    ).toEqual({ remaining: [], scanComplete: false });
+    expect(
+      killTreeAndProveEmpty(1, {
+        killTree: noop,
+        listDirect: () => [],
+        scanBudgetMs: -1,
+        isPidAlive: dead,
+      }),
+    ).toEqual({ remaining: [], scanComplete: false });
+    expect(
+      killTreeAndProveEmpty(1, { killTree: noop, listDirect: () => [], isPidAlive: dead }),
+    ).toEqual({ remaining: [], scanComplete: true });
+  });
+});
+
+describe("tree cleanup outcome (#6904)", () => {
+  it("drops the exited root and re-checks the other PIDs after the exit event", () => {
+    const base = { unverified: false, rootPid: 10, scanComplete: true };
+    expect(settleTreeCleanup({ ...base, remaining: [10] }, () => true)).toEqual({
+      treeCleanup: "stopped",
+    });
+    expect(settleTreeCleanup({ ...base, remaining: [10, 11] }, () => false)).toEqual({
+      treeCleanup: "stopped",
+    });
+    expect(settleTreeCleanup({ ...base, remaining: [10, 11] }, (pid) => pid === 11)).toEqual({
+      treeCleanup: "survivors",
+      survivorPids: [11],
+    });
+    expect(settleTreeCleanup({ ...base, scanComplete: false, remaining: [] }, () => false)).toEqual(
+      { treeCleanup: "unverified" },
+    );
+    expect(
+      settleTreeCleanup({ unverified: true, remaining: [], scanComplete: false }, () => true),
+    ).toEqual({ treeCleanup: "unverified" });
+  });
+
+  it("kills nothing and is unverified when the child already exited at the deadline", () => {
+    let proofCalls = 0;
+    const cleanup = runDeadlineCleanup(
+      { exitCode: 0, pid: 4242 },
+      { command: "x", args: [], cwd: "." },
+      "linux",
+      () => {
+        proofCalls += 1;
+        return { remaining: [], scanComplete: true };
+      },
+    );
+    expect(proofCalls).toBe(0);
+    expect(settleTreeCleanup(cleanup, () => false)).toEqual({ treeCleanup: "unverified" });
+  });
+
+  it("treats a Linux zombie as not running", () => {
+    const stat = (state: string) => () => `${process.pid} (node (x)) ${state} 1 2 3`;
+    expect(isPidRunning(process.pid, "linux", stat("Z"))).toBe(false);
+    expect(isPidRunning(process.pid, "linux", stat("X"))).toBe(false);
+    expect(isPidRunning(process.pid, "linux", stat("S"))).toBe(true);
+    expect(isPidRunning(process.pid, "win32")).toBe(true);
+    expect(isPidRunning(-1, "linux")).toBe(false);
+  });
+});
+
+describe("collectTimedChildResult (#6904)", () => {
+  const ok: SupervisedGateResult = {
+    exitCode: 0,
+    timedOut: false,
+    signal: null,
+    stdout: "done",
+    stderr: "",
+    teePath: "",
+    teeRel: "",
+  };
+
+  function drain(
+    messages: readonly unknown[],
+    wait: { backstopExpired: boolean; failure?: string; timeoutArmed?: boolean },
+  ): SupervisedGateResult {
+    const channel = new MessageChannel();
+    try {
+      for (const message of messages) channel.port2.postMessage(message);
+      return collectTimedChildResult(channel.port1, { timeoutArmed: true, ...wait });
+    } finally {
+      channel.port1.close();
+      channel.port2.close();
+    }
+  }
+
+  it("takes the result message even when a spawned message came first", () => {
+    const result = drain(
+      [
+        { kind: "spawned", pid: 7 },
+        { kind: "result", result: ok },
+      ],
+      { backstopExpired: false },
+    );
+    expect(result).toEqual(ok);
+  });
+
+  it("takes a result message that arrives alone", () => {
+    expect(drain([{ kind: "result", result: ok }], { backstopExpired: false })).toEqual(ok);
+  });
+
+  it("is unverified with the reported PID when the backstop expires", () => {
+    const result = drain([{ kind: "spawned", pid: 7 }], { backstopExpired: true });
+    expect(result.timedOut).toBe(true);
+    expect(result.exitCode).toBe(124);
+    expect(result.treeCleanup).toBe("unverified");
+    expect(result.lastReportedPid).toBe(7);
+  });
+
+  it("keeps the last PID when two spawned messages come and no result", () => {
+    const result = drain(
+      [
+        { kind: "spawned", pid: 7 },
+        { kind: "spawned", pid: 8 },
+      ],
+      { backstopExpired: false, failure: "worker exited" },
+    );
+    expect(result.treeCleanup).toBe("unverified");
+    expect(result.lastReportedPid).toBe(8);
+    expect(result.spawnError).toBe("worker exited");
+  });
+
+  it("is unverified with no PID when the worker failed before any message", () => {
+    const result = drain([], { backstopExpired: false, failure: "load failed" });
+    expect(result.exitCode).toBe(1);
+    expect(result.treeCleanup).toBe("unverified");
+    expect(result.lastReportedPid).toBeUndefined();
+  });
+
+  it("adds no cleanup field when no timeout was armed", () => {
+    const result = drain([], { backstopExpired: false, timeoutArmed: false });
+    expect(result.treeCleanup).toBeUndefined();
   });
 });
 
@@ -365,6 +526,59 @@ describe("superviseTimedChild (#4801)", () => {
     expect(result.exitCode).toBe(124);
     expect(handles).toHaveLength(1);
     expect(handles[0]?.exitCode).toBeNull();
+    expect(result.treeCleanup).toBe("unverified");
+  }, 15_000);
+
+  it("reports survivors when a known PID stays alive after the kill passes (#6904)", async () => {
+    const root = freshRoot();
+    const sacrificial = spawn(process.execPath, ["-e", "setTimeout(() => {}, 30_000)"], {
+      stdio: "ignore",
+      detached: process.platform !== "win32",
+      windowsHide: true,
+    });
+    const target = sacrificial.pid as number;
+    try {
+      const result = await superviseTimedChild({
+        command: process.execPath,
+        args: ["-e", "setTimeout(() => {}, 30_000)"],
+        cwd: root,
+        timeoutMs: 200,
+        listDescendants: () => [target],
+        isPidAlive: (pid) => pid === target,
+      });
+      expect(result.timedOut).toBe(true);
+      expect(result.treeCleanup).toBe("survivors");
+      expect(result.survivorPids).toEqual([target]);
+    } finally {
+      sacrificial.kill("SIGKILL");
+    }
+  }, 15_000);
+
+  it("is unverified for a failed listing and for an expired scan budget (#6904)", async () => {
+    const root = freshRoot();
+    const variants = [{ listDirect: () => null }, { listDirect: () => [], scanBudgetMs: -1 }];
+    for (const seams of variants) {
+      const result = await superviseTimedChild({
+        command: process.execPath,
+        args: ["-e", "setTimeout(() => {}, 30_000)"],
+        cwd: root,
+        timeoutMs: 200,
+        ...seams,
+      });
+      expect(result.timedOut).toBe(true);
+      expect(result.treeCleanup).toBe("unverified");
+    }
+  }, 15_000);
+
+  it("posts the child PID through onSpawn (#6904)", async () => {
+    const root = freshRoot();
+    const pids: number[] = [];
+    const result = await superviseTimedChild(
+      { command: process.execPath, args: ["-e", "0"], cwd: root },
+      { onSpawn: (pid) => pids.push(pid) },
+    );
+    expect(result.exitCode).toBe(0);
+    expect(pids).toHaveLength(1);
   }, 15_000);
 
   it("does not arm a timeout when timeoutMs is omitted and leaves tee paths empty", async () => {
@@ -378,5 +592,6 @@ describe("superviseTimedChild (#4801)", () => {
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("ok");
     expect(result.teeRel).toBe("");
+    expect(result.treeCleanup).toBeUndefined();
   }, 15_000);
 });

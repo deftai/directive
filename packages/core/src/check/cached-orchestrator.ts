@@ -651,6 +651,9 @@ export function dispatchCachedTaskCheck(
             dispatch.mode === "cli"
               ? cliSpawnPlan(spawnBin, spawnArgs)
               : { command: spawnBin, args: spawnArgs };
+          // runTimedChild also reports treeCleanup / survivorPids / lastReportedPid
+          // on a deadline or a worker without a result (#6904). Hygiene gates read
+          // only exitCode, output, spawnError and timedOut, as before.
           const supervised = (options.superviseTimed ?? runTimedChild)({
             command: plan.command,
             args: plan.args,

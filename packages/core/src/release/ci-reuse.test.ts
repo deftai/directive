@@ -1,12 +1,20 @@
-import { existsSync, mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import {
+  isPidRunning,
+  type SupervisedGateResult,
+  superviseTimedChild,
+  type TimedChildPlan,
+} from "../check/suite-gate-supervisor.js";
 import type { CheckRunRecord } from "../pr-merge-readiness/gh.js";
 import { MERGE_GATE_TASK_CHECK_NAME } from "../pr-wait-mergeable/constants.js";
+import { sanitizeTsLaneEnv } from "../ts-check-lane/run-lane.js";
 import {
   checkRunUrl,
   decideCiReuseFromRuns,
+  describeSmokeFailure,
   evaluateCiReuse,
   formatCiReuseChange,
   formatCiReuseDecision,
@@ -333,20 +341,203 @@ describe("smoke spawn has no shell injection (#6791 SLizard P1)", () => {
     expect(posix).toMatchObject({ command: "/opt/a&b/pnpm", args: ["run", "build"] });
   });
 
-  it("runs in a directory named with & | ^ as one cwd and runs no extra command", () => {
+  it("runs in a directory named with & | ^ as one cwd and runs no extra command", async () => {
     const parent = mkdtempSync(join(tmpdir(), "smoke-meta-"));
     const name = process.platform === "win32" ? "root&mkdir pwned^x" : "root&mkdir pwned|x^y";
     const root = join(parent, name);
     mkdirSync(root);
     try {
       const code = `process.exit(require('path').basename(process.cwd())===${JSON.stringify(name).replaceAll('"', "'")}?0:3)`;
-      const result = runSmokeCommand(process.execPath, ["-e", code], root);
-      expect(result.error).toBeUndefined();
-      expect(result.status).toBe(0);
+      const plans: TimedChildPlan[] = [];
+      const forwarded = runSmokeCommand(process.execPath, ["-e", code], root, 30_000, {
+        timedRunner: (plan) => {
+          plans.push(plan);
+          return { ...OK_RESULT };
+        },
+        write: () => undefined,
+      });
+      expect(forwarded.status).toBe(0);
+      const built = smokeSpawnPlan(process.execPath, ["-e", code], root);
+      expect(plans[0]).toMatchObject({ command: built.command, args: built.args, cwd: root });
+      const plan = plans[0] as TimedChildPlan;
+      const result = await superviseTimedChild(plan);
+      expect(result.spawnError).toBeUndefined();
+      expect(result.exitCode).toBe(0);
       expect(existsSync(join(root, "pwned"))).toBe(false);
       expect(existsSync(join(parent, "pwned"))).toBe(false);
     } finally {
       rmSync(parent, { recursive: true, force: true });
     }
+  }, 15_000);
+});
+
+const OK_RESULT: SupervisedGateResult = {
+  exitCode: 0,
+  timedOut: false,
+  signal: null,
+  stdout: "",
+  stderr: "",
+  teePath: "",
+  teeRel: "",
+};
+
+describe("smoke command under the timed-child supervisor (#6904)", () => {
+  it("passes the smoke plan, sanitized env and time left, and prints a start line and output", () => {
+    const plans: TimedChildPlan[] = [];
+    const written: string[] = [];
+    const result = runSmokeCommand("pnpm", ["run", "build"], "/repo", 1_234, {
+      platform: "linux",
+      timedRunner: (plan) => {
+        plans.push(plan);
+        return { ...OK_RESULT, stdout: "built\n", stderr: "warn\n" };
+      },
+      write: (stream, text) => written.push(`${stream}:${text}`),
+    });
+    expect(result).toEqual({ status: 0 });
+    expect(plans).toEqual([
+      {
+        command: "pnpm",
+        args: ["run", "build"],
+        cwd: "/repo",
+        env: sanitizeTsLaneEnv(process.env),
+        timeoutMs: 1_234,
+        platform: "linux",
+        windowsVerbatimArguments: false,
+      },
+    ]);
+    expect(written).toEqual([
+      "stdout:host smoke check: pnpm run build (2s left)\n",
+      "stdout:built\n",
+      "stderr:warn\n",
+    ]);
   });
+
+  it("forwards the win32 shim plan", () => {
+    const plans: TimedChildPlan[] = [];
+    runSmokeCommand("C:\\pnpm.cmd", ["run", "build"], "C:\\repo", 5_000, {
+      platform: "win32",
+      timedRunner: (plan) => {
+        plans.push(plan);
+        return { ...OK_RESULT };
+      },
+      write: () => undefined,
+    });
+    const built = smokeSpawnPlan("C:\\pnpm.cmd", ["run", "build"], "C:\\repo", "win32");
+    expect(plans[0]).toMatchObject({
+      command: built.command,
+      args: built.args,
+      windowsVerbatimArguments: true,
+      platform: "win32",
+    });
+  });
+
+  it("maps each cleanup outcome and a spawn error to a failure", () => {
+    const timedOut = { ...OK_RESULT, exitCode: 124, timedOut: true };
+    const run = (result: SupervisedGateResult) =>
+      runSmokeCommand("pnpm", ["run", "build"], "/repo", 1_000, {
+        timedRunner: () => result,
+        write: () => undefined,
+      });
+    const stopped = run({ ...timedOut, treeCleanup: "stopped" });
+    expect(stopped.status).toBeNull();
+    expect(stopped.error?.message).toMatch(/passed its deadline; its process tree was stopped/);
+    const survivors = run({ ...timedOut, treeCleanup: "survivors", survivorPids: [41, 42] });
+    expect(survivors.error?.message).toMatch(/still running after the kill: PID 41, 42/);
+    expect(survivors.error?.message).not.toMatch(/tree was stopped/);
+    const unverified = run({ ...timedOut, treeCleanup: "unverified" });
+    expect(unverified.error?.message).toMatch(/cleanup could not be checked/);
+    expect(unverified.error?.message).not.toMatch(/check PID/);
+    const withPid = run({
+      ...timedOut,
+      treeCleanup: "unverified",
+      lastReportedPid: 77,
+      spawnError: "worker stalled",
+    });
+    expect(withPid.error?.message).toMatch(
+      /check PID 77, which may already have exited and been reused/,
+    );
+    const workerFailed = run({
+      ...OK_RESULT,
+      exitCode: 1,
+      spawnError: "worker exited",
+      treeCleanup: "unverified",
+      lastReportedPid: 78,
+    });
+    expect(workerFailed.error?.message).toMatch(/failed to run \(worker exited\).*check PID 78/);
+    const spawnError = run({ ...OK_RESULT, exitCode: 1, spawnError: "spawn pnpm ENOENT" });
+    expect(spawnError).toEqual({ status: null, error: new Error("spawn pnpm ENOENT") });
+    expect(run({ ...OK_RESULT, exitCode: 3 })).toEqual({ status: 3 });
+    expect(describeSmokeFailure("x", OK_RESULT)).toBeNull();
+  });
+
+  // One line: on win32 the smoke plan runs node through `cmd.exe /d /s /c`.
+  const hangScript = (pidFile: string) =>
+    [
+      "const { spawn } = require('child_process');",
+      "const g = spawn(process.execPath, ['-e', 'setTimeout(() => {}, 60000)'], { stdio: 'ignore' });",
+      `require('fs').writeFileSync(${JSON.stringify(pidFile)}, process.pid + ' ' + g.pid);`,
+      "setTimeout(() => {}, 60000);",
+    ].join(" ");
+
+  async function runHungSmoke(scanFails: boolean): Promise<{ text: string; recorded: number[] }> {
+    const dir = mkdtempSync(join(tmpdir(), "smoke-tree-"));
+    const pidFile = join(dir, "pids.txt");
+    const readPids = (): [number, number] | null => {
+      if (!existsSync(pidFile)) return null;
+      const [node, grand] = readFileSync(pidFile, "utf8").trim().split(" ").map(Number);
+      return node !== undefined && grand !== undefined ? [node, grand] : null;
+    };
+    const plans: TimedChildPlan[] = [];
+    runSmokeCommand(process.execPath, ["-e", hangScript(pidFile)], dir, 2_500, {
+      timedRunner: (plan) => {
+        plans.push(plan);
+        return { ...OK_RESULT };
+      },
+      write: () => undefined,
+    });
+    // win32 has no `wmic` on current hosts, so there the scan is injected and
+    // reads the recorded tree (cmd.exe -> node -> node); POSIX uses `pgrep`.
+    let root: number | undefined;
+    const recordedTree = (pid: number): number[] | null => {
+      const pids = readPids();
+      if (pids === null) return null;
+      root ??= pid;
+      if (pid === root && pid !== pids[0]) return [pids[0]];
+      return pid === pids[0] ? [pids[1]] : [];
+    };
+    const listDirect = scanFails
+      ? () => null
+      : process.platform === "win32"
+        ? recordedTree
+        : undefined;
+    try {
+      const result = await superviseTimedChild({
+        ...(plans[0] as TimedChildPlan),
+        ...(listDirect !== undefined ? { listDirect } : {}),
+      });
+      const pids = readPids();
+      expect(pids).not.toBeNull();
+      return { text: describeSmokeFailure("smoke", result) ?? "", recorded: pids ?? [] };
+    } finally {
+      for (const pid of readPids() ?? []) {
+        if (isPidRunning(pid)) process.kill(pid, "SIGKILL");
+      }
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }
+
+  it("stops a child that outlives the deadline and reports the tree stopped", async () => {
+    const { text, recorded } = await runHungSmoke(false);
+    expect(recorded).toHaveLength(2);
+    for (const pid of recorded) expect(isPidRunning(pid)).toBe(false);
+    expect(text).toMatch(/its process tree was stopped/);
+  }, 20_000);
+
+  it("still stops the child but reports unverified when the scan fails", async () => {
+    const { text, recorded } = await runHungSmoke(true);
+    expect(recorded).toHaveLength(2);
+    for (const pid of recorded) expect(isPidRunning(pid)).toBe(false);
+    expect(text).toMatch(/cleanup could not be checked/);
+    expect(text).not.toMatch(/tree was stopped/);
+  }, 20_000);
 });

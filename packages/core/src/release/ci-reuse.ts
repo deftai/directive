@@ -12,8 +12,12 @@
  * the short host smoke check below. The nightly coverage lane (#6849) closes
  * that gap.
  */
-import { spawnSync } from "node:child_process";
 import { cliSpawnPlan } from "../check/cli-native-gates.js";
+import {
+  runTimedChild,
+  type SupervisedGateResult,
+  type TimedChildPlan,
+} from "../check/suite-gate-supervisor.js";
 import { type CheckRunRecord, defaultRunGh, fetchCheckRunsRest } from "../pr-merge-readiness/gh.js";
 import type { RunGhFn } from "../pr-merge-readiness/types.js";
 import { MERGE_GATE_TASK_CHECK_NAME } from "../pr-wait-mergeable/constants.js";
@@ -267,23 +271,83 @@ export function smokeSpawnPlan(
   };
 }
 
-/** Run one smoke command without a shell (#6791). */
+/** Sync timed-child runner seam for one smoke command (#6904). */
+export type SmokeTimedRunner = (plan: TimedChildPlan) => SupervisedGateResult;
+
+/**
+ * Failure text for a smoke command the timed runner stopped or could not run
+ * (#6904). It says the process tree was stopped only when the cleanup outcome
+ * is `stopped`.
+ */
+export function describeSmokeFailure(label: string, result: SupervisedGateResult): string | null {
+  const head = result.timedOut
+    ? `${label} passed its deadline`
+    : `${label} failed to run (${result.spawnError ?? "supervisor gave no result"})`;
+  switch (result.treeCleanup) {
+    case "stopped":
+      return `${head}; its process tree was stopped`;
+    case "survivors":
+      return `${head}; processes still running after the kill: PID ${(result.survivorPids ?? []).join(", ")}`;
+    case "unverified": {
+      const pid =
+        result.lastReportedPid !== undefined
+          ? `; check PID ${result.lastReportedPid}, which may already have exited and been reused`
+          : "";
+      return `${head}; cleanup could not be checked and its processes may still be running${pid}`;
+    }
+    default:
+      break;
+  }
+  if (result.spawnError !== undefined) return result.spawnError;
+  if (result.timedOut) return head;
+  return null;
+}
+
+/**
+ * Run one smoke command without a shell (#6791) under the timed-child
+ * supervisor (#6904): at the deadline the supervisor worker stops the whole
+ * process tree, not only the direct child. Output is delayed: the captured
+ * stdout and stderr are written when the command ends, and only the last
+ * 256 KiB of each stream is kept.
+ */
 export function runSmokeCommand(
   command: string,
   args: readonly string[],
   cwd: string,
   timeoutMs: number = RELEASE_CHECK_TIMEOUT_MS,
+  options: {
+    readonly timedRunner?: SmokeTimedRunner;
+    readonly platform?: NodeJS.Platform;
+    readonly write?: (stream: "stdout" | "stderr", text: string) => void;
+  } = {},
 ): { status: number | null; error?: Error } {
-  const plan = smokeSpawnPlan(command, args, cwd);
-  const result = spawnSync(plan.command, [...plan.args], {
+  const platform = options.platform ?? process.platform;
+  const write =
+    options.write ??
+    ((stream: "stdout" | "stderr", text: string) => {
+      process[stream].write(text);
+    });
+  const label = [command, ...args].join(" ");
+  write(
+    "stdout",
+    `host smoke check: ${label} (${Math.ceil(timeoutMs / 1000)}s left)
+`,
+  );
+  const plan = smokeSpawnPlan(command, args, cwd, platform);
+  const result = (options.timedRunner ?? runTimedChild)({
+    command: plan.command,
+    args: plan.args,
     cwd: plan.cwd,
     env: sanitizeTsLaneEnv(process.env),
-    stdio: "inherit",
-    shell: plan.shell,
+    timeoutMs,
+    platform,
     windowsVerbatimArguments: plan.windowsVerbatimArguments,
-    timeout: timeoutMs,
   });
-  return { status: result.status, error: result.error };
+  if (result.stdout.length > 0) write("stdout", result.stdout);
+  if (result.stderr.length > 0) write("stderr", result.stderr);
+  const failure = describeSmokeFailure(label, result);
+  if (failure !== null) return { status: null, error: new Error(failure) };
+  return { status: result.exitCode };
 }
 
 /**
