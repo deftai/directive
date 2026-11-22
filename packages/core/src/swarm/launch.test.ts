@@ -473,6 +473,33 @@ describe("swarmLaunch identity-bound injection (#1351)", { timeout: 20_000 }, ()
     );
     expect(result.stdout).not.toContain(FAKE_TOKEN);
     expect(JSON.stringify(manifest)).not.toContain(FAKE_TOKEN);
+    expect(result.stderr).not.toContain("shares completion issue");
+  }, 60_000);
+
+  it("warns on success stderr when another open story shares the issue (#6934)", () => {
+    const project = launchProject();
+    writeReadyStory(project, "story-z", 1351);
+    const result = swarmLaunch({
+      stories: ["story-a"],
+      projectRoot: project,
+      autonomous: true,
+      preflightGate: () => ({ exitCode: 0, message: "" }),
+      readinessGate: () => ({ exitCode: 0, report: "" }),
+      runtimeAuthProbe: () => ["cloud-headless", "injected-token"],
+      environ: { CURSOR_AGENT: "1", GH_TOKEN: FAKE_TOKEN, GH_REPO: TARGET_REPO },
+      sessionId: "test-session",
+      runGh: stubGh({}),
+      ...LAUNCH_INJECTED_AUTH,
+    });
+    expect(result.exitCode, result.stderr).toBe(0);
+    const manifest = JSON.parse(result.stdout) as Record<string, unknown>[];
+    expect(manifest).toHaveLength(1);
+    expect(manifest[0]?.story_id).toBe("story-a");
+    expect(result.stdout).not.toContain("shares completion issue");
+    expect(result.stderr).toContain(
+      "WARN: xbrief/active/story-a.xbrief.json shares completion issue deftai/directive#1351",
+    );
+    expect(result.stderr).toContain("with xbrief/active/story-z.xbrief.json.");
   }, 60_000);
 
   it("exposes a distinct delivery id per dest in spawn env and C2", () => {

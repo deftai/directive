@@ -1239,11 +1239,47 @@ export function storyLinesForBranch(args: {
 }
 
 /**
+ * #6934 Bound item 7: the note for each running story issue N of the branch whose
+ * resulting body carries `deft-story-part: N`, on a product-shaped branch only.
+ * Written now or already present; the body is never rewritten here.
+ */
+function partLineNotes(args: {
+  readonly projectRoot: string;
+  readonly runGit: RunGhFn;
+  readonly bodyText: string;
+  readonly issues: readonly number[];
+}): string[] {
+  const parts = new Set(parseAllDeftStoryPartLines(args.bodyText));
+  const hits = args.issues.filter((n) => parts.has(n));
+  if (hits.length === 0) return [];
+  const diff = collectLocalDiffFiles(args.projectRoot, args.runGit);
+  if (diff === null || !isProductShapedDiff(diff)) return [];
+  return hits.map((n) => formatPartLineNote(n));
+}
+
+/** #6934 Bound item 7 note text for one story issue. */
+export function formatPartLineNote(issue: number): string {
+  const n = String(issue);
+  return (
+    `\`deft-story-part: ${n}\` on a product PR: this PR does not complete story #${n}; ` +
+    `a later PR with \`deft-story: ${n}\` must. If this PR delivers the whole story, ` +
+    `replace the line with \`deft-story: ${n}\` (dropping --part does not remove a line ` +
+    "already in the body)."
+  );
+}
+
+function withNotes(message: string, notes: readonly string[]): string {
+  return notes.length === 0 ? message : [message, ...notes.map((n) => `NOTE: ${n}`)].join("\n");
+}
+
+/**
  * `--body-file <path> --write-story-line [--part]` (#6316 amendment): append
  * `deft-story: N` (or `deft-story-part: N`) for each running story of the branch
  * whose line the body lacks: one line per brief, for its story issue (#6468). A body
  * that already has one of the lines for N is left unchanged; a body with both lines
  * for one N fails as the live check does; a case A / case B brief writes nothing.
+ * On a product branch, a resulting body with `deft-story-part: N` for a running
+ * story issue adds the part-line note to the OK message (#6934).
  */
 export function writeStoryLineToBodyFile(args: {
   readonly bodyFile: string;
@@ -1303,9 +1339,10 @@ export function writeStoryLineToBodyFile(args: {
     .filter((n) => !marks.has(n) && !parts.has(n))
     .map((n) => `${label}: ${String(n)}`);
   if (written.length === 0) {
+    const notes = partLineNotes({ projectRoot: args.projectRoot, runGit, bodyText: text, issues });
     return {
       code: 0,
-      message: "OK: body file already carries the story line; unchanged (#6316).",
+      message: withNotes("OK: body file already carries the story line; unchanged (#6316).", notes),
       issues,
       written,
     };
@@ -1331,9 +1368,10 @@ export function writeStoryLineToBodyFile(args: {
       written: [],
     };
   }
+  const notes = partLineNotes({ projectRoot: args.projectRoot, runGit, bodyText: next, issues });
   return {
     code: 0,
-    message: `OK: wrote ${written.join(", ")} to ${args.bodyFile} (#6316).`,
+    message: withNotes(`OK: wrote ${written.join(", ")} to ${args.bodyFile} (#6316).`, notes),
     issues,
     written,
   };

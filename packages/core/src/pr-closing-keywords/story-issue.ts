@@ -3,8 +3,12 @@
  * completion identity join anchors on (`resolvePlanGithubIssueRef`). The
  * closing-keywords story-line check and `--write-story-line` ask for one line,
  * for that issue, and check it against the owner list the plan-id adopter uses.
+ * `findSharedStoryIssues` warns, before dispatch, when open story briefs share
+ * that issue (#6934).
  */
-import { relative, resolve } from "node:path";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { basename, join, relative, resolve } from "node:path";
+import { referenceTypeMatches } from "@deftai/directive-types";
 import { briefOwnsIssue, issueOriginFromRepoSlug } from "../intake/residual-identity.js";
 import { listActiveBriefEntries } from "../intent-constraint/plan-id-adopter.js";
 
@@ -230,4 +234,195 @@ export function briefForBodyRef(
     return naming[0] ?? null;
   }
   return naming.length > 1 ? "today" : null;
+}
+
+/** Lifecycle folders the shared-issue check reads: open stories only (#6934). */
+const SHARED_ISSUE_FOLDERS = ["pending", "active"] as const;
+/** Brief roots: `xbrief/`, then legacy `vbrief/` (read-accepted). */
+const SHARED_ISSUE_ROOTS = ["xbrief", "vbrief"] as const;
+
+/** One open story brief the shared-issue check reads (#6934). */
+interface OpenStoryBrief {
+  readonly abs: string;
+  readonly rel: string;
+  readonly key: string;
+  readonly repository: string;
+  readonly issue: number;
+}
+
+/** A completion issue that more than one open story brief anchors on (#6934). */
+export interface SharedStoryIssue {
+  readonly repository: string;
+  readonly issue: number;
+  /** The story brief the check ran for. */
+  readonly rel: string;
+  /** The other open story briefs with the same completion issue, sorted. */
+  readonly others: readonly string[];
+}
+
+function planRecordOf(data: unknown): Record<string, unknown> | null {
+  if (typeof data !== "object" || data === null || Array.isArray(data)) return null;
+  const plan = (data as Record<string, unknown>).plan;
+  return typeof plan === "object" && plan !== null && !Array.isArray(plan)
+    ? (plan as Record<string, unknown>)
+    : null;
+}
+
+function childPlanRefs(plan: Record<string, unknown>): boolean {
+  const refs = plan.references;
+  return (
+    Array.isArray(refs) &&
+    refs.some(
+      (ref) =>
+        typeof ref === "object" &&
+        ref !== null &&
+        !Array.isArray(ref) &&
+        referenceTypeMatches(String((ref as Record<string, unknown>).type ?? ""), "plan"),
+    )
+  );
+}
+
+function looksLikePhase(path: string, plan: Record<string, unknown>): boolean {
+  const title = String(plan.title ?? "");
+  const planId = String(plan.id ?? "");
+  const narratives = plan.narratives;
+  let hasAcceptanceNarrative = false;
+  if (typeof narratives === "object" && narratives !== null && !Array.isArray(narratives)) {
+    const acc = (narratives as Record<string, unknown>).Acceptance;
+    hasAcceptanceNarrative = typeof acc === "string" && acc.trim().length > 0;
+  }
+  const hasItems = Array.isArray(plan.items) && plan.items.length > 0;
+  return (
+    basename(path).includes("-ip") ||
+    title.toLowerCase().startsWith("ip-") ||
+    planId.toLowerCase().startsWith("ip-") ||
+    (!hasItems && hasAcceptanceNarrative)
+  );
+}
+
+/**
+ * The kind `swarm:readiness` gives a brief: an explicit `metadata.kind`, else
+ * `epic` for child plan references, else `phase` for the legacy phase shape,
+ * else `story`. The #6934 shared-issue check counts stories only.
+ */
+export function briefKindOf(
+  path: string,
+  plan: Record<string, unknown>,
+): "story" | "epic" | "phase" {
+  const metadata = plan.metadata;
+  if (typeof metadata === "object" && metadata !== null && !Array.isArray(metadata)) {
+    const kind = (metadata as Record<string, unknown>).kind;
+    if (kind === "story" || kind === "epic" || kind === "phase") return kind;
+  }
+  if (childPlanRefs(plan)) return "epic";
+  if (looksLikePhase(path, plan)) return "phase";
+  return "story";
+}
+
+/** The completion issue of a story brief, or null for epics, phases and unanchored briefs. */
+function storyAnchorOf(
+  path: string,
+  plan: Record<string, unknown>,
+): { repository: string; issue: number; key: string } | null {
+  if (briefKindOf(path, plan) !== "story") return null;
+  const anchor = resolvePlanGithubIssueRef(plan);
+  if (anchor === null) return null;
+  return {
+    repository: anchor.repository,
+    issue: anchor.issueNumber,
+    key: `${anchor.repository.toLowerCase()}#${String(anchor.issueNumber)}`,
+  };
+}
+
+function readPlan(abs: string): Record<string, unknown> | null {
+  try {
+    return planRecordOf(JSON.parse(readFileSync(abs, "utf8")) as unknown);
+  } catch {
+    return null;
+  }
+}
+
+/** Open story briefs (pending/active, xbrief/ and legacy vbrief/) with a completion issue. */
+function listOpenStoryBriefs(projectRoot: string): OpenStoryBrief[] {
+  const root = resolve(projectRoot);
+  const out: OpenStoryBrief[] = [];
+  for (const base of SHARED_ISSUE_ROOTS) {
+    for (const folder of SHARED_ISSUE_FOLDERS) {
+      const dir = join(root, base, folder);
+      if (!existsSync(dir)) continue;
+      let names: string[];
+      try {
+        names = readdirSync(dir);
+      } catch {
+        continue;
+      }
+      for (const name of names.sort()) {
+        if (!name.endsWith(".json")) continue;
+        const abs = join(dir, name);
+        const plan = readPlan(abs);
+        if (plan === null) continue;
+        const anchor = storyAnchorOf(name, plan);
+        if (anchor === null) continue;
+        out.push({ abs: resolve(abs), rel: `${base}/${folder}/${name}`, ...anchor });
+      }
+    }
+  }
+  return out;
+}
+
+/**
+ * #6934 Bound item 1: for each story brief in `paths`, the other open story briefs
+ * (`pending/` and `active/`, legacy `vbrief/` read-accepted) whose first GitHub
+ * issue reference (`resolvePlanGithubIssueRef`) names the same repository and
+ * issue. Files only, no forge. Epic and phase briefs are not counted, and a
+ * subject that is an epic or phase gets no result. One entry per shared issue:
+ * a second subject with an issue already reported adds nothing. The #6468 case A
+ * ownership check (`storyIssueIdentityMessage`) is separate and unchanged.
+ */
+export function findSharedStoryIssues(
+  projectRoot: string,
+  paths: readonly string[],
+): SharedStoryIssue[] {
+  let open: OpenStoryBrief[] | null = null;
+  const seen = new Set<string>();
+  const out: SharedStoryIssue[] = [];
+  for (const path of paths) {
+    const abs = resolve(projectRoot, path);
+    const plan = readPlan(abs);
+    if (plan === null) continue;
+    const anchor = storyAnchorOf(abs, plan);
+    if (anchor === null || seen.has(anchor.key)) continue;
+    open ??= listOpenStoryBriefs(projectRoot);
+    const others = open
+      .filter((b) => b.key === anchor.key && b.abs !== abs)
+      .map((b) => b.rel)
+      .sort();
+    if (others.length === 0) continue;
+    seen.add(anchor.key);
+    out.push({
+      repository: anchor.repository,
+      issue: anchor.issue,
+      rel: briefRelPath(abs, projectRoot),
+      others,
+    });
+  }
+  return out;
+}
+
+/** #6934 Bound item 2: the warning for one shared completion issue. */
+export function formatSharedStoryIssueWarning(shared: SharedStoryIssue): string {
+  const n = String(shared.issue);
+  return (
+    `${shared.rel} shares completion issue ${shared.repository}#${n} (each brief's first ` +
+    `GitHub issue reference) with ${shared.others.join(", ")}. Their product PRs would ` +
+    `compete for \`deft-story: ${n}\`: only the PR named by \`metadata.productPullRequest\` ` +
+    "in its brief on the fetched delivery branch can complete, and an operator attestation " +
+    "does not get past another product part. Give each story its own issue as its first " +
+    "GitHub issue reference, or carry the work as one story."
+  );
+}
+
+/** `findSharedStoryIssues` rendered as warning lines, one per shared issue (#6934). */
+export function sharedStoryIssueWarnings(projectRoot: string, paths: readonly string[]): string[] {
+  return findSharedStoryIssues(projectRoot, paths).map(formatSharedStoryIssueWarning);
 }

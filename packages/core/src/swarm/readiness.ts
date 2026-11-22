@@ -16,6 +16,7 @@ import {
   stripArtifactSuffix,
 } from "../layout/resolve.js";
 import { SERIALIZE_N_PRS } from "../one-pr-unit/types.js";
+import { briefKindOf, sharedStoryIssueWarnings } from "../pr-closing-keywords/story-issue.js";
 import { clauseKeyedItemId } from "../scope/acceptance-evidence.js";
 import {
   acceptanceTextsFromItems,
@@ -260,52 +261,9 @@ function swarmOf(metadata: Record<string, unknown>): Record<string, unknown> {
     : {};
 }
 
-function hasChildPlanRefs(plan: Record<string, unknown>): boolean {
-  const refs = plan.references;
-  if (!Array.isArray(refs)) {
-    return false;
-  }
-  return refs.some(
-    (ref) =>
-      typeof ref === "object" &&
-      ref !== null &&
-      !Array.isArray(ref) &&
-      referenceTypeMatches(String((ref as Record<string, unknown>).type ?? ""), "plan"),
-  );
-}
-
-function looksLikePhase(path: string, plan: Record<string, unknown>): boolean {
-  const title = String(plan.title ?? "");
-  const planId = String(plan.id ?? "");
-  const narratives = plan.narratives;
-  let hasAcceptanceNarrative = false;
-  if (typeof narratives === "object" && narratives !== null && !Array.isArray(narratives)) {
-    const acc = (narratives as Record<string, unknown>).Acceptance;
-    hasAcceptanceNarrative = typeof acc === "string" && acc.trim().length > 0;
-  }
-  const hasItems = Array.isArray(plan.items) && plan.items.length > 0;
-  const stem = basename(path);
-  return (
-    stem.includes("-ip") ||
-    title.toLowerCase().startsWith("ip-") ||
-    planId.toLowerCase().startsWith("ip-") ||
-    (!hasItems && hasAcceptanceNarrative)
-  );
-}
-
+/** One epic / phase / story classifier, shared with the #6934 shared-issue check. */
 function kindOf(path: string, plan: Record<string, unknown>): string {
-  const metadata = metadataOf(plan);
-  const explicit = metadata.kind;
-  if (explicit === "story" || explicit === "epic" || explicit === "phase") {
-    return String(explicit);
-  }
-  if (hasChildPlanRefs(plan)) {
-    return "epic";
-  }
-  if (looksLikePhase(path, plan)) {
-    return "phase";
-  }
-  return "story";
+  return briefKindOf(path, plan);
 }
 
 function storyId(path: string, plan: Record<string, unknown>): string {
@@ -706,6 +664,7 @@ function renderReport(
   candidates: Candidate[],
   graph: Map<string, string[]>,
   overlaps: Map<string, string[]>,
+  sharedIssues: readonly string[],
 ): string {
   const ready = readyStories(candidates);
   const blocked = candidates.filter(
@@ -773,6 +732,17 @@ function renderReport(
       lines.push(`- ${filePath}: ${ids.join(", ")}`);
     }
     lines.push("Overlap is not one-PR-unit consent; serialize N PRs, one origin per PR.");
+  } else {
+    lines.push("- none");
+  }
+  lines.push("");
+
+  // #6934: a warning only; it never changes the exit code.
+  lines.push("Shared story issues:");
+  if (sharedIssues.length > 0) {
+    for (const warning of sharedIssues) {
+      lines.push(`- ${warning}`);
+    }
   } else {
     lines.push("- none");
   }
@@ -862,7 +832,11 @@ export function readinessReport(
   }
   const graph = evaluateCandidates(projectRoot, candidates, fieldMode);
   const overlaps = fileOverlaps(candidates, graph);
-  let report = renderReport(candidates, graph, overlaps);
+  const sharedIssues = sharedStoryIssueWarnings(
+    projectRoot,
+    candidates.filter((c) => c.kind === "story").map((c) => c.path),
+  );
+  let report = renderReport(candidates, graph, overlaps, sharedIssues);
   if (fieldMode === "solo-headless") {
     report = `${report}\n\nField mode: solo-headless (N=1 ceremony fields relaxed: expected_outputs, conflict_group, model_tier).`;
   }
