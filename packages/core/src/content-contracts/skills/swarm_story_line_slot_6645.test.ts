@@ -48,7 +48,7 @@ describe("swarm worker template story line (#6645 / #6934)", () => {
     expect(ops).toContain("the task offers no choice of line");
     expect(ops).toMatch(/A leaf that delivers a whole story never gets `deft-story-part`/);
     const phase3 = readRepoFile(CORE_PHASE_3);
-    const at = phase3.indexOf("**Story line per story (#6316 / #6934):**");
+    const at = phase3.indexOf("**Story line per story (#6316):**");
     expect(at).toBeGreaterThanOrEqual(0);
     const rule = phase3.slice(at, phase3.indexOf("\n", at));
     expect(rule).toContain("The worker writes `deft-story: N`");
