@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6902",
-    "updated": "2026-11-22T22:13:01Z"
+    "updated": "2026-11-22T23:10:20Z"
   },
   "plan": {
     "title": "pre-pr:run ignores --project-root and always uses the cwd store",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "pre-pr:run ignores --project-root and always uses the cwd store",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6902",
@@ -17,58 +17,135 @@
     "items": [
       {
         "title": "Default store by root (P1). `getDefaultPrePrStore(projectRoot)` resolves `projectRoot` to an absolute path at call time, keeps that path with its one cached store, and builds the store from it. A call whose resolved root differs replaces the cached store with one for the new root. A store injected with `setDefaultPrePrStore` or `resetDefaultPrePrStore` is returned for any root until cleared. A new export `clearDefaultPrePrStore()` drops the cached and the injected store.",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "29e26fcc365df4368c20344c0ad4eeb460d539aa",
+          "recorded_at": "2026-11-22T23:10:20Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "One root in `run()` (P1). `run()` resolves `projectRoot = args.projectRoot?.trim() || process.cwd()` once, before the first store use, and calls `getDefaultPrePrStore(projectRoot)`. Push-admit, the observe gate checks, evaluate, complete and the story-line writer use that same value. `--body-file` paths stay relative to the cwd.",
-        "status": "proposed",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "29e26fcc365df4368c20344c0ad4eeb460d539aa",
+          "recorded_at": "2026-11-22T23:10:20Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Semantic hash root (P1). `--observe-semantic` calls `computeControllerObservedHash({ reviewedFiles, cwd: projectRoot })`, so relative `--reviewed-file` paths resolve against the root, as `completeRun` already re-hashes them.",
-        "status": "proposed",
-        "id": "clause.3"
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "29e26fcc365df4368c20344c0ad4eeb460d539aa",
+          "recorded_at": "2026-11-22T23:10:20Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Help text (P3). The `--project-root` usage line says it sets the root for the private store, the gate checks, relative `--reviewed-file` paths, `--complete` and `--push-admit`; that it defaults to the cwd; and that `--body-file` paths stay relative to the cwd.",
-        "status": "proposed",
-        "id": "clause.4"
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "29e26fcc365df4368c20344c0ad4eeb460d539aa",
+          "recorded_at": "2026-11-22T23:10:20Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Tests (P1, P2). With the default store cleared: start a run with cwd A; from cwd B with `--project-root A`, record a command phase and a semantic phase whose relative `--reviewed-file` also exists in B with different contents; both succeed, the rows are in A's store, and the hash is of A's file. From cwd B without `--project-root`, the run is reported missing. In one process, `getDefaultPrePrStore` called with A, then B, then A returns the store for each root, and a relative root resolves against the cwd at call time. The existing injected-store tests pass unchanged.",
-        "status": "proposed",
-        "id": "clause.5"
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "29e26fcc365df4368c20344c0ad4eeb460d539aa",
+          "recorded_at": "2026-11-22T23:10:20Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "With `--project-root <dir>`, `pre-pr:run` start, observe (command and semantic), evaluate and complete read and write the private store under `<dir>` from any cwd.",
-        "status": "proposed",
-        "id": "clause.6"
+        "status": "completed",
+        "id": "clause.6",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "29e26fcc365df4368c20344c0ad4eeb460d539aa",
+          "recorded_at": "2026-11-22T23:10:20Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Without `--project-root`, the store and relative `--reviewed-file` paths resolve against the cwd as today.",
-        "status": "proposed",
-        "id": "clause.7"
+        "status": "completed",
+        "id": "clause.7",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "29e26fcc365df4368c20344c0ad4eeb460d539aa",
+          "recorded_at": "2026-11-22T23:10:20Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "On `--observe-semantic`, relative `--reviewed-file` paths resolve against the project root.",
-        "status": "proposed",
-        "id": "clause.8"
+        "status": "completed",
+        "id": "clause.8",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "29e26fcc365df4368c20344c0ad4eeb460d539aa",
+          "recorded_at": "2026-11-22T23:10:20Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "`getDefaultPrePrStore` returns a store for the absolute root it is given unless a test store is injected, and `clearDefaultPrePrStore` removes both the cached and the injected store.",
-        "status": "proposed",
-        "id": "clause.9"
+        "status": "completed",
+        "id": "clause.9",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "29e26fcc365df4368c20344c0ad4eeb460d539aa",
+          "recorded_at": "2026-11-22T23:10:20Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "A test starts a run in one directory and records a command phase and a semantic phase from another directory with `--project-root`, and both succeed.",
-        "status": "proposed",
-        "id": "clause.10"
+        "status": "completed",
+        "id": "clause.10",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "29e26fcc365df4368c20344c0ad4eeb460d539aa",
+          "recorded_at": "2026-11-22T23:10:20Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "The `--project-root` help line names each use above and says `--body-file` paths stay relative to the cwd.",
-        "status": "proposed",
-        "id": "clause.11"
+        "status": "completed",
+        "id": "clause.11",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "29e26fcc365df4368c20344c0ad4eeb460d539aa",
+          "recorded_at": "2026-11-22T23:10:20Z",
+          "recorded_by": "scope:complete"
+        }
       }
     ],
     "tags": [
@@ -371,6 +448,35 @@
         "leanCommentId": 7052402821,
         "harvestDigest": "1bc032f9140ae1fd387a52851bf95f2d94f0ea547750814068122c9558d7228e",
         "slice": null
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "06e9479ea8d6c369d60d7ec8459c5c9d2ec1a943",
+        "prNumber": 7123,
+        "prBase": "master",
+        "mergeCommit": "29e26fcc365df4368c20344c0ad4eeb460d539aa",
+        "deliveryBranch": "master",
+        "deliveryCommit": "29e26fcc365df4368c20344c0ad4eeb460d539aa",
+        "verifiedAt": "2026-11-22T23:10:20Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:OWEwZDY5MDktOTZkNS00NjFiLWIzMTUtODg5ZjNlZjFkNTI0",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          7112
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-22T23:10:20Z",
+      "completedSessionId": "host:claude:v1:OWEwZDY5MDktOTZkNS00NjFiLWIzMTUtODg5ZjNlZjFkNTI0",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-22T23:10:20Z"
       }
     },
     "acceptance": {
@@ -487,6 +593,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.6519529307",
-    "updated": "2026-11-22T22:13:01Z"
+    "updated": "2026-11-22T23:10:20Z"
   }
 }
