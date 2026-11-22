@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6872",
-    "updated": "2026-11-22T04:28:15Z"
+    "updated": "2026-11-22T12:23:15Z"
   },
   "plan": {
     "title": "bug(cli): swarm:readiness, scope:activate, issue:ingest --help, scope:decompose and plan-sequence verbs are rough",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Four story-lifecycle verbs get in the way (#6872). `swarm:readiness` with no path checks only `xbrief/active/` and does not say how to check a proposed or pending brief. `scope:promote` and `scope:activate` write a PROJECT-DEFINITION row that a brief-only activation PR cannot carry, so every activation leaves a local change. `issue:ingest --help` prints an error and exits 2. With no ordered plan, `verify:plan-sequence` without a target exits 2 and `plan-sequence:current` exits 1. This story builds the bound lean of the accepted design critique (lean 7070598872, synthesis 7070626741): a readiness hint line, no row insert or patch on open-folder moves (the exact-old-path reference rewrite stays, and the file is written only when it changes something), a real `--help` for `issue:ingest`, and a skip with exit 0 for both plan-sequence verbs when `.deft/plan-sequence.json` does not exist. The oversized-split item is #6920 and is out of scope.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6872",
@@ -20,130 +20,242 @@
     "items": [
       {
         "title": "Readiness hint (P1). When `swarm:readiness` is run without a path, its report adds one line saying it checked `xbrief/active/` only and that a proposed or pending brief is checked by naming its path or a glob (for example `xbrief/proposed/*.xbrief.json`). The no-candidate report carries the same line. Exit codes do not change. A run with a path does not print the line.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "Readiness hint (P1). When `swarm:readiness` is run without a path, its report adds one line saying it checked `xbrief/active/` only and that a proposed or pending brief is checked by naming its path or a glob (for example `xbrief/proposed/*.xbrief.json`). The no-candidate report carries the same line. Exit codes do not change. A run with a path does not print the line."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a4cc1302b60723d6291578e3dba452c6ad585651",
+          "recorded_at": "2026-11-22T12:23:15Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Registry rows on open moves (P2). In `syncRegistryArtifactAfterScopeMove` (`packages/core/src/scope/registry-artifact-sync.ts`), when the open-rows-only policy is set (the PROJECT-DEFINITION caller, `syncProjectDefinitionAfterScopeMove`) and the destination folder is `proposed`, `pending` or `active`, the sync makes no row insert and no row patch (no `status`, `source_path` or `lifecycle_folder` change). It still runs today's top-level `plan.references` rewrite, which matches only a `plan`-type reference that resolves to the move's exact old path. It persists only when that rewrite changed a reference, as today's `changed` flag already does; otherwise PROJECT-DEFINITION is not written. This covers every caller: promote, activate, demote, restore and undo (`transition.ts` and `undo.ts` both call `syncProjectDefinitionAfterScopeMove`). A move into a terminal folder is unchanged: it rewrites the reference and removes the matching row. The specification registry sync (no open-rows-only policy) does not change. `project:render` does not change.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "Registry rows on open moves (P2). In `syncRegistryArtifactAfterScopeMove` (`packages/core/src/scope/registry-artifact-sync.ts`), when the open-rows-only policy is set (the PROJECT-DEFINITION caller, `syncProjectDefinitionAfterScopeMove`) and the destination folder is `proposed`, `pending` or `active`, the sync makes no row insert and no row patch (no `status`, `source_path` or `lifecycle_folder` change). It still runs today's top-level `plan.references` rewrite, which matches only a `plan`-type reference that resolves to the move's exact old path. It persists only when that rewrite changed a reference, as today's `changed` flag already does; otherwise PROJECT-DEFINITION is not written. This covers every caller: promote, activate, demote, restore and undo (`transition.ts` and `undo.ts` both call `syncProjectDefinitionAfterScopeMove`). A move into a terminal folder is unchanged: it rewrites the reference and removes the matching row. The specification registry sync (no open-rows-only policy) does not change. `project:render` does not change."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a4cc1302b60723d6291578e3dba452c6ad585651",
+          "recorded_at": "2026-11-22T12:23:15Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Docs for item 2. The scope lifecycle text in `content/commands.md` states that open-folder moves add or update no PROJECT-DEFINITION row and only rewrite a top-level `plan.references` entry that names the moved brief, that terminal moves remove the row, and that `project:render` refreshes open rows. It does not claim that no reader observes row freshness.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "When a reader opens the scope lifecycle text in content/commands.md, then it shows that open-folder moves add or update no PROJECT-DEFINITION row and only rewrite a top-level plan.references entry that names the moved brief, that terminal moves remove the row, and that project:render refreshes open rows."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a4cc1302b60723d6291578e3dba452c6ad585651",
+          "recorded_at": "2026-11-22T12:23:15Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Ingest help (P3). `issue:ingest` accepts `--help` and `-h`. It prints its usage on stdout and exits 0 before `requireScmReady` and before any GitHub read. Other argument handling does not change.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "When issue:ingest is given --help or -h, then it returns usage on stdout and exit 0 before requireScmReady and before any GitHub read; other argument handling is unchanged."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a4cc1302b60723d6291578e3dba452c6ad585651",
+          "recorded_at": "2026-11-22T12:23:15Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Plan-sequence skip (P4). `verify:plan-sequence` with no `--target-kind` and no `--target`, when `.deft/plan-sequence.json` does not exist, prints `OK verify:plan-sequence skipped (no active ordered-plan sequence)` and exits 0; with `--json` it prints the existing skip payload (`ok: true`, `skipped: true`, `reason: \"no-active-sequence\"`). With no target and an existing plan file, it keeps the usage error and exit 2. An invalid flag or a partial target (only one of the two flags) keeps its usage error and exit 2.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "Plan-sequence skip (P4). `verify:plan-sequence` with no `--target-kind` and no `--target`, when `.deft/plan-sequence.json` does not exist, prints `OK verify:plan-sequence skipped (no active ordered-plan sequence)` and exits 0; with `--json` it prints the existing skip payload (`ok: true`, `skipped: true`, `reason: \"no-active-sequence\"`). With no target and an existing plan file, it keeps the usage error and exit 2. An invalid flag or a partial target (only one of the two flags) keeps its usage error and exit 2."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a4cc1302b60723d6291578e3dba452c6ad585651",
+          "recorded_at": "2026-11-22T12:23:15Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Current skip (P4). `plan-sequence:current`, when `.deft/plan-sequence.json` does not exist, prints `No active ordered-plan sequence (.deft/plan-sequence.json missing).` on stdout and exits 0; with `--json` it prints the same skip payload shape as item 5. An existing file that is exhausted, malformed or unreadable keeps today's output and exit codes.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "narrative": {
           "Acceptance": "Current skip (P4). `plan-sequence:current`, when `.deft/plan-sequence.json` does not exist, prints `No active ordered-plan sequence (.deft/plan-sequence.json missing).` on stdout and exits 0; with `--json` it prints the same skip payload shape as item 5. An existing file that is exhausted, malformed or unreadable keeps today's output and exit codes."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a4cc1302b60723d6291578e3dba452c6ad585651",
+          "recorded_at": "2026-11-22T12:23:15Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Tests cover each item: the readiness line with and without a path; an activate and a promote with no top-level reference to the brief leave PROJECT-DEFINITION byte-identical, including when a row for the brief exists; a top-level `plan.references` entry (plain and `file://`) that names the brief follows it through proposed, pending, active and completed, ending on the completed path, while the row is removed at completion; a complete still removes the row; `issue:ingest --help` and `-h` exit 0 with usage and make no SCM call; the two plan-sequence skips with text and `--json`, and the kept exit 2 and exit 1 cases. The #6648 cases in `project-definition-sync.test.ts` that assert an insert on restore and a patch on promote flip to assert no row change.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
         "narrative": {
           "Acceptance": "Tests cover each item: the readiness line with and without a path; an activate and a promote with no top-level reference to the brief leave PROJECT-DEFINITION byte-identical, including when a row for the brief exists; a top-level `plan.references` entry (plain and `file://`) that names the brief follows it through proposed, pending, active and completed, ending on the completed path, while the row is removed at completion; a complete still removes the row; `issue:ingest --help` and `-h` exit 0 with usage and make no SCM call; the two plan-sequence skips with text and `--json`, and the kept exit 2 and exit 1 cases. The #6648 cases in `project-definition-sync.test.ts` that assert an insert on restore and a patch on promote flip to assert no row change."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a4cc1302b60723d6291578e3dba452c6ad585651",
+          "recorded_at": "2026-11-22T12:23:15Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given no path argument, `swarm:readiness` prints a line naming `xbrief/active/` as the only folder checked and the path argument for proposed or pending briefs, including when it finds no candidate; exit codes are unchanged.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.8",
         "narrative": {
           "Acceptance": "Given no path argument, `swarm:readiness` prints a line naming `xbrief/active/` as the only folder checked and the path argument for proposed or pending briefs, including when it finds no candidate; exit codes are unchanged."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a4cc1302b60723d6291578e3dba452c6ad585651",
+          "recorded_at": "2026-11-22T12:23:15Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given `scope:activate` or `scope:promote` on a brief that no top-level `plan.references` entry names, `xbrief/PROJECT-DEFINITION.xbrief.json` is byte-identical after the move, whether or not it has a row for that brief.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.9",
         "narrative": {
           "Acceptance": "Given `scope:activate` or `scope:promote` on a brief that no top-level `plan.references` entry names, `xbrief/PROJECT-DEFINITION.xbrief.json` is byte-identical after the move, whether or not it has a row for that brief."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a4cc1302b60723d6291578e3dba452c6ad585651",
+          "recorded_at": "2026-11-22T12:23:15Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given a top-level `plan.references` entry that names a brief by its path, the entry names the brief's new path after each of promote, activate and complete, and no row is inserted or patched by the open moves.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.10",
         "narrative": {
           "Acceptance": "Given a top-level `plan.references` entry that names a brief by its path, the entry names the brief's new path after each of promote, activate and complete, and no row is inserted or patched by the open moves."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a4cc1302b60723d6291578e3dba452c6ad585651",
+          "recorded_at": "2026-11-22T12:23:15Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given `scope:complete` or `scope:cancel` on a brief with a PROJECT-DEFINITION row, the row is removed as today.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.11",
         "narrative": {
           "Acceptance": "Given `scope:complete` or `scope:cancel` on a brief with a PROJECT-DEFINITION row, the row is removed as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a4cc1302b60723d6291578e3dba452c6ad585651",
+          "recorded_at": "2026-11-22T12:23:15Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "`deft issue:ingest --help` and `-h` print usage on stdout and exit 0 without an SCM readiness check or GitHub read.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.12",
         "narrative": {
           "Acceptance": "When deft issue:ingest is run with --help or -h, then it returns usage on stdout and exit 0 without an SCM readiness check or GitHub read."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a4cc1302b60723d6291578e3dba452c6ad585651",
+          "recorded_at": "2026-11-22T12:23:15Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given no `.deft/plan-sequence.json`, `verify:plan-sequence` with no target prints the skip line (or the skip JSON with `--json`) and exits 0.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.13",
         "narrative": {
           "Acceptance": "Given no `.deft/plan-sequence.json`, `verify:plan-sequence` with no target prints the skip line (or the skip JSON with `--json`) and exits 0."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a4cc1302b60723d6291578e3dba452c6ad585651",
+          "recorded_at": "2026-11-22T12:23:15Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given an existing `.deft/plan-sequence.json`, `verify:plan-sequence` with no target, or with only one of `--target-kind` and `--target`, exits 2 with usage.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.14",
         "narrative": {
           "Acceptance": "Given an existing `.deft/plan-sequence.json`, `verify:plan-sequence` with no target, or with only one of `--target-kind` and `--target`, exits 2 with usage."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a4cc1302b60723d6291578e3dba452c6ad585651",
+          "recorded_at": "2026-11-22T12:23:15Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given no `.deft/plan-sequence.json`, `plan-sequence:current` prints the no-sequence line on stdout (or the skip JSON with `--json`) and exits 0; a malformed file keeps a non-zero exit.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.15",
         "narrative": {
           "Acceptance": "Given no `.deft/plan-sequence.json`, `plan-sequence:current` prints the no-sequence line on stdout (or the skip JSON with `--json`) and exits 0; a malformed file keeps a non-zero exit."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a4cc1302b60723d6291578e3dba452c6ad585651",
+          "recorded_at": "2026-11-22T12:23:15Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "`content/commands.md` states the open-move and terminal-move PROJECT-DEFINITION rules, including the kept reference rewrite, and that `project:render` refreshes open rows.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.16",
         "narrative": {
           "Acceptance": "When a reader opens content/commands.md, then it shows the open-move and terminal-move PROJECT-DEFINITION rules, including the kept reference rewrite, and that project:render refreshes open rows."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a4cc1302b60723d6291578e3dba452c6ad585651",
+          "recorded_at": "2026-11-22T12:23:15Z",
+          "recorded_by": "scope:complete"
         }
       }
     ],
@@ -634,7 +746,36 @@
         "harvestDigest": "ad1433cc9377cf77c93fa98abeb3900e0522cbdcd2dbdf555ac94ef0e83b92cc",
         "slice": null
       },
-      "kind": "story"
+      "kind": "story",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "e985c52113b0cc3ea7ad3e1d6f7a2c95956edd75",
+        "prNumber": 7002,
+        "prBase": "master",
+        "mergeCommit": "a4cc1302b60723d6291578e3dba452c6ad585651",
+        "deliveryBranch": "master",
+        "deliveryCommit": "a4cc1302b60723d6291578e3dba452c6ad585651",
+        "verifiedAt": "2026-11-22T12:23:15Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:ZTYxMTJjZWUtZTUxNC00NjVlLTk1ZjUtN2QwZDljMmE5OWVl",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          6990
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-22T12:23:15Z",
+      "completedSessionId": "host:claude:v1:ZTYxMTJjZWUtZTUxNC00NjVlLTk1ZjUtN2QwZDljMmE5OWVl",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-22T12:23:15Z"
+      }
     },
     "acceptance": {
       "commands": [],
@@ -795,6 +936,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.6516777613",
-    "updated": "2026-11-22T04:28:15Z"
+    "updated": "2026-11-22T12:23:15Z"
   }
 }
