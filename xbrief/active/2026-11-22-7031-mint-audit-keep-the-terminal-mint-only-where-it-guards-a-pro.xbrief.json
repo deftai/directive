@@ -1,0 +1,707 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #7031",
+    "updated": "2026-11-22T16:07:17Z"
+  },
+  "plan": {
+    "title": "mint audit: keep the terminal mint only where it guards a protected store",
+    "status": "running",
+    "narratives": {
+      "Description": "mint audit: keep the terminal mint only where it guards a protected store",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/7031",
+      "Overview": "\n1. Drop the terminal step. `scope:record-observable-scope` and `scope:record-intent-constraint`, single path and cohort form, no longer call `refuseNonInteractiveMint` and need no `--confirm` or typed phrase; they write from any shell, an agent's included. The UAT refuse stays. The cohort form still prints the frozen set it writes.\n2. Declared stamp. These two commands always write `humanApproval: {kind: \"declared\", actor, mintedAt, mintedVia: <command name>}`. They refuse `--kind` and `--minted-via`. `--actor` is an optional declared-by display field and may name an agent. One local predicate (`declared`, or what `isHumanApprovalStamp` accepts) is used by both builders and both parsers, so legacy human-stamped and `in-harness-ask` records still parse. `isHumanApprovalStamp` is unchanged, so approved-scope, the one-PR proof and every other reader still refuse a declared stamp.\n3. Reader with writer. Reader acceptance ships in the same release as the writer. The CHANGELOG says consumers move the pin before writing a declared record, because an older runtime fails the whole record folder on one record it cannot parse.\n4. Kept mints. Keep the mint where the record is live authority before any merge: every `authz:*` mutating command and template (including `uat-start`, `uat-suspend`, `revoke` and `one-pr-unit`) and `scope:record-approved-scope`. Add no folder to the protected set.\n5. Worker instructions. For these two records, replace \"attended ask; unattended park pending a human mint; no parent auto-approve\" with \"write the declaration with the command and land it on the merge base before the product PR; a declaration is not consent\". Keep the operational-versus-invariant classification and the no-soften rule. Files: `content/templates/agent-prompt-preamble.md`; the build, setup and swarm Phase 0 skill text through the skills pack source and render; `content/docs/intent-constraint.md`, `observable-scope.md`, `scope-provenance.md`; `content/commands.md`; `INTENT_CONSTRAINT_REMEDIATION` and `OBSERVABLE_SCOPE_REMEDIATION`; both commands' usage. Mirror consumer-relevant text through agents-entry.\n6. One table in `content/contracts/human-origin-authz.md`: every operator-mint command with its store, where the record is read (live hook, local grant store, App store, merge base), whether hooks deny writes inside the checkout, the self-approval it prevents, kept or dropped, and what a kept mint buys (the command stop while agent markers are set, plus the in-checkout write deny). It names the limits: the PowerShell tool (#6981), absolute writes from a linked worktree into the main clone's `.deft/authz/`, forge commits, marker-based presence, and brief stamps checked by shape only (presentation ceiling, durable-effect ceiling). For the two dropped rows it states the control per merge policy: under human merge the stop is the merge that lands the record; under bot merge or a merge under the operator's identity there is none; the story fence refuses direct writes of these paths unless the merge-gate signal is live, and the command is a writer that fence does not see; a fact found mid-build still needs a record PR before the product PR.\n7. Tests beside each changed file: each dropped command, single path and cohort, writes its record with agent markers set and no TTY; `--kind` and `--minted-via` are refused; both builders and parsers accept `declared` and legacy records; `isHumanApprovalStamp` rejects `declared`; `scope:record-approved-scope` and one `authz:grant` template still refuse without a TTY.\n\n## Acceptance Criteria\n\n- `scope:record-observable-scope` and `scope:record-intent-constraint`, single path and cohort form, write their records from an agent shell with no TTY, `--confirm` or typed phrase, and still refuse during an active UAT lease.\n- Records these commands write carry `kind: \"declared\"` and `mintedVia` naming the command; `--kind` and `--minted-via` are refused on these commands.\n- Both builders and both parsers accept `declared` and legacy human-stamped records, and `isHumanApprovalStamp` still rejects `declared`.\n- Every `authz:*` mutating command and template and `scope:record-approved-scope` still refuse without the terminal mint.\n- The worker preamble, the build, setup and swarm skill text, the record docs, `content/commands.md` and the two remediation strings tell workers to write the declaration and land it before the product PR, not to park for a human mint.\n- `content/contracts/human-origin-authz.md` has one table of every operator-mint command with its store, where it is read, hook coverage, what it prevents, kept or dropped, what a kept mint buys, the named limits, and the per-merge-policy control for the two dropped commands.\n- Tests cover a dropped command (single and cohort) writing without a TTY under agent markers and a kept command refusing without a TTY.\n- The CHANGELOG says the reader ships with the writer and consumers move the pin before writing declared records.\n\n\n",
+      "Constraint": "- Writing today's `operator` stamp, or `mintedVia: in-harness-ask`, from the dropped commands (7080187478 finding 1, 7080179724 finding 3).\n- Teaching `isHumanApprovalStamp` about `declared` (7080187478 finding 1, 7080179466 finding 2).\n- Parser-only acceptance of `declared` (7080179466 finding 2, 7080187478 finding 1).\n- Dropping the terminal call without recutting the worker preamble and skills (7080179466 finding 1, 7080179724 finding 2).\n- \"Hooks protect the store\" as the keep rule, and \"agents cannot write the store\" as a claim (7080179724 finding 1, 7080179466 finding 3, 7080187478 finding 3).\n- Dropping the mint on `authz:uat-start` or `authz:revoke` (7080187478 finding 4, 7080179724 answer 4, 7080179466 answer 4).\n- Calling the merge a control without naming the merge policy (7080179724 finding 4, 7080187478 finding 2).\n- Adding the two record folders to the protected set (Stop 1 R4; 7080187478 footnote 5).",
+      "Labels": "design-critique:ingest-ready, framework-gap",
+      "ImplementationPlan": "1. packages/core/src/scope-provenance/record-stamp.ts (new): the declared stamp kind, the two declared-writer verbs and one predicate (declared from a declared-writer verb, or what isHumanApprovalStamp accepts). isHumanApprovalStamp stays unchanged.\n2. observable-scope/mint.ts and intent-constraint/mint.ts: both builders and both parsers use that predicate.\n3. runtime scope-record-observable-scope.ts, scope-record-intent-constraint.ts and scope-record-cohort.ts: no refuseNonInteractiveMint call; always write kind declared with mintedVia = the verb; refuse --kind and --minted-via; --actor optional (declared-by, may be an agent); --confirm accepted and ignored; UAT refusal stays; the cohort still prints the frozen set.\n4. Remediation strings, worker preamble, build/setup/swarm skills (pack source, then task packs:render), record docs, content/commands.md: write the declaration with the command and land it before the product PR; a declaration is not consent.\n5. content/contracts/human-origin-authz.md: one table of every operator-mint command with store, read-at, hook coverage, what it prevents, kept or dropped, what a kept mint buys, named limits, and the per-merge-policy control for the two dropped commands.\n6. Tests: mint-audit.test.ts (dropped verbs write without a TTY under agent markers, single and cohort; kept verbs refuse), record-stamp.test.ts, beside-file tests, and a content-contract test for the docs. Evaluator-surface disclosure, RULE-MAP regenerate, changelog fragment.",
+      "Traces": "#7031 clauses 1-15 trace to the accepted lean 7080205053 Bound remedy items 1-7 and its Acceptance Criteria. Follow-ups out of scope: #7044, #7045, #7036."
+    },
+    "items": [
+      {
+        "title": "Drop the terminal step. `scope:record-observable-scope` and `scope:record-intent-constraint`, single path and cohort form, no longer call `refuseNonInteractiveMint` and need no `--confirm` or typed phrase; they write from any shell, an agent's included. The UAT refuse stays. The cohort form still prints the frozen set it writes.",
+        "status": "proposed",
+        "id": "clause.1",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "Drop the terminal step. `scope:record-observable-scope` and `scope:record-intent-constraint`, single path and cohort form, no longer call `refuseNonInteractiveMint` and need no `--confirm` or typed phrase; they write from any shell, an agent's included. The UAT refuse stays. The cohort form still prints the frozen set it writes."
+        }
+      },
+      {
+        "title": "Declared stamp. These two commands always write `humanApproval: {kind: \"declared\", actor, mintedAt, mintedVia: <command name>}`. They refuse `--kind` and `--minted-via`. `--actor` is an optional declared-by display field and may name an agent. One local predicate (`declared`, or what `isHumanApprovalStamp` accepts) is used by both builders and both parsers, so legacy human-stamped and `in-harness-ask` records still parse. `isHumanApprovalStamp` is unchanged, so approved-scope, the one-PR proof and every other reader still refuse a declared stamp.",
+        "status": "proposed",
+        "id": "clause.2",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "Declared stamp. These two commands always write `humanApproval: {kind: \"declared\", actor, mintedAt, mintedVia: <command name>}`. They refuse `--kind` and `--minted-via`. `--actor` is an optional declared-by display field and may name an agent. One local predicate (`declared`, or what `isHumanApprovalStamp` accepts) is used by both builders and both parsers, so legacy human-stamped and `in-harness-ask` records still parse. `isHumanApprovalStamp` is unchanged, so approved-scope, the one-PR proof and every other reader still refuse a declared stamp."
+        }
+      },
+      {
+        "title": "Reader with writer. Reader acceptance ships in the same release as the writer. The CHANGELOG says consumers move the pin before writing a declared record, because an older runtime fails the whole record folder on one record it cannot parse.",
+        "status": "proposed",
+        "id": "clause.3",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "Reader with writer. Reader acceptance ships in the same release as the writer. The CHANGELOG says consumers move the pin before writing a declared record, because an older runtime fails the whole record folder on one record it cannot parse."
+        }
+      },
+      {
+        "title": "Kept mints. Keep the mint where the record is live authority before any merge: every `authz:*` mutating command and template (including `uat-start`, `uat-suspend`, `revoke` and `one-pr-unit`) and `scope:record-approved-scope`. Add no folder to the protected set.",
+        "status": "proposed",
+        "id": "clause.4",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "Kept mints. Keep the mint where the record is live authority before any merge: every `authz:*` mutating command and template (including `uat-start`, `uat-suspend`, `revoke` and `one-pr-unit`) and `scope:record-approved-scope`. Add no folder to the protected set."
+        }
+      },
+      {
+        "title": "Worker instructions. For these two records, replace \"attended ask; unattended park pending a human mint; no parent auto-approve\" with \"write the declaration with the command and land it on the merge base before the product PR; a declaration is not consent\". Keep the operational-versus-invariant classification and the no-soften rule. Files: `content/templates/agent-prompt-preamble.md`; the build, setup and swarm Phase 0 skill text through the skills pack source and render; `content/docs/intent-constraint.md`, `observable-scope.md`, `scope-provenance.md`; `content/commands.md`; `INTENT_CONSTRAINT_REMEDIATION` and `OBSERVABLE_SCOPE_REMEDIATION`; both commands' usage. Mirror consumer-relevant text through agents-entry.",
+        "status": "proposed",
+        "id": "clause.5",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "Worker instructions. For these two records, replace \"attended ask; unattended park pending a human mint; no parent auto-approve\" with \"write the declaration with the command and land it on the merge base before the product PR; a declaration is not consent\". Keep the operational-versus-invariant classification and the no-soften rule. Files: `content/templates/agent-prompt-preamble.md`; the build, setup and swarm Phase 0 skill text through the skills pack source and render; `content/docs/intent-constraint.md`, `observable-scope.md`, `scope-provenance.md`; `content/commands.md`; `INTENT_CONSTRAINT_REMEDIATION` and `OBSERVABLE_SCOPE_REMEDIATION`; both commands' usage. Mirror consumer-relevant text through agents-entry."
+        }
+      },
+      {
+        "title": "One table in `content/contracts/human-origin-authz.md`: every operator-mint command with its store, where the record is read (live hook, local grant store, App store, merge base), whether hooks deny writes inside the checkout, the self-approval it prevents, kept or dropped, and what a kept mint buys (the command stop while agent markers are set, plus the in-checkout write deny). It names the limits: the PowerShell tool (#6981), absolute writes from a linked worktree into the main clone's `.deft/authz/`, forge commits, marker-based presence, and brief stamps checked by shape only (presentation ceiling, durable-effect ceiling). For the two dropped rows it states the control per merge policy: under human merge the stop is the merge that lands the record; under bot merge or a merge under the operator's identity there is none; the story fence refuses direct writes of these paths unless the merge-gate signal is live, and the command is a writer that fence does not see; a fact found mid-build still needs a record PR before the product PR.",
+        "status": "proposed",
+        "id": "clause.6",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "One table in `content/contracts/human-origin-authz.md`: every operator-mint command with its store, where the record is read (live hook, local grant store, App store, merge base), whether hooks deny writes inside the checkout, the self-approval it prevents, kept or dropped, and what a kept mint buys (the command stop while agent markers are set, plus the in-checkout write deny). It names the limits: the PowerShell tool (#6981), absolute writes from a linked worktree into the main clone's `.deft/authz/`, forge commits, marker-based presence, and brief stamps checked by shape only (presentation ceiling, durable-effect ceiling). For the two dropped rows it states the control per merge policy: under human merge the stop is the merge that lands the record; under bot merge or a merge under the operator's identity there is none; the story fence refuses direct writes of these paths unless the merge-gate signal is live, and the command is a writer that fence does not see; a fact found mid-build still needs a record PR before the product PR."
+        }
+      },
+      {
+        "title": "Tests beside each changed file: each dropped command, single path and cohort, writes its record with agent markers set and no TTY; `--kind` and `--minted-via` are refused; both builders and parsers accept `declared` and legacy records; `isHumanApprovalStamp` rejects `declared`; `scope:record-approved-scope` and one `authz:grant` template still refuse without a TTY.",
+        "status": "proposed",
+        "id": "clause.7",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "Tests beside each changed file: each dropped command, single path and cohort, writes its record with agent markers set and no TTY; `--kind` and `--minted-via` are refused; both builders and parsers accept `declared` and legacy records; `isHumanApprovalStamp` rejects `declared`; `scope:record-approved-scope` and one `authz:grant` template still refuse without a TTY."
+        }
+      },
+      {
+        "title": "`scope:record-observable-scope` and `scope:record-intent-constraint`, single path and cohort form, write their records from an agent shell with no TTY, `--confirm` or typed phrase, and still refuse during an active UAT lease.",
+        "status": "proposed",
+        "id": "clause.8",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "`scope:record-observable-scope` and `scope:record-intent-constraint`, single path and cohort form, write their records from an agent shell with no TTY, `--confirm` or typed phrase, and still refuse during an active UAT lease."
+        }
+      },
+      {
+        "title": "Records these commands write carry `kind: \"declared\"` and `mintedVia` naming the command; `--kind` and `--minted-via` are refused on these commands.",
+        "status": "proposed",
+        "id": "clause.9",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "Records these commands write carry `kind: \"declared\"` and `mintedVia` naming the command; `--kind` and `--minted-via` are refused on these commands."
+        }
+      },
+      {
+        "title": "Both builders and both parsers accept `declared` and legacy human-stamped records, and `isHumanApprovalStamp` still rejects `declared`.",
+        "status": "proposed",
+        "id": "clause.10",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "Both builders and both parsers accept `declared` and legacy human-stamped records, and `isHumanApprovalStamp` still rejects `declared`."
+        }
+      },
+      {
+        "title": "Every `authz:*` mutating command and template and `scope:record-approved-scope` still refuse without the terminal mint.",
+        "status": "proposed",
+        "id": "clause.11",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "Every `authz:*` mutating command and template and `scope:record-approved-scope` still refuse without the terminal mint."
+        }
+      },
+      {
+        "title": "The worker preamble, the build, setup and swarm skill text, the record docs, `content/commands.md` and the two remediation strings tell workers to write the declaration and land it before the product PR, not to park for a human mint.",
+        "status": "proposed",
+        "id": "clause.12",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "The worker preamble, the build, setup and swarm skill text, the record docs, `content/commands.md` and the two remediation strings tell workers to write the declaration and land it before the product PR, not to park for a human mint."
+        }
+      },
+      {
+        "title": "`content/contracts/human-origin-authz.md` has one table of every operator-mint command with its store, where it is read, hook coverage, what it prevents, kept or dropped, what a kept mint buys, the named limits, and the per-merge-policy control for the two dropped commands.",
+        "status": "proposed",
+        "id": "clause.13",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "`content/contracts/human-origin-authz.md` has one table of every operator-mint command with its store, where it is read, hook coverage, what it prevents, kept or dropped, what a kept mint buys, the named limits, and the per-merge-policy control for the two dropped commands."
+        }
+      },
+      {
+        "title": "Tests cover a dropped command (single and cohort) writing without a TTY under agent markers and a kept command refusing without a TTY.",
+        "status": "proposed",
+        "id": "clause.14",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "Tests cover a dropped command (single and cohort) writing without a TTY under agent markers and a kept command refusing without a TTY."
+        }
+      },
+      {
+        "title": "The CHANGELOG says the reader ships with the writer and consumers move the pin before writing declared records.",
+        "status": "proposed",
+        "id": "clause.15",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "The CHANGELOG says the reader ships with the writer and consumers move the pin before writing declared records."
+        }
+      }
+    ],
+    "tags": [
+      "design-critique:ingest-ready",
+      "framework-gap"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/7031",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #7031: mint audit: keep the terminal mint only where it guards a protected store"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6937",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6937"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per harvested lean item (15), in list order (#6333)",
+      "sentences": [
+        "Drop the terminal step. `scope:record-observable-scope` and `scope:record-intent-constraint`, single path and cohort form, no longer call `refuseNonInteractiveMint` and need no `--confirm` or typed phrase; they write from any shell, an agent's included. The UAT refuse stays. The cohort form still prints the frozen set it writes.",
+        "Declared stamp. These two commands always write `humanApproval: {kind: \"declared\", actor, mintedAt, mintedVia: <command name>}`. They refuse `--kind` and `--minted-via`. `--actor` is an optional declared-by display field and may name an agent. One local predicate (`declared`, or what `isHumanApprovalStamp` accepts) is used by both builders and both parsers, so legacy human-stamped and `in-harness-ask` records still parse. `isHumanApprovalStamp` is unchanged, so approved-scope, the one-PR proof and every other reader still refuse a declared stamp.",
+        "Reader with writer. Reader acceptance ships in the same release as the writer. The CHANGELOG says consumers move the pin before writing a declared record, because an older runtime fails the whole record folder on one record it cannot parse.",
+        "Kept mints. Keep the mint where the record is live authority before any merge: every `authz:*` mutating command and template (including `uat-start`, `uat-suspend`, `revoke` and `one-pr-unit`) and `scope:record-approved-scope`. Add no folder to the protected set.",
+        "Worker instructions. For these two records, replace \"attended ask; unattended park pending a human mint; no parent auto-approve\" with \"write the declaration with the command and land it on the merge base before the product PR; a declaration is not consent\". Keep the operational-versus-invariant classification and the no-soften rule. Files: `content/templates/agent-prompt-preamble.md`; the build, setup and swarm Phase 0 skill text through the skills pack source and render; `content/docs/intent-constraint.md`, `observable-scope.md`, `scope-provenance.md`; `content/commands.md`; `INTENT_CONSTRAINT_REMEDIATION` and `OBSERVABLE_SCOPE_REMEDIATION`; both commands' usage. Mirror consumer-relevant text through agents-entry.",
+        "One table in `content/contracts/human-origin-authz.md`: every operator-mint command with its store, where the record is read (live hook, local grant store, App store, merge base), whether hooks deny writes inside the checkout, the self-approval it prevents, kept or dropped, and what a kept mint buys (the command stop while agent markers are set, plus the in-checkout write deny). It names the limits: the PowerShell tool (#6981), absolute writes from a linked worktree into the main clone's `.deft/authz/`, forge commits, marker-based presence, and brief stamps checked by shape only (presentation ceiling, durable-effect ceiling). For the two dropped rows it states the control per merge policy: under human merge the stop is the merge that lands the record; under bot merge or a merge under the operator's identity there is none; the story fence refuses direct writes of these paths unless the merge-gate signal is live, and the command is a writer that fence does not see; a fact found mid-build still needs a record PR before the product PR.",
+        "Tests beside each changed file: each dropped command, single path and cohort, writes its record with agent markers set and no TTY; `--kind` and `--minted-via` are refused; both builders and parsers accept `declared` and legacy records; `isHumanApprovalStamp` rejects `declared`; `scope:record-approved-scope` and one `authz:grant` template still refuse without a TTY.",
+        "`scope:record-observable-scope` and `scope:record-intent-constraint`, single path and cohort form, write their records from an agent shell with no TTY, `--confirm` or typed phrase, and still refuse during an active UAT lease.",
+        "Records these commands write carry `kind: \"declared\"` and `mintedVia` naming the command; `--kind` and `--minted-via` are refused on these commands.",
+        "Both builders and both parsers accept `declared` and legacy human-stamped records, and `isHumanApprovalStamp` still rejects `declared`.",
+        "Every `authz:*` mutating command and template and `scope:record-approved-scope` still refuse without the terminal mint.",
+        "The worker preamble, the build, setup and swarm skill text, the record docs, `content/commands.md` and the two remediation strings tell workers to write the declaration and land it before the product PR, not to park for a human mint.",
+        "`content/contracts/human-origin-authz.md` has one table of every operator-mint command with its store, where it is read, hook coverage, what it prevents, kept or dropped, what a kept mint buys, the named limits, and the per-merge-policy control for the two dropped commands.",
+        "Tests cover a dropped command (single and cohort) writing without a TTY under agent markers and a kept command refusing without a TTY.",
+        "The CHANGELOG says the reader ships with the writer and consumers move the pin before writing declared records."
+      ],
+      "admitted_source_sentences": [
+        "Drop the terminal step. `scope:record-observable-scope` and `scope:record-intent-constraint`, single path and cohort form, no longer call `refuseNonInteractiveMint` and need no `--confirm` or typed phrase; they write from any shell, an agent's included. The UAT refuse stays. The cohort form still prints the frozen set it writes.",
+        "Declared stamp. These two commands always write `humanApproval: {kind: \"declared\", actor, mintedAt, mintedVia: <command name>}`. They refuse `--kind` and `--minted-via`. `--actor` is an optional declared-by display field and may name an agent. One local predicate (`declared`, or what `isHumanApprovalStamp` accepts) is used by both builders and both parsers, so legacy human-stamped and `in-harness-ask` records still parse. `isHumanApprovalStamp` is unchanged, so approved-scope, the one-PR proof and every other reader still refuse a declared stamp.",
+        "Reader with writer. Reader acceptance ships in the same release as the writer. The CHANGELOG says consumers move the pin before writing a declared record, because an older runtime fails the whole record folder on one record it cannot parse.",
+        "Kept mints. Keep the mint where the record is live authority before any merge: every `authz:*` mutating command and template (including `uat-start`, `uat-suspend`, `revoke` and `one-pr-unit`) and `scope:record-approved-scope`. Add no folder to the protected set.",
+        "Worker instructions. For these two records, replace \"attended ask; unattended park pending a human mint; no parent auto-approve\" with \"write the declaration with the command and land it on the merge base before the product PR; a declaration is not consent\". Keep the operational-versus-invariant classification and the no-soften rule. Files: `content/templates/agent-prompt-preamble.md`; the build, setup and swarm Phase 0 skill text through the skills pack source and render; `content/docs/intent-constraint.md`, `observable-scope.md`, `scope-provenance.md`; `content/commands.md`; `INTENT_CONSTRAINT_REMEDIATION` and `OBSERVABLE_SCOPE_REMEDIATION`; both commands' usage. Mirror consumer-relevant text through agents-entry.",
+        "One table in `content/contracts/human-origin-authz.md`: every operator-mint command with its store, where the record is read (live hook, local grant store, App store, merge base), whether hooks deny writes inside the checkout, the self-approval it prevents, kept or dropped, and what a kept mint buys (the command stop while agent markers are set, plus the in-checkout write deny). It names the limits: the PowerShell tool (#6981), absolute writes from a linked worktree into the main clone's `.deft/authz/`, forge commits, marker-based presence, and brief stamps checked by shape only (presentation ceiling, durable-effect ceiling). For the two dropped rows it states the control per merge policy: under human merge the stop is the merge that lands the record; under bot merge or a merge under the operator's identity there is none; the story fence refuses direct writes of these paths unless the merge-gate signal is live, and the command is a writer that fence does not see; a fact found mid-build still needs a record PR before the product PR.",
+        "Tests beside each changed file: each dropped command, single path and cohort, writes its record with agent markers set and no TTY; `--kind` and `--minted-via` are refused; both builders and parsers accept `declared` and legacy records; `isHumanApprovalStamp` rejects `declared`; `scope:record-approved-scope` and one `authz:grant` template still refuse without a TTY.",
+        "`scope:record-observable-scope` and `scope:record-intent-constraint`, single path and cohort form, write their records from an agent shell with no TTY, `--confirm` or typed phrase, and still refuse during an active UAT lease.",
+        "Records these commands write carry `kind: \"declared\"` and `mintedVia` naming the command; `--kind` and `--minted-via` are refused on these commands.",
+        "Both builders and both parsers accept `declared` and legacy human-stamped records, and `isHumanApprovalStamp` still rejects `declared`.",
+        "Every `authz:*` mutating command and template and `scope:record-approved-scope` still refuse without the terminal mint.",
+        "The worker preamble, the build, setup and swarm skill text, the record docs, `content/commands.md` and the two remediation strings tell workers to write the declaration and land it before the product PR, not to park for a human mint.",
+        "`content/contracts/human-origin-authz.md` has one table of every operator-mint command with its store, where it is read, hook coverage, what it prevents, kept or dropped, what a kept mint buys, the named limits, and the per-merge-policy control for the two dropped commands.",
+        "Tests cover a dropped command (single and cohort) writing without a TTY under agent markers and a kept command refusing without a TTY.",
+        "The CHANGELOG says the reader ships with the writer and consumers move the pin before writing declared records."
+      ],
+      "admitted_source_digest": "fc3944a304020e035278d862569536bb09599d85a44394acae5adba243e88b22",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Drop the terminal step. `scope:record-observable-scope` and `scope:record-intent-constraint`, single path and cohort form, no longer call `refuseNonInteractiveMint` and need no `--confirm` or typed phrase; they write from any shell, an agent's included. The UAT refuse stays. The cohort form still prints the frozen set it writes.",
+          "artifact_path": "packages/runtime/src/mint-audit.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Declared stamp. These two commands always write `humanApproval: {kind: \"declared\", actor, mintedAt, mintedVia: <command name>}`. They refuse `--kind` and `--minted-via`. `--actor` is an optional declared-by display field and may name an agent. One local predicate (`declared`, or what `isHumanApprovalStamp` accepts) is used by both builders and both parsers, so legacy human-stamped and `in-harness-ask` records still parse. `isHumanApprovalStamp` is unchanged, so approved-scope, the one-PR proof and every other reader still refuse a declared stamp.",
+          "artifact_path": "packages/runtime/src/mint-audit.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Reader with writer. Reader acceptance ships in the same release as the writer. The CHANGELOG says consumers move the pin before writing a declared record, because an older runtime fails the whole record folder on one record it cannot parse.",
+          "artifact_path": "packages/core/src/content-contracts/standards/declared_records_7031.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Kept mints. Keep the mint where the record is live authority before any merge: every `authz:*` mutating command and template (including `uat-start`, `uat-suspend`, `revoke` and `one-pr-unit`) and `scope:record-approved-scope`. Add no folder to the protected set.",
+          "artifact_path": "packages/runtime/src/mint-audit.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Worker instructions. For these two records, replace \"attended ask; unattended park pending a human mint; no parent auto-approve\" with \"write the declaration with the command and land it on the merge base before the product PR; a declaration is not consent\". Keep the operational-versus-invariant classification and the no-soften rule. Files: `content/templates/agent-prompt-preamble.md`; the build, setup and swarm Phase 0 skill text through the skills pack source and render; `content/docs/intent-constraint.md`, `observable-scope.md`, `scope-provenance.md`; `content/commands.md`; `INTENT_CONSTRAINT_REMEDIATION` and `OBSERVABLE_SCOPE_REMEDIATION`; both commands' usage. Mirror consumer-relevant text through agents-entry.",
+          "artifact_path": "packages/core/src/content-contracts/standards/declared_records_7031.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "One table in `content/contracts/human-origin-authz.md`: every operator-mint command with its store, where the record is read (live hook, local grant store, App store, merge base), whether hooks deny writes inside the checkout, the self-approval it prevents, kept or dropped, and what a kept mint buys (the command stop while agent markers are set, plus the in-checkout write deny). It names the limits: the PowerShell tool (#6981), absolute writes from a linked worktree into the main clone's `.deft/authz/`, forge commits, marker-based presence, and brief stamps checked by shape only (presentation ceiling, durable-effect ceiling). For the two dropped rows it states the control per merge policy: under human merge the stop is the merge that lands the record; under bot merge or a merge under the operator's identity there is none; the story fence refuses direct writes of these paths unless the merge-gate signal is live, and the command is a writer that fence does not see; a fact found mid-build still needs a record PR before the product PR.",
+          "artifact_path": "packages/core/src/content-contracts/standards/declared_records_7031.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Tests beside each changed file: each dropped command, single path and cohort, writes its record with agent markers set and no TTY; `--kind` and `--minted-via` are refused; both builders and parsers accept `declared` and legacy records; `isHumanApprovalStamp` rejects `declared`; `scope:record-approved-scope` and one `authz:grant` template still refuse without a TTY.",
+          "artifact_path": "packages/runtime/src/mint-audit.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "`scope:record-observable-scope` and `scope:record-intent-constraint`, single path and cohort form, write their records from an agent shell with no TTY, `--confirm` or typed phrase, and still refuse during an active UAT lease.",
+          "artifact_path": "packages/runtime/src/mint-audit.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Records these commands write carry `kind: \"declared\"` and `mintedVia` naming the command; `--kind` and `--minted-via` are refused on these commands.",
+          "artifact_path": "packages/runtime/src/mint-audit.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Both builders and both parsers accept `declared` and legacy human-stamped records, and `isHumanApprovalStamp` still rejects `declared`.",
+          "artifact_path": "packages/core/src/scope-provenance/record-stamp.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Every `authz:*` mutating command and template and `scope:record-approved-scope` still refuse without the terminal mint.",
+          "artifact_path": "packages/runtime/src/mint-audit.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "The worker preamble, the build, setup and swarm skill text, the record docs, `content/commands.md` and the two remediation strings tell workers to write the declaration and land it before the product PR, not to park for a human mint.",
+          "artifact_path": "packages/core/src/content-contracts/standards/declared_records_7031.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "`content/contracts/human-origin-authz.md` has one table of every operator-mint command with its store, where it is read, hook coverage, what it prevents, kept or dropped, what a kept mint buys, the named limits, and the per-merge-policy control for the two dropped commands.",
+          "artifact_path": "packages/core/src/content-contracts/standards/declared_records_7031.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "Tests cover a dropped command (single and cohort) writing without a TTY under agent markers and a kept command refusing without a TTY.",
+          "artifact_path": "packages/runtime/src/mint-audit.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "The CHANGELOG says the reader ships with the writer and consumers move the pin before writing declared records.",
+          "artifact_path": "packages/core/src/content-contracts/standards/declared_records_7031.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: triage\n```\n\nStop 1 — Gate (arc 7031; no-ingest)\n\nmechanism-shaped: true\ndesign-critique: warranted, because the change removes a human-presence gate from two record verbs and restates which remaining operator mints guard an authority store; a wrong split would either keep pure-cost terminal stops or remove the only control in front of an agent self-approval, while the docs claim otherwise.\n\nTarget-digest: sha256:23c4164f3e096e0ce4b9f129f463e4c80121b82ce97de2a7c7fd84a13549d785\ndispatch-sha: 65fc6f74abe90c598b05d720d331626c67743dac\ndest: C:/Repos/deft/wt/arc-7031 (pinKind origin-default, process-only-no-install, read-only session posture, no lease)\narc-mode: no-ingest\nyolo-standing: on\ncharter: open critique\nrefutation-target: \"For a record that lands in a store the hooks do not protect, the TTY mint adds no control an agent cannot route around, so dropping it loses nothing\" (the issue's premise that the mint is pure cost on `.deft/observable-scope/` and `.deft/intent-constraint/`)\nspend-recommend: N≥3\nspend: N≥3\nspend-ask: resolved\nspend-why: bare arc (operator utterance \"do it\", no closed spend token); recorded recommend via `deft design-critique:spend-resolve --utterance \"do it\" --recommend N≥3`. Panel permission applies: the change removes an authority gate and restates which approvals are real (high blast radius).\ncritic-post cap: 3 round-1 posts (contract default for N=3; no default retry); no cap raise is pre-approved for this arc\ndual-stop-reserved: first post-lean pain-audit of asserted coverage in-cap via evaluateDualStopParentPath; raise after reserved spent\nmateriality-bar: open\ntarget-kind: issue\nceiling-kind: comment-id\nverification-path: pin-read git show 65fc6f74abe90c598b05d720d331626c67743dac: + dest cwd-without-occupy\npain: P1, P2\n\n## In plain English\nDirective asks the operator to go to a real terminal and type `mint` before some records count. That step proves a person was at a terminal. It does not prove anyone reviewed anything. Where the record lands in a folder the agent hooks refuse to write (`.deft/authz/`, `.deft/approved-scope/`), the step is the only thing in front of an agent approving itself. Where the folder is not guarded (`.deft/observable-scope/`, `.deft/intent-constraint/`), the agent can write the same record by hand, the checker only looks at the stamp's shape, and the code itself prints that CI cannot tell a mint from a file an agent wrote. There the terminal step costs a stop per story or cohort and blocks headless swarms, and guards nothing.\n\nThe operator's direction is fewer gates: keep the mint where it guards a protected store, drop it where it guards nothing, and say plainly what each choice protects. The longer-term replacement for the mint is a passkey or hardware-key signature (#6945).\n\n## Operator decisions (Scott, recorded as constraints)\n- Approved 2026-11-22, his words \"do it\", on this framing: the TTY mint proves presence, not review; keep it where it guards a store agents cannot write (`.deft/authz/`, `.deft/approved-scope/`); drop it where it guards nothing (`.deft/observable-scope/`, `.deft/intent-constraint/`).\n- Direction: fewer gates. A fix that adds a refusal must say so.\n- Run posture: no ingest, no promote, no build from this arc.\n\n## Pains\n- P1 — A terminal stop that guards nothing. `scope:record-observable-scope` and `scope:record-intent-constraint` (single path or cohort form) run `refuseNonInteractiveMint`, but their records land in folders no hook guards, and both parsers accept any human-looking stamp, so an agent can write the record itself. Consumers still hit a human terminal stop per UI or constraint story (one per cohort since #6951), and a headless swarm cannot finish (#6937, deftai/evolution reports).\n- P2 — Nobody can tell which mints are real. No single place lists which actions still need an operator mint, what store each guards, and why, so agents and operators treat every mint the same.\n\n## Out of scope (named, not pains)\n- #6945 (signed approval for observable/intent records), #5862 (signed approved-scope stamps), #6284 (cohort consent grant for the one-PR path): later and stronger approvals; not built here.\n- #6981 (PowerShell tool not inspected by shell guards) and #6982 (kill-switch brace-list gap): hook holes that weaken \"protected\"; not fixed here.\n- #5980 (human-only mint for policy loosening) and policy authority mutators (`policy:allow-bot-merge` and peers): they have no mint today; unchanged.\n- #5010 (closed arc that bound an attended in-harness ask for these two records): related prior; whether this arc supersedes its stamp collection is a question below.\n\n## Inventory (code at the dispatch SHA)\nEvery caller of `refuseNonInteractiveMint` (`packages/runtime/src/human-presence-mint.ts` 292) is in five runtime files: `authz.ts` 479, `scope-record-approved-scope.ts` 554, `scope-record-cohort.ts` 606, `scope-record-intent-constraint.ts` 195, `scope-record-observable-scope.ts` 195. Every row also refuses while a UAT lease is active (`refuseMintWhileUatActive`), except `authz:uat-suspend`.\n\n| Verb | Store written | Hooks protect it? | Self-approval it prevents | Consumer hits | Lean |\n|---|---|---|---|---|---|\n| `scope:record-observable-scope` (2+ paths or `--manifest` route to `scope-record-cohort.ts`) | `.deft/observable-scope/<plan>.json`, committed, read at the merge base | No | Agent allowing its own visible UI changes. A hand-written record already passes: `parseObservableScopeRecord` checks the stamp's shape only | One per UI story under an opted-in surfaces policy; one per cohort since #6951 (deftai/evolution cohorts: 9-11 UI stories, #6937) | Drop the TTY step |\n| `scope:record-intent-constraint` (same cohort routing) | `.deft/intent-constraint/<plan>.json`, committed, merge base | No | Agent approving its own new throw/reject/abort sites or numeric constants in production code. Hand-written record passes the same way | One per story that adds such facts; this repo: 17 new records in the last 30 days against about 151 scope-complete commits | Drop the TTY step |\n| `scope:record-approved-scope` | `.deft/approved-scope/<plan>.json`, committed, merge base | Yes (Write/Edit and Bash dest-of-write) | Agent widening its own production write fence. The record also feeds the one-PR scope proof, the write-fence budget and the presentation ceiling | Per scope widen or one-PR mint level; this repo: 12 new and 4 changed in 30 days | Keep |\n| `authz:grant` (operations/surfaces/cohort, including `--operations settings`) | `.deft/authz/` (local, untracked; no PR) | Yes; agent-shell `authz:*` mutating verbs also classify as `settings` | Agent granting itself edit/push/merge under UAT, or the settings op that agent-run policy mutators and kill-switch plants need | Per UAT fix cohort; per agent-run policy switch | Keep |\n| `authz:grant --template release-cut / release-publish / release-rollback / release-promote-latest` | `.deft/authz/` | Yes | Agent cutting, publishing, rolling back or promoting a release | Several per release (R-steps) | Keep |\n| `authz:grant --template finish-loop` | `.deft/authz/` | Yes | Agent opening its own walk-away edit/push/pr/merge window | Per walk-away window | Keep |\n| `authz:grant --template gate-override` | `.deft/authz/` (plus admissions) | Yes | Agent waiving a failing gate | Rare | Keep |\n| `authz:grant --template spec-drift-override` | `.deft/authz/` | Yes | Agent overriding the spec-drift guard under enforce | Rare (enforce only) | Keep |\n| `authz:grant --template acceptance-disposition` | main-clone `.deft/authz/` | Yes (see question 3 on linked worktrees) | Agent deferring or waiving its own unmet acceptance clauses | Per unmet-clause disposition | Keep |\n| `authz:grant --template plan-sequence-approval` | main-clone `.deft/authz/` | Yes | Agent inserting, replacing or clearing ordered-plan entries | Per ordered-plan edit | Keep |\n| `authz:grant --template delivery-identity-attest` | main-clone `.deft/authz/` | Yes | Agent attesting the delivery identity of merged work | Recovery only | Keep |\n| `authz:grant --parent --draft` (structural decompose) | `.deft/authz/` | Yes | Agent applying its own structural decomposition | Per structural decompose | Keep |\n| `authz:uat-start`, `authz:uat-suspend`, `authz:revoke` | `.deft/authz/state.json` | Yes | Suspend lifts the UAT freeze; start and revoke only tighten | Rare | Keep (question 4) |\n\nContrast, not in scope: policy authority mutators (`policy:allow-bot-merge`, `policy:allow-direct-commits` and peers) have no mint; agent Bash calls classify as `settings` and need a settings grant.\n\n\"Protected\" is weaker than it looks. The hook guard covers Write/Edit (`isProtectedStoreEditDest`) and the shell tools in `SHELL_TOOL_NAMES`. Claude Code's PowerShell tool is not in that list (#6981). Writes made on the forge or by tools the hooks do not see are not covered. The TTY mint itself checks environment markers, a TTY, a controlling terminal, `--confirm` and the typed phrase; the refusal text names the markers to unset.\n\n## Anchors at the dispatch SHA\n- `packages/runtime/src/human-presence-mint.ts` 22-65: agent-shell markers; 292-330: `refuseNonInteractiveMint` (311 names the matched markers to unset). Nothing in a written record shows the gate ran.\n- `packages/runtime/src/scope-record-observable-scope.ts` 43: `--minted-via` set (`in-harness-ask` allowed); 174-190: cohort routing; 192-208: UAT refuse and the mint; 234-246: stamp built from `--kind` and `--actor`. `scope-record-intent-constraint.ts` 192-208 is the twin.\n- `packages/runtime/src/scope-record-cohort.ts` 11 and 601: \"CI cannot tell a mint from a file an agent wrote: the record's control is the merge that lands it.\"; 606: the one cohort mint.\n- `packages/core/src/scope-provenance/digest.ts` 231-252: `isHumanApprovalStamp` checks `kind` and `actor` strings only. Readers: `observable-scope/mint.ts` 150 and 224, `intent-constraint/mint.ts` 102 and 151, `policy/one-pr-scope-proof.ts` 299, `policy/write-fence-budget.ts` 172, `presentation-ceiling/evaluate.ts` 146, `scope-provenance/evaluate.ts` 741-1522, `durable-effect-acquisition/ceiling.ts` 127.\n- `packages/core/src/authz/protected-dest-realpath.ts` 20-32: protected set is `.deft/authz/`, `.deft/approved-scope/` and the two flag files. `packages/core/src/authz/evaluate.ts` 329-336: Write/Edit to that set denies. `packages/core/src/authz/classify.ts` 5630-5640: agent-shell `authz:*` mutating verbs, authz-store writes, kill-switch plants and policy authority mutators classify as `settings`. `packages/core/src/hooks/tools.ts` 41-49: `SHELL_TOOL_NAMES` (no PowerShell).\n- `packages/runtime/src/authz.ts` 459-490: every mutating authz verb except `show` goes through the UAT refuse and the mint. Template names: `packages/core/src/authz/templates.ts` 21-37, `authz/gate-override.ts` 32, `plan-sequence/approval-grant.ts` 29, `policy/acceptance-disposition-grant.ts` 40, `policy/delivery-identity-attest-grant.ts` 27, `policy/spec-drift-override-grant.ts` 16; main-clone store resolution in the last four.\n- `.gitignore` 62-66 (this repo): `.deft/*` ignored except `approved-scope/` and `intent-constraint/`, so `.deft/authz/` is local-only.\n\n## Recommended mechanism (the thing to critique)\n- R1. Drop the TTY step on `scope:record-observable-scope` and `scope:record-intent-constraint`, single path and cohort form: no `refuseNonInteractiveMint`, no `--confirm`, no typed phrase; the verb writes the record from any shell, an agent's included. The UAT refuse stays.\n- R2. Honest stamp. These two verbs write `humanApproval.kind: \"declared\"` with `--actor` as display and `mintedVia` naming the verb. Their two parsers accept `declared` or any kind `isHumanApprovalStamp` accepts today. `isHumanApprovalStamp` itself is unchanged, so approved-scope, the one-PR proof and the other readers still refuse a declared stamp.\n- R3. Stated control. Records are still read at the merge base, so a record lands through an earlier PR (normally the brief-only activation PR) before the product PR. The docs say that PR's review and merge is the only control, that the merge can be the agent's own (operator GitHub identity, bot-merge policy, plain `gh pr merge`), and that the record is therefore a declaration that verify holds the product PR to, not a human approval. #6945 is the approval.\n- R4. Keep the TTY mint, unchanged, for every `authz:*` mutating verb and template and for `scope:record-approved-scope`, until #6945 or #5862 gives a stronger approval. Do not add `.deft/observable-scope/` or `.deft/intent-constraint/` to the protected set.\n- R5. One table in `content/contracts/human-origin-authz.md`: every mint verb, its store, whether hooks protect it, what self-approval it prevents, kept or dropped, and why, including the honest limits (#6981, forge writes, marker-based presence). Recut the remediation text and docs that tell an operator to run a TTY mint for the two dropped verbs (`content/docs/observable-scope.md`, `content/docs/intent-constraint.md`, `content/commands.md`, the verify remediation strings).\n- R6. Tests: each dropped verb (observable single, intent single, one cohort run) writes its record with agent markers set and no TTY; `scope:record-approved-scope` and one `authz:grant` template still refuse without a TTY; both parsers accept `declared`; `isHumanApprovalStamp` still rejects it.\n\nQuestions for the critics:\n1. Refutation target: does the TTY step on the two record verbs protect anything today that R1 would lose? Look for any reader that treats these records as human approval (one-PR proof, presentation ceiling, #6284, #6945, swarm or lifecycle code), and any flow where the mint's refusal is the only stop.\n2. Stamp: is a `declared` kind with parser-local acceptance right, or should these records drop the stamp, or keep today's stamp written without the TTY step? Does accepting `declared` loosen anything the shape check caught?\n3. Kept rows: is \"protected\" real enough to justify the mint? Consider the PowerShell tool (#6981), forge-side writes to `.deft/approved-scope/`, a linked worktree writing the main clone's `.deft/authz/` by absolute path, `git checkout <ref> -- <record>`, and the mint itself (markers can be unset, a pseudo-terminal can type the phrase). Is \"keep until #6945\" an honest claim, and what should the table say each kept mint buys?\n4. `authz:uat-start` and `authz:revoke` only tighten. Drop their mint too, or keep it?\n5. Should the UAT refuse stay on the dropped verbs?\n6. Does any part add a gate, refusal or network read? What is the smallest buildable first slice, and what should be split out?\n7. #5010 bound an attended in-harness ask that writes the human stamp for these two records. Does R1-R2 supersede it, and does #6945's \"without a trust file the TTY mint is unchanged\" need amending?\n\n",
+          "id": 7080012362,
+          "html_url": "https://github.com/deftai/directive/issues/7031#issuecomment-7080012362",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T13:43:12Z",
+          "updated_at": "2026-11-22T13:43:12Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 3\ninput-ceiling: 7080068067\nseat: claude launcher: claude-code-native-subagent (model opus)\nseat: codex launcher: codex (exec --ephemeral --skip-git-repo-check --sandbox read-only -C dest)\nseat: grok launcher: grok (--cwd dest --prompt-file --permission-mode auto --disable-web-search --no-subagents --output-format plain)\n\ncharter: open critique\nspend: N≥3\narc-mode: no-ingest\nmateriality-bar: open\ndispatch-sha: 65fc6f74abe90c598b05d720d331626c67743dac\ndest: C:/Repos/deft/wt/arc-7031\nverification-path: pin-read git show 65fc6f74abe90c598b05d720d331626c67743dac: + dest cwd-without-occupy\naudit-targets: none\nStop 1 cite: comment 7080012362\n\n## Launch posture (disclosed)\n- The parent is Claude Code. It does not use the playbook's bypass critic argv. Each seat uses a read-only launcher run against the dest.\n- Launch probe under the argv actually used: codex `--sandbox read-only` returned `pong` rc 0; grok `--permission-mode auto` with `--prompt-file` returned `pong` rc 0. That proves launchability only, not method.\n- Codex and Grok seats have no GitHub access in that posture. They read a parent-written thread snapshot (issue body, thread up to the ceiling, this deposit). The Claude seat returns its body to the parent. For all three seats the parent posts the critic's final message verbatim, with no edits. Grok plain output can print progress narration before the `model:` line; the parent strips only that narration.\n- This deposit is edited once after creation, only to record its own comment id as the input ceiling.\n\n",
+          "id": 7080068067,
+          "html_url": "https://github.com/deftai/directive/issues/7031#issuecomment-7080068067",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T13:47:47Z",
+          "updated_at": "2026-11-22T13:47:54Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\n\nSupport removing the two terminal stops and labeling new records as declarations. The checked readers cannot establish that a human created those records.\n\nThe design needs one substantive correction before binding: update the worker instructions that still require a human mint and make unattended workers park. Otherwise the CLI becomes headless while the prescribed workflow remains blocked.\n\nAll source citations below refer to `65fc6f74abe90c598b05d720d331626c67743dac`. Verification used pinned source reads only; no tests, edits, or GitHub writes.\n\n## Answers to the seven questions\n\n1. **What does R1 lose?** It removes an attended checkpoint on the supported CLI path, but I found no durable proof of that checkpoint in these records. The shared stamp check examines strings. The one-PR mint proof consumes approved-scope and retains its separate human-stamp check (`packages/core/src/policy/one-pr-scope-proof.ts:294–299`). Merge-base and contract checks remain useful even without human approval.\n\n2. **Stamp choice?** Use `declared`, accepted locally by both parsers **and builders**. Keep legacy records readable and leave `isHumanApprovalStamp` unchanged. Permit agent identity in declaration attribution; do not require an agent to supply a human-looking actor. Continuing to emit human stamps would preserve misleading provenance.\n\n3. **Are retained stores protected?** They have meaningful hook restrictions on covered paths and tools, not an authenticated human-only boundary. Keep their mints as defense in depth. The table must qualify worktree-root coverage, unobserved tools, forge writes, and terminal/environment assumptions. Do not claim every `git checkout` or absolute main-clone write is denied without tracing that path.\n\n4. **Start and revoke?** Keep them unchanged in this slice. Tightening authorization can still disrupt another worker or campaign. Their rationale is operator control over shared authorization state, not prevention of self-approval.\n\n5. **UAT refusal?** Keep it. Removing the terminal checkpoint does not require changing campaign freeze semantics.\n\n6. **New gates or reads?** R1–R6 require no new network read or default refusal. Ship the two verbs, cohort handling, local stamp acceptance, worker instructions, remediation, and focused tests together. Defer stronger signatures and hook-gap repairs.\n\n7. **Earlier contracts?** Explicitly supersede the mandatory attended-ask and unattended-park requirements for these two declarations. Amend the described #6945 fallback premise accordingly. I verified the existing #5010-derived worker instructions at the pin; #6945’s full thread was not supplied, so its precise amendment needs parent verification.\n\n## Findings\n\n### 1. blocks-the-design — CLI removal alone leaves the unattended stop intact\n\n**Evidence:** `content/skills/deft-directive-build/SKILL.md:537–541` requires an attended ask, parks unattended hard facts, forbids agent-shell mint commands, and prohibits parent auto-approval. `content/templates/agent-prompt-preamble.md:28–31` repeats those requirements in worker dispatch instructions.\n\n**Failure mode:** A compliant headless worker still parks after R1–R6. Another worker follows the new command documentation and contradicts its dispatch instructions. The proposed removal therefore does not reliably relieve P1.\n\n**Disposition:** Extend R5 beyond terminal remediation. Explicitly replace these requirements with declaration creation and prior landing for the two affected record types, including their swarm instruction copies. Preserve the existing invariant/fail-fast guidance and merge-base checks. Do not silently reinterpret a declaration as human consent.\n\n### 2. sharpens-framing — Declaration acceptance must cover construction and identity\n\n**Evidence:** `packages/core/src/observable-scope/mint.ts:224–229` and `packages/core/src/intent-constraint/mint.ts:151–156` reject nonhuman stamps during construction. The cohort uses these builders (`packages/runtime/src/scope-record-cohort.ts:132–143,176–185`). The shared predicate rejects actors `agent`, `agent:*`, and `self` (`packages/core/src/scope-provenance/digest.ts:235–251`).\n\n**Failure mode:** Parser-only acceptance leaves newly declared records unwritable. Reusing the human actor restriction would encourage automated writers to impersonate an operator in display metadata.\n\n**Disposition:** Make R2 explicitly cover both builders and parsers. New CLI output always carries `declared`; attribution may honestly identify an agent. Test the record round trip with an agent actor, alongside legacy acceptance and rejection by the unchanged global human predicate. This completes the proposed mechanism without adding a gate.\n\n### 3. sharpens-framing — “Protected” must name its enforcement boundary\n\n**Evidence:** `packages/core/src/authz/evaluate.ts:329–335` resolves protection against the worktree or project root. `packages/core/src/authz/protected-dest-realpath.ts:35–39` excludes outside-root writes from that helper. `packages/core/src/hooks/tools.ts:41–49` lists covered shell tools without PowerShell. The mint checks environment markers and terminal interactions (`packages/runtime/src/human-presence-mint.ts:305–318,320–362`), rather than a signed operator identity.\n\n**Failure mode:** An injected or compromised worker can be credited with human authority if documentation treats hook coverage or a successful terminal exchange as universal provenance. In a swarm, protection of a destination worktree does not itself prove protection of the main-clone store.\n\n**Disposition:** Keep R4, but describe retained mints as restrictions on supported CLI and hook-observed paths. Mark main-clone absolute-path and Git-mediated writes as coverage-dependent unless independently verified. Repairs remain outside this slice; the table must not imply those repairs already exist.\n\n### 4. footnote — Preserve the useful part of the declaration model\n\nThe merge-base requirement still separates prior declaration from product changes. Observable verification rejects same-PR record rewrites and parses base records (`packages/core/src/observable-scope/evaluate.ts:418–445`); presentation admission checks declaration identity and contract agreement against both base and head (`packages/core/src/presentation-coverage/admission.ts:110–145`).\n\nI prefer this narrow declaration model over protecting two more stores. The strongest case for retaining attended approval is preserving independent judgment over new behavior. That would change my verdict if a consumer verified independent approval; the checked string stamps do not supply it.",
+          "id": 7080179466,
+          "html_url": "https://github.com/deftai/directive/issues/7031#issuecomment-7080179466",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T13:56:59Z",
+          "updated_at": "2026-11-22T13:56:59Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\n\nThe split is right, and the premise holds. An agent can already write an observable-scope or intent-constraint record by hand, and every reader accepts it. So the terminal step on those two verbs stops only an agent that chooses to obey it. The lean can bind. Five things must change first:\n\n- The rule for which mints to keep is stated wrong. The real test is not \"do hooks guard the folder\". It is \"is the record read as authority before anyone merges a PR\".\n- The worker preamble and the skills still tell workers to park and wait for a human mint. If they are not recut, a headless swarm still stops.\n- The verb must not take a human-looking `--kind` or `--actor` from an agent shell.\n- The docs must say plainly that after the change, a story fact found mid-build still needs a merged PR before the product PR, and in bot-merge repos no human sees it.\n- Two rows in the table are wrong: one \"protected\" row has a hole, and one verb is missing.\n\nNo finding blocks the design.\n\n## Answers to the seven questions\n\n1. **Refutation target.** It survives, with one limit. No reader treats these records as approval beyond a shape check. The readers are the two parsers (`observable-scope/mint.ts` 150, `intent-constraint/mint.ts` 102), the two evaluators, `presentation-coverage/admission.ts` 130, and `pr-closing-keywords/brief-land-records.ts` 111. Their only stamp check is `isHumanApprovalStamp` (`scope-provenance/digest.ts` 232-252), which checks the shape of two strings. The one-PR proof (`policy/one-pr-scope-proof.ts` 299) and the write-fence budget (`policy/write-fence-budget.ts` 172) read approved-scope only. The code says this itself (`scope-record-cohort.ts` 11, 601; `brief-land-records.ts` 11-12). What R1 does lose: (a) the stop for an agent that obeys the gate, which is the only time a human touches the record when the merge is not human (finding 4), and (b) the cohort form's printed record set before the typed `mint` (`scope-record-cohort.ts` 590-603), which is a weak review moment, not proof of review.\n2. **Stamp.** Use `declared`, accepted by these two parsers only. Do not keep today's stamp without the TTY step: an agent-run verb would then write a human-looking stamp, which is worse than a hand-written one. Accepting `declared` loosens nothing real. The shape check never authenticated anything, it only rejected honest `agent` or `self` labels. R2 is incomplete, though (finding 3).\n3. **Kept rows.** Keep the mint. The reason is not that hooks protect the store. It is that approved-scope and the authz grants are live authority during the session. The write-fence hook reads the working-tree approved-scope record on each write (`policy/write-fence.ts` 739), and grants are read from the local store with no merge between. That is what each kept mint buys: an agent cannot authorize itself inside the session before any PR exists. \"Keep until #6945 / #5862\" is honest only if the table also lists the holes. These are: the PowerShell tool (#6981); forge writes to `.deft/approved-scope/` (the merge still gates them, because the fence reads the merge-base brief for the level); marker-based presence (markers can be unset, and a pseudo-terminal can type the phrase); and the linked-worktree Write hole (finding 5).\n4. **`authz:uat-start` / `authz:revoke`.** Keep the mint. Dropping it alone changes nothing for agents, because an agent-shell `authz:*` mutating command already classifies as `settings` and needs a grant (`authz/classify.ts` 191, 1307-1331, 5633). Removing both is a separate change that would buy little, since both verbs are rare.\n5. **UAT refusal on the dropped verbs.** Keep it. It is an existing refusal, it costs nothing outside UAT, and a hand-write during UAT is already denied by the UAT lease.\n6. **New gates.** Nothing adds a refusal or a network read; R2 widens two parsers. The smallest first slice is R1, R2 (with finding 3), the prose recut in finding 2, and the R6 tests, with the R5 table in the same PR. Split out: the linked-worktree Write hole (finding 5), retiring the records (road not taken), and the #6945 amendment.\n7. **#5010.** Yes, R1 and R2 replace the in-harness ask for these two records. Remove `in-harness-ask` from the writer's allowed set (`scope-record-observable-scope.ts` 43 and the intent twin). Keep accepting old records that carry it; the parsers do not check `mintedVia`. Change #6945's line to: \"without a trust file, records are `declared` (no human approval)\". Signing then turns a declaration into an approval.\n\n## Findings\n\n### 1. sharpens-framing — Keep or drop by when the record is read, not by hook protection\n\nEvidence: approved-scope is read from the working tree by the write-fence hook on each write (`packages/core/src/policy/write-fence.ts` 735-747, `readApprovedScopeRecord(root, planId)`). Authz grants are read from the local store. Intent-constraint and observable-scope records are read only at the merge base: `intent-constraint/evaluate.ts` 544 and 572 use `git show <merge-base>`, and `presentation-coverage/admission.ts` 117-123 reads `snapshot.base`. Preflight checks only that the file exists in the working tree (`observable-scope/mint.ts` 300-306). Failure mode: if the rule is written as \"hook-protected\", it invites the wrong fix (add the two folders to the protected set, which R4 rightly rejects) and misclassifies the next record verb. It also rests the table on hook coverage that has known holes. Disposition: R4 and R5 should state the rule as \"keep the mint where the record is authority before any merge; drop it where a merge already gates the record\". Add a \"read at\" column (live hook / local store / merge base) beside \"hooks protect\".\n\n### 2. sharpens-framing — R5's recut list leaves the prose that keeps the gate alive\n\nEvidence: `content/templates/agent-prompt-preamble.md` 30 is sent word-for-word to every implementation worker. It says that when unattended, the worker must \"park pending a human mint\", and that \"Parent-agent auto-approve is out of scope\". R1 makes parent-agent recording the normal path. The same rule appears in `content/skills/deft-directive-setup/SKILL.md` 952-954 and 1083, `content/skills/deft-directive-swarm/references/core-phase-0.md` 149, `content/skills/deft-directive-build/SKILL.md` 537 and 576, and the rendered `content/packs/skills/skills-pack-0.1.json`. The remediation strings live in `OBSERVABLE_SCOPE_REMEDIATION` and `INTENT_CONSTRAINT_REMEDIATION` (types.ts), which `check/named-cause.ts` 94-95 shows. Failure mode: R1 ships, but workers that follow the preamble still park, so P1's headless-swarm pain is not fixed. Disposition: name these files in R5. The preamble is consumer-relevant, so the change also goes through agents-entry propagation (#1309).\n\n### 3. sharpens-framing — An agent-run verb must not take `--kind`, `--actor` or `--minted-via`\n\nEvidence: today the verb builds the stamp from `--kind` and `--actor` (`scope-record-observable-scope.ts` 234-246, with the intent twin), and the usage text defaults to `--kind operator`. The builders, not only the parsers, call `isHumanApprovalStamp` (`observable-scope/mint.ts` 224, `intent-constraint/mint.ts` 151). Failure mode: after R1, an agent runs `--kind operator --actor <operator name>` and the verb writes a human-looking stamp, with the verb's own `mintedVia`, from an agent shell. That makes forgery look like the tool's normal output, which is the identity confusion R2 exists to remove. Disposition: R2 must fix `kind` to `declared` in both the single and cohort writers, refuse or ignore `--kind`, fix `mintedVia` to the verb name, and change both builders. Either drop `--actor` or label it \"declared by\". One more point: every evaluator fails the whole folder on one record it cannot parse (`intent-constraint/evaluate.ts` 596-598, `observable-scope/evaluate.ts` 443-446, `admission.ts` 131). A `declared` record read by an older runtime therefore breaks verify for every PR. Ship reader acceptance no later than the writer, and say in the CHANGELOG that the pin must move with it.\n\n### 4. sharpens-framing — State what R1 fixes and what it only moves\n\nEvidence: a record in the same PR as its product change is refused (`intent-constraint/evaluate.ts` 532-536), so records must be merged first. `brief-land-records.ts` lets them ride the activation PR. Failure mode: a fact found mid-build, such as a new throw site, still needs a separate record PR merged and a rebase before the product PR. Under `requireHumanMerge`, the human stop moves from the terminal to a merge; it is not removed. Under bot-merge, an injected or drifted brief contract can become a merged declaration with no human: ingested text, then brief, then verb, then activation PR, then bot merge. Today the TTY step is the only human touch there for an agent that obeys. Disposition: R3 and the R5 table should say this for each merge policy. P1's claim that \"headless swarms can finish\" holds only for records known at activation, or for bot-merge repos where the gate becomes a two-PR declaration with no review.\n\n### 5. sharpens-framing — Main-clone grant templates are not protected from a linked worktree's Write/Edit\n\nEvidence: `packages/core/src/authz/protected-dest-realpath.ts` 4-6 says \"Absolute dests outside the payload root are out of this slice\", and line 37 returns not-protected for those dests. `isProtectedStoreEditDest` (`authz/evaluate.ts` 329-336) depends on that check. The acceptance-disposition, plan-sequence-approval, delivery-identity-attest and spec-drift-override templates resolve their store at `mainWorktreeRoot` (`policy/acceptance-disposition-grant.ts` 85-96). Grants carry no signature (`authz/types.ts` 63). The `#2885` skip in `hooks/dispatcher.ts` 3087-3098 lets outside-root Write/Edit through. The Bash path is mostly caught by the lexical `commandHasAuthzDirShellWrite`. I did not find another guard for Write/Edit, but I could not run a check, so treat this as plausible, not proven. Failure mode: a worker in a dest worktree outside the payload root uses Write on `<main clone>/.deft/authz/grants/<x>.json` and grants itself an acceptance disposition, with no mint. Disposition: the keep verdict does not change. The table must not show a plain \"Yes\" for these four rows. File a follow-up issue, outside this slice.\n\n### 6. sharpens-framing — The inventory is missing `authz:grant --template one-pr-unit`\n\nEvidence: `packages/runtime/src/authz.ts` 682-710 mints into the durable App store (`DEFT_ONE_PR_UNIT_APP`), not `.deft/authz/`, through the same mint gate (`one-pr-unit/mint.ts` 1-4). Failure mode: AC1 requires every verb with its store, and this row's store and protection are different: a remote App store, not hooks. Disposition: add the row and mark it Keep.\n\n### 7. footnote — The operator-stop records stop for these two verbs\n\nOn an agent-marker refusal, `refuseNonInteractiveMint` records an operator stop (#6275). Once the two verbs stop calling it, any surface that counts those stops will drop. That is expected; note it in the CHANGELOG line.\n\n### 8. footnote — Other human stamps that are checked by shape only, with no mint\n\nThe presentation-ceiling stamps (`presentation-ceiling/evaluate.ts` 135-147, `presentation-coverage/artifact.ts` 14-27) and the durable-effect ceiling (`durable-effect-acquisition/ceiling.ts` 108-128) accept agent-writable human stamps in briefs, with no mint. For P2 (\"which approvals are real\"), the table could list them as \"declared in practice\".\n\n## Injection / swarm lens\n\nThis change makes an agent-runnable verb write records that look like authority. After R1, the only deterministic control on those records is who merges the PR that lands them. The table and docs must say so (finding 4). The identity risk is the `--actor` and `--kind` passthrough (finding 3). Concurrency is unchanged: records are per plan, the cohort form uses exclusive create, and a rewrite in the same PR is refused. I found no embedded instructions in the snapshot beyond the design questions.\n\n## Road not taken\n\nAfter R1, the record is a byte copy of the merge-base brief's contract. `admission.ts` 135-150 already checks the record's digest against the base and head plan, and `brief-land-records.ts` requires the brief in the same PR. The fewer-gates end state is to stop writing records and have the two evaluators read the contract from the merge-base brief. That removes the verb, the cohort form, the brief-land special case and the R2 version-skew risk. I did not choose it for slice 1 because it rewrites both evaluators and the \"old mints must not authorize new work\" logic. If those evaluators turn out to read the merge-base brief cheaply already, I would choose it over R2.\n\n---\nVerification: pin-read with `git show 65fc6f74abe90c598b05d720d331626c67743dac:<path>` from the dest. I re-checked the snapshot's anchors there: they match within a few lines. Nothing was run.\n\n",
+          "id": 7080179724,
+          "html_url": "https://github.com/deftai/directive/issues/7031#issuecomment-7080179724",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T13:57:00Z",
+          "updated_at": "2026-11-22T13:57:00Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\n\nTwo record commands still stop until a person types `mint` at a real terminal. Those records are what a later pull request is held to when it changes visible UI or adds a production constraint. The proposal drops that stop for those two commands, labels the new records as a declaration, and keeps the stop for authorization grants and approved-scope.\n\nThe drop is sound only with two corrections. The current builders cannot write a `declared` stamp, and widening the shared human check would make that declaration count as a human approval on the stores this change means to keep. And the terminal step is a real plant stop in any tree whose merge-gate signal is off: the story fence still refuses the agent's own write and commit of those files, while the record command writes them from inside the process.\n\n## Answers\n\n1. CI never checks that the terminal step ran. Both parsers accept any stamp `isHumanApprovalStamp` accepts, and the default kind `operator` is in that set, so a hand-written file with a non-agent actor already passes brief-land, both evaluators, and presentation-coverage admission. One-PR proof, the presentation ceiling, the write-fence budget, scope-provenance, and the durable-effect ceiling call `isHumanApprovalStamp` on their own records. They do not read these two files. With a live merge-gate signal, an out-of-scope write and commit of the file is only a warning, so the agent can land it without the command. With no live signal, the story fence hard-refuses that write and commit, and the command is the in-process writer the fence does not see. Dropping the terminal step loses that plant stop. It loses nothing the product pull request repeats.\n\n2. `declared` is the right kind if the two builders and the two parsers accept it locally and `isHumanApprovalStamp` stays closed. That loosens those two parsers by one kind they reject today. It leaves the rejections of an empty stamp, `agent`, `self`, `xbrief`, and `dispatch` in place. Writing today's default kind `operator` after the drop makes the official command emit a stamp every human-approval reader accepts. Removing the field makes today's parsers fail the record. A kind that merely starts with `human` still passes the shared check.\n\n3. In-root Write and Edit of `.deft/authz/` and `.deft/approved-scope/`, and a classified shell write there, are denied with no grant escape. A linked worktree can still Write an absolute path in the main clone's `.deft/authz/`: that target is outside the worktree, the protected-dest check returns false, and the outside-root write is allowed. The kept mint stops the authz and approved-scope commands while agent-shell markers are set. The refusal names the markers to unset. It does not stop the absolute plant, a shell tool absent from `SHELL_TOOL_NAMES`, or a commit the hook never saw. \"Keep until a stronger approval\" is honest as \"keep this verb stop\". It is not honest as \"agents cannot write the store\".\n\n4. Keep the mint on `authz:uat-start` and `authz:revoke`. Start turns on a lease that denies product edit, push, and merge until a grant exists, so an agent that can start it locks the tree until someone passes the suspend mint. Revoke from a linked worktree deletes a grant in the main clone store when the local store does not have it. That erases a human grant. \"Only tighten\" describes neither.\n\n5. Keep the UAT refuse on the two dropped commands. It is the freeze those commands already have. It does not cover a hand-written file. It adds no gate and no network read.\n\n6. Nothing in R1–R6 adds a network read. A new refusal appears only if read-side parsers stop accepting today's human kinds, which would fail records already on the merge base. The smallest slice is the two commands (single path and cohort), both builders, both parsers, the `in-harness-ask` minted-via value, the remediation strings, the one table, and the tests. Authz, approved-scope, the protected set, and the hook holes stay out of it.\n\n7. R1–R2 supersede the #5010 path for these two records. That path is the usage text plus `mintedVia: in-harness-ask`, documented as a human on a real terminal. This tree has no sentence that says the terminal mint stays unchanged when there is no trust file. A later approval design has to treat that fallback as already false for these two commands.\n\n### 1. blocks-the-design — A declared stamp cannot be written while the shared human check stays closed\n\nEvidence: `buildObservableScopeRecord` (`packages/core/src/observable-scope/mint.ts` 224–228) and `buildIntentConstraintRecord` (`packages/core/src/intent-constraint/mint.ts` 151–155) reject unless `isHumanApprovalStamp` passes. The cohort builder calls that path with `args.kind` before the prompt (`packages/runtime/src/scope-record-cohort.ts` 500–505). The single-path commands do the same (`scope-record-observable-scope.ts` 235–246, `scope-record-intent-constraint.ts` 234–246). The default kind is `operator` (both command files, line 81), and `operator` is a human kind (`packages/core/src/scope-provenance/digest.ts` 242–251). Both parsers use the same predicate (observable `mint.ts` 150–154, intent `mint.ts` 102–107). `ALLOWED_MINTED_VIA` still admits `in-harness-ask` (both command files, line 43). `scope:record-approved-scope` refuses a stamp that fails the same predicate (`scope-record-approved-scope.ts` 575–581). One-PR proof, scope-provenance, the write-fence budget, the presentation ceiling, and the durable-effect ceiling all call that predicate on their own records (`one-pr-scope-proof.ts` 299, `scope-provenance/evaluate.ts` 741, `write-fence-budget.ts` 172, `presentation-ceiling/evaluate.ts` 146, `durable-effect-acquisition/ceiling.ts` 127).\n\nFailure mode: an implementation that only teaches the parsers about `declared` cannot emit the record, because the builders still refuse it. An implementation that teaches `isHumanApprovalStamp` about `declared`, or that drops the terminal step and leaves kind `operator` or `mintedVia: in-harness-ask`, makes an agent shell write a stamp those kept readers treat as human approval. A kind such as `human-declared` passes today because any kind that starts with `human` passes (digest.ts 251). Once a parser accepts `declared`, brief-land, both evaluators, and presentation-coverage admission hold the product diff to it, because they trust the parser.\n\nDisposition: R2 cannot bind until the mechanism names a local acceptance in those two builders and two parsers, leaves `isHumanApprovalStamp` unchanged, and stops the two dropped commands from writing kind `operator` or `mintedVia: in-harness-ask`. Binding the text as written either fails the write or launders the declaration into approved-scope and the one-PR proof.\n\n### 2. sharpens-framing — The terminal step is the plant stop when the merge-gate signal is off\n\nEvidence: `.deft/observable-scope/` and `.deft/intent-constraint/` are outside the protected set (`packages/core/src/authz/protected-dest-realpath.ts` 20–31) and outside the class-check protected globs (`packages/core/src/class-checks/policy.ts` 29–41). They are still class `other` for the story fence, and that class is a hard refuse (`packages/core/src/scope-provenance/extra-path-admission.ts` 219–224; `packages/core/src/policy/write-fence-budget.ts` 320–338, `scopeOnly: true`). The direct-write hook denies that refuse unless the live merge-gate signal turns it into a warning (`packages/core/src/hooks/dispatcher.ts` 1751–1768; `packages/core/src/hooks/merge-gate-signal.ts` 1–13). The same signal turns the commit deny into a warning (`dispatcher.ts` 5625–5627). The record command writes through `containedWrite` after the terminal step (`scope-record-observable-scope.ts` 192–252). The shell line does not contain the output path, so the fence never sees that write. The cohort form prints every record, then runs one terminal step for the whole set (`scope-record-cohort.ts` 576–619). Brief-land says the merge is the control and that CI cannot tell a mint from a file an agent wrote (`packages/core/src/pr-closing-keywords/brief-land-records.ts` 11–12, 109–113).\n\nFailure mode: binding \"the terminal step protects nothing\" drops the only stop on the command in a tree with no live merge-gate signal. The agent plants every cohort record. A later human commit of the working tree, or a commit after the signal goes live, lands them. The product check then treats them as the contract. Calling that merge a control repeats a gate the agent can operate with bot-merge or `gh pr merge`. The UAT refuse on these commands (`refuseMintWhileUatActive`, `human-presence-mint.ts` 197–206) freezes the command during a lease and does not freeze a hand-written file.\n\nDisposition: the drop can bind. The refutation target cannot bind as a universal. The table row has to say the story fence hard-refuses these paths until the merge-gate signal is live, and that the command is the writer that fence does not see. The bound words for the merge are a declaration the product check reads. They are not a control.\n\n### 3. sharpens-framing — A kept mint means the command stops, and the in-root store write is denied\n\nEvidence: Write and Edit of a protected dest are denied with no grant escape (`packages/core/src/authz/evaluate.ts` 363–370). `resolvedDestIsPayloadRootProtected` returns false when the target is outside the payload root (`protected-dest-realpath.ts` 34–37). An absolute path outside the root skips the story fence and is allowed (`dispatcher.ts` 1733–1740; `packages/core/src/hooks/dispatcher-outside-root.test.ts` 134–137). `SHELL_TOOL_NAMES` has no PowerShell tool (`packages/core/src/hooks/tools.ts` 41–49). The terminal refusal names the matched markers and tells the caller to unset them (`human-presence-mint.ts` 307–313). Revoke already writes the main clone store when the grant is absent locally (`packages/runtime/src/authz.ts` 1014–1021). The settings contrast in the inventory is stronger than the dispatcher: policy mutators are denied under an active UAT lease, and the always-on synthetic lease is the kill-switch plant (`dispatcher.ts` 2120–2164), so an inactive lease still allows a policy mutator as `authz-inactive` (`evaluate.ts` 381–397).\n\nFailure mode: a table that says these mints stay because agents cannot write the store teaches the wrong threat. A dest worker Writes the main clone's `.deft/authz/` by absolute path and plants a grant the main-clone readers will load. The kept mint never ran. The same overclaim hides the marker-unset hint already printed by the refusal.\n\nDisposition: keep every `authz:*` mutating mint and `scope:record-approved-scope`. The table cell for what each buys is the command stop while the markers are set, plus the in-root protected-dest deny. Cross-worktree absolute writes, unlisted shell tools, and forge commits stay named limits. They are not work added to this slice.\n\n### 4. sharpens-framing — Start locks the tree, and revoke erases a main-clone grant\n\nEvidence: `authz:uat-start` runs the same mint gate, then `startUatLease`, and the success text says product edit, push, and merge stay denied until a grant exists (`packages/runtime/src/authz.ts` 468–487, 537–561). `authz:uat-suspend` skips the UAT refuse and still runs the mint (`authz.ts` 470–472, 564–566). `authz:revoke` runs the mint, then retries the delete in the main clone store (`authz.ts` 1001–1021).\n\nFailure mode: dropping the mint on start lets an agent turn on the lease and wait for a human suspend. Dropping it on revoke lets an agent delete a delivery-identity or acceptance-disposition grant that lives only in the main clone. Both are authority and identity changes. Neither is a pure tightening.\n\nDisposition: both commands stay on the mint. The inventory cell \"only tighten\" cannot bind.\n\n### 5. footnote — Pin read, and this repo's gitignore is the wrong commit story for observable-scope\n\n`git show 65fc6f74abe90c598b05d720d331626c67743dac:` was refused: the Directive hook blocked the shell because `@deftai/directive-runtime` is not installed. The dest HEAD file is that SHA. The cites above are worktree reads. A dirty tree was not checked, because `git status` hit the same refusal.\n\nThis repo's `.gitignore` ignores `.deft/*` and un-ignores approved-scope and intent-constraint only (lines 62–66). The consumer deposit un-ignores `.deft/observable-scope/` (`packages/core/src/install-health/owned-paths.ts` 135–143; `packages/runtime/src/setup.test.ts` 112–120). The table's \"committed\" row is that consumer deposit.\n\nRoad not taken: keep kind `operator` and only delete the terminal call. That is the smallest diff, and it fails because `operator` is already a human kind, so the official command would forge the stamp the kept readers trust. What would flip that choice is a reader that rejects `declared` after the parsers accept it. The product readers follow the parsers. Adding these two directories to the protected set would make the in-root write always-denied, which is a new refusal, and the story fence already hard-refuses them until the merge-gate signal is live.\n\n",
+          "id": 7080187478,
+          "html_url": "https://github.com/deftai/directive/issues/7031#issuecomment-7080187478",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T13:57:40Z",
+          "updated_at": "2026-11-22T13:57:40Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** first successor lean under Stop 1 7080012362 (round 1: 3 of 3 critics posted, comments 7080179466, 7080179724, 7080187478)\n\n## In plain English\nProblem: two record commands, `scope:record-observable-scope` and `scope:record-intent-constraint`, stop until a person types `mint` at a real terminal. Their records say what visible UI or new production constraints a later product PR may add. The stop proves a person was at a terminal, not that anyone reviewed the record, and an agent can already write the same file by hand because the checks look only at the stamp's shape. Consumers pay a stop per story or cohort, and the worker instructions tell unattended workers to park and wait for that mint, so a headless swarm cannot finish. Nobody has one list of which mints still guard something.\n\nWhat the three critics found: dropping the stop for those two commands is sound, but the Stop 1 design could not bind as written. The record builders refuse any stamp that is not human-looking, so a `declared` stamp could not even be written; and if the command kept writing today's `operator` stamp from an agent shell, the official tool would forge the stamp that approved-scope and the one-PR proof trust. Removing the terminal call without recutting the worker preamble and skills would leave the park-and-wait rule in force. The reason to keep the other mints is not that hooks guard their folders (those guards have holes) but that those records are live authority inside the session before any PR exists. `authz:uat-start` and `authz:revoke` are not pure tightenings: start locks the tree, and revoke can delete a human grant in the main clone. The table was missing the `one-pr-unit` template.\n\nSolution this lean proposes: the two commands write their records from any shell with no terminal step, always with a `declared` stamp naming the command, and refuse `--kind` and `--minted-via`. The two builders and two parsers accept `declared`; the shared human-stamp check stays closed, so a declared record never counts as human approval anywhere else. Every authz command and template and `scope:record-approved-scope` keep the mint. Worker instructions change from \"park for a human mint\" to \"write the declaration and land it before the product PR\". One table lists every mint, where its record is read, what it prevents, what a kept mint buys, and its known limits.\n\nWhat this claims, honestly: a declared record is a declaration the product check holds the PR to, not an approval. Where a human must merge PRs, the human stop moves from the terminal to the merge that lands the record. Where bots or the operator's own identity merge, nothing human checks it. A kept mint buys a command that stops while agent markers are set, plus the hook's refusal of writes inside the checkout; it does not make the store unwritable.\n\nWhat this adds: no new refusal and no network read. Two parsers and two builders accept one more stamp kind; two flags are refused on two commands. What it does not do: fix the hook holes (#6981, absolute writes from a linked worktree into the main clone's `.deft/authz/`), retire the records, or build the signed approval (#6945, #5862). Those are later stories.\nIf confirmed, the synthesis would assert this design.\n\nTarget-digest: sha256:23c4164f3e096e0ce4b9f129f463e4c80121b82ce97de2a7c7fd84a13549d785\n**Spec-path:** Bound remedy on this lean\nSupersedes: the Stop 1 write-back 7080012362 (its R1-R6). Sibling count: 3 (comments 7080179466, 7080179724, 7080187478). Panel deposit: comment 7080068067.\n\nrelieves: P1\nrelieves: P2\n\n## Bound remedy\n1. Drop the terminal step. `scope:record-observable-scope` and `scope:record-intent-constraint`, single path and cohort form, no longer call `refuseNonInteractiveMint` and need no `--confirm` or typed phrase; they write from any shell, an agent's included. The UAT refuse stays. The cohort form still prints the frozen set it writes.\n2. Declared stamp. These two commands always write `humanApproval: {kind: \"declared\", actor, mintedAt, mintedVia: <command name>}`. They refuse `--kind` and `--minted-via`. `--actor` is an optional declared-by display field and may name an agent. One local predicate (`declared`, or what `isHumanApprovalStamp` accepts) is used by both builders and both parsers, so legacy human-stamped and `in-harness-ask` records still parse. `isHumanApprovalStamp` is unchanged, so approved-scope, the one-PR proof and every other reader still refuse a declared stamp.\n3. Reader with writer. Reader acceptance ships in the same release as the writer. The CHANGELOG says consumers move the pin before writing a declared record, because an older runtime fails the whole record folder on one record it cannot parse.\n4. Kept mints. Keep the mint where the record is live authority before any merge: every `authz:*` mutating command and template (including `uat-start`, `uat-suspend`, `revoke` and `one-pr-unit`) and `scope:record-approved-scope`. Add no folder to the protected set.\n5. Worker instructions. For these two records, replace \"attended ask; unattended park pending a human mint; no parent auto-approve\" with \"write the declaration with the command and land it on the merge base before the product PR; a declaration is not consent\". Keep the operational-versus-invariant classification and the no-soften rule. Files: `content/templates/agent-prompt-preamble.md`; the build, setup and swarm Phase 0 skill text through the skills pack source and render; `content/docs/intent-constraint.md`, `observable-scope.md`, `scope-provenance.md`; `content/commands.md`; `INTENT_CONSTRAINT_REMEDIATION` and `OBSERVABLE_SCOPE_REMEDIATION`; both commands' usage. Mirror consumer-relevant text through agents-entry.\n6. One table in `content/contracts/human-origin-authz.md`: every operator-mint command with its store, where the record is read (live hook, local grant store, App store, merge base), whether hooks deny writes inside the checkout, the self-approval it prevents, kept or dropped, and what a kept mint buys (the command stop while agent markers are set, plus the in-checkout write deny). It names the limits: the PowerShell tool (#6981), absolute writes from a linked worktree into the main clone's `.deft/authz/`, forge commits, marker-based presence, and brief stamps checked by shape only (presentation ceiling, durable-effect ceiling). For the two dropped rows it states the control per merge policy: under human merge the stop is the merge that lands the record; under bot merge or a merge under the operator's identity there is none; the story fence refuses direct writes of these paths unless the merge-gate signal is live, and the command is a writer that fence does not see; a fact found mid-build still needs a record PR before the product PR.\n7. Tests beside each changed file: each dropped command, single path and cohort, writes its record with agent markers set and no TTY; `--kind` and `--minted-via` are refused; both builders and parsers accept `declared` and legacy records; `isHumanApprovalStamp` rejects `declared`; `scope:record-approved-scope` and one `authz:grant` template still refuse without a TTY.\n\n## Acceptance Criteria\n- `scope:record-observable-scope` and `scope:record-intent-constraint`, single path and cohort form, write their records from an agent shell with no TTY, `--confirm` or typed phrase, and still refuse during an active UAT lease.\n- Records these commands write carry `kind: \"declared\"` and `mintedVia` naming the command; `--kind` and `--minted-via` are refused on these commands.\n- Both builders and both parsers accept `declared` and legacy human-stamped records, and `isHumanApprovalStamp` still rejects `declared`.\n- Every `authz:*` mutating command and template and `scope:record-approved-scope` still refuse without the terminal mint.\n- The worker preamble, the build, setup and swarm skill text, the record docs, `content/commands.md` and the two remediation strings tell workers to write the declaration and land it before the product PR, not to park for a human mint.\n- `content/contracts/human-origin-authz.md` has one table of every operator-mint command with its store, where it is read, hook coverage, what it prevents, kept or dropped, what a kept mint buys, the named limits, and the per-merge-policy control for the two dropped commands.\n- Tests cover a dropped command (single and cohort) writing without a TTY under agent markers and a kept command refusing without a TTY.\n- The CHANGELOG says the reader ships with the writer and consumers move the pin before writing declared records.\n\n## Reject\n- Writing today's `operator` stamp, or `mintedVia: in-harness-ask`, from the dropped commands (7080187478 finding 1, 7080179724 finding 3).\n- Teaching `isHumanApprovalStamp` about `declared` (7080187478 finding 1, 7080179466 finding 2).\n- Parser-only acceptance of `declared` (7080179466 finding 2, 7080187478 finding 1).\n- Dropping the terminal call without recutting the worker preamble and skills (7080179466 finding 1, 7080179724 finding 2).\n- \"Hooks protect the store\" as the keep rule, and \"agents cannot write the store\" as a claim (7080179724 finding 1, 7080179466 finding 3, 7080187478 finding 3).\n- Dropping the mint on `authz:uat-start` or `authz:revoke` (7080187478 finding 4, 7080179724 answer 4, 7080179466 answer 4).\n- Calling the merge a control without naming the merge policy (7080179724 finding 4, 7080187478 finding 2).\n- Adding the two record folders to the protected set (Stop 1 R4; 7080187478 footnote 5).\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 7080179466 | 1. CLI removal alone leaves the unattended stop intact | blocks-the-design | accept-into-contract (item 5) |\n| comment 7080179466 | 2. Declaration acceptance must cover construction and identity | sharpens-framing | accept-into-contract (item 2: both builders and parsers; actor may name an agent) |\n| comment 7080179466 | 3. \"Protected\" must name its enforcement boundary | sharpens-framing | accept-into-contract (item 6: what a kept mint buys and the named limits) |\n| comment 7080179724 | 1. Keep or drop by when the record is read, not by hook protection | sharpens-framing | accept-into-contract (items 4 and 6: keep rule restated; read-at column) |\n| comment 7080179724 | 2. R5's recut list leaves the prose that keeps the gate alive | sharpens-framing | accept-into-contract (item 5) |\n| comment 7080179724 | 3. An agent-run verb must not take `--kind`, `--actor` or `--minted-via` | sharpens-framing | accept-into-contract (items 2 and 3: `--kind` and `--minted-via` refused, actor is declared-by display, reader ships with writer) |\n| comment 7080179724 | 4. State what R1 fixes and what it only moves | sharpens-framing | accept-into-contract (item 6: per-merge-policy control and the mid-build record PR) |\n| comment 7080179724 | 5. Main-clone grant templates are not protected from a linked worktree's Write/Edit | sharpens-framing | accept-into-contract (item 6 names the limit; the fix is a later story) |\n| comment 7080179724 | 6. The inventory is missing `authz:grant --template one-pr-unit` | sharpens-framing | accept-into-contract (items 4 and 6) |\n| comment 7080187478 | 1. A declared stamp cannot be written while the shared human check stays closed | blocks-the-design | accept-into-contract (item 2) |\n| comment 7080187478 | 2. The terminal step is the plant stop when the merge-gate signal is off | sharpens-framing | accept-into-contract (item 6: fence row; the merge is a declaration the product check reads, not a control) |\n| comment 7080187478 | 3. A kept mint means the command stops, and the in-root store write is denied | sharpens-framing | accept-into-contract (item 6) |\n| comment 7080187478 | 4. Start locks the tree, and revoke erases a main-clone grant | sharpens-framing | accept-into-contract (item 4: both keep the mint) |\n\nFootnotes in the census, no take: comment 7080179466 finding 4; comment 7080179724 findings 7 and 8 (finding 8 is reflected in item 6's shape-only brief stamps); comment 7080187478 finding 5 (the Grok seat disclosed that the dest hook refused `git show`, so it read the dest worktree files at the dispatch SHA; it also noted that consumer deposits un-ignore `.deft/observable-scope/`).\n\nLeftover next-builds, named and not filed: absolute Write/Edit from a linked worktree into the main clone's `.deft/authz/` (7080179724 finding 5, 7080187478 finding 3); retiring the two records so the evaluators read the contract from the merge-base brief (7080179724 road not taken); the #6945 fallback, which should read \"without a trust file, records are declared\" (7080179724 answer 7, 7080187478 answer 7).\n\nNon-self-arbitration: the parent wrote the Stop 1 write-back, the recommended mechanism and this lean. Every take accepts a critic finding; where critics offered alternatives, this lean takes refusing `--kind` and `--minted-via` (7080179724 finding 3) over ignoring them, and an optional declared-by actor that may name an agent (7080179466 finding 2) over dropping the field. The `relieves` cites stay open until a later critic targets them. This lean introduces no premise beyond the accepted findings and the Stop 1 anchors, so it records no audit marker.\n\n",
+          "id": 7080205053,
+          "html_url": "https://github.com/deftai/directive/issues/7031#issuecomment-7080205053",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T13:59:10Z",
+          "updated_at": "2026-11-22T13:59:10Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2\nfinding-classes: footnote\nharvest-changed: false\nharvest-digest: sha256:082a21585dbf7ed4272d676750b61bd717776a9f50024b25c1d8d73ffdfa1548\n\n## In plain English\n\npain-P1: holds\npain-P2: holds\n\nThe remedy removes the two terminal stops and the worker instructions that would otherwise keep unattended workers parked. It also supplies the single inventory P2 asks for. No accepted round-1 finding is mis-carried in a way that blocks binding.\n\nPinned reads confirm the necessary changes are covered. Both single commands call the terminal gate before writing; the cohort writer calls it before publication. Both record builders and parsers currently require `isHumanApprovalStamp`. Remedy items 1–2 change all these paths while leaving that shared human check closed (`packages/runtime/src/scope-record-observable-scope.ts:192`, its intent-constraint twin, `scope-record-cohort.ts:606`; `packages/core/src/observable-scope/mint.ts:150,224`; `intent-constraint/mint.ts:102,151`; `scope-provenance/digest.ts:231`). Item 5 also replaces the explicit unattended parking rule in `content/templates/agent-prompt-preamble.md:30`.\n\nKeeping an optional declared-by actor does not mis-carry the identity finding. Its original disposition allowed that option. Fixed `declared` kind and command provenance prevent the official writer from presenting that display name as human approval.\n\n### 1. footnote — Relief removes the mint stop, not every human dependency\n\nA mid-build constraint still needs an earlier record PR: `packages/core/src/intent-constraint/evaluate.ts:532–544` rejects same-PR record changes and reads the merge base. Under human-merge policy, an unattended worker can still wait for that merge. Item 6 already states this limit.\n\nThe injection consequence is also explicit: an agent-controlled contract can become a merged declaration under bot merge without human review. The proposed stamp does not claim otherwise. P1 holds for the terminal-stop pain; it does not establish unconditional headless completion.\n\n### 2. footnote — Read each kept mint’s protection from its own table row\n\nThe phrase “plus the in-checkout write deny” must remain conditional on the store. The protected-path predicate names `.deft/authz/` and `.deft/approved-scope/`, and excludes outside-root targets (`packages/core/src/authz/protected-dest-realpath.ts:20–37`). It is not a universal protection for every mint store.\n\nItem 6 already requires store-specific hook coverage and names the cross-worktree limit. Item 4 preserves the command gate. Together they satisfy P2 without claiming that a kept mint makes its store unwritable.\n\nVerification used successful `git show` reads at `65fc6f74abe90c598b05d720d331626c67743dac`. No files changed, builds or tests ran, or GitHub comments were posted.",
+          "id": 7080235017,
+          "html_url": "https://github.com/deftai/directive/issues/7031#issuecomment-7080235017",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T14:01:35Z",
+          "updated_at": "2026-11-22T14:01:35Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\nPain-audit follow-through (audit comment 7080235017; bind map stays successor lean 7080205053)\n\nThe audit is footnote-only with `harvest-changed: false` and a harvest digest equal to the lean's (`sha256:082a21585dbf7ed4272d676750b61bd717776a9f50024b25c1d8d73ffdfa1548`). It found that `pain-P1` and `pain-P2` hold as cited. Footnote 1 restates a limit item 6 already carries: a fact found mid-build still needs an earlier record PR, so under human merge an unattended worker can still wait for that merge; P1's relief is the terminal stop, not unconditional headless completion. Footnote 2 says the \"in-checkout write deny\" in item 6 holds per store (it covers `.deft/authz/` and `.deft/approved-scope/` inside the checkout, not the App store or outside-root targets); item 6 already requires per-store hook coverage. No take changes; no new lean.\n\n",
+          "id": 7080249121,
+          "html_url": "https://github.com/deftai/directive/issues/7031#issuecomment-7080249121",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T14:02:42Z",
+          "updated_at": "2026-11-22T14:02:42Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nBound lean: successor lean 7080205053 (first lean after the round-1 panel 7080179466, 7080179724, 7080187478). Dispatch SHA: 65fc6f74abe90c598b05d720d331626c67743dac. Non-self-arbitration: the parent wrote the Stop 1 write-back, the recommended mechanism and the lean. Each row names who read the source at the pin (`git show <sha>:<path>`). No tests were run. The three round-1 seats are three model families (Codex, Claude, Grok); the Grok seat read the dest worktree files at the dispatch SHA because the dest hook refused `git show` (its footnote 5).\n\n| # | Claim | Status | Method |\n|---|---|---|---|\n| 1 | `refuseNonInteractiveMint` is called from five runtime files: `authz.ts`, `scope-record-approved-scope.ts`, `scope-record-cohort.ts`, `scope-record-intent-constraint.ts`, `scope-record-observable-scope.ts` | verified | parent `git grep` at the pin |\n| 2 | `isHumanApprovalStamp` accepts a stamp on its `kind` and `actor` strings only, and any kind starting with `human` passes | verified | parent read of `packages/core/src/scope-provenance/digest.ts` 231-252; critic 7080187478 finding 1 |\n| 3 | Both record builders and both parsers call `isHumanApprovalStamp`, so a `declared` stamp cannot be written or read today | verified | parent read of `observable-scope/mint.ts` 150 and 224, `intent-constraint/mint.ts` 102 and 151; critics 7080187478 finding 1, 7080179466 finding 2 |\n| 4 | The single-path commands build the stamp from `--kind` and `--actor`, and `--minted-via` admits `in-harness-ask` | verified | parent read of `scope-record-observable-scope.ts` 43 and 234-246 and the intent twin; critic 7080179724 finding 3 |\n| 5 | `.deft/observable-scope/` and `.deft/intent-constraint/` are outside the hook's protected set; Write/Edit to the set inside the checkout is denied | verified | parent read of `authz/protected-dest-realpath.ts` 20-32 and `authz/evaluate.ts` 329-336; critics 7080187478 finding 3, 7080179466 finding 3 |\n| 6 | Claude Code's PowerShell tool is not in `SHELL_TOOL_NAMES` | verified | parent read of `hooks/tools.ts` 41-49; #6981 |\n| 7 | The cohort engine itself states that CI cannot tell a mint from a file an agent wrote | verified | parent read of `runtime/src/scope-record-cohort.ts` 11 and 601 |\n| 8 | The worker preamble and build skill tell unattended workers to park pending a human mint and forbid parent auto-approve | verified | parent read of `content/templates/agent-prompt-preamble.md` 28-31 and `content/skills/deft-directive-build/SKILL.md` 537-541; critics 7080179466 finding 1, 7080179724 finding 2 |\n| 9 | The write-fence hook reads the working-tree approved-scope record during the session | verified | parent read of `policy/write-fence.ts` 733-748; critic 7080179724 finding 1 |\n| 10 | `authz:grant --template one-pr-unit` mints into the App store through the same gate | verified | parent read of `runtime/src/authz.ts` 680-712; critic 7080179724 finding 6 |\n| 11 | `authz:revoke` retries the delete in the main clone store when the grant is absent locally | verified | parent read of `runtime/src/authz.ts` 1012-1022; critic 7080187478 finding 4 |\n| 12 | A story-scope refusal of a direct write becomes a warning only under a live merge-gate signal | verified | parent read of `hooks/dispatcher.ts` 1749-1770 and `scope-provenance/extra-path-admission.ts` 215-226; critic 7080187478 finding 2 |\n| 13 | Absolute Write/Edit from a linked worktree into the main clone's `.deft/authz/` is not denied | endorsed, not verified | critic 7080179724 finding 5 (stated as plausible) and critic 7080187478 finding 3 (cites `dispatcher-outside-root.test.ts` 134-137); parent read `protected-dest-realpath.ts` 34-37 only; named as a limit and a later story, not built here |\n| 14 | The Bound remedy relieves `P1` and `P2` as Stop 1 states them | verified as design coverage | pain audit 7080235017 (`pain-P1: holds`, `pain-P2: holds`, `finding-classes: footnote`, `harvest-changed: false`, digest equal to the lean's); a different family from the parent |\n| 15 | The changed commands, parsers, docs and tests behave as designed | endorsed, not verified | nothing was built or run; the implementer covers it with the tests the Acceptance Criteria name |\n\n",
+          "id": 7080249393,
+          "html_url": "https://github.com/deftai/directive/issues/7031#issuecomment-7080249393",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T14:02:43Z",
+          "updated_at": "2026-11-22T14:02:43Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nProblem: `scope:record-observable-scope` and `scope:record-intent-constraint` stop until a person types `mint` at a real terminal. That stop proves someone was at a terminal, not that anyone reviewed the record, and an agent can already write the same record by hand because the checks look only at the stamp's shape. Consumers pay a stop per story or cohort, worker instructions tell unattended workers to park for that mint, and no single list says which mints still guard something.\n\nAccepted solution: the two commands write their records from any shell with no terminal step, single path and cohort form. They always write a `declared` stamp naming the command and refuse `--kind` and `--minted-via`; the actor is an optional declared-by name that may be an agent. Both builders and both parsers accept `declared` while the shared human-stamp check stays closed, so a declared record never counts as human approval for approved-scope, the one-PR proof or any other reader. The reader ships with the writer. The UAT refusal stays. Every `authz:*` command and template (including `uat-start`, `uat-suspend`, `revoke` and `one-pr-unit`) and `scope:record-approved-scope` keep the mint, because their records are live authority inside the session before any PR exists. Worker instructions change from \"park for a human mint\" to \"write the declaration and land it before the product PR\". One table in `content/contracts/human-origin-authz.md` lists every mint, where its record is read, what it prevents, what a kept mint buys and its named limits.\n\nLimits accepted: a declared record is a declaration the product check holds the PR to, not an approval. Under human merge, the human stop moves from the terminal to the merge that lands the record; under bot merge or a merge under the operator's identity, nothing human checks it. A fact found mid-build still needs a record PR before the product PR. A kept mint buys a command that stops while agent markers are set, plus the in-checkout write deny for `.deft/authz/` and `.deft/approved-scope/`; it does not make a store unwritable (PowerShell tool, absolute writes from a linked worktree into the main clone's grant store, forge commits). The design was checked by reading the source at the pinned commit; nothing was built or run. Leftover next-builds named on the lean, not filed: the linked-worktree write hole into the main clone's `.deft/authz/`, retiring the two records in favour of the merge-base brief contract, and the #6945 fallback wording.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 7080205053.\nverified-claims table 7080249393\n\nConfirm conjunct: yolo standing (Stop 1 7080012362, `yolo-standing: on`). Spend N≥3 resolved by `deft design-critique:spend-resolve` on the operator's words \"do it\" with a recorded `spend-recommend: N≥3`. Round-1 panel: comments 7080179466 (Codex), 7080179724 (Claude) and 7080187478 (Grok), posted by the parent verbatim as disclosed on panel-deposit 7080068067; all 13 classified findings are accepted on the lean. Clean pain audit of the bound lean: comment 7080235017 (`finding-classes: footnote`, `harvest-changed: false`, harvest digest equal to the lean's), the Dual-stop reserved slot; follow-through comment 7080249121. Critic posts used: 4 (3 round-1 plus the reserved audit).\n\n",
+          "id": 7080253320,
+          "html_url": "https://github.com/deftai/directive/issues/7031#issuecomment-7080253320",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T14:03:03Z",
+          "updated_at": "2026-11-22T14:03:03Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Problem\n\nEvery operator mint goes through `refuseNonInteractiveMint` (`packages/runtime/src/human-presence-mint.ts`): a real TTY, no agent or CI markers, `--confirm`, and a typed `mint`. That proves a human is present, not that the human reviewed anything. For some verbs it is the only thing standing between an agent and a self-approval, because the record lands in a store the hooks protect (`.deft/authz/`, `.deft/approved-scope/`). For others it protects nothing: the #6937 triage found that `.deft/observable-scope/` and `.deft/intent-constraint/` are not hook-protected and `isHumanApprovalStamp` checks stamp shape only, so an agent can write those records by hand and the terminal step is pure cost. Consumers hit these mints repeatedly and cannot leave a headless swarm running (deftai/evolution reports, #6937, #7011-era feedback).\n\n## Acceptance Criteria\n\n- [ ] An inventory lists every verb that calls `refuseNonInteractiveMint`, with the store it writes, whether hooks protect that store, and what self-approval it prevents.\n- [ ] Each verb whose record lands in an unprotected store either drops the TTY step (record written by the agent, with the human merge of the PR that lands it as the stated control) or has its store added to the protected set, with the choice justified per verb.\n- [ ] Verbs whose records land in a protected store keep the TTY mint until a stronger approval exists (#6945).\n- [ ] Docs list which actions still need an operator mint and why, in one table.\n- [ ] Tests cover one dropped-mint verb writing its record without a TTY and one kept-mint verb still refusing without a TTY.\n\nRefs #6937, #6945, #6284, #3156, #5010.\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6543007705,
+        "origin": "deftai/directive#7031",
+        "id": "github.issue.6543007705"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "23c4164f3e096e0ce4b9f129f463e4c80121b82ce97de2a7c7fd84a13549d785"
+      },
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 7031,
+        "leanCommentId": 7080205053,
+        "harvestDigest": "082a21585dbf7ed4272d676750b61bd717776a9f50024b25c1d8d73ffdfa1548",
+        "slice": null
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/runtime/src/scope-record-observable-scope.ts",
+          "packages/runtime/src/scope-record-intent-constraint.ts",
+          "packages/runtime/src/scope-record-cohort.ts",
+          "packages/core/src/observable-scope/mint.ts",
+          "packages/core/src/observable-scope/types.ts",
+          "packages/core/src/intent-constraint/mint.ts",
+          "packages/core/src/intent-constraint/types.ts",
+          "packages/core/src/scope-provenance/record-stamp.ts",
+          "packages/core/src/scope-provenance/index.ts",
+          "packages/runtime/src/mint-audit.test.ts",
+          "packages/core/src/scope-provenance/record-stamp.test.ts",
+          "packages/core/src/content-contracts/standards/declared_records_7031.test.ts",
+          "packages/runtime/src/scope-record-observable-scope.test.ts",
+          "packages/runtime/src/scope-record-intent-constraint.test.ts",
+          "packages/runtime/src/scope-record-cohort.test.ts",
+          "packages/runtime/src/human-presence-mint.test.ts",
+          "packages/core/src/observable-scope/mint.test.ts",
+          "packages/core/src/observable-scope/types.test.ts",
+          "packages/core/src/intent-constraint/mint.test.ts",
+          "packages/core/src/intent-constraint/types.test.ts",
+          "packages/core/src/intent-constraint/placement.test.ts",
+          "packages/core/src/content-contracts/skills/setup_file_scope_authoring_4988.test.ts",
+          "content/templates/agent-prompt-preamble.md",
+          "content/templates/agents-entry.md",
+          "AGENTS.md",
+          "content/packs/skills/skills-pack-0.1.json",
+          "content/skills/deft-directive-build/SKILL.md",
+          "content/skills/deft-directive-setup/SKILL.md",
+          "content/skills/deft-directive-swarm/SKILL.md",
+          "content/skills/deft-directive-swarm/references/core-phase-0.md",
+          "content/docs/intent-constraint.md",
+          "content/docs/observable-scope.md",
+          "content/docs/scope-provenance.md",
+          "content/commands.md",
+          "content/contracts/human-origin-authz.md",
+          "docs/RULE-MAP.md",
+          "xbrief/evaluator-surface-disposition.json",
+          "changelog.d/7031-declared-records.md"
+        ],
+        "verify_commands": [
+          "npx vitest run packages/runtime/src/mint-audit.test.ts packages/runtime/src/scope-record-observable-scope.test.ts packages/runtime/src/scope-record-intent-constraint.test.ts packages/runtime/src/scope-record-cohort.test.ts packages/runtime/src/human-presence-mint.test.ts",
+          "npx vitest run packages/core/src/scope-provenance/record-stamp.test.ts packages/core/src/observable-scope/mint.test.ts packages/core/src/observable-scope/types.test.ts packages/core/src/intent-constraint/mint.test.ts packages/core/src/intent-constraint/types.test.ts packages/core/src/intent-constraint/placement.test.ts",
+          "npx vitest run packages/core/src/content-contracts/standards/declared_records_7031.test.ts packages/core/src/content-contracts/skills/setup_file_scope_authoring_4988.test.ts"
+        ],
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "depends_on": [],
+        "expected_outputs": [
+          "scope:record-observable-scope and scope:record-intent-constraint (single path and cohort) write from any shell with a declared stamp; --kind and --minted-via are refused; the UAT refusal stays",
+          "both builders and both parsers accept declared and legacy human stamps through one predicate; isHumanApprovalStamp is unchanged",
+          "authz:* and scope:record-approved-scope keep the terminal mint",
+          "worker preamble, build/setup/swarm skills, record docs, commands.md and both remediation strings say write the declaration and land it before the product PR",
+          "one table in content/contracts/human-origin-authz.md lists every operator-mint command, its control and its named limits"
+        ],
+        "model_tier": "strong",
+        "conflict_group": "mint-audit-7031",
+        "acceptance_criteria_justification": "Every clause comes from the accepted #7031 lean 7080205053 (bind lean; audit 7080235017, follow-through 7080249121, table 7080249393, synthesis 7080253320). Behaviour clauses bind to the runtime and core test files; doc clauses bind to one content-contract test."
+      }
+    },
+    "id": "github.issue.6543007705",
+    "updated": "2026-11-22T16:07:17Z"
+  }
+}
