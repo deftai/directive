@@ -1,0 +1,2 @@
+section: Fixed
+- `scope:complete` can now finish a shipped story whose acceptance criteria carry no command: it runs the project's declared test command (`plan.policy.testCommand`, else `scripts.test`) once, and a green run completes the story without a brief edit. When there is no declared command, or it is refused or fails, the refusal says which and lists each open clause with the grant command, instead of the old historical-closeout text (#7047).

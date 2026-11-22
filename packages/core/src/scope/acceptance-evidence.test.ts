@@ -35,7 +35,6 @@ import {
   formatAcceptanceCompletionListing,
   formatScopeStatus,
   formatStrictAxisAdvisory,
-  HISTORICAL_SHIP_CLAUSE_BEARING_REMEDIATION,
   HISTORICAL_SHIP_CLOSEOUT_ADMIT_MESSAGE,
   inferHiddenStrictAxes,
   inferRequiredStrictAxes,
@@ -1214,6 +1213,11 @@ describe("scope:complete acceptance parity with verify:ac (#3497)", () => {
 
   const greenRunner = () => ({ exitCode: 0, stdout: "", stderr: "" });
   const redRunner = () => ({ exitCode: 1, stdout: "", stderr: "product wrong" });
+  /** An empty project root: no PROJECT-DEFINITION testCommand, no package.json (#7047). */
+  const noFloorRoot = (): string => {
+    root = mkdtempSync(join(tmpdir(), "no-floor-"));
+    return root;
+  };
 
   /** Prose clauses with no bound artifact path — every one walks `unverifiable`. */
   const unverifiableClauses = [
@@ -1281,7 +1285,8 @@ describe("scope:complete acceptance parity with verify:ac (#3497)", () => {
         },
         items: [],
       },
-      { ...walkOptions, runner: greenRunner },
+      // #7047: a root with no declared test command, so no completion floor runs.
+      { ...walkOptions, projectRoot: noFloorRoot(), runner: greenRunner },
     );
     expect(walk.ok).toBe(false);
     expect(walk.predicate).not.toBe("executable-pass");
@@ -1306,7 +1311,8 @@ describe("scope:complete acceptance parity with verify:ac (#3497)", () => {
         },
         items: [],
       },
-      { ...walkOptions, runner: greenRunner },
+      // #7047: a root with no declared test command, so no completion floor runs.
+      { ...walkOptions, projectRoot: noFloorRoot(), runner: greenRunner },
     );
     expect(walk.message).toContain("verify:ac: no acceptance evidence yet (#3284) (0 verified");
     expect(walk.message).not.toContain("verify:ac passed (#3284)");
@@ -3597,7 +3603,8 @@ describe("historical ship-closeout (#5403)", () => {
     expect(walk.predicate).toBe("empty-acceptance");
   });
 
-  it("refuses clause-bearing empty acceptance with honest historical remedy", () => {
+  it("refuses clause-bearing empty acceptance with the clause list and grant command (#7047)", () => {
+    const root = mkdtempSync(join(tmpdir(), "no-floor-5403-"));
     const walk = evaluateScopeCompleteAcceptanceWalk(
       {
         id: "5403-clause-bearing",
@@ -3606,6 +3613,7 @@ describe("historical ship-closeout (#5403)", () => {
           commands: [],
           none_stated: true,
           source_rung: "project_floor",
+          ambiguity_attestation: "none_found",
           clauses: [
             {
               id: 1,
@@ -3625,12 +3633,14 @@ describe("historical ship-closeout (#5403)", () => {
           },
         },
       },
-      walkOptions,
+      { ...walkOptions, projectRoot: root },
     );
+    rmSync(root, { recursive: true, force: true });
     expect(walk.ok).toBe(false);
-    expect(walk.message).toContain(HISTORICAL_SHIP_CLAUSE_BEARING_REMEDIATION);
-    expect(walk.message).not.toMatch(
-      /stamp an allowlisted executable on plan\.acceptance\.commands/,
+    expect(walk.message).not.toContain("covers clause-less pre-schema briefs only");
+    expect(walk.message).toContain("1 clause(s) neither verified nor granted");
+    expect(walk.message).toContain(
+      "--template acceptance-disposition --plan-ref 5403-clause-bearing",
     );
   });
 

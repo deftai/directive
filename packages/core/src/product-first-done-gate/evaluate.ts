@@ -162,6 +162,14 @@ export interface EvaluateVerifyAcOptions extends EvaluateLiteralAcceptanceOption
    */
   readonly grantedClauses?: readonly GrantedClauseNote[];
   /**
+   * Completion-only floor record (#7047). Only the scope:complete walk passes
+   * it, when its first walk would refuse zero-verified on a clause-bearing brief
+   * with no effective command. The record joins the resolved contract like any
+   * other record: safety, the blocking refusal, the reuse identity and the bank
+   * ledger all see it. It is never written to the brief.
+   */
+  readonly completionFloorRecord?: LiteralAcceptanceCommand;
+  /**
    * When true, missing xBRIEF / no active scope is exit 0 (check composition).
    * Default false for standalone done-gate use. Multi-active path selection for
    * check composition lives in resolveSoftMissingAcTargets (#4285); this flag
@@ -452,7 +460,11 @@ export interface AcceptanceCommandRecords {
  */
 export function resolveAcceptanceCommandRecords(
   plan: Record<string, unknown>,
-  options: { readonly captureFromNarratives?: boolean } = {},
+  options: {
+    readonly captureFromNarratives?: boolean;
+    /** Transient completion floor record (#7047); passes the same record rule. */
+    readonly completionFloorRecord?: LiteralAcceptanceCommand;
+  } = {},
 ): AcceptanceCommandRecords {
   const captureFromNarratives =
     options.captureFromNarratives ?? resolveAcceptanceGateProfile("complete").captureFromNarratives;
@@ -469,6 +481,9 @@ export function resolveAcceptanceCommandRecords(
         sourceSpan: "plan.acceptance.commands",
       });
     }
+  }
+  if (options.completionFloorRecord !== undefined) {
+    candidates.push(options.completionFloorRecord);
   }
   const blocking: RejectedLiteralCommand[] = [];
   const blockingSeen = new Set<string>();
@@ -615,12 +630,16 @@ function runAcceptanceCommandRecords(
 function resolveExecutableAcceptanceContract(
   plan: Record<string, unknown>,
   captureFromNarratives: boolean | undefined,
+  completionFloorRecord?: LiteralAcceptanceCommand,
 ): {
   readonly commands: LiteralAcceptanceCommand[];
   readonly rejected: readonly RejectedLiteralCommand[];
   readonly records: AcceptanceCommandRecords;
 } {
-  const records = resolveAcceptanceCommandRecords(plan, { captureFromNarratives });
+  const records = resolveAcceptanceCommandRecords(plan, {
+    captureFromNarratives,
+    ...(completionFloorRecord !== undefined ? { completionFloorRecord } : {}),
+  });
   return { commands: [...records.commands], rejected: records.blocking, records };
 }
 
@@ -629,7 +648,11 @@ function resolvedContractForHash(
   options: EvaluateVerifyAcOptions,
 ): AcceptanceLedgerEntry[] {
   return ledgerEntriesFromCommands(
-    resolveExecutableAcceptanceContract(plan, captureFromNarrativesFlag(options)).commands,
+    resolveExecutableAcceptanceContract(
+      plan,
+      captureFromNarrativesFlag(options),
+      options.completionFloorRecord,
+    ).commands,
   );
 }
 
@@ -1083,6 +1106,7 @@ export function evaluateVerifyAcFromPlan(
   const contract = resolveExecutableAcceptanceContract(
     plan,
     captureFromNarrativesFlag(optionsWithScope),
+    optionsWithScope.completionFloorRecord,
   );
   // #6886 item 5: a refused record stops verify:ac before anything runs.
   if (contract.records.blocking.length > 0) {

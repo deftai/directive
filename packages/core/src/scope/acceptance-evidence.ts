@@ -16,12 +16,15 @@
  * ITEM_CORE is not expanded with bare keys; verify:vbrief-conformance rejects them.
  */
 
+import { resolve } from "node:path";
 import { isHumanOrigin } from "../authz/origin.js";
 import { type GrantOrigin, HUMAN_ORIGIN_KINDS } from "../authz/types.js";
 import {
   SCOPE_COMPLETE_ZERO_VERIFIED_NOTICE,
   scopeCompleteRejectsZeroVerifiedWalk,
 } from "../check/rapid-zero-verified.js";
+import type { DeclaredTestCommand } from "../consumer-test-lane/evaluate.js";
+import type { LiteralAcceptanceCommand } from "../literal-acceptance/types.js";
 import {
   type AcceptancePredicate,
   formatAcceptanceVerdict,
@@ -31,6 +34,8 @@ import {
 import {
   type EvaluateVerifyAcOptions,
   evaluateVerifyAcFromPlan,
+  resolveAcceptanceCommandRecords,
+  type VerifyAcResult,
 } from "../product-first-done-gate/evaluate.js";
 import type { GitRunner } from "../session/git.js";
 import {
@@ -2011,11 +2016,6 @@ export function migrateNoneStatedForHistoricalShip(plan: Record<string, unknown>
 export const HISTORICAL_SHIP_CLOSEOUT_ADMIT_MESSAGE =
   "Historical ship-closeout admitted clause-less empty acceptance with merge provenance (#5403)";
 
-export const HISTORICAL_SHIP_CLAUSE_BEARING_REMEDIATION =
-  "Historical ship-closeout (#5403) covers clause-less pre-schema briefs only. " +
-  "For clause-bearing actives, stamp dispositions/evidence on clause-keyed items " +
-  "or add allowlisted executables — do not invent commands solely to clear the fence.";
-
 const SCOPE_COMPLETE_ACCEPTANCE_REMEDIATION_LEAD =
   "scope:complete requires executable plan.acceptance that runs green; stamp commands on " +
   "plan.acceptance.commands (or plan.metadata.swarm.verify_commands) — task verify:ac verifies, " +
@@ -2061,6 +2061,190 @@ function unresolvedClauseRows(
 const ACCEPTANCE_DISPOSITION_TEMPLATE = "acceptance-disposition";
 
 /**
+ * True when a walk verified no clause and no green executable oracle ran
+ * (#4870 / #6644): with a clause walk the counts decide (granted clauses are
+ * already left out of them), otherwise the printed lead does.
+ */
+function walkReportsZeroVerified(walk: VerifyAcResult, predicate: AcceptancePredicate): boolean {
+  if (walk.clauseWalked === true) {
+    const rows = walk.clauseOutcomes ?? [];
+    return (
+      rows.length > 0 &&
+      !rows.some((row) => row.outcome === "verified") &&
+      predicate !== "executable-pass"
+    );
+  }
+  return scopeCompleteRejectsZeroVerifiedWalk({ text: walk.message, predicate });
+}
+
+/** Lead used when the project declares no test command (#7047). */
+export const DECLARED_TEST_FLOOR_NONE =
+  "no declared test command (set `plan.policy.testCommand` in PROJECT-DEFINITION, " +
+  "or `scripts.test` in package.json) (#7047)";
+
+/** Where the floor's command came from, for the listing and the refusal. */
+function describeDeclaredTestCommand(declared: DeclaredTestCommand, cwd: string): string {
+  return `source ${declared.source}, cwd ${cwd}`;
+}
+
+/**
+ * Characters an argument may hold and still reach the platform shell
+ * unchanged when the record runs as one command string (#7047).
+ */
+const SHELL_LITERAL_ARGUMENT = /^[A-Za-z0-9_@%+=:,./-]+$/;
+
+/**
+ * The declared command as one acceptance record, argv split kept (#7047).
+ * The record runs through the platform shell, so an argument that would not
+ * survive it unchanged (whitespace, quotes, backslashes, globs and other
+ * shell syntax) is refused instead of quoted or re-split.
+ */
+function declaredTestFloorRecord(
+  declared: DeclaredTestCommand,
+): { readonly record: LiteralAcceptanceCommand } | { readonly refused: string } {
+  const argv = [declared.command, ...declared.args];
+  const changed = argv.find((part) => !SHELL_LITERAL_ARGUMENT.test(part));
+  if (changed !== undefined) {
+    return {
+      refused:
+        `argument ${JSON.stringify(changed)} would not reach the shell unchanged, ` +
+        "so its argv split cannot be kept in one command",
+    };
+  }
+  return {
+    record: {
+      command: argv.join(" "),
+      cwd: null,
+      expectedStdout: null,
+      expectedExitCode: 0,
+      source: "metadata",
+      sourceSpan: `project_floor (${declared.source})`,
+    },
+  };
+}
+
+/** The last non-empty line of each output stream of a failed floor run. */
+function lastOutputLines(run: { readonly stdout: string; readonly stderr: string }): string {
+  const last = (text: string): string | undefined =>
+    text
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0)
+      .at(-1);
+  const parts: string[] = [];
+  const out = last(run.stdout);
+  const err = last(run.stderr);
+  if (out !== undefined) parts.push(`stdout: ${fenceUntrustedAcceptanceText(out)}`);
+  if (err !== undefined) parts.push(`stderr: ${fenceUntrustedAcceptanceText(err)}`);
+  return parts.length > 0 ? `; last output lines: ${parts.join("; ")}` : "; no output";
+}
+
+interface DeclaredTestFloorResult {
+  /** Set when the floor walk admits completion. */
+  readonly admitted: AcceptanceEvidenceGateResult | null;
+  /** The floor outcome line printed first on a refusal. */
+  readonly outcome: string;
+  /** The floor walk, when one ran. */
+  readonly walk: VerifyAcResult | null;
+  readonly predicate: AcceptancePredicate | null;
+}
+
+/**
+ * Completion floor (#7047). Called only where the #4870 zero-verified refusal
+ * would fire on a clause-bearing brief. Applies only when the effective
+ * contract has no command and no refused record (else null: the refusal stands
+ * as before). The declared test command joins one more ordinary walk as a
+ * transient record, so safety, the blocking refusal, reuse and applyOracle all
+ * apply. Nothing is written to the brief.
+ */
+function runDeclaredTestFloor(
+  plan: Record<string, unknown>,
+  walkOptions: EvaluateVerifyAcOptions,
+  resolveDeclared: (projectRoot: string) => DeclaredTestCommand | null,
+  provenance: { readonly prNumber: number | null; readonly mergeCommit: string },
+): DeclaredTestFloorResult | null {
+  const contract = resolveAcceptanceCommandRecords(plan, {
+    captureFromNarratives: walkOptions.captureFromNarratives,
+  });
+  if (contract.commands.length > 0 || contract.blocking.length > 0) {
+    return null;
+  }
+  const projectRoot = resolve(walkOptions.projectRoot ?? process.cwd());
+  const declared = resolveDeclared(projectRoot);
+  if (declared === null) {
+    return { admitted: null, outcome: DECLARED_TEST_FLOOR_NONE, walk: null, predicate: null };
+  }
+  const where = describeDeclaredTestCommand(declared, projectRoot);
+  const built = declaredTestFloorRecord(declared);
+  if ("refused" in built) {
+    return {
+      admitted: null,
+      outcome: `declared test command refused: ${built.refused} (${where}); nothing was run (#7047)`,
+      walk: null,
+      predicate: null,
+    };
+  }
+  const record = built.record;
+  const floorWalk = evaluateVerifyAcFromPlan(plan, {
+    ...walkOptions,
+    completionFloorRecord: record,
+  });
+  const verdict = resolveAcceptanceVerdict({
+    ...floorWalk,
+    completionContext:
+      provenance.mergeCommit.length > 0 || provenance.prNumber !== null
+        ? {
+            mergeCommit: provenance.mergeCommit.length > 0 ? provenance.mergeCommit : null,
+            prNumber: provenance.prNumber,
+          }
+        : undefined,
+  });
+  const quoted = `\`${record.command}\``;
+  if (floorWalk.ok && !walkReportsZeroVerified(floorWalk, verdict.predicate)) {
+    return {
+      admitted: {
+        ok: true,
+        message:
+          `scope:complete: declared test command passed (#7047): ${quoted} (${where}); ` +
+          `the acceptance clauses are not individually verified\n${floorWalk.message}`,
+        reports: [],
+        servedFrom: floorWalk.servedFrom ?? "executed",
+        predicate: verdict.predicate,
+      },
+      outcome: "",
+      walk: floorWalk,
+      predicate: verdict.predicate,
+    };
+  }
+  const refused = (floorWalk.rejected ?? []).find((row) => row.command === record.command);
+  const run = floorWalk.runs.find((row) => row.command === record.command);
+  let outcome: string;
+  if (refused !== undefined) {
+    outcome = `declared test command refused: ${refused.reason} — ${quoted} (${where}); nothing was run (#7047)`;
+  } else if (run !== undefined && !run.ok) {
+    outcome =
+      `declared test command failed: ${quoted} (${where}), exit ${String(run.exitCode)}` +
+      `${lastOutputLines(run)} (#7047)`;
+  } else if (run === undefined) {
+    outcome = `declared test command did not run: ${quoted} (${where}) (#7047)`;
+  } else {
+    outcome = `declared test command passed, but the acceptance walk still refused: ${quoted} (${where}) (#7047)`;
+  }
+  return { admitted: null, outcome, walk: floorWalk, predicate: verdict.predicate };
+}
+
+/** Options for the scope:complete acceptance walk. */
+export interface ScopeCompleteAcceptanceWalkOptions extends EvaluateVerifyAcOptions {
+  /**
+   * The completion floor's command source (#7047). scope:complete passes
+   * `resolveDeclaredTestCommand` from the consumer test lane; it is injected,
+   * not imported here, because that module's import graph reaches back into
+   * this one. Absent means no floor runs.
+   */
+  readonly resolveDeclaredTestCommand?: (projectRoot: string) => DeclaredTestCommand | null;
+}
+
+/**
  * Hard precondition for scope:complete (#3357 / #3267 / #3284).
  *
  * Runs the same verify:ac walk check uses, through the one shared option profile and
@@ -2072,16 +2256,18 @@ const ACCEPTANCE_DISPOSITION_TEMPLATE = "acceptance-disposition";
  */
 export function evaluateScopeCompleteAcceptanceWalk(
   plan: Record<string, unknown>,
-  options: EvaluateVerifyAcOptions = {},
+  options: ScopeCompleteAcceptanceWalkOptions = {},
 ): AcceptanceEvidenceGateResult {
   const stamped = plan.acceptance !== undefined;
   const profile = resolveAcceptanceGateProfile("complete");
-  const walk = evaluateVerifyAcFromPlan(plan, {
-    ...options,
+  const { resolveDeclaredTestCommand: resolveDeclared, ...verifyOptions } = options;
+  const walkOptions: EvaluateVerifyAcOptions = {
+    ...verifyOptions,
     checkIntegrated: profile.checkIntegrated,
     captureFromNarratives: options.captureFromNarratives ?? profile.captureFromNarratives,
     reuseMode: options.reuseMode ?? profile.reuseMode,
-  });
+  };
+  const walk = evaluateVerifyAcFromPlan(plan, walkOptions);
   const rejectedCount = walk.rejected?.length ?? 0;
   const hadWork = walk.runs.length > 0 || walk.commands.length > 0 || rejectedCount > 0;
   const servedFrom = walk.servedFrom ?? "executed";
@@ -2120,17 +2306,7 @@ export function evaluateScopeCompleteAcceptanceWalk(
     // walk under the lifecycle-maintenance set (see rapid-zero-verified).
     // #6644: with a clause walk, the rule is decided from the counts (granted
     // clauses are already left out of them), not from the printed lead.
-    const walkedRows = walk.clauseOutcomes ?? [];
-    const zeroVerified =
-      walk.clauseWalked === true
-        ? walkedRows.length > 0 &&
-          !walkedRows.some((row) => row.outcome === "verified") &&
-          verdict.predicate !== "executable-pass"
-        : scopeCompleteRejectsZeroVerifiedWalk({
-            text: walk.message,
-            predicate: verdict.predicate,
-          });
-    if (zeroVerified) {
+    if (walkReportsZeroVerified(walk, verdict.predicate)) {
       // #5403 Stage-2 (a): clause-less + merge provenance admits without inventing commands.
       if (historical && clauseLess) {
         return {
@@ -2141,16 +2317,34 @@ export function evaluateScopeCompleteAcceptanceWalk(
           predicate: "empty-pass",
         };
       }
-      const remediation =
-        historical && !clauseLess
-          ? HISTORICAL_SHIP_CLAUSE_BEARING_REMEDIATION
-          : scopeCompleteRemediation(plan, unresolvedClauseRows(walkedRows));
+      // #7047: a clause-bearing brief with no effective command gets one more
+      // ordinary walk with the project's declared test command as a floor.
+      const floor =
+        clauseLess || resolveDeclared === undefined
+          ? null
+          : runDeclaredTestFloor(plan, walkOptions, resolveDeclared, {
+              prNumber,
+              mergeCommit,
+            });
+      if (floor !== null && floor.admitted !== null) {
+        return floor.admitted;
+      }
+      // #7047: every clause-bearing refusal shows the clause list and grant
+      // command (#6644), whether or not this run stamped delivered provenance.
+      const finalWalk = floor?.walk ?? walk;
+      const floorLine = floor === null ? "" : `${floor.outcome}\n`;
+      const remediation = scopeCompleteRemediation(
+        plan,
+        unresolvedClauseRows(finalWalk.clauseOutcomes ?? walk.clauseOutcomes ?? []),
+      );
       return {
         ok: false,
-        message: `${SCOPE_COMPLETE_ZERO_VERIFIED_NOTICE}` + `${remediation}\n${walk.message}`,
+        message:
+          `${SCOPE_COMPLETE_ZERO_VERIFIED_NOTICE}` +
+          `${floorLine}${remediation}\n${finalWalk.message}`,
         reports: [],
-        servedFrom,
-        predicate: verdict.predicate,
+        servedFrom: finalWalk.servedFrom ?? servedFrom,
+        predicate: floor?.predicate ?? verdict.predicate,
       };
     }
     return {
@@ -2175,10 +2369,10 @@ export function evaluateScopeCompleteAcceptanceWalk(
       predicate: "empty-pass",
     };
   }
-  const remediation =
-    historical && !clauseLess
-      ? HISTORICAL_SHIP_CLAUSE_BEARING_REMEDIATION
-      : scopeCompleteRemediation(plan, unresolvedClauseRows(walk.clauseOutcomes ?? []));
+  const remediation = scopeCompleteRemediation(
+    plan,
+    unresolvedClauseRows(walk.clauseOutcomes ?? []),
+  );
   return {
     ok: false,
     // Name the check that refused and the value it read BEFORE the standing
