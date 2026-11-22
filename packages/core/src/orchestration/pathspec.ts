@@ -104,7 +104,21 @@ export function matchAny(patterns: unknown, path: string): boolean {
   return false;
 }
 
-/** Glob-shaped detector (`*`, `?`, `[`). Same two-line helper as default-extractor. */
+/**
+ * Glob-shaped detector: the two characters `matchPath` expands (`*`, `?`).
+ * Brackets are literal here, as in the matcher, so a Next.js route file such
+ * as `app/[id]/page.tsx` is a concrete path (#6936).
+ */
 export function hasGlobMagic(value: string): boolean {
-  return value.includes("*") || value.includes("?") || value.includes("[");
+  return value.includes("*") || value.includes("?");
+}
+
+/**
+ * True when a scope entry names one concrete path: non-empty after trimming
+ * and free of glob magic. Shared by swarm:readiness, scope:decompose and the
+ * scope-provenance fence so they agree on what a concrete path is (#6936).
+ */
+export function isConcreteScopePath(entry: string): boolean {
+  const n = normalizePath(entry).trim();
+  return n.length > 0 && !hasGlobMagic(n);
 }

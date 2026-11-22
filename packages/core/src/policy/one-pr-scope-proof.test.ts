@@ -189,6 +189,36 @@ describe("evaluateMintLevelRecord (#6273)", () => {
     );
   });
 
+  it("does not reject a bracket route path as a glob entry (#6936)", () => {
+    const payload = brief([...SCOPE, "src/app/[id]/page.tsx"]);
+    const raw = JSON.stringify(payload);
+    const extracted = extractIntentFromRaw(raw, {});
+    if (!extracted.ok) throw new Error(extracted.error);
+    const record = {
+      ...buildApprovedScopeRecord({
+        xbriefRelPath: REL,
+        payload,
+        humanApproval: { kind: "operator", actor: "scott", mintedAt: "2026-11-13T00:00:00Z" },
+        intentDigest: computeIntentDigest(extracted.preimage),
+        digestAlgo: "intent-extract-v1",
+      }),
+      authHashV1: computeAuthHashV1(payload, REL) ?? "",
+    };
+    const verdict = evaluateMintLevelRecord(
+      input({
+        record,
+        headPayload: payload,
+        headRaw: raw,
+        intentRaw: JSON.stringify(extracted.preimage),
+      }),
+    );
+    expect(verdict.kind).toBe("admit");
+    const glob = brief([...SCOPE, "src/*.ts"]);
+    expect(
+      evaluateMintLevelRecord(input({ headPayload: glob, headRaw: JSON.stringify(glob) })),
+    ).toMatchObject({ kind: "reject", reason: "head brief file_scope has a glob entry" });
+  });
+
   it("rejects a missing record, a missing plan.id and a missing intentDigest", () => {
     expect(evaluateMintLevelRecord(input({ record: null }))).toMatchObject({ kind: "reject" });
     const noPlan = { xBRIEFInfo: { version: "0.8" }, plan: { title: "x" } };

@@ -1,3 +1,4 @@
+import { isConcreteScopePath } from "../orchestration/pathspec.js";
 import { stripEdgeChars, stripTrailingChar, stripTrailingWhitespace } from "./normalize.js";
 import type { JsonObject } from "./types.js";
 
@@ -55,6 +56,71 @@ export const PLACEHOLDER_ACCEPTANCE_PATTERNS = [
   "to refine from parent scope",
   "todo",
 ] as const;
+
+/** Multi-word stub phrases, matched as substrings anywhere (#6929). */
+export const PLACEHOLDER_STUB_PHRASES = PLACEHOLDER_ACCEPTANCE_PATTERNS.filter((pattern) =>
+  pattern.includes(" "),
+);
+
+/** Single marker words, matched per line and never inside a path-like token (#6929). */
+export const PLACEHOLDER_MARKER_WORDS = PLACEHOLDER_ACCEPTANCE_PATTERNS.filter(
+  (pattern) => !pattern.includes(" "),
+);
+
+const LIST_MARKER_RE = /^\s*(?:[-*+]|\d+[.)])\s+/;
+const EDGE_PUNCTUATION_RE = /^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu;
+const PATH_LIKE_RE = /\/|[\p{L}\p{N}][._-][\p{L}\p{N}]/u;
+const TEMPLATE_TOKEN_RE = /^(?:<|\{\{?|\[)\s*(?:placeholder|tbd|todo)\s*(?:>|\}\}?|\])[.,;:!?]*$/i;
+const DASH_TOKENS: ReadonlySet<string> = new Set(["-", "--", "\u2013", "\u2014"]);
+
+function isMarkerWord(word: string): boolean {
+  return (PLACEHOLDER_MARKER_WORDS as readonly string[]).includes(word);
+}
+
+/**
+ * One logical line (list marker already removed) is placeholder text when it
+ * holds a template token, when every word token is a marker, when it opens
+ * with a marker label (`TODO:`, `TBD -`), or when `tbd` is a word token.
+ * Leading and trailing punctuation is removed from each token first; a token
+ * that still holds `/`, or `.`, `-` or `_` between word characters, is
+ * path-like and never counts.
+ */
+function isPlaceholderLine(line: string): boolean {
+  const rawTokens = line
+    .trim()
+    .split(/\s+/)
+    .filter((token) => token.length > 0);
+  const words: { readonly raw: string; readonly word: string; readonly pathLike: boolean }[] = [];
+  for (const raw of rawTokens) {
+    if (TEMPLATE_TOKEN_RE.test(raw)) return true;
+    const word = raw.replace(EDGE_PUNCTUATION_RE, "").toLowerCase();
+    words.push({ raw, word, pathLike: word.length > 0 && PATH_LIKE_RE.test(word) });
+  }
+  const wordTokens = words.filter((w) => w.word.length > 0);
+  if (wordTokens.length === 0) return false;
+  if (wordTokens.every((w) => !w.pathLike && isMarkerWord(w.word))) return true;
+  const [first, second] = words;
+  if (first !== undefined && !first.pathLike && isMarkerWord(first.word)) {
+    if (first.raw.endsWith(":")) return true;
+    if (second !== undefined && second.word.length === 0 && DASH_TOKENS.has(second.raw)) {
+      return true;
+    }
+  }
+  return wordTokens.some((w) => !w.pathLike && w.word === "tbd");
+}
+
+/**
+ * True when text is placeholder text (#6929): a multi-word stub phrase
+ * anywhere, or a placeholder line by the single-marker rules. Used for
+ * acceptance criteria and the ImplementationPlan by swarm:readiness and
+ * scope:decompose. File names and domain words such as "placeholder
+ * widgets" do not count.
+ */
+export function isPlaceholderText(text: string): boolean {
+  const lower = text.toLowerCase();
+  if (PLACEHOLDER_STUB_PHRASES.some((phrase) => lower.includes(phrase))) return true;
+  return text.split(/\r?\n/).some((line) => isPlaceholderLine(line.replace(LIST_MARKER_RE, "")));
+}
 
 export const DOCS_ONLY_ACCEPTANCE_PATTERNS = [
   "docs updated",
@@ -356,7 +422,7 @@ export function storyQualityIssues(params: StoryQualityParams): string[] {
   for (const criterion of params.acceptanceTexts) {
     const normalized = normalize(criterion);
     const lower = criterion.toLowerCase();
-    if (PLACEHOLDER_ACCEPTANCE_PATTERNS.some((pattern) => lower.includes(pattern))) {
+    if (isPlaceholderText(criterion)) {
       issues.push("placeholder acceptance criterion");
     }
     if (normalized && (normalized === normalizedTitle || normalized === normalizedDescription)) {
@@ -394,7 +460,7 @@ function fileScopeIssues(swarm: JsonObject): string[] {
     const normalized = stripEdgeChars(filePath.trim(), "/");
     const root = normalized.split("/", 1)[0] ?? "";
     if (
-      /[*?[]/.test(normalized) ||
+      !isConcreteScopePath(normalized) ||
       BROAD_FILE_SCOPE_ROOTS.has(normalized) ||
       BROAD_FILE_SCOPE_ROOTS.has(stripTrailingChar(filePath, "/")) ||
       (BROAD_FILE_SCOPE_ROOTS.has(root) && (normalized === root || normalized === `${root}/*`))
@@ -432,7 +498,7 @@ function implementationPlanIssues(implementationPlan: string): string[] {
     issues.push("plan.narratives.ImplementationPlan must contain at least two concrete steps");
   }
   const lower = implementationPlan.toLowerCase();
-  if (PLACEHOLDER_ACCEPTANCE_PATTERNS.some((pattern) => lower.includes(pattern))) {
+  if (isPlaceholderText(implementationPlan)) {
     issues.push("plan.narratives.ImplementationPlan must not be placeholder text");
   }
   if (

@@ -28,7 +28,7 @@
  */
 
 import { CHANGELOG_FILE_REL, isChangelogEntryPath } from "../changelog/entry-path.js";
-import { matchAny, matchPath } from "../orchestration/pathspec.js";
+import { isConcreteScopePath, matchAny, matchPath } from "../orchestration/pathspec.js";
 import type { RefusalDeclaration } from "../refusal-declarations/table.js";
 import {
   isCompletionMoveShaped,
@@ -60,11 +60,9 @@ export const CHANGELOG_REL = CHANGELOG_FILE_REL;
 export const PRODUCTION_ALLOWANCE_FLOOR = Number("2");
 export const PRODUCTION_ALLOWANCE_CAP = Number("5");
 
-/** True when a file_scope entry is a concrete path (not a glob). */
+/** True when a file_scope entry is a concrete path (not a glob); brackets are literal (#6936). */
 export function isConcreteFileScopeEntry(entry: string): boolean {
-  const n = entry.replace(/\\/g, "/").trim();
-  if (n.length === 0) return false;
-  return !n.includes("*") && !n.includes("?") && !n.includes("[");
+  return isConcreteScopePath(entry);
 }
 
 export function productionAllowance(concreteProductionCount: number): number {
