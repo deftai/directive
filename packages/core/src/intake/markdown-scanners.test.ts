@@ -9,6 +9,8 @@ import {
   parseCheckboxItems,
   parseLeanSlices,
   parseListItems,
+  parseListItemsByPosition,
+  parseListItemsByPositionFolded,
   parseSliceLine,
   sliceAcSection,
   sliceBoundRemedySection,
@@ -257,5 +259,60 @@ describe("Bound-remedy harvest extractor (#4258)", () => {
     const specPath = extractBoundRemedyHarvest(LEAN_5587555346.replace("Recut:", "Spec-path:"));
     expect(specPath.items.map((item) => item.title)).toEqual(recut.items.map((item) => item.title));
     expect(specPath.items).toHaveLength(5);
+  });
+});
+
+describe("parseListItemsByPositionFolded (#7001)", () => {
+  it("folds an indented (a)-style sub-list into its parent item", () => {
+    const text = [
+      "1. First limb.",
+      "2. Tests. None needs a build.",
+      "   (a) Through the seam.",
+      "   (b) In process.",
+      "3. Third limb.",
+    ].join("\n");
+    expect(parseListItemsByPositionFolded(text).map((item) => item.title)).toEqual([
+      "First limb.",
+      "Tests. None needs a build. (a) Through the seam. (b) In process.",
+      "Third limb.",
+    ]);
+  });
+
+  it("keeps an indented - x or 1. x line as its own item, at its own position", () => {
+    const text = "- Parent.\n  - Child one.\n  1. Child two.\n- Next.\n";
+    const folded = parseListItemsByPositionFolded(text);
+    expect(folded.map((item) => item.title)).toEqual([
+      "Parent.",
+      "Child one.",
+      "Child two.",
+      "Next.",
+    ]);
+    expect(folded).toEqual(parseListItemsByPosition(text));
+  });
+
+  it("ends an item at a blank line, so a later indented line does not fold", () => {
+    const text = "- Item.\n\n  indented prose after a blank line\n- Next.\n";
+    expect(parseListItemsByPositionFolded(text).map((item) => item.title)).toEqual([
+      "Item.",
+      "Next.",
+    ]);
+  });
+
+  it("ends an item at an unindented prose line", () => {
+    const text = "- Item.\nprose\n  indented after prose\n";
+    expect(parseListItemsByPositionFolded(text).map((item) => item.title)).toEqual(["Item."]);
+  });
+
+  it("keeps the checkbox status of the first line and folds CRLF continuation text", () => {
+    const text = "- [x] Done item\r\n  continues here.\r\n- [ ] Open item\r\n";
+    expect(parseListItemsByPositionFolded(text)).toEqual([
+      { title: "Done item continues here.", status: "completed" },
+      { title: "Open item", status: "proposed" },
+    ]);
+  });
+
+  it("reads the same rows as parseListItemsByPosition for a list with no continuation line", () => {
+    const text = "1. A.\n2. A.\n- [x] B.\n\nprose\n  - C.\n";
+    expect(parseListItemsByPositionFolded(text)).toEqual(parseListItemsByPosition(text));
   });
 });

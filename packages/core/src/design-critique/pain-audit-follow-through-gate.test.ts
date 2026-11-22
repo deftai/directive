@@ -2,6 +2,9 @@
  * Colocated coverage for pain-audit-follow-through-gate (#5233 / #1310).
  * Integration fixtures also live in leftover-pain.test.ts.
  */
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { isSuccessorLeanBody } from "./completed-arc-record.js";
 import {
@@ -13,8 +16,10 @@ import {
   extractOperativeHarvestDigest,
   hashBoundRemedyBytes,
   hashHarvestIdentity,
+  hashHarvestIdentityPreFold,
   leanHasAcceptanceOrSlices,
   leanUneditedSinceAudit,
+  preFoldDigestAuditCounts,
 } from "./pain-audit-follow-through-gate.js";
 
 describe("pain-audit-follow-through-gate (#5233)", () => {
@@ -308,5 +313,130 @@ describe("digestless audits of unedited leans are grandfathered (#6477)", () => 
     expect(gate(acLean, audit(), { lean: "2026-13-01T00:00:00Z", audit: AUDIT_CREATED }).ok).toBe(
       false,
     );
+  });
+});
+
+describe("folded harvest identity and pre-fold audits (#7001)", () => {
+  const LEAN_6904 = readFileSync(
+    join(dirname(fileURLToPath(import.meta.url)), "../intake/fixtures/lean-6904-7070710091.md"),
+    "utf8",
+  );
+  const PRE_FOLD_6904 = "2668130f1f0bb6dda738ebb7262bd3fe4e47d2c0f54d3d6aad0ea63430a5863e";
+  const plainLean = "**Lean:** bind.\n\n## Bound remedy\n\n1. harvest\n\nrelieves: P1\n";
+  const listLean =
+    "**Lean:** bind.\n\n## Bound remedy\n\n1. harvest\n2. harvest\n- [x] done\n\n" +
+    "## Acceptance Criteria\n- Given a lean, then both lists are harvested.\n" +
+    "- Given a lean, then both lists are harvested.\n  - nested child\n\n" +
+    "## Slices\n- slice-a: B1\n\nrelieves: P1\n";
+  const wrapped =
+    "**Lean:** bind.\n\n## Bound remedy\n\n1. Tests.\n   (a) assert that no process remains.\n\n" +
+    "## Acceptance Criteria\n- Given x,\n  then y.\n\nrelieves: P1\n";
+
+  it("keeps the digest of a lean with no continuation line (values measured before #7001)", () => {
+    expect(hashBoundRemedyBytes(plainLean)).toBe(
+      "d087ee8196afa2ff461aed248e9b90d5cca64e9fa0dfdbec351849610ae12c47",
+    );
+    expect(hashHarvestIdentity(plainLean)).toBe(
+      "d087ee8196afa2ff461aed248e9b90d5cca64e9fa0dfdbec351849610ae12c47",
+    );
+    expect(hashHarvestIdentity(listLean)).toBe(
+      "06a2bd4ec45e85324728fe013d8ac8665317885c57bd49822bdcb9a0b83749cb",
+    );
+    expect(hashHarvestIdentityPreFold(listLean)).toBe(hashHarvestIdentity(listLean));
+  });
+
+  it("moves the digest when only continuation text changes", () => {
+    const edited = wrapped.replace("assert that no process remains", "skip the survivor assertion");
+    expect(hashBoundRemedyBytes(edited)).not.toBe(hashBoundRemedyBytes(wrapped));
+    expect(hashHarvestIdentity(edited)).not.toBe(hashHarvestIdentity(wrapped));
+    expect(hashHarvestIdentityPreFold(edited)).toBe(hashHarvestIdentityPreFold(wrapped));
+    const acEdited = wrapped.replace("then y.", "then z.");
+    expect(hashHarvestIdentity(acEdited)).not.toBe(hashHarvestIdentity(wrapped));
+  });
+
+  it("keeps the pre-fold identity of the #6904 lean equal to its recorded audit digest", () => {
+    expect(hashHarvestIdentityPreFold(LEAN_6904)).toBe(PRE_FOLD_6904);
+    expect(hashHarvestIdentity(LEAN_6904)).not.toBe(PRE_FOLD_6904);
+  });
+
+  describe("preFoldDigestAuditCounts on the #6904 lean", () => {
+    const CREATED = "2026-11-21T23:11:48Z";
+    const AUDIT = "2026-11-21T23:13:20Z";
+    function counts(over: {
+      leanCreatedAt?: unknown;
+      leanUpdatedAt?: unknown;
+      auditCreatedAt?: unknown;
+      recordedDigest?: string;
+    }): boolean {
+      return preFoldDigestAuditCounts({
+        recordedDigest: over.recordedDigest ?? PRE_FOLD_6904,
+        leanBody: LEAN_6904,
+        leanCreatedAt: "leanCreatedAt" in over ? over.leanCreatedAt : CREATED,
+        leanUpdatedAt: "leanUpdatedAt" in over ? over.leanUpdatedAt : CREATED,
+        auditCreatedAt: "auditCreatedAt" in over ? over.auditCreatedAt : AUDIT,
+      });
+    }
+
+    it("counts for an unedited lean and a later audit", () => {
+      expect(counts({})).toBe(true);
+    });
+
+    it("does not count when the lean was edited, even before the audit post", () => {
+      expect(counts({ leanUpdatedAt: "2026-11-21T23:12:00Z" })).toBe(false);
+      expect(counts({ leanUpdatedAt: "2026-11-21T23:14:00Z" })).toBe(false);
+    });
+
+    it("does not count when the audit is not after the lean", () => {
+      expect(counts({ auditCreatedAt: CREATED })).toBe(false);
+      expect(counts({ auditCreatedAt: "2026-11-21T23:10:00Z" })).toBe(false);
+    });
+
+    it("does not count when a timestamp is unreadable", () => {
+      expect(counts({ leanCreatedAt: undefined })).toBe(false);
+      expect(counts({ leanUpdatedAt: "yesterday" })).toBe(false);
+      expect(counts({ auditCreatedAt: null })).toBe(false);
+    });
+
+    it("does not count another digest", () => {
+      expect(counts({ recordedDigest: "a".repeat(64) })).toBe(false);
+    });
+  });
+
+  it("lets auditCountsForLean and the accumulated gate accept the #6904 audit only under that rule", () => {
+    const audit =
+      "role: critic\n\naudit-targets: pain-P1\nfinding-classes: none\nharvest-changed: false\n" +
+      `harvest-digest: sha256:${PRE_FOLD_6904}\n`;
+    const leanRow = {
+      id: 7070710091,
+      body: LEAN_6904,
+      created_at: "2026-11-21T23:11:48Z",
+      updated_at: "2026-11-21T23:11:48Z",
+    };
+    const auditRow = { id: 7070727535, body: audit, created_at: "2026-11-21T23:13:20Z" };
+    expect(
+      auditCountsForLean({
+        auditBody: audit,
+        leanBody: LEAN_6904,
+        leanCreatedAt: leanRow.created_at,
+        leanUpdatedAt: leanRow.updated_at,
+        auditCreatedAt: auditRow.created_at,
+      }),
+    ).toBe(true);
+    const run = (lean: typeof leanRow) =>
+      evaluateAccumulatedPainAuditFollowThrough({
+        comments: [lean, auditRow],
+        citedLeanId: lean.id,
+        assertedPainIds: ["P1"],
+        isSuccessorLeanBody,
+      });
+    expect(run(leanRow)).toEqual({ ok: true });
+    const edited = run({ ...leanRow, updated_at: "2026-11-21T23:12:30Z" });
+    expect(edited.ok).toBe(false);
+    if (!edited.ok) {
+      expect(edited.detail).toContain(
+        `expected harvest-digest: sha256:${hashHarvestIdentity(LEAN_6904)}`,
+      );
+      expect(edited.detail).toContain("pre-fold digest");
+    }
   });
 });

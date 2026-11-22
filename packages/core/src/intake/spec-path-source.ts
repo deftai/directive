@@ -14,23 +14,21 @@ import {
   type ThreadComment,
   threadCommentFromRow,
 } from "../design-critique/completed-arc-record.js";
-import { hashHarvestIdentity } from "../design-critique/pain-audit-follow-through-gate.js";
+import {
+  hashHarvestIdentity,
+  hashHarvestIdentityPreFold,
+} from "../design-critique/pain-audit-follow-through-gate.js";
 import { type CompletedProcess, call } from "../scm/call.js";
 import {
   commentsForArcRead,
   criteriaListUnits,
   mayWriteCriteriaOnlyRecord,
 } from "./admitted-source-units.js";
+import type { CheckboxItem } from "./markdown-scanners.js";
 import {
-  type CheckboxItem,
-  extractBoundRemedyHarvest,
-  hasWrappedListItem,
-  leanAcceptanceCriteriaItems,
-  parseLeanSlices,
-  parseListItemsByPosition,
-  sliceLeanAcceptanceCriteriaSection,
-  stripFencedCodeBlocks,
-} from "./markdown-scanners.js";
+  readSpecPathLeanStructure,
+  specPathLeanHarvestRefusal,
+} from "./spec-path-harvest-check.js";
 
 /** plan.metadata key for the Spec-path source record (#6333 item 4). */
 export const SPEC_PATH_SOURCE_KEY = "x-directive/spec-path-source" as const;
@@ -142,61 +140,30 @@ export function harvestSpecPathLean(
   leanBody: string,
   selection: SpecPathHarvestSelection,
 ): SpecPathHarvestResult {
-  const bound = extractBoundRemedyHarvest(leanBody);
-  if (bound.items.length === 0) {
-    return { ok: false, reason: "cited successor lean has no Bound-remedy list" };
+  // #7001: the checks that do not depend on a slice label are shared with the
+  // completed-arc reader, so a lean that fails them is refused before the record.
+  const refusal = specPathLeanHarvestRefusal(leanBody);
+  if (refusal !== null) {
+    return { ok: false, reason: refusal };
   }
-  const acceptance = leanAcceptanceCriteriaItems(leanBody);
-  // A wrapped list item would lose its continuation text (the item reader is
-  // line-based, #6333 item 2), so refuse rather than drop part of a requirement.
-  const acSlice = sliceLeanAcceptanceCriteriaSection(leanBody);
-  const wrapped = [bound.sourceText, acSlice ?? ""].find(hasWrappedListItem);
-  if (wrapped !== undefined) {
-    return {
-      ok: false,
-      reason:
-        "cited lean has a list item that wraps onto a continuation line; put each Bound remedy and Acceptance Criteria item on one line",
-    };
-  }
-  // Every list position keeps its own row (repeated titles included) so a
-  // slice reference names the item at that position; duplicate titles are
-  // folded only inside the selected harvest.
-  const boundRows = parseListItemsByPosition(stripFencedCodeBlocks(bound.sourceText));
-  const acceptanceRows =
-    acceptance.length === 0 || acSlice === null
-      ? []
-      : parseListItemsByPosition(stripFencedCodeBlocks(acSlice));
+  // Each indented continuation line is folded into its item (#7001). Every list
+  // position keeps its own row (repeated titles included) so a slice reference
+  // names the item at that position; duplicate titles are folded only inside
+  // the selected harvest.
+  const lean = readSpecPathLeanStructure(leanBody);
+  const { boundRows, acceptanceRows } = lean;
   const tagged: { ref: string; item: CheckboxItem }[] = [
     ...boundRows.map((item, index) => ({ ref: `B${index + 1}`, item })),
     ...acceptanceRows.map((item, index) => ({ ref: `A${index + 1}`, item })),
   ];
 
-  const slices = parseLeanSlices(leanBody);
   const labelOf = new Map<string, string>();
   const labels: string[] = [];
-  if (slices.present) {
-    if (slices.errors.length > 0) {
-      return { ok: false, reason: `cited lean Slices section: ${slices.errors.join("; ")}` };
-    }
-    for (const assignment of slices.assignments) {
+  if (lean.slices.present) {
+    for (const assignment of lean.slices.assignments) {
       labels.push(assignment.label);
       for (const ref of assignment.refs) {
-        const size = ref.list === "B" ? boundRows.length : acceptanceRows.length;
-        const key = `${ref.list}${ref.index}`;
-        if (ref.index > size) {
-          return {
-            ok: false,
-            reason: `cited lean Slices section: slice '${assignment.label}' names ${key}, which is not a harvested item`,
-          };
-        }
-        const prior = labelOf.get(key);
-        if (prior !== undefined) {
-          return {
-            ok: false,
-            reason: `cited lean Slices section: ${key} is assigned to both '${prior}' and '${assignment.label}'`,
-          };
-        }
-        labelOf.set(key, assignment.label);
+        labelOf.set(`${ref.list}${ref.index}`, assignment.label);
       }
     }
   } else if (selection.kind === "label") {
@@ -232,19 +199,19 @@ export function harvestSpecPathLean(
   }
 
   let sourceText: string;
-  if (slices.present) {
+  if (lean.slices.present) {
     sourceText = `${items.map((item) => `- ${item.title}`).join("\n")}\n`;
   } else {
     sourceText =
-      acSlice === null || acceptance.length === 0
-        ? bound.sourceText
-        : `${bound.sourceText.trimEnd()}\n\n## Acceptance Criteria\n${acSlice}`;
+      lean.acceptanceSourceText === null || acceptanceRows.length === 0
+        ? lean.boundSourceText
+        : `${lean.boundSourceText.trimEnd()}\n\n## Acceptance Criteria\n${lean.acceptanceSourceText}`;
   }
   return {
     ok: true,
     items,
     sourceText,
-    constraintLines: bound.constraintLines,
+    constraintLines: lean.constraintLines,
     harvestDigest: hashHarvestIdentity(leanBody),
     labels,
   };
@@ -462,7 +429,9 @@ export function fetchCriteriaOnlyLiveIdentities(
         "issue's author or an account with write access",
     };
   }
-  const digest = hashHarvestIdentity(body);
+  // The criteria-only route reads its items unfolded, so its digest stays the
+  // pre-fold identity (#7001).
+  const digest = hashHarvestIdentityPreFold(body);
   if (digest !== record.harvestDigest) {
     return {
       ok: false,

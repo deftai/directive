@@ -26,7 +26,7 @@ import {
   classifyDesignCritiqueIngestPosture,
   DESIGN_CRITIQUE_INGEST_ADVISORY,
 } from "../design-critique/ingest-posture.js";
-import { hashHarvestIdentity } from "../design-critique/pain-audit-follow-through-gate.js";
+import { hashHarvestIdentityPreFold } from "../design-critique/pain-audit-follow-through-gate.js";
 import { formatStaleIngestReadyDiagnostic } from "../design-critique/stale-ingest-ready-diagnostic.js";
 import { assertWriteTargetSafe, ProjectionContainmentError } from "../fs/projection-containment.js";
 import { hasArtifactSuffix, resolveLifecycleRoot } from "../layout/resolve.js";
@@ -2941,7 +2941,7 @@ export function ingestOne(
           repo: repoSlug,
           issue: number,
           leanCommentId: criteria.commentId,
-          harvestDigest: hashHarvestIdentity(criteria.body),
+          harvestDigest: hashHarvestIdentityPreFold(criteria.body),
           slice: null,
           kind: SPEC_PATH_SOURCE_KIND_CRITERIA_ONLY,
         };

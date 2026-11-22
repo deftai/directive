@@ -18,7 +18,9 @@
 
 import { createHash } from "node:crypto";
 import path from "node:path";
+import { specPathLeanHarvestRefusal } from "../intake/spec-path-harvest-check.js";
 import type { LabelClient } from "../vbrief-reconcile/types.js";
+import { leanCarriesSpecPathToken } from "./auto-stamp-chip.js";
 import {
   ACCEPTED_CITATION_FORMS,
   ACCEPTED_PAIN_CITE_FORMS,
@@ -95,6 +97,7 @@ export const COMPLETED_ARC_BLOCK_REASONS = [
   "unresolved-pain-audit",
   "later-arc-in-flight",
   "missing-plain-english",
+  "unharvestable-lean",
 ] as const;
 
 export type CompletedArcBlockReason = (typeof COMPLETED_ARC_BLOCK_REASONS)[number];
@@ -1334,10 +1337,37 @@ function finalizeComplete(
   verdict: CompletedArcVerdict,
   issueNumber: number | undefined,
 ): CompletedArcVerdict {
-  return applyPlainEnglishPresence(
-    applyPainCoverage(refuseSetLevelBody(comments, verdict), comments, issueNumber),
+  return refuseUnharvestableLean(
+    applyPlainEnglishPresence(
+      applyPainCoverage(refuseSetLevelBody(comments, verdict), comments, issueNumber),
+      comments,
+    ),
     comments,
   );
+}
+
+/**
+ * A Spec-path lean that ingest cannot harvest is refused here, before the
+ * record, so path-1, the ingest-ready chip and intake refuse together (#7001).
+ * Only the checks that do not depend on a slice label run; slice-label
+ * refusals stay at ingest. Does not mask earlier reasons.
+ */
+function refuseUnharvestableLean(
+  verdict: CompletedArcVerdict,
+  comments: readonly ThreadComment[],
+): CompletedArcVerdict {
+  if (verdict.status !== "complete") return verdict;
+  const lean = comments.find((comment) => comment.id === verdict.citedLeanId);
+  if (lean === undefined || !leanCarriesSpecPathToken(lean.body)) return verdict;
+  const refusal = specPathLeanHarvestRefusal(lean.body);
+  if (refusal === null) return verdict;
+  return {
+    status: "blocked",
+    reason: "unharvestable-lean",
+    detail:
+      `cited lean ${String(lean.id)} cannot be harvested: ${refusal}; ` +
+      "recovery: a new Spec-path lean whose lists harvest, then a later audit and record",
+  };
 }
 
 function refuseSetLevelBody(

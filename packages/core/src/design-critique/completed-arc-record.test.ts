@@ -33,6 +33,7 @@ import {
   threadCommentFromRow,
   threadCommentsFromIssueComments,
 } from "./completed-arc-record.js";
+import { hashHarvestIdentity } from "./pain-audit-follow-through-gate.js";
 
 const LEAN_ID = 5442939496;
 const TABLE_ID = 5443106967;
@@ -2940,5 +2941,97 @@ describe("thread comments keep their REST row timestamps (#6477 clause.3)", () =
         { id: 4, created_at: "2026-11-16T05:28:57Z" },
       ]),
     ).toEqual([]);
+  });
+});
+
+describe("unharvestable-lean (#7001)", () => {
+  const PLAIN =
+    "## In plain English\n\nThe problem was a lean ingest cannot harvest.\n\n" +
+    "The accepted design checks the harvest before the record.\n\n";
+  const STOP1 = 7400000001;
+  const LEAN = 7400000002;
+  const AUDIT = 7400000003;
+  const TABLE = 7400000004;
+  const SYNTHESIS = 7400000005;
+  // Synthetic GitHub PAT-shaped token: the quarantine scanner hard-fails on it.
+  const SECRET = `ghp_${"A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6Q7r8"}`;
+
+  function leanBody(sections: string, token = "Spec-path: Bound remedy on this lean\n\n"): string {
+    return `${PLAIN}**Lean:** bind.\n\n${token}relieves: P1\n\n${sections}`;
+  }
+
+  function thread(lean: string): { id: number; body: string }[] {
+    return [
+      {
+        id: STOP1,
+        body: "role: parent\n\ndesign-critique: warranted, because harvest.\n\npain: P1\n",
+      },
+      { id: LEAN, body: lean },
+      {
+        id: AUDIT,
+        body:
+          "role: critic\n\naudit-targets: pain-P1\nfinding-classes: footnote\nharvest-changed: false\n" +
+          `harvest-digest: sha256:${hashHarvestIdentity(lean)}\n`,
+      },
+      { id: TABLE, body: "## Verified-claims table\n" },
+      {
+        id: SYNTHESIS,
+        body:
+          `${PLAIN}design-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\n` +
+          `Bound contract: successor lean ${LEAN}, verified-claims table ${TABLE}.\n`,
+      },
+    ];
+  }
+
+  const evaluate = (lean: string) =>
+    evaluateCompletedArcRecord({ comments: thread(lean), issueNumber: 7001 });
+
+  it("is a published member of the closed reason set", () => {
+    expect(COMPLETED_ARC_BLOCK_REASONS).toContain("unharvestable-lean");
+  });
+
+  it("completes for a Spec-path lean whose items continue on indented lines", () => {
+    expect(
+      evaluate(
+        leanBody("## Bound remedy\n1. Tests.\n   (a) In process.\n   (b) Through the seam.\n"),
+      ),
+    ).toMatchObject({ status: "complete", citedLeanId: LEAN });
+  });
+
+  it("refuses a Spec-path lean with an empty Bound remedy list", () => {
+    const verdict = evaluate(leanBody("## Acceptance Criteria\n- Given x, then y.\n"));
+    expect(verdict).toMatchObject({ status: "blocked", reason: "unharvestable-lean" });
+    if (verdict.status === "blocked") {
+      expect(verdict.detail).toContain(`cited lean ${LEAN} cannot be harvested`);
+      expect(verdict.detail).toContain("no Bound-remedy list");
+    }
+  });
+
+  it("refuses a bad slice reference, a credential-shaped item and a credential only under Reject", () => {
+    for (const sections of [
+      "## Bound remedy\n1. Limb.\n\n## Slices\n- slice-a: B9\n",
+      `## Bound remedy\n1. Use ${SECRET} here.\n`,
+      `## Bound remedy\n1. Limb.\n\n## Acceptance Criteria\n- Given x.\n\n## Reject\n- Paste ${SECRET}.\n`,
+    ]) {
+      expect(evaluate(leanBody(sections))).toMatchObject({
+        status: "blocked",
+        reason: "unharvestable-lean",
+      });
+    }
+  });
+
+  it("does not check a lean without the Spec-path token", () => {
+    expect(evaluate(leanBody("## Acceptance Criteria\n- Given x, then y.\n", ""))).toMatchObject({
+      status: "complete",
+    });
+  });
+
+  it("makes ingest refuse with the same reason", () => {
+    expect(() =>
+      assertCompletedArcAllowsIngest({
+        issueNumber: 7001,
+        comments: thread(leanBody("## Bound remedy\n1. Limb.\n\n## Slices\n- slice-a: B9\n")),
+      }),
+    ).toThrow(DesignCritiqueIngestBlockedError);
   });
 });

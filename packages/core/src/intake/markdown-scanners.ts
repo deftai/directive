@@ -488,29 +488,6 @@ export function parseSliceLine(body: string): SliceLine {
   return { kind: "slice", parent: first.parent, label: first.label };
 }
 
-/**
- * True when a list item in `sectionText` wraps onto an indented continuation
- * line (outside fences). The line-based item reader would drop that text (#6333).
- */
-export function hasWrappedListItem(sectionText: string): boolean {
-  let inItem = false;
-  for (const line of stripFencedCodeBlocks(sectionText).split("\n")) {
-    if (line.trim().length === 0) {
-      inItem = false;
-      continue;
-    }
-    if (matchListItemLine(line) !== null) {
-      inItem = true;
-      continue;
-    }
-    if (inItem && /^[ \t]/.test(line)) {
-      return true;
-    }
-    inItem = false;
-  }
-  return false;
-}
-
 /** Bound-remedy limb titles: list items of the slice outside fenced examples. */
 export function boundRemedyLimbItems(sourceText: string): CheckboxItem[] {
   return parseListItems(stripFencedCodeBlocks(sourceText));
@@ -724,6 +701,45 @@ export function parseListItemsByPosition(sectionText: string): CheckboxItem[] {
   return items;
 }
 
+/**
+ * `parseListItemsByPosition` that folds continuation lines (#7001): a non-blank
+ * indented line that is not a list item, directly after a list item or that
+ * item's previous continuation line, joins the item's title with one space.
+ * A blank line ends an item, and an indented `- x` or `1. x` line stays its
+ * own item, so a list with no continuation line reads the same items and
+ * positions as `parseListItemsByPosition`.
+ */
+export function parseListItemsByPositionFolded(sectionText: string): CheckboxItem[] {
+  const rows: { title: string; status: "proposed" | "completed" }[] = [];
+  let open: { title: string; status: "proposed" | "completed" } | null = null;
+  for (const line of sectionText.split("\n")) {
+    if (line.trim().length === 0) {
+      open = null;
+      continue;
+    }
+    const bullet = matchListItemLine(line);
+    if (bullet !== null) {
+      let title = bullet.trim();
+      let status: "proposed" | "completed" = "proposed";
+      const cb = matchLeadingCheckbox(title);
+      if (cb !== null) {
+        title = cb.title.trim();
+        status = cb.checked ? "completed" : "proposed";
+      }
+      open = { title, status };
+      rows.push(open);
+      continue;
+    }
+    if (open !== null && /^[ \t]/.test(line)) {
+      const text = line.trim();
+      open.title = open.title.length === 0 ? text : `${open.title} ${text}`;
+      continue;
+    }
+    open = null;
+  }
+  return rows.filter((row) => row.title.length > 0);
+}
+
 /** Parse bullet/numbered list items within a section. */
 export function parseListItems(sectionText: string): CheckboxItem[] {
   const items: CheckboxItem[] = [];
@@ -751,7 +767,8 @@ export function parseListItems(sectionText: string): CheckboxItem[] {
   return items;
 }
 
-function matchListItemLine(line: string): string | null {
+/** List-item text of a line (leading spaces allowed), or null when the line is not a list item. */
+export function matchListItemLine(line: string): string | null {
   let i = 0;
   while (i < line.length && (line[i] === " " || line[i] === "\t")) {
     i += 1;
