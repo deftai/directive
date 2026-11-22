@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6609",
-    "updated": "2026-11-18T18:26:30Z"
+    "updated": "2026-11-22T02:50:40Z"
   },
   "plan": {
     "title": "bug(ingest): the derived acceptance rung turns every prose sentence of an issue into a clause, even when the body has an explicit Acceptance Criteria list",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(ingest): the derived acceptance rung turns every prose sentence of an issue into a clause, even when the body has an explicit Acceptance Criteria list",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6609",
@@ -17,133 +17,315 @@
     "items": [
       {
         "title": "List route. A new function `admittedSourceUnitsFromBody(text)` runs the same quarantine scan as today, then removes fenced code blocks with the existing `stripFencedCodeBlocks`, before anything else. When the result has an Acceptance Criteria heading that `findAcHeading` matches and at least one list item in the section that `sliceAcSection` returns, the units are those list items in order. Each unit is the item line without its bullet and checkbox marker, plus each following line that is indented under it and is not itself a list item, heading or blank line, joined with single spaces. Repeated units are kept once. A checkbox list outside that section and a `Requirements:` list do not select this route.",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "93dbd4f873619a109469d8c7010eac2e8adae502",
+          "recorded_at": "2026-11-22T02:50:40Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Sentence route. When item 1 finds no list, the units are the sentences of the same scanned, fence-free text as `extractStatementSentences` finds them, except: a heading line ends a span and is never part of a sentence; a line that starts with `Refs`, `Tracking`, `Closes`, `Fixes` or `Part of` followed by an issue number is dropped; a line that starts with the generated-with footer marker is dropped; a blockquote line is dropped; a leading checkbox marker is stripped from a list-item sentence. Inline code is kept as text and never becomes a command.",
-        "status": "proposed",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "93dbd4f873619a109469d8c7010eac2e8adae502",
+          "recorded_at": "2026-11-22T02:50:40Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "What ingest writes on the body route. On first stamp ingest writes `acceptance.sentences`, `admitted_source_sentences` and `admitted_source_digest` from the item 1 or item 2 units, plus `admitted_source_extractor: 2`. On the list route the plan item titles are the units, so there is one plan item and one clause per criterion. On the sentence route the plan items are found as today, and each plan item title that is not already a unit is added to the sentence list, so every item still has its clause. The issue title is not on the sentence list on either route. `applySentenceListClauses` then writes one clause per sentence-list entry, as today. Captured literal commands are still never copied into `verify_commands`.",
-        "status": "proposed",
-        "id": "clause.3"
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "93dbd4f873619a109469d8c7010eac2e8adae502",
+          "recorded_at": "2026-11-22T02:50:40Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Version on the pin. A restamp keeps `admitted_source_extractor` with the pin and digest it was written with. In `verify:ac`, both the working-pin live compare and the missing-pin recovery extract the live body with the version stored on the brief: `2` uses `admittedSourceUnitsFromBody`; no field uses `extractAdmittedSourceSentencesFromText` exactly as it is at the dispatch SHA. `extractStatementSentences` and `extractAdmittedSourceSentencesFromText` are not changed; item 2 is a separate function. Outside activation, a git pin keeps today's no-live-compare rule; at activation item 7 applies.",
-        "status": "proposed",
-        "id": "clause.4"
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "93dbd4f873619a109469d8c7010eac2e8adae502",
+          "recorded_at": "2026-11-22T02:50:40Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Report line. Ingest prints `acceptance: <N> clause(s), <M> plan item(s)` after the created path. It never refuses.",
-        "status": "proposed",
-        "id": "clause.5"
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "93dbd4f873619a109469d8c7010eac2e8adae502",
+          "recorded_at": "2026-11-22T02:50:40Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Criteria-only record. When the issue has no completed-arc record, ingest looks for a comment that carries an operative `design-critique: not warranted, because ...` line, a `Target-digest:` line and an `## Acceptance Criteria` list, written by the issue's author (the same login as the issue's `user.login`) or by an account whose `repos/<owner>/<repo>/collaborators/<login>/permission` permission or role is `admin`, `maintain` or `write` (the same rule as `hasWritePermission` in `packages/core/src/scope-provenance/forge-approval.ts`). It uses the latest such comment. A permission read that fails leaves that comment unused, as for a commenter without write access. The Target-digest is checked against the live body with the existing `evaluateTargetDigestAdmission`, with the existing stale-target result. The items are the list items of that section, read with the item 1 unit rule (fence-free, wrapped lines joined), and ingest writes them through the existing Spec-path route (`applyHarvestedItemClauses`): one plan item, clause, sentence and pin entry per item. The Spec-path source record names that comment id in `leanCommentId`, its `hashHarvestIdentity` digest in `harvestDigest`, and `kind: \"criteria-only\"`; a record without `kind` reads as today's lean record. For a brief not on the merge base, `verify:ac` resolves a `criteria-only` record by fetching that comment id from the issue thread, checking it still has the recorded harvest digest and that its author is the issue's author or still has write access by the same lookup, and reading its items with the same rule; a lean record is resolved through the completed-arc record as today. A completed-arc record, when present, is used instead of any criteria-only record. The design-critique ingest posture of such an issue stays `skipped-recorded`.",
-        "status": "proposed",
-        "id": "clause.6"
+        "status": "completed",
+        "id": "clause.6",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "93dbd4f873619a109469d8c7010eac2e8adae502",
+          "recorded_at": "2026-11-22T02:50:40Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Admitted-source check at activation. When a brief enters `xbrief/active/` (`scope:activate`) and on the pull request that adds it, the existing `verify:ac` admitted-source identity check (#5055) and sentence floor (#3550) run on that brief. For a body-route brief that is not on the merge base, the pin is always compared with the live issue body re-read by the extractor version stored on the pin, even when the pin is loaded from `HEAD` (a `head`-sourced git pin is treated as a working pin for this compare). A pin loaded from the merge base keeps today's no-live-compare rule. A Spec-path pin is compared with its source record as today. Only those two checks run; the clause oracle walk does not. A failure prints the same `verify:ac` message as at completion. No new cause, refusal text or policy flag is added; an existing check runs earlier (operator addition, 2026-11-18).",
-        "status": "proposed",
-        "id": "clause.7"
+        "status": "completed",
+        "id": "clause.7",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "93dbd4f873619a109469d8c7010eac2e8adae502",
+          "recorded_at": "2026-11-22T02:50:40Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given an issue body with `## Acceptance Criteria` and three list items, plus Summary, Evidence and `Refs #N` prose and the generated footer, when `issue:ingest` runs, then the brief has three plan items, three clauses, a three-entry sentence list and a three-entry pin, all with the item texts, and `admitted_source_extractor: 2`.",
-        "status": "proposed",
-        "id": "clause.8"
+        "status": "completed",
+        "id": "clause.8",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "93dbd4f873619a109469d8c7010eac2e8adae502",
+          "recorded_at": "2026-11-22T02:50:40Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given a fenced example containing an `## Acceptance Criteria` heading and a bullet, followed outside the fence by the real `## Acceptance Criteria` list, then the plan items, clauses, sentence list and pin hold only the real criteria.",
-        "status": "proposed",
-        "id": "clause.9"
+        "status": "completed",
+        "id": "clause.9",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "93dbd4f873619a109469d8c7010eac2e8adae502",
+          "recorded_at": "2026-11-22T02:50:40Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given an Acceptance Criteria list item whose text wraps onto an indented second line, then its unit, plan item title and clause hold both lines.",
-        "status": "proposed",
-        "id": "clause.10"
+        "status": "completed",
+        "id": "clause.10",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "93dbd4f873619a109469d8c7010eac2e8adae502",
+          "recorded_at": "2026-11-22T02:50:40Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given a body with a checkbox under an Evidence heading and plain bullets under `## Acceptance Criteria`, then the units are the Acceptance Criteria bullets only.",
-        "status": "proposed",
-        "id": "clause.11"
+        "status": "completed",
+        "id": "clause.11",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "93dbd4f873619a109469d8c7010eac2e8adae502",
+          "recorded_at": "2026-11-22T02:50:40Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given a body with checkboxes and no Acceptance Criteria heading, then the sentence route runs and every checkbox item still has a clause.",
-        "status": "proposed",
-        "id": "clause.12"
+        "status": "completed",
+        "id": "clause.12",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "93dbd4f873619a109469d8c7010eac2e8adae502",
+          "recorded_at": "2026-11-22T02:50:40Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given a body with no list, then no unit starts with a heading word glued onto the next sentence, and no unit is a `Refs`/`Tracking`/`Closes`/`Fixes`/`Part of` line, the footer line or a blockquote line.",
-        "status": "proposed",
-        "id": "clause.13"
+        "status": "completed",
+        "id": "clause.13",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "93dbd4f873619a109469d8c7010eac2e8adae502",
+          "recorded_at": "2026-11-22T02:50:40Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given a brief ingested under item 3 and an unchanged issue body, when `verify:ac` runs with a working pin and when it runs after the pin was deleted with the digest kept, then neither reports a digest mismatch, an unmapped sentence or a removed identity.",
-        "status": "proposed",
-        "id": "clause.14"
+        "status": "completed",
+        "id": "clause.14",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "93dbd4f873619a109469d8c7010eac2e8adae502",
+          "recorded_at": "2026-11-22T02:50:40Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given a brief ingested before this change, with no `admitted_source_extractor`, then `verify:ac` gives the same result as at the dispatch SHA in the working-pin compare and in missing-pin recovery.",
-        "status": "proposed",
-        "id": "clause.15"
+        "status": "completed",
+        "id": "clause.15",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "93dbd4f873619a109469d8c7010eac2e8adae502",
+          "recorded_at": "2026-11-22T02:50:40Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given a restamp of a brief with `admitted_source_extractor: 2`, then the field, pin and digest are unchanged.",
-        "status": "proposed",
-        "id": "clause.16"
+        "status": "completed",
+        "id": "clause.16",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "93dbd4f873619a109469d8c7010eac2e8adae502",
+          "recorded_at": "2026-11-22T02:50:40Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given any ingest, then the output prints the clause and plan item counts, and the counts never cause a refusal.",
-        "status": "proposed",
-        "id": "clause.17"
+        "status": "completed",
+        "id": "clause.17",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "93dbd4f873619a109469d8c7010eac2e8adae502",
+          "recorded_at": "2026-11-22T02:50:40Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given an issue with no completed-arc record and a criteria-only record by the issue's author whose Target-digest matches the body and whose list has two items, when `issue:ingest` runs, then the brief has two plan items, two clauses, a two-entry sentence list and pin, and a Spec-path source record with `kind: \"criteria-only\"` and that comment id.",
-        "status": "proposed",
-        "id": "clause.18"
+        "status": "completed",
+        "id": "clause.18",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "93dbd4f873619a109469d8c7010eac2e8adae502",
+          "recorded_at": "2026-11-22T02:50:40Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given that brief before it is on the merge base and an unchanged record comment, when `verify:ac` runs, then it reports no digest mismatch, unmapped sentence or removed identity.",
-        "status": "proposed",
-        "id": "clause.19"
+        "status": "completed",
+        "id": "clause.19",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "93dbd4f873619a109469d8c7010eac2e8adae502",
+          "recorded_at": "2026-11-22T02:50:40Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given a not-warranted comment with an Acceptance Criteria list written by a login that is not the issue's author and has no write access, then ingest does not use it and takes the body route.",
-        "status": "proposed",
-        "id": "clause.20"
+        "status": "completed",
+        "id": "clause.20",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "93dbd4f873619a109469d8c7010eac2e8adae502",
+          "recorded_at": "2026-11-22T02:50:40Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given a criteria-only record written by an account with write access that is not the issue's author, then ingest uses it as for the issue's author.",
-        "status": "proposed",
-        "id": "clause.21"
+        "status": "completed",
+        "id": "clause.21",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "93dbd4f873619a109469d8c7010eac2e8adae502",
+          "recorded_at": "2026-11-22T02:50:40Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given an issue with both a completed-arc record and a criteria-only record, then ingest harvests the completed arc's lean.",
-        "status": "proposed",
-        "id": "clause.22"
+        "status": "completed",
+        "id": "clause.22",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "93dbd4f873619a109469d8c7010eac2e8adae502",
+          "recorded_at": "2026-11-22T02:50:40Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given an ingested brief from which clauses were deleted and whose `admitted_source_digest` was recomputed by hand, when it is activated or its activation pull request is checked, then the activation fails with the `verify:ac` admitted-source digest or identity message, as `scope:complete` would.",
-        "status": "proposed",
-        "id": "clause.23"
+        "status": "completed",
+        "id": "clause.23",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "93dbd4f873619a109469d8c7010eac2e8adae502",
+          "recorded_at": "2026-11-22T02:50:40Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given a new body-route brief whose clauses, sentence list and pin were shortened and whose digest was recomputed, committed on the branch before the activation pull request is checked, then the activation check compares the `HEAD` pin with the live issue body and fails with the existing admitted-source digest mismatch message.",
-        "status": "proposed",
-        "id": "clause.24"
+        "status": "completed",
+        "id": "clause.24",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "93dbd4f873619a109469d8c7010eac2e8adae502",
+          "recorded_at": "2026-11-22T02:50:40Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given a body-route brief whose pin is on the merge base, when it is activated, then no live compare runs, as today.",
-        "status": "proposed",
-        "id": "clause.25"
+        "status": "completed",
+        "id": "clause.25",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "93dbd4f873619a109469d8c7010eac2e8adae502",
+          "recorded_at": "2026-11-22T02:50:40Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given an unchanged ingested brief, when it is activated, then the activation-time check passes.",
-        "status": "proposed",
-        "id": "clause.26"
+        "status": "completed",
+        "id": "clause.26",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "93dbd4f873619a109469d8c7010eac2e8adae502",
+          "recorded_at": "2026-11-22T02:50:40Z",
+          "recorded_by": "scope:complete"
+        }
       }
     ],
     "tags": [
@@ -1045,6 +1227,36 @@
         "leanCommentId": 6987428214,
         "harvestDigest": "d7d82fe6e35280f7d73e86c5b106ce8dbf621f6d30d7262eae747f339c540e93",
         "slice": null
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "481f9f51a618f15e7efe3c9362d17636fe952bba",
+        "prNumber": 6736,
+        "prBase": "master",
+        "mergeCommit": "93dbd4f873619a109469d8c7010eac2e8adae502",
+        "deliveryBranch": "master",
+        "deliveryCommit": "07a7ac44ee8c5cce48510e05ec8f9ad40ca28203",
+        "verifiedAt": "2026-11-22T02:50:40Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          6682,
+          6715,
+          6725,
+          6735
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-22T02:50:40Z",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-22T02:50:40Z"
       }
     },
     "acceptance": {
@@ -1296,6 +1508,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.6458684823",
-    "updated": "2026-11-18T18:26:30Z"
+    "updated": "2026-11-22T02:50:40Z"
   }
 }
