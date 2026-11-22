@@ -47,8 +47,8 @@ export const ROLLBACK_HELP =
   "  --repo OWNER/REPO     Override repo (default: resolved from `git remote get-\n" +
   "                        url origin`).\n" +
   "  --base-branch BRANCH  Base branch (default: master).\n" +
-  "  --project-root PATH   Repository root (default: $DEFT_PROJECT_ROOT or\n" +
-  "                        scripts/.. ).\n" +
+  "  --project-root PATH   Repository root (default: $DEFT_PROJECT_ROOT, else the\n" +
+  "                        current working directory).\n" +
   "  --allow-low-downloads N\n" +
   "                        Accept up to N downloads (defaults to the time-window-\n" +
   "                        derived value). The maximum of this flag and the time-\n" +

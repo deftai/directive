@@ -210,6 +210,18 @@ describe("tag-push closed-verb gate (#3527)", () => {
     expect(publish.code).toBe("closed-verb-deny-missing");
   });
 
+  it("names the searched project root on the [release] deny line (#6864)", () => {
+    const spy = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const root = mkdtempSync(join(tmpdir(), "release-deny-root-"));
+    dirs.push(root);
+    expect(assertTagPushClosedVerb(v105Config(root), recordingSeams())).toBe(EXIT_VIOLATION);
+    const deny = spy.mock.calls
+      .map((c) => String(c[0]))
+      .find((line) => line.startsWith("[release] denied code="));
+    expect(deny).toBeDefined();
+    expect(deny).toContain(`projectRoot=${root}\n`);
+  });
+
   it("release:publish draft-flip still refuses an agent with no grant", () => {
     const d = evaluateReleasePublishGate(V105, ".", {
       grants: [],
