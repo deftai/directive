@@ -209,12 +209,21 @@ export type ResolveWorktreeMapResult =
  *
  * Map/config/git-list invariant failures still throw. Linked-worktree prep
  * denials return `{ ok: false, message }` (same shape as dest-place).
+ *
+ * `rowBases` (#7083): base values a row may name instead of the cohort base. A
+ * row whose `base_branch` is in the set is checked and built from its own base;
+ * any other differing row still raises `BaseBranchMismatchError`.
  */
 export function resolveWorktreeMap(
   mapping: readonly Record<string, unknown>[],
   baseBranch: string,
   createMissing = true,
-  options: { repoRoot?: string; git?: GitRunner; pmRunner?: WorktreePmRunner } = {},
+  options: {
+    repoRoot?: string;
+    git?: GitRunner;
+    pmRunner?: WorktreePmRunner;
+    rowBases?: ReadonlySet<string>;
+  } = {},
 ): ResolveWorktreeMapResult {
   if (!Array.isArray(mapping)) {
     throw new WorktreeMapConfigError(
@@ -251,13 +260,16 @@ export function resolveWorktreeMap(
     }
 
     const recordBase = record.base_branch;
+    let rowBase = trimmedBase;
     if (recordBase !== undefined && recordBase !== null) {
       if (typeof recordBase !== "string" || recordBase.trim().length === 0) {
         throw new WorktreeMapConfigError(
           `story ${JSON.stringify(storyId)} has a non-string / blank 'base_branch'`,
         );
       }
-      if (recordBase.trim() !== trimmedBase) {
+      if (recordBase.trim() !== trimmedBase && options.rowBases?.has(recordBase.trim()) === true) {
+        rowBase = recordBase.trim();
+      } else if (recordBase.trim() !== trimmedBase) {
         throw new BaseBranchMismatchError(
           `story '${storyId}' declares base_branch '${recordBase.trim()}' but the cohort base branch is '${trimmedBase}'`,
         );
@@ -284,22 +296,30 @@ export function resolveWorktreeMap(
     resolved.push({
       story_id: storyId,
       worktree_path: posixPath,
-      base_branch: trimmedBase,
+      base_branch: rowBase,
       _key: key,
       _abs: worktreePath,
     });
   }
 
   const registered = gitWorktreeList(root, git);
-  const requestedOid = resolveCommitOid(root, trimmedBase, git);
+  const oidByBase = new Map<string, string>();
+  const oidFor = (base: string): string => {
+    const known = oidByBase.get(base);
+    if (known !== undefined) return known;
+    const oid = resolveCommitOid(root, base, git);
+    oidByBase.set(base, oid);
+    return oid;
+  };
   for (const entry of resolved) {
+    const requestedOid = oidFor(entry.base_branch);
     const existing = registered.get(entry._key);
     if (existing !== undefined) {
       const actualOid = existing.head ?? "";
       if (actualOid !== requestedOid) {
         throw new WorktreeRevisionMismatchError(
           `registered worktree '${entry.worktree_path}' HEAD OID is ${actualOid || "(missing)"} ` +
-            `but requested base '${trimmedBase}' resolves to ${requestedOid}; ` +
+            `but requested base '${entry.base_branch}' resolves to ${requestedOid}; ` +
             `this is a snapshot check at resolution time, not a pin on the worker's start revision`,
         );
       }
@@ -320,7 +340,7 @@ export function resolveWorktreeMap(
         `story '${entry.story_id}' maps to '${entry.worktree_path}' which is not a registered git worktree and create_missing is disabled`,
       );
     }
-    const created = createWorktree(root, entry._abs, trimmedBase, git, {
+    const created = createWorktree(root, entry._abs, entry.base_branch, git, {
       pmRunner: options.pmRunner,
     });
     if (!created.ok) {

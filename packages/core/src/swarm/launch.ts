@@ -454,8 +454,34 @@ export type WorktreeResolverFn = (
   mapping: readonly Record<string, unknown>[],
   baseBranch: string,
   createMissing?: boolean,
-  options?: { repoRoot?: string },
+  options?: { repoRoot?: string; rowBases?: ReadonlySet<string> },
 ) => WorktreeRecord[];
+
+/**
+ * Story id → `base_branch` of each worktree-map row that names one (#7083). An
+ * unreadable or malformed map yields no rows here; the later map resolution
+ * reports it as today.
+ */
+export function worktreeMapRowBases(mapPath: string | null | undefined): Map<string, string> {
+  const out = new Map<string, string>();
+  if (mapPath === undefined || mapPath === null || mapPath.length === 0) return out;
+  let payload: unknown;
+  try {
+    payload = JSON.parse(readFileSync(mapPath, "utf8")) as unknown;
+  } catch {
+    return out;
+  }
+  if (!Array.isArray(payload)) return out;
+  for (const row of payload) {
+    if (row === null || typeof row !== "object" || Array.isArray(row)) continue;
+    const r = row as Record<string, unknown>;
+    if (typeof r.story_id !== "string" || typeof r.base_branch !== "string") continue;
+    const id = r.story_id.trim();
+    const base = r.base_branch.trim();
+    if (id.length > 0 && base.length > 0) out.set(id, base);
+  }
+  return out;
+}
 export type RuntimeAuthProbeFn = () => [string, string];
 export type OccupancyReleaseFn = typeof releaseOccupancy;
 
@@ -1823,8 +1849,12 @@ export function swarmLaunch(args: LaunchArgs): {
 
   const runGit = args.runGit ?? runText;
   const requireOriginActive = args.requireOriginActiveBrief !== false;
-  /** Pinned commit of `origin/<base-branch>` when a one-PR brief was admitted there (#6361). */
-  let onePrWorktreeBase: string | null = null;
+  /**
+   * Pinned commit per one-PR branch a brief was admitted on (#6361 / #7083). A
+   * cohort with one `--base-branch` pins one commit, as before; rows that name
+   * their own `base_branch` each pin their own branch tip.
+   */
+  const onePrPins = new Map<string, string>();
   if (requireOriginActive) {
     const inside = runGit(["git", "rev-parse", "--is-inside-work-tree"], { cwd: projectRoot });
     const remote = runGit(["git", "remote", "get-url", "origin"], { cwd: projectRoot });
@@ -1835,13 +1865,17 @@ export function swarmLaunch(args: LaunchArgs): {
         const result = runGit(["git", ...gitArgs], { cwd: root });
         return { code: result.returncode, stdout: result.stdout, stderr: result.stderr };
       });
-      const onePrBase = args.baseBranch?.trim() ?? "";
+      const cohortBase = args.baseBranch?.trim() ?? "";
+      const rowBases = worktreeMapRowBases(args.worktreeMap);
       for (const story of resolved) {
         const probe = originActiveBriefPresent(projectRoot, delivery.branch, story.relpath, runGit);
         if (probe.present) continue;
-        // #6361: a one-PR brief lives on the pushed --base-branch, not the delivery tip.
-        // The first admit pins that branch's commit; later stories are checked
-        // against the same commit (no refetch), and the dests are built from it.
+        // #6361: a one-PR brief lives on a pushed branch, not the delivery tip.
+        // #7083: the story's own worktree-map row `base_branch` names that branch
+        // when set; else `--base-branch`. The first admit on a branch pins its
+        // commit; later stories on the same branch reuse it (no refetch), and each
+        // dest is built from its own branch's pinned commit.
+        const onePrBase = rowBases.get(story.story_id) ?? cohortBase;
         const onePr: OnePrOriginBriefResult | null =
           onePrBase.length > 0 && onePrBase !== delivery.branch
             ? originOnePrBriefAdmitted(
@@ -1850,11 +1884,11 @@ export function swarmLaunch(args: LaunchArgs): {
                 onePrBase,
                 story.relpath,
                 runGit,
-                onePrWorktreeBase ?? undefined,
+                onePrPins.get(onePrBase),
               )
             : null;
         if (onePr?.present === true && onePr.ref !== null) {
-          onePrWorktreeBase = onePr.ref;
+          onePrPins.set(onePrBase, onePr.ref);
           continue;
         }
         const onePrNote =
@@ -2122,18 +2156,17 @@ export function swarmLaunch(args: LaunchArgs): {
           }
           const requestedBase = args.baseBranch ?? DEFAULT_BASE_BRANCH;
           // #6361: a one-PR dest is built from the pushed ref; no brief/record bytes are copied.
-          const base = onePrWorktreeBase ?? requestedBase;
-          const mapping = (payload as Record<string, unknown>[]).map((row) =>
-            onePrWorktreeBase !== null &&
-            row !== null &&
-            typeof row === "object" &&
-            typeof row.base_branch === "string" &&
-            row.base_branch.trim() === requestedBase
-              ? { ...row, base_branch: onePrWorktreeBase }
-              : row,
-          );
+          // #7083: each row naming an admitted branch is built from that branch's pin.
+          const base = onePrPins.get(requestedBase) ?? requestedBase;
+          const mapping = (payload as Record<string, unknown>[]).map((row) => {
+            if (row === null || typeof row !== "object" || typeof row.base_branch !== "string") {
+              return row;
+            }
+            const pin = onePrPins.get(row.base_branch.trim());
+            return pin !== undefined ? { ...row, base_branch: pin } : row;
+          });
           const createMissing = !(args.noCreateWorktrees ?? false);
-          const opts = { repoRoot: projectRoot };
+          const opts = { repoRoot: projectRoot, rowBases: new Set(onePrPins.values()) };
           let records: WorktreeRecord[];
           if (args.worktreeResolver !== undefined) {
             records = args.worktreeResolver(mapping, base, createMissing, opts);
