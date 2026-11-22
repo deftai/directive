@@ -45,6 +45,8 @@ A **declared refusal** is a row in the refusal declaration table (`packages/core
    ```
 
    - **Bound pre-PR push gate (#5804), declared row `pre-pr-push-gate`.** A push of product or test changes is refused unless a completed pre-PR pass is bound to the pushed HEAD and covers the outgoing paths. Remedy: start a `deft pre-pr:run` controller run for this HEAD (the line fills `--head-sha`), observe every phase in `deft-directive-pre-pr` skill order (`--observe-command` and `--observe-semantic`), run `deft pre-pr:run --complete` (it runs `verify:ac` itself; a failed `verify:ac` refuses, #6888), then `git push`. This remedy is not runnable exactly as printed: you fill the angle-bracket values and do the review the semantic phases record. A one-command pre-PR is #5933.
+   - **Does a pass gate the push? (#6893).** Only when `plan.policy.requireBoundPrePrPush` is true. Then the managed `pre-push` hook (`preflight-gh --pre-push-stdin`) refuses a push of non-docs changes without a pass bound to HEAD. False or not set: the hook does not look for a pass. `deft pre-pr:run --push-admit` treats not set as on. `deft pre-pr:run --complete` prints the value on success. Completing a run is not push admission.
+   - **Finishing a run (#6893).** Required phases, in order: `branch_policy`, `plan_sequence`, `read`, `write`, `lint_iteration`, `render_export`, `diff`, `loop` (`deft pre-pr:run --help`). `--observe-semantic` needs only `--run-id` and `--phase`: the controller hashes the run's changed files itself. `merge_chokepoint` is optional, and `--complete` does not need a PR.
 
 5. Open the pull request.
 

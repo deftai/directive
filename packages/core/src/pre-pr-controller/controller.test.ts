@@ -24,15 +24,19 @@ import {
   type ControllerVerifyAcResult,
   completeRun,
   computeControllerObservedHash,
+  describeBoundPrePrPushSetting,
   failRun,
   gateChecksFailureMessage,
   gateChecksSatisfied,
   hashPrBody,
+  listPresentChangedPathsBetween,
   noPullRequestForHeadMessage,
   normalizePrBodyForHash,
   observeCommandPhase,
   PRE_PR_LINT_GATE_CHECKS,
+  prePrNextStep,
   readPushBindingDisposition,
+  readRequireBoundPrePrPushSetting,
   resolveNumericPrNumber,
   runObservablesComplete,
   runPrePrGateChecks,
@@ -2732,6 +2736,10 @@ describe("pre-pr:run --complete on a head with no pull request (#6336 item 7)", 
     expect(d.message).toContain("gh pr create");
     expect(d.message).not.toContain(FIRST_HOTFIX_BOOTSTRAP_RECOVERY);
     expect(calls).toEqual([{ pr: null, bootstrap: false }]);
+    // #6893: the red gate first, the missing PR second.
+    const gateAt = d.message.indexOf("Merge gate (task check) is red on tip");
+    expect(gateAt).toBe(0);
+    expect(gateAt).toBeLessThan(d.message.indexOf("No pull request exists"));
   });
 
   it("prints the bootstrap text only when that mode is requested", () => {
@@ -2922,5 +2930,156 @@ describe("pre-pr:run --complete owns the verify:ac result (#6888)", () => {
     });
     expect(complete(run, { verifyAcResult: { kind: "no-target", output: "" } }).ok).toBe(true);
     expect(readPushBindingDisposition(stored(run).pushBinding).verifyAcDisposition).toBeNull();
+  });
+});
+
+describe("leaf ergonomics helpers (#6893)", () => {
+  function observe(store: InProcessPrePrStore, rec: PrePrExecutionRecord, phaseId: string): void {
+    const spec = PRE_PR_PHASES.find((p) => p.id === phaseId);
+    if (spec === undefined) throw new Error(`no phase ${phaseId}`);
+    if (spec.kind === "command-observable") {
+      observeCommandPhase(store, rec.id, {
+        phaseId: spec.id,
+        ...gateChecksFor(spec.id),
+        command: spec.command ?? "",
+        exitCode: 0,
+        inputHash: rec.inputHash,
+        skipReason: null,
+      });
+    } else {
+      submitReviewerReport(store, rec.id, {
+        phaseId: spec.id,
+        reviewedFileManifest: ["a.ts"],
+        suppliedContentsHash: "h",
+        criteriaDigest: approved.digest,
+        reviewerReportRef: null,
+        controllerObservedHash: "h",
+      });
+    }
+  }
+
+  it("names the required phases still missing, in order", () => {
+    const store = new InProcessPrePrStore();
+    const rec = start(store, "ppr_6893_missing");
+    expect(prePrNextStep(rec)).toBe(
+      "Required phases not yet recorded, in order: branch_policy, plan_sequence, read, write, lint_iteration, render_export, diff, loop.",
+    );
+    observe(store, rec, "branch_policy");
+    observe(store, rec, "read");
+    // Optional phases are never named as missing.
+    observe(store, rec, "merge_chokepoint");
+    expect(prePrNextStep(store.getById(rec.id) as PrePrExecutionRecord)).toBe(
+      "Required phases not yet recorded, in order: plan_sequence, write, lint_iteration, render_export, diff, loop.",
+    );
+  });
+
+  it("says to run --complete when none are missing, without claiming a pass", () => {
+    const store = new InProcessPrePrStore();
+    const rec = start(store, "ppr_6893_full");
+    for (const spec of PRE_PR_PHASES.filter((p) => p.required)) observe(store, rec, spec.id);
+    const next = prePrNextStep(store.getById(rec.id) as PrePrExecutionRecord);
+    expect(next).toContain("Every required phase is recorded");
+    expect(next).toContain("`deft pre-pr:run --complete --run-id ppr_6893_full`");
+    expect(next).not.toMatch(/\bpass(ed)?\b/);
+  });
+
+  it("says to start a new run when the run is failed or interrupted", () => {
+    const store = new InProcessPrePrStore();
+    const rec = start(store, "ppr_6893_failed");
+    observeCommandPhase(store, rec.id, {
+      phaseId: "branch_policy",
+      command: "deft verify:branch",
+      exitCode: 1,
+      inputHash: rec.inputHash,
+      skipReason: null,
+    });
+    const failed = prePrNextStep(store.getById(rec.id) as PrePrExecutionRecord);
+    expect(failed).toContain("recorded failure");
+    expect(failed).toContain("start a new run");
+    expect(failed).not.toContain("Required phases");
+    const interrupted = prePrNextStep({
+      ...rec,
+      state: "interrupted",
+      interruptedAt: "2026-11-22T00:00:00Z",
+    });
+    expect(interrupted).toContain("interrupted");
+    expect(interrupted).toContain("start a new run");
+  });
+
+  describe("push-gate setting", () => {
+    let root: string;
+    beforeEach(() => {
+      root = mkdtempSync(join(tmpdir(), "pre-pr-6893-policy-"));
+    });
+    afterEach(() => {
+      rmSync(root, { recursive: true, force: true });
+    });
+    function writePolicy(policy: Record<string, unknown>): void {
+      mkdirSync(join(root, "xbrief"), { recursive: true });
+      writeFileSync(
+        join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+        JSON.stringify({ plan: { policy } }),
+      );
+    }
+
+    it("reads true, false and not set", () => {
+      expect(readRequireBoundPrePrPushSetting(root)).toBeNull();
+      writePolicy({});
+      expect(readRequireBoundPrePrPushSetting(root)).toBeNull();
+      writePolicy({ requireBoundPrePrPush: "yes" });
+      expect(readRequireBoundPrePrPushSetting(root)).toBeNull();
+      writePolicy({ requireBoundPrePrPush: true });
+      expect(readRequireBoundPrePrPushSetting(root)).toBe(true);
+      writePolicy({ requireBoundPrePrPush: false });
+      expect(readRequireBoundPrePrPushSetting(root)).toBe(false);
+    });
+
+    it("describes what the managed pre-push hook does for each value", () => {
+      const on = describeBoundPrePrPushSetting(true);
+      expect(on).toContain("requireBoundPrePrPush is true");
+      expect(on).toContain("preflight-gh --pre-push-stdin");
+      expect(on).toContain(
+        "refuses a push of non-docs changes without a pre-PR pass bound to HEAD",
+      );
+      const off = describeBoundPrePrPushSetting(false);
+      expect(off).toContain("requireBoundPrePrPush is false");
+      expect(off).toContain("does not look for a pre-PR pass");
+      expect(off).not.toContain("--push-admit");
+      const unset = describeBoundPrePrPushSetting(null);
+      expect(unset).toContain("requireBoundPrePrPush is not set");
+      expect(unset).toContain("does not look for a pre-PR pass");
+      expect(unset).toContain("`deft pre-pr:run --push-admit` treats not set as on");
+      for (const line of [on, off, unset]) {
+        expect(line).toContain("Completing a run is not push admission.");
+      }
+    });
+  });
+
+  it("lists present changed files, and returns null when git cannot", () => {
+    const root = mkdtempSync(join(tmpdir(), "pre-pr-6893-git-"));
+    try {
+      const git = (args: readonly string[]) =>
+        execFileSync("git", [...args], { cwd: root, encoding: "utf8" }).trim();
+      git(["init", "-q", "-b", "master"]);
+      git(["config", "user.email", "t@example.com"]);
+      git(["config", "user.name", "t"]);
+      writeFileSync(join(root, "a.ts"), "a\n");
+      writeFileSync(join(root, "b.ts"), "b\n");
+      git(["add", "-A"]);
+      git(["commit", "-q", "-m", "base"]);
+      const baseSha = git(["rev-parse", "HEAD"]);
+      writeFileSync(join(root, "a.ts"), "a2\n");
+      rmSync(join(root, "b.ts"));
+      mkdirSync(join(root, "dir"));
+      writeFileSync(join(root, "dir", "c.ts"), "c\n");
+      git(["add", "-A"]);
+      git(["commit", "-q", "-m", "head"]);
+      const headSha = git(["rev-parse", "HEAD"]);
+      expect(listPresentChangedPathsBetween(root, baseSha, headSha)).toEqual(["a.ts", "dir/c.ts"]);
+      expect(listPresentChangedPathsBetween(root, headSha, headSha)).toEqual([]);
+      expect(listPresentChangedPathsBetween(root, "nope", headSha)).toBeNull();
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });

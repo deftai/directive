@@ -97,6 +97,10 @@ GitHub `mergeable_state` is **textual only**. Post-open behavioral/policy gates 
 
 - ! `deft pre-pr:run` starts a controller run. The run id is a lookup hint; the private store is authoritative.
 - ! `deft pre-pr:run --complete` runs `verify:ac` story selection and evaluation itself and records the disposition from that result. A failed `verify:ac` refuses and publishes nothing. `--verify-ac-disposition` is optional; a value that differs from the result refuses. Clauses covered by an operator acceptance-disposition grant do not refuse; mint the grant before `--complete` (#6888).
+- ! Record the required phases in this order: `branch_policy`, `plan_sequence`, `read`, `write`, `lint_iteration`, `render_export`, `diff`, `loop`. `coverage_headroom` and `merge_chokepoint` are optional. `deft pre-pr:run --help` lists the same order and rules. A recorded failure ends the run: start a new run. A phase recorded out of order is fixed by recording it and every later required phase again. Each successful observe names the required phases still missing (#6893).
+- ! `--observe-semantic` needs only `--run-id` and `--phase`. The controller hashes the reviewed files itself, and by default reviews the run's present changed files from `base..head` at the project root. `--reviewed-file` replaces that list, and a given `--supplied-contents-hash` must match the controller's hash. A deletion-only change or no change gives an empty list, which refuses: name the reviewed files with `--reviewed-file`. The hash covers the working-tree files, so record phases on the run's head with no uncommitted changes. The defaults remove hand work; they do not prove a review happened (#6893).
+- ! `merge_chokepoint` is optional. Record it only after a `deft check` run the work needed anyway (conflict resolve or behind-rebase). `--complete` runs `verify:ac` itself and does not need a PR. When master's named Merge gate is red, the refusal names that gate first and the missing PR second (#6893).
+- ! **Push gate (#6893):** on success, `--complete` prints `plan.policy.requireBoundPrePrPush` (true, false or not set) and what the managed `pre-push` hook (`preflight-gh --pre-push-stdin`) does with it. True: the hook refuses a push of non-docs changes without a pass bound to HEAD. False or not set: the hook does not look for a pass. `deft pre-pr:run --push-admit` treats not set as on. Completing a run is not push admission.
 - ⊗ Treat reading this SKILL.md as pre-PR completion.
 - ⊗ Mint a passing record from an author-supplied run id, checkbox, gitignored marker, or generic mark-complete.
 - ⊗ Reuse a one-PR-unit verdict as pre-PR success.
@@ -105,7 +109,7 @@ Live skip detection on deftai/directive additionally requires Limb 5 enrollment 
 
 ## Hard local refuse before push (#5804)
 
-! On enrolled tip OVPR, feature-branch git push of product/test changes fails closed unless a private-store deft pre-pr:run pass bound to HEAD covers outgoing paths (outgoing ⊆ reviewed pushBinding). Empty pre-push stdin denies.
+! On enrolled tip OVPR, feature-branch git push of product/test changes fails closed unless a private-store deft pre-pr:run pass bound to HEAD covers outgoing paths (outgoing ⊆ reviewed pushBinding). Empty pre-push stdin denies. The managed hook enrolls only when `plan.policy.requireBoundPrePrPush` is true; false or not set means it does not look for a pass (#6893).
 
 - ! Recovery when refuse fires: deft pre-pr:run then retry push.
 - ⊗ Treat reading this SKILL.md or narrating pre-PR as a push pass.
