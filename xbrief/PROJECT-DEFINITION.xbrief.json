@@ -830,6 +830,27 @@
             }
           ]
         }
+      },
+      {
+        "id": "2026-11-22-6981-securityhooks-claude-codes-powershell-tool-is-not-a-shell-to",
+        "title": "security(hooks): Claude Code's PowerShell tool is not a shell tool, so shell-class guards never inspect it",
+        "status": "running",
+        "metadata": {
+          "source_path": "active/2026-11-22-6981-securityhooks-claude-codes-powershell-tool-is-not-a-shell-to.xbrief.json",
+          "lifecycle_folder": "active",
+          "references": [
+            {
+              "uri": "https://github.com/deftai/directive/issues/6981",
+              "type": "x-xbrief/github-issue",
+              "title": "Issue #6981: security(hooks): Claude Code's PowerShell tool is not a shell tool, so shell-class guards never inspect it"
+            },
+            {
+              "uri": "https://github.com/deftai/directive/issues/6136",
+              "type": "x-xbrief/refs",
+              "title": "Issue #6136"
+            }
+          ]
+        }
       }
     ],
     "metadata": {
