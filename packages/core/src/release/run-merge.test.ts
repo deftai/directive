@@ -573,23 +573,36 @@ describe("merge phase helpers (#6877)", () => {
   });
 
   it("re-runs the Actions runs behind the failed required checks", () => {
+    // One compact object per line across every page (--paginate, --jq @json).
+    const row = (name: string, run: number) =>
+      JSON.stringify({ name, details_url: `https://github.com/o/r/actions/runs/${run}/job/9` });
     const runs = {
       returncode: 0,
-      stdout: JSON.stringify({
-        check_runs: [
-          {
-            name: "Merge gate (task check)",
-            details_url: "https://github.com/o/r/actions/runs/123/job/9",
-          },
-          { name: "Other", details_url: "https://github.com/o/r/actions/runs/456/job/1" },
-        ],
-      }),
+      stdout: `${row("Other", 456)}\n${row("Merge gate (task check)", 123)}\n\n${row("TypeScript (build + lint)", 789)}\n`,
     };
     const live = gh({ "check-runs": runs, "run rerun": { returncode: 0, stdout: "" } });
     expect(
       rerunFailedRequiredChecks("o/r", HEAD, ["Merge gate (task check) (failure)"], live.fn),
     ).toEqual({ ok: true, runIds: ["123"] });
+    expect(live.calls[0]).toContain("--paginate");
     expect(live.calls.at(-1)).toEqual(["gh", "run", "rerun", "123", "--failed", "--repo", "o/r"]);
+    // A failed check on a later page is found too.
+    expect(
+      rerunFailedRequiredChecks(
+        "o/r",
+        HEAD,
+        ["Merge gate (task check) (failure)", "TypeScript (build + lint) (failure)"],
+        live.fn,
+      ),
+    ).toEqual({ ok: true, runIds: ["123", "789"] });
+    const garbled = gh({ "check-runs": { returncode: 0, stdout: "{nope\n" } });
+    expect(
+      rerunFailedRequiredChecks("o/r", HEAD, ["Merge gate (task check) (failure)"], garbled.fn).ok,
+    ).toBe(false);
+    const down = gh({ "check-runs": { returncode: 1, stdout: "", stderr: "down" } });
+    expect(
+      rerunFailedRequiredChecks("o/r", HEAD, ["Merge gate (task check) (failure)"], down.fn).ok,
+    ).toBe(false);
     expect(rerunFailedRequiredChecks("o/r", HEAD, ["Missing (failure)"], live.fn).ok).toBe(false);
     expect(rerunFailedRequiredChecks("o/r", HEAD, [], live.fn).ok).toBe(false);
     const refused = gh({

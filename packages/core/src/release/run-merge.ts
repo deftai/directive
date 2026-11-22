@@ -39,6 +39,12 @@ import {
   VERDICT_MERGED,
   VERDICT_NEW_P0_P1,
 } from "../pr-watch/constants.js";
+import {
+  reportWaitHeartbeatWrite,
+  startWaitHeartbeatRefresher,
+  WAIT_HEARTBEAT_REFRESH_SECONDS,
+  writePrWatchWaitHeartbeat,
+} from "../pr-watch/main.js";
 import { watch } from "../pr-watch/watch.js";
 import { EXIT_OK, EXIT_VIOLATION } from "./constants.js";
 import { runGit } from "./git.js";
@@ -156,9 +162,50 @@ export function queueOutcomeOf(result: WaitMergeableResult): QueueOutcome {
   return { kind: "other", detail: detail.length > 0 ? detail : `exit ${String(result.exitCode)}` };
 }
 
+/**
+ * Keep the PR's wait heartbeat live around an in-process wait, as the
+ * `pr:watch` and `pr:wait-mergeable-and-merge` CLIs do around theirs, so
+ * review-monitor reads see the release PR's wait as armed; terminal on exit.
+ */
+function withWaitHeartbeat<T>(projectRoot: string, pr: number, wait: string, fn: () => T): T {
+  const parentId = "release-run";
+  const sink = (text: string): void => {
+    process.stderr.write(text.replace(/^pr_watch:/, "release_run:"));
+  };
+  reportWaitHeartbeatWrite(
+    writePrWatchWaitHeartbeat(projectRoot, pr, {
+      phase: "polling",
+      parentId,
+      lastMessage: `release:run ${wait} running`,
+    }),
+    sink,
+  );
+  const refresher = startWaitHeartbeatRefresher(projectRoot, pr, {
+    parentId,
+    lastMessage: `release:run ${wait} running`,
+    intervalSeconds: WAIT_HEARTBEAT_REFRESH_SECONDS,
+  });
+  try {
+    return fn();
+  } finally {
+    refresher.stop();
+    reportWaitHeartbeatWrite(
+      writePrWatchWaitHeartbeat(projectRoot, pr, {
+        phase: "terminal",
+        terminalState: "exited",
+        parentId,
+        lastMessage: `release:run ${wait} exited`,
+      }),
+      sink,
+    );
+  }
+}
+
 function defaultWatch(runGh: RunGhFn) {
   return (pr: number, repo: string, projectRoot: string): MergeWatchOutcome => {
-    const result = watch(pr, repo, { projectRoot, runGh });
+    const result = withWaitHeartbeat(projectRoot, pr, "pr:watch", () =>
+      watch(pr, repo, { projectRoot, runGh }),
+    );
     return {
       verdict: result.verdict,
       headSha: result.probe.headSha,
@@ -256,19 +303,27 @@ export function rerunFailedRequiredChecks(
 ): ReadResult<{ readonly runIds: readonly string[] }> {
   const names = new Set(failedChecks.map(failedCheckName));
   if (names.size === 0) return { ok: false, reason: "pr:watch named no failed check" };
-  const list = runGh(["gh", "api", `repos/${repo}/commits/${headSha}/check-runs?per_page=100`]);
+  // Every page: one compact { name, details_url } object per line.
+  const list = runGh([
+    "gh",
+    "api",
+    "--paginate",
+    `repos/${repo}/commits/${headSha}/check-runs?per_page=100`,
+    "--jq",
+    ".check_runs[] | {name, details_url} | @json",
+  ]);
   if (list.returncode !== 0) {
     return { ok: false, reason: `check-runs read failed: ${list.stderr.trim()}` };
   }
-  let runs: unknown;
-  try {
-    runs = asRecord(JSON.parse(list.stdout))?.check_runs;
-  } catch {
-    return { ok: false, reason: "check-runs read returned no JSON" };
-  }
   const ids = new Set<string>();
-  for (const run of Array.isArray(runs) ? runs : []) {
-    const rec = asRecord(run);
+  for (const row of list.stdout.split(/\r?\n/)) {
+    if (row.trim().length === 0) continue;
+    let rec: Record<string, unknown> | null;
+    try {
+      rec = asRecord(JSON.parse(row));
+    } catch {
+      return { ok: false, reason: "check-runs read returned a line that is not JSON" };
+    }
     if (rec === null || typeof rec.name !== "string" || !names.has(rec.name)) continue;
     const match = /\/actions\/runs\/(\d+)/.exec(String(rec.details_url ?? ""));
     if (match?.[1] !== undefined) ids.add(match[1]);
@@ -296,7 +351,7 @@ function defaultEnqueueAndWait(
 ): QueueOutcome {
   // The CLI's own --cap-minutes default, read from its parser.
   const args = parseWaitMergeableArgs([String(pr), "--repo", repo, "--wait"]);
-  return queueOutcomeOf(
+  const result = withWaitHeartbeat(projectRoot, pr, "pr:wait-mergeable-and-merge", () =>
     waitMergeableAndMerge(pr, repo, {
       capMinutes: args.capMinutes,
       protected: [],
@@ -310,6 +365,7 @@ function defaultEnqueueAndWait(
       },
     }),
   );
+  return queueOutcomeOf(result);
 }
 
 /** Map one queue read of a recorded enqueue onto {@link PreviousEnqueue}. */
@@ -340,7 +396,7 @@ function defaultWaitQueued(
   since: string,
 ): QueueOutcome {
   const args = parseWaitMergeableArgs([String(pr), "--repo", repo, "--wait"]);
-  return queueOutcomeOf(
+  const result = withWaitHeartbeat(projectRoot, pr, "merge queue wait", () =>
     resumeMergeQueueRead(pr, repo, {
       expectHead,
       since,
@@ -348,6 +404,7 @@ function defaultWaitQueued(
       wait: { capMinutes: args.capMinutes },
     }),
   );
+  return queueOutcomeOf(result);
 }
 
 /**
