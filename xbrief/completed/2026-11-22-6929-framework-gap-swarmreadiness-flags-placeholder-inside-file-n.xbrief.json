@@ -1,0 +1,248 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6929",
+    "updated": "2026-11-22T16:08:34Z"
+  },
+  "plan": {
+    "title": "[framework-gap] swarm:readiness flags 'placeholder' inside file names and domain terms as placeholder text",
+    "status": "completed",
+    "narratives": {
+      "Description": "Issue #6929 was folded into the #6936 story and fixed in product PR #7000 (merge 9061e61b). This brief records that delivery and adds no code. The tests that assert the fixed behaviour are in packages/core/src/vbrief-validation/marker-text.test.ts.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6929",
+      "Overview": "## Summary\n`swarm:readiness` story-quality checks flag the substring \"placeholder\" as placeholder text, even when it is part of a real file or component name.\n\n## Context\nA launcher story listed `web/src/components/desk/section-placeholder-widget.tsx` in its ImplementationPlan and described \"placeholder widgets\" (a real UI concept: stub widgets shown until content ships).\n\n## Expected behavior\n`PLACEHOLDER_ACCEPTANCE_PATTERNS` matches placeholder *text* (e.g. a criterion that is literally \"placeholder\" / \"TBD\"), not a domain word inside a path or a concrete sentence.\n\n## Actual behavior / gap\nReadiness reported `plan.narratives.ImplementationPlan must not be placeholder text` and `placeholder acceptance criterion`. Workaround: rename the file to `section-stub-widget.tsx` and reword the criteria. Same class: a top-bar criterion mentioning a \"repo chip placeholder\" was rejected.\n\n## Session notes\nConsider matching whole-criterion placeholders or skipping tokens inside path-like strings.\n\n\n## Acceptance Criteria\n- [ ] Given the three examples above (the desk widget file name, the widget term and the top-bar chip term, each holding the stub-marker word inside a longer term), when readiness checks acceptance criteria and the ImplementationPlan, then it reports no stub-text issue.\n- [ ] Given a line that holds only a stub marker, a leading marker label with a colon, or a marker template token in angle brackets, when readiness checks it, then it still reports a stub-text issue.\n- [ ] Given the same acceptance texts, when `scope:decompose` checks a story, then it applies the same stub-text check as readiness.\n\n---\n_Filed from a consumer session (deftai/evolution, runtime @deftai/directive-runtime 0.129.13, launcher @deftai/directive 0.129.14). Refs #1709_\n\n",
+      "UserStory": "As a consumer whose file names and domain terms contain stub-marker words, I want readiness to read them as real text, so that my stories pass readiness without renaming files.",
+      "ImplementationPlan": "1. No new code: PR #7000 shipped the fix under the #6936 story (deft-story: 6936).\n2. Bind clauses 1-3 to packages/core/src/vbrief-validation/marker-text.test.ts, which #7000 added.\n3. Complete in a lifecycle PR with --merge-commit 9061e61b7c196d9c0d3c983c4a151c5892c0a618 --pr 7000.",
+      "Traces": "#6929, #6936, #7000"
+    },
+    "items": [
+      {
+        "title": "Given the three examples above (the desk widget file name, the widget term and the top-bar chip term, each holding the stub-marker word inside a longer term), when readiness checks acceptance criteria and the ImplementationPlan, then it reports no stub-text issue.",
+        "status": "completed",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "When readiness checks the three #6929 examples, then it reports no stub-text issue."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9061e61b7c196d9c0d3c983c4a151c5892c0a618",
+          "recorded_at": "2026-11-22T16:08:34Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "Given a line that holds only a stub marker, a leading marker label with a colon, or a marker template token in angle brackets, when readiness checks it, then it still reports a stub-text issue.",
+        "status": "completed",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "When readiness checks a marker-only line, a leading marker label or a marker template token, then it still reports a stub-text issue."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9061e61b7c196d9c0d3c983c4a151c5892c0a618",
+          "recorded_at": "2026-11-22T16:08:34Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "Given the same acceptance texts, when `scope:decompose` checks a story, then it applies the same stub-text check as readiness.",
+        "status": "completed",
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "When scope:decompose checks a story, then it applies the same stub-text check as readiness."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9061e61b7c196d9c0d3c983c4a151c5892c0a618",
+          "recorded_at": "2026-11-22T16:08:34Z",
+          "recorded_by": "scope:complete"
+        }
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6929",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6929: [framework-gap] swarm:readiness flags 'placeholder' inside file names and domain terms as placeholder text"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "plan.narratives.ImplementationPlan must not be placeholder text",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L13"
+        },
+        {
+          "command": "placeholder acceptance criterion",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L13"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/vbrief-validation/marker-text.test.ts"
+        ],
+        "verify_commands": [
+          "npx vitest run packages/core/src/vbrief-validation/marker-text.test.ts"
+        ],
+        "expected_outputs": [
+          "packages/core/src/vbrief-validation/marker-text.test.ts passes on master (shipped in #7000)"
+        ],
+        "depends_on": [],
+        "conflict_group": "readiness-path-text",
+        "size": "small",
+        "file_scope_confidence": "high",
+        "model_tier": "low"
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "Folded into the #6936 story and fixed in #7000: readiness and `scope:decompose` now share one placeholder check. Multi-word stub phrases still match anywhere; `placeholder`, `todo` and `tbd` count only as a marker-only line, a leading label (`TODO:`, `**TODO:**`, `TBD -`), a template token (`<placeholder>`) or a standalone `tbd`, never inside a path-like token. So `section-placeholder-widget.tsx`, \"placeholder widgets\" and \"repo chip placeholder\" no longer read as placeholder text. Arc record: #6936 (synthesis 7073885133).\n\n",
+          "id": 7075406911,
+          "html_url": "https://github.com/deftai/directive/issues/6929#issuecomment-7075406911",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T06:34:42Z",
+          "updated_at": "2026-11-22T06:34:42Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "design-critique: not warranted, because the fix already shipped in #7000 under #6936; this brief only records delivery.\n\n",
+          "id": 7080213979,
+          "html_url": "https://github.com/deftai/directive/issues/6929#issuecomment-7080213979",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T13:59:55Z",
+          "updated_at": "2026-11-22T13:59:55Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6525749542,
+        "origin": "deftai/directive#6929",
+        "id": "github.issue.6525749542"
+      },
+      "kind": "story",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "2ecec1fbd808ba28d7e9ebad9c235ecbf81b8f24",
+        "prNumber": 7000,
+        "prBase": "master",
+        "mergeCommit": "9061e61b7c196d9c0d3c983c4a151c5892c0a618",
+        "deliveryBranch": "master",
+        "deliveryCommit": "128b0cb5801bc44515c03fecca00c72685d72ba1",
+        "verifiedAt": "2026-11-22T16:08:34Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "identityBasis": "operator-attested",
+        "attestationGrantId": "grant-20261122160735-8557ea"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-22T16:08:34Z",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-22T16:08:34Z"
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per sentence-list entry (3), in order (#6333)",
+      "sentences": [
+        "Given the three examples above (the desk widget file name, the widget term and the top-bar chip term, each holding the stub-marker word inside a longer term), when readiness checks acceptance criteria and the ImplementationPlan, then it reports no stub-text issue.",
+        "Given a line that holds only a stub marker, a leading marker label with a colon, or a marker template token in angle brackets, when readiness checks it, then it still reports a stub-text issue.",
+        "Given the same acceptance texts, when `scope:decompose` checks a story, then it applies the same stub-text check as readiness."
+      ],
+      "admitted_source_sentences": [
+        "Given the three examples above (the desk widget file name, the widget term and the top-bar chip term, each holding the stub-marker word inside a longer term), when readiness checks acceptance criteria and the ImplementationPlan, then it reports no stub-text issue.",
+        "Given a line that holds only a stub marker, a leading marker label with a colon, or a marker template token in angle brackets, when readiness checks it, then it still reports a stub-text issue.",
+        "Given the same acceptance texts, when `scope:decompose` checks a story, then it applies the same stub-text check as readiness."
+      ],
+      "admitted_source_digest": "657632792eee42c50cf54d3ab71a3c0874545ed719d9d8e582d66faf144693f4",
+      "admitted_source_extractor": 2,
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Given the three examples above (the desk widget file name, the widget term and the top-bar chip term, each holding the stub-marker word inside a longer term), when readiness checks acceptance criteria and the ImplementationPlan, then it reports no stub-text issue.",
+          "artifact_path": "packages/core/src/vbrief-validation/marker-text.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Given a line that holds only a stub marker, a leading marker label with a colon, or a marker template token in angle brackets, when readiness checks it, then it still reports a stub-text issue.",
+          "artifact_path": "packages/core/src/vbrief-validation/marker-text.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Given the same acceptance texts, when `scope:decompose` checks a story, then it applies the same stub-text check as readiness.",
+          "artifact_path": "packages/core/src/vbrief-validation/marker-text.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.6525749542",
+    "updated": "2026-11-22T16:08:34Z"
+  }
+}
