@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6864",
-    "updated": "2026-11-22T03:44:23Z"
+    "updated": "2026-11-22T04:45:52Z"
   },
   "plan": {
     "title": "release-publish: installed CLI looks for grants in the runtime package, not the repo (promote-latest denied after a valid mint)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "release-publish: installed CLI looks for grants in the runtime package, not the repo (promote-latest denied after a valid mint)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6864",
@@ -17,58 +17,135 @@
     "items": [
       {
         "title": "One default. In `packages/core/src/release/paths.ts`, `resolveProjectRoot(argRoot)` returns `resolve(argRoot)` for a flag, then `resolve(DEFT_PROJECT_ROOT)` when that is set and not empty, and otherwise `resolve(process.cwd())`. The `resolveDefaultFrameworkRoot()` fallback is removed, so `DEFT_ROOT` no longer selects the release project root. The four callers (`release/main.ts`, `release-publish/main.ts`, `release-rollback/main.ts`, `release-e2e/main.ts`) are unchanged.",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f0f3e335e262343e2b2240a9ea7ee82a10cd2f6c",
+          "recorded_at": "2026-11-22T04:45:52Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "One deny suffix. The three release closed-verb deny lines, `[publish] denied`, `[promote-latest] denied` (`release-publish/pipeline.ts`) and `[release] denied` (`release/closed-verb-gate.ts`, tag push), end with ` projectRoot=<path>`, the root whose grant store the gate read. No other runtime output changes.",
-        "status": "proposed",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f0f3e335e262343e2b2240a9ea7ee82a10cd2f6c",
+          "recorded_at": "2026-11-22T04:45:52Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Help texts. The `--project-root` help in `release/constants.ts`, `release-publish/constants.ts`, `release-rollback/constants.ts` and `release-e2e/constants.ts` says the default is `$DEFT_PROJECT_ROOT`, else the current working directory. Tests that pin those strings change with them.",
-        "status": "proposed",
-        "id": "clause.3"
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f0f3e335e262343e2b2240a9ea7ee82a10cd2f6c",
+          "recorded_at": "2026-11-22T04:45:52Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "CHANGELOG. One line states the new default, that a release verb started outside the repository root now uses that directory, and that `--project-root` or `DEFT_PROJECT_ROOT` selects another root.",
-        "status": "proposed",
-        "id": "clause.4"
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f0f3e335e262343e2b2240a9ea7ee82a10cd2f6c",
+          "recorded_at": "2026-11-22T04:45:52Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "One PR. No new verb, flag, env, policy field or refusal.",
-        "status": "proposed",
-        "id": "clause.5"
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f0f3e335e262343e2b2240a9ea7ee82a10cd2f6c",
+          "recorded_at": "2026-11-22T04:45:52Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given no `--project-root` and no `DEFT_PROJECT_ROOT`, and a working directory that is not the module checkout, then `resolveProjectRoot(null)` returns that working directory.",
-        "status": "proposed",
-        "id": "clause.6"
+        "status": "completed",
+        "id": "clause.6",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f0f3e335e262343e2b2240a9ea7ee82a10cd2f6c",
+          "recorded_at": "2026-11-22T04:45:52Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given `--project-root` or `DEFT_PROJECT_ROOT`, then `resolveProjectRoot` returns it as today.",
-        "status": "proposed",
-        "id": "clause.7"
+        "status": "completed",
+        "id": "clause.7",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f0f3e335e262343e2b2240a9ea7ee82a10cd2f6c",
+          "recorded_at": "2026-11-22T04:45:52Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given a temporary repository as the working directory, a valid `release-promote-latest` grant on disk under its `.deft/authz/grants`, and no root flag or env, then `release-publish --promote-latest X --dry-run` passes the gate.",
-        "status": "proposed",
-        "id": "clause.8"
+        "status": "completed",
+        "id": "clause.8",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f0f3e335e262343e2b2240a9ea7ee82a10cd2f6c",
+          "recorded_at": "2026-11-22T04:45:52Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given the same repository with a valid `release-publish` grant and no root flag or env, then `release-publish X` passes the gate (GitHub calls through seams).",
-        "status": "proposed",
-        "id": "clause.9"
+        "status": "completed",
+        "id": "clause.9",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f0f3e335e262343e2b2240a9ea7ee82a10cd2f6c",
+          "recorded_at": "2026-11-22T04:45:52Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given no matching grant, then each of the `[publish]`, `[promote-latest]` and `[release]` deny lines names the project root it searched.",
-        "status": "proposed",
-        "id": "clause.10"
+        "status": "completed",
+        "id": "clause.10",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f0f3e335e262343e2b2240a9ea7ee82a10cd2f6c",
+          "recorded_at": "2026-11-22T04:45:52Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given `--help` for each of the four release verbs, then the `--project-root` line names the current working directory as the default.",
-        "status": "proposed",
-        "id": "clause.11"
+        "status": "completed",
+        "id": "clause.11",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f0f3e335e262343e2b2240a9ea7ee82a10cd2f6c",
+          "recorded_at": "2026-11-22T04:45:52Z",
+          "recorded_by": "scope:complete"
+        }
       }
     ],
     "tags": [
@@ -393,7 +470,37 @@
         "harvestDigest": "28b06d0e4f1556dc7736860f7edd3ef6449cd2ac016da5995106c58a49541448",
         "slice": null
       },
-      "kind": "story"
+      "kind": "story",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "513a94d26781a2008e4d05e1dbce4ea158b1fc5d",
+        "prNumber": 6991,
+        "prBase": "master",
+        "mergeCommit": "f0f3e335e262343e2b2240a9ea7ee82a10cd2f6c",
+        "deliveryBranch": "master",
+        "deliveryCommit": "2ba8ae1222a380e7997ea60e2b5f0c1ccb3a2e9d",
+        "verifiedAt": "2026-11-22T04:45:52Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:ZTYxMTJjZWUtZTUxNC00NjVlLTk1ZjUtN2QwZDljMmE5OWVl",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          6976,
+          6983
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-22T04:45:52Z",
+      "completedSessionId": "host:claude:v1:ZTYxMTJjZWUtZTUxNC00NjVlLTk1ZjUtN2QwZDljMmE5OWVl",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-22T04:45:52Z"
+      }
     },
     "acceptance": {
       "commands": [],
@@ -509,6 +616,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.6515491996",
-    "updated": "2026-11-22T03:44:23Z"
+    "updated": "2026-11-22T04:45:52Z"
   }
 }
