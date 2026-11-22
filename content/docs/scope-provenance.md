@@ -111,6 +111,8 @@ The repo owner picks how a new or widened brief can land with its code in one PR
 
 Set it with `deft policy:set-one-pr-scope-proof -- --set off|mint --confirm`. Inspect it with `deft policy:show --field=onePrScopeProof`.
 
+`scope:record-approved-scope` keeps the terminal mint (#7031): its record is live authority for the write fence inside the session, before any PR exists. The observable-scope and intent-constraint records are different: `scope:record-observable-scope` and `scope:record-intent-constraint` write a declared record from any shell, and you write the declaration and land it before the product PR. A declared stamp is never a human stamp, so it never admits a brief here. The full list is in [human-origin-authz.md](../contracts/human-origin-authz.md) § Operator mint inventory.
+
 - **Merge base only.** The check reads `onePrScopeProof` and `requireHumanMerge` from `xbrief/PROJECT-DEFINITION.xbrief.json` on the merge base, never from the head. A PR that changes either field cannot use the one-PR path.
 - **No human-merge precondition (#6354).** The mint level applies whatever the merge-base `requireHumanMerge` is. An agent or the merge queue may merge the PR. `requireHumanMerge` only decides which control applies (below).
 - **How to use it.** The human runs `scope:record-approved-scope` on the brief (same #3110 human-presence gate). The record now also stores `authHashV1`, the brief's auth-hash v1 (same hash as #6203). Commit the record, its `.intent.json`, the brief and the code in one PR. List both `.deft/approved-scope/<plan-id>.json` and `<plan-id>.intent.json` in the brief's `file_scope`, because membership does not free them.

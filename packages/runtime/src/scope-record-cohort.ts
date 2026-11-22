@@ -1,15 +1,16 @@
 /**
- * Cohort form of the human-presence record mints (#6937).
+ * Cohort form of the declared record writers (#6937 / #7031).
  *
  * `scope:record-observable-scope` and `scope:record-intent-constraint` take
  * several brief paths or `--manifest <launch-manifest>`. Every brief is loaded,
- * validated and built first; the whole frozen set is printed; the typed mint is
- * asked once; then exactly the printed records are written. A cohort run never
- * overwrites a record: a matching record is left untouched, and one that would
- * change (or does not parse) refuses the whole set before the prompt. A failed
- * run removes only the records it created. `cohortDigest` is bookkeeping that
- * ties the records to one approval, not proof of a human: CI cannot tell a mint
- * from a file an agent wrote, so the record's control is the merge that lands it.
+ * validated and built first; the whole frozen set is printed; then exactly the
+ * printed records are written, each with a declared stamp naming the verb.
+ * There is no terminal step (#7031): the cohort writes from any shell, an
+ * agent's included. A cohort run never overwrites a record: a matching record
+ * is left untouched, and one that would change (or does not parse) refuses the
+ * whole set before any write. A failed run removes only the records it
+ * created. `cohortDigest` is bookkeeping that ties the records to one run, not
+ * proof of a human: the record's control is the merge that lands it.
  */
 import { createHash, randomBytes } from "node:crypto";
 import {
@@ -43,18 +44,15 @@ import {
   parseObservableChangeContract,
   parseObservableScopeRecord,
 } from "@deftai/directive-core/observable-scope";
-import {
-  type HumanPresenceMintSeams,
-  mintArgsAfterVerb,
-  refuseMintWhileUatActive,
-  refuseNonInteractiveMint,
-  resolveHumanPresenceMintSeams,
-} from "./human-presence-mint.js";
+import { type HumanPresenceMintSeams, refuseMintWhileUatActive } from "./human-presence-mint.js";
 import { isPathInsideRoot } from "./scope-record-approved-scope.js";
 
 export type CohortRecordKind = "observable-scope" | "intent-constraint";
 
-/** Test seams for the cohort form, beside the human-presence seams. */
+/**
+ * Test seams for the cohort form. The human-presence seams stay in the type so
+ * existing callers compile; the declared writers no longer read them (#7031).
+ */
 export interface RecordCohortSeams extends HumanPresenceMintSeams {
   /** Runs just before each new record is published (tests force a failure here). */
   readonly beforePublish?: (recordAbs: string) => void;
@@ -65,15 +63,12 @@ export interface RecordCohortSeams extends HumanPresenceMintSeams {
 }
 
 export interface RecordCohortArgs {
-  readonly argv: readonly string[];
   readonly projectRoot: string;
   readonly briefPaths: readonly string[];
   readonly manifest: string | null;
+  /** Declared-by display name; may name an agent (#7031). */
   readonly actor: string;
-  readonly kind: string;
-  readonly mintedVia: string;
   readonly quiet: boolean;
-  readonly confirm: boolean;
 }
 
 interface ParsedContract {
@@ -298,15 +293,15 @@ interface CohortTarget {
 
 function singleStoryHint(spec: KindSpec): string {
   return (
-    `Change an approved record with the single-story form: \`deft ${spec.verb} -- <brief> ` +
-    "--actor <name> --confirm` (one brief path)."
+    `Change a record with the single-story form: \`deft ${spec.verb} -- <brief>\` ` +
+    "(one brief path)."
   );
 }
 
 function refuseBeforePrompt(spec: KindSpec, problems: readonly string[], hint: boolean): number {
   const lines = problems.map((p) => `  - ${p}`).join("\n");
   process.stderr.write(
-    `${spec.errPrefix}: refusing the whole cohort before the prompt; nothing was written:\n${lines}\n` +
+    `${spec.errPrefix}: refusing the whole cohort; nothing was written:\n${lines}\n` +
       (hint ? `${singleStoryHint(spec)}\n` : ""),
   );
   return 2;
@@ -501,7 +496,7 @@ export function runRecordCohort(
       planId: item.planId,
       xbriefRelPath,
       contract: item.contract,
-      humanApproval: { kind: args.kind, actor: args.actor, mintedAt, mintedVia: args.mintedVia },
+      humanApproval: { kind: "declared", actor: args.actor, mintedAt, mintedVia: spec.verb },
     });
     if ("error" in built) {
       problems.push(`${item.briefRel}: ${built.error}`);
@@ -576,8 +571,8 @@ export function runRecordCohort(
   const out: string[] = [];
   if (fresh.length > 0) {
     out.push(
-      `${spec.verb} cohort: ${String(fresh.length)} record(s) to write after one typed mint ` +
-        `(cohortDigest ${cohortDigest}, repository ${repo ?? "unresolved"}):`,
+      `${spec.verb} cohort: ${String(fresh.length)} declared record(s) to write ` +
+        `(cohortDigest ${cohortDigest}, repository ${repo ?? "unresolved"}, declared by ${args.actor}):`,
     );
     fresh.forEach((t, i) => {
       out.push(`  ${String(i + 1)}. plan id: ${t.planId}`);
@@ -593,30 +588,14 @@ export function runRecordCohort(
   }
   for (const s of skipped) out.push(`Skipped (no ${spec.contractLabel}): ${s}`);
   if (fresh.length === 0) {
-    out.push(`${spec.verb} cohort: nothing to write; no prompt.`);
+    out.push(`${spec.verb} cohort: nothing to write.`);
     process.stdout.write(`${out.join("\n")}\n`);
     return 0;
   }
   out.push(
-    "CI cannot tell a mint from a file an agent wrote: the record's control is the merge that lands it.",
+    "A declared record is a declaration, not consent (#7031): the record's control is the merge that lands it.",
   );
   process.stdout.write(`${out.join("\n")}\n`);
-
-  const resolved = resolveHumanPresenceMintSeams(seams);
-  const refused = refuseNonInteractiveMint({
-    verb: spec.verb,
-    confirm: args.confirm,
-    isTty: resolved.isTty,
-    environ: resolved.environ,
-    hasControllingTerminal: resolved.hasControllingTerminal,
-    readInteractiveConfirm: resolved.readInteractiveConfirm,
-    operatorStop: {
-      projectRoot,
-      args: mintArgsAfterVerb(args.argv, null),
-      record: resolved.recordOperatorStop,
-    },
-  });
-  if (refused !== null) return refused;
 
   const created: PublishedRecord[] = [];
   for (const t of fresh) {

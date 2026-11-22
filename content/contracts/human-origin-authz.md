@@ -89,6 +89,65 @@ deft authz:uat-suspend
 deft authz:revoke -- grant-…
 ```
 
+## Operator mint inventory (#7031)
+
+An operator mint is the terminal step `refuseNonInteractiveMint` runs: a real
+TTY, a controlling terminal, no agent or CI marker, `--confirm` and the typed
+phrase `mint`. It proves that a person was at a terminal. It does not prove that
+the person reviewed anything, and it does not check identity.
+
+A command keeps the mint when its record is live authority before any merge: a
+hook or a verb reads it inside the session, before a PR exists. A command drops
+the mint when its record is read only from the merge base, so the merge that
+lands it comes first.
+
+| Command | Store | Read at | Hook denies writes in the checkout | Self-approval it prevents | Mint | What the kept mint buys |
+| --- | --- | --- | --- | --- | --- | --- |
+| `authz:grant` (every template: AFK, closed-verb, finish-loop, gate-override, spec-drift-override; acceptance-disposition, plan-sequence-approval and delivery-identity-attest write the main clone's store) | `.deft/authz/grants/` | live hook and local grant store | yes (`.deft/authz/`) | an agent grants itself edit, push, PR, merge, a gate override or a deferral | kept | the command stops while agent markers are set; the in-checkout write deny |
+| `authz:grant --template one-pr-unit` | Directive App store | App store (one-PR proof) | no (outside the checkout) | an agent approves its own one-PR unit | kept | the command stops while agent markers are set |
+| `authz:uat-start` | `.deft/authz/` UAT lease | live hook | yes | an agent locks the tree under a campaign it chose | kept | the command stop; the in-checkout write deny |
+| `authz:uat-suspend` | `.deft/authz/` UAT lease | live hook | yes | an agent lifts the UAT lock it works under | kept | the command stop; the in-checkout write deny |
+| `authz:revoke` | `.deft/authz/grants/` (retries in the main clone's store) | local grant store | yes, in this checkout only | an agent deletes a human grant | kept | the command stop; the in-checkout write deny |
+| `scope:record-approved-scope` | `.deft/approved-scope/` | write-fence hook (working tree) and merge base | yes (`.deft/approved-scope/`) | an agent widens its own `file_scope` fence | kept | the command stop; the in-checkout write deny |
+| `scope:record-observable-scope` | `.deft/observable-scope/` | merge base (`verify:observable-scope`) | no | none: the record is a declaration | dropped; writes `kind: "declared"` | n/a |
+| `scope:record-intent-constraint` | `.deft/intent-constraint/` | merge base (`verify:intent-constraint`) | no | none: the record is a declaration | dropped; writes `kind: "declared"` | n/a |
+
+The in-checkout write deny covers `.deft/authz/` and `.deft/approved-scope/`
+only, and only for writes inside the checkout. A kept mint does not make a
+store unwritable. Known limits:
+
+- Claude Code's PowerShell tool is not inspected by the hooks (#6981).
+- An absolute Write or Edit from a linked worktree into the main clone's
+  `.deft/authz/` is not denied (#7036).
+- A commit made on the forge (web edit, API) never meets a local hook.
+- Presence is marker-based: a shell with no agent or CI marker and a TTY passes.
+  The mint checks markers and the terminal, not who is typing.
+- Brief stamps such as the presentation ceiling and the durable-effect ceiling
+  are checked by shape only.
+
+### Control for the two dropped commands
+
+`scope:record-observable-scope` and `scope:record-intent-constraint` write from
+any shell, an agent's included, with
+`humanApproval: {kind: "declared", actor, mintedAt, mintedVia: <command>}`.
+They refuse `--kind` and `--minted-via`; `--actor` is an optional declared-by
+name and may name an agent. An active UAT lease still refuses them.
+`isHumanApprovalStamp` does not accept `declared`, so approved-scope, the
+one-PR proof and every other human-approval reader refuse a declared record. A
+declared record is a declaration the product check holds the PR to, not an
+approval.
+
+| Merge policy | Control on a declared record |
+| --- | --- |
+| `requireHumanMerge: true` | The person who merges the PR that lands the record. The human stop moves from the terminal to that merge. |
+| Bot merge, or a merge under the operator's own identity | None. Nothing human checks the record. |
+
+The story fence refuses a direct write of these record paths unless the
+merge-gate signal is live; the command is a writer the fence does not see. A
+fact found mid-build still needs a record PR on the merge base before the
+product PR, because the product check reads the record from the merge base and
+refuses a same-PR record.
+
 ## Gate-override hatch (#5542 / #5674)
 
 Mint + admission APIs for an audited interactive override bound to a coverage-

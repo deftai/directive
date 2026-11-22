@@ -40,6 +40,44 @@ describe("intent-constraint mint (#4541)", () => {
     expect(agent).toMatchObject({ error: expect.stringMatching(/human-presence/) });
   });
 
+  it("builds and parses a declared stamp and still parses legacy human stamps (#7031)", () => {
+    const base = {
+      planId: "story",
+      xbriefRelPath: "xbrief/active/story.xbrief.json",
+      constraints: [{ value: "1024", unit: "bytes", rejectionScope: "invocation" as const }],
+    };
+    const declared = {
+      kind: "declared",
+      actor: "agent:leaf",
+      mintedAt: "2026-11-22T00:00:00Z",
+      mintedVia: "scope:record-intent-constraint",
+    };
+    const rec = buildIntentConstraintRecord({ ...base, humanApproval: declared });
+    expect("error" in rec).toBe(false);
+    if ("error" in rec) return;
+    expect(parseIntentConstraintRecord(JSON.parse(JSON.stringify(rec)))).toMatchObject({
+      humanApproval: { kind: "declared", mintedVia: "scope:record-intent-constraint" },
+    });
+    for (const legacy of [human, { ...human, mintedVia: "in-harness-ask" }]) {
+      const old = buildIntentConstraintRecord({ ...base, humanApproval: legacy });
+      expect("error" in old).toBe(false);
+      if ("error" in old) return;
+      expect("error" in parseIntentConstraintRecord(JSON.parse(JSON.stringify(old)))).toBe(false);
+    }
+    // A declared stamp must name this record's writer.
+    const wrongVerb = buildIntentConstraintRecord({
+      ...base,
+      humanApproval: { ...declared, mintedVia: "scope:record-observable-scope" },
+    });
+    expect(wrongVerb).toMatchObject({ error: expect.stringMatching(/declared stamp/) });
+    expect(
+      parseIntentConstraintRecord({
+        ...rec,
+        humanApproval: { ...declared, mintedVia: "in-harness-ask" },
+      }),
+    ).toMatchObject({ error: expect.stringMatching(/declared stamp/) });
+  });
+
   it("requires value, unit, and rejectionScope", () => {
     expect(parseIntentConstraintContract({ constraints: [{ value: "1024" }] })).toMatchObject({
       error: expect.stringMatching(/unit/),

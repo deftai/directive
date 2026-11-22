@@ -946,12 +946,12 @@ Per [strategies/interview.md](../../strategies/interview.md#interview-rules-shar
 ⊗ Emit `plan.acceptance`, `ambiguity_attestation`, or a schema-complete acceptance stamp from this skill.
 ! For every setup-created scope, write a non-empty `plan.metadata.swarm.file_scope` at authoring from operator-named path members only (`#4988`, supersedes `#4383`). Language, layout, and deliverable answers are prompt material for an explicit per-scope path question (or equivalent operator-named collect) on every scope-emitting setup branch (full interview, Add-scope, and Rapid), not after. ⊗ Auto-fill or derive `file_scope` from those answers. ⊗ Invent paths. ⊗ Describe a mint step, a digest, or `scope:record-approved-scope` as a setup action (`#3145` / `#3110` / `#4956`). Forbid polarity may remain. ⊗ Demand scope:record-observable-scope at parking (#4588). That when is after the observable contract is on the brief, before the UI-change PR, and only if the demand predicate is true. ! A setup-created scope must pass the same `file_scope` presence check decompose already imposes (operative surface is presence, not the full missingRequiredSwarmFields suite).
 
-### Intent-constraint plan key (#4587 / #4541 / #5010)
+### Intent-constraint plan key (#4587 / #4541 / #7031)
 
 ! When the operator already names `value` / `unit` / `rejectionScope`, write them on `plan["x-directive/intentConstraint"]` at authorship, before the implementation PR that introduces a throw/reject/abort or numeric-const. File-scope can be named at allocation. Throw values usually cannot.
-! After that key exists, land the merge-base humanApproval stamp via attended in-harness ask (`mintedVia` in-harness-ask) before the implementation PR. Leave-harness TTY `scope:record-intent-constraint` is legacy repair only. The verb copies the plan key; it cannot invent values.
-⊗ Fill speculative `value`/`unit`/`rejectionScope` so a mint succeeds at park.
-⊗ Print leave-harness TTY `scope:record-intent-constraint` next to `scope:record-approved-scope` at park or Phase 0f as the normal path. The approved-scope digest does not authorize throw sites.
+! After that key exists, write the declaration: `scope:record-intent-constraint` writes the declared record from any shell (no terminal step), and the record lands on the merge base before the implementation PR. The verb copies the plan key; it cannot invent values. A declaration is not consent.
+⊗ Fill speculative `value`/`unit`/`rejectionScope` so a record succeeds at park.
+⊗ Print `scope:record-intent-constraint` next to `scope:record-approved-scope` at park or Phase 0f as one approval step. The approved-scope digest does not authorize throw sites.
 ⊗ Invent a second snapshot. Keep merge-base authority and same-PR rewrite (#4541 / #5010).
 
 ! Fields the gate requires: [`../../docs/plan-acceptance.md`](../../docs/plan-acceptance.md).
@@ -1080,7 +1080,7 @@ Per [strategies/interview.md](../../strategies/interview.md#interview-rules-shar
 - ⊗ Patch `xbrief/PROJECT-DEFINITION.xbrief.json` or the `$DEFT_PROJECT_PATH` file to store Phase 2 narratives. Use `deft project:write-narratives`.
 - ⊗ Skip emit-hints after Phase 3 writes to `xbrief/proposed/` (#4426)
 - ⊗ Agent-asserted `parent_issue` / `plan.references` at setup emission (#4426)
-- ⊗ Fill speculative intent-constraint values at park, or mint `scope:record-intent-constraint` beside `scope:record-approved-scope` (#4587)
+- ⊗ Fill speculative intent-constraint values at park, or treat `scope:record-intent-constraint` as an approval beside `scope:record-approved-scope` (#4587 / #7031)
 - ⊗ Infer setup depth from strategy or coverage, or re-ask the Phase 2 depth question when USER.md already has `**Depth**:` `1`, `2`, or `3` (#4668)
 - ⊗ Treat a `**Depth**:` line outside the Personal section as the track, or pick among duplicate Personal Depth lines (#4668)
 - ⊗ Treat an existing PROJECT-DEFINITION seed, including empty narratives, as missing interview answers (#4668)

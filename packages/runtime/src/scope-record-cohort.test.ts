@@ -20,15 +20,19 @@ afterEach(() => {
   for (const dir of temps.splice(0)) rmSync(dir, { recursive: true, force: true });
 });
 
+/**
+ * An agent shell with no TTY (#7031). The declared writers never prompt, so a
+ * test that counts prompts expects zero.
+ */
 function human(prompts: { count: number }, answer = "mint") {
   return {
-    isTty: () => true,
-    hasControllingTerminal: () => true,
+    isTty: () => false,
+    hasControllingTerminal: () => false,
     readInteractiveConfirm: () => {
       prompts.count += 1;
       return answer;
     },
-    environ: {},
+    environ: { CLAUDECODE: "1" },
     repo: "deftai/example",
   };
 }
@@ -82,18 +86,18 @@ function obsRecord(dir: string, planId: string): string {
 }
 
 function args(dir: string, ...rest: string[]): string[] {
-  return [...rest, "--actor", "scott", "--confirm", "--project-root", dir];
+  return [...rest, "--actor", "scott", "--project-root", dir];
 }
 
-describe("record cohort form (#6937)", () => {
-  it("writes N records after one prompt with a shared cohortDigest", () => {
+describe("record cohort form (#6937 / #7031)", () => {
+  it("writes N declared records with no prompt and a shared cohortDigest", () => {
     const dir = root();
     const a = brief(dir, "a", "story-a");
     const b = brief(dir, "b", "story-b");
     const prompts = { count: 0 };
     const io = capture();
     expect(runObservable(args(dir, a, b), human(prompts))).toBe(0);
-    expect(prompts.count).toBe(1);
+    expect(prompts.count).toBe(0);
     const ra = JSON.parse(readFileSync(obsRecord(dir, "story-a"), "utf8")) as Record<
       string,
       unknown
@@ -105,8 +109,13 @@ describe("record cohort form (#6937)", () => {
     expect(ra.cohortDigest).toMatch(/^sha256:[0-9a-f]{64}$/);
     expect(ra.cohortDigest).toBe(rb.cohortDigest);
     expect(ra.xbriefRelPath).toBe("xbrief/active/a.xbrief.json");
+    expect(ra.humanApproval).toMatchObject({
+      kind: "declared",
+      actor: "scott",
+      mintedVia: "scope:record-observable-scope",
+    });
     const shown = io.out();
-    expect(shown).toContain("2 record(s) to write after one typed mint");
+    expect(shown).toContain("2 declared record(s) to write");
     expect(shown).toContain(".deft/observable-scope/story-a.json");
     expect(shown).toContain("allowedChanges:");
     expect(shown).toContain("the record's control is the merge that lands it");
@@ -132,7 +141,7 @@ describe("record cohort form (#6937)", () => {
     const prompts = { count: 0 };
     const io = capture();
     expect(runObservable(args(dir, "--manifest", manifest), human(prompts))).toBe(0);
-    expect(prompts.count).toBe(1);
+    expect(prompts.count).toBe(0);
     expect(existsSync(obsRecord(dir, "story-a"))).toBe(true);
     expect(existsSync(obsRecord(dir, "story-b"))).toBe(true);
     expect(existsSync(obsRecord(dir, "story-c"))).toBe(false);
@@ -141,19 +150,18 @@ describe("record cohort form (#6937)", () => {
     );
   });
 
-  it("writes nothing when the typed mint is refused or the shell is an agent", () => {
+  it("refuses --kind and --minted-via on the cohort form (#7031)", () => {
     const dir = root();
     const a = brief(dir, "a", "story-a");
     const b = brief(dir, "b", "story-b");
-    capture();
-    expect(runObservable(args(dir, a, b), human({ count: 0 }, "no"))).toBe(2);
-    expect(
-      runObservable(args(dir, a, b), { ...human({ count: 0 }), environ: { CLAUDECODE: "1" } }),
-    ).toBe(2);
+    const io = capture();
+    expect(runObservable(args(dir, a, b, "--kind", "operator"), human({ count: 0 }))).toBe(2);
+    expect(runIntent(args(dir, a, b, "--minted-via=in-harness-ask"), human({ count: 0 }))).toBe(2);
+    expect(io.err()).toContain("is not accepted");
     expect(existsSync(join(dir, ".deft", "observable-scope"))).toBe(false);
   });
 
-  it("refuses before the prompt when a named brief has no valid contract", () => {
+  it("refuses the whole set when a named brief has no valid contract", () => {
     const dir = root();
     const a = brief(dir, "a", "story-a");
     const c = brief(dir, "c", "story-c", {});
@@ -161,12 +169,12 @@ describe("record cohort form (#6937)", () => {
     const io = capture();
     expect(runObservable(args(dir, a, c), human(prompts))).toBe(2);
     expect(prompts.count).toBe(0);
-    expect(io.err()).toContain("refusing the whole cohort before the prompt");
+    expect(io.err()).toContain("refusing the whole cohort; nothing was written");
     expect(io.err()).toContain("xbrief/active/c.xbrief.json");
     expect(existsSync(obsRecord(dir, "story-a"))).toBe(false);
   });
 
-  it("refuses before the prompt when two plan ids map to one file name", () => {
+  it("refuses when two plan ids map to one file name", () => {
     const dir = root();
     const a = brief(dir, "a", "story/x");
     const b = brief(dir, "b", "story_x");
@@ -187,7 +195,7 @@ describe("record cohort form (#6937)", () => {
     const prompts = { count: 0 };
     const io = capture();
     expect(runObservable(args(dir, a, b), human(prompts))).toBe(0);
-    expect(prompts.count).toBe(1);
+    expect(prompts.count).toBe(0);
     expect(readFileSync(obsRecord(dir, "story-a")).equals(before)).toBe(true);
     expect(io.out()).toContain(
       "Already recorded (left untouched, not re-approved): .deft/observable-scope/story-a.json",
@@ -210,7 +218,7 @@ describe("record cohort form (#6937)", () => {
         allowedChanges: [{ kind: "control", op: "add", name: "story-a" }],
       },
     ],
-  ])("refuses the whole set before the prompt when an existing record's %s would change", (_label, contract) => {
+  ])("refuses the whole set when an existing record's %s would change", (_label, contract) => {
     const dir = root();
     const a = brief(dir, "a", "story-a");
     const b = brief(dir, "b", "story-b");
@@ -342,7 +350,7 @@ describe("record cohort form (#6937)", () => {
     expect(computeCohortDigest([entry], "o/r")).not.toBe(computeCohortDigest([entry], "o/s"));
   });
 
-  it("mints an intent-constraint cohort after one prompt", () => {
+  it("writes a declared intent-constraint cohort with no prompt", () => {
     const dir = root();
     const intent = (v: string) => ({
       "x-directive/intentConstraint": {
@@ -354,11 +362,17 @@ describe("record cohort form (#6937)", () => {
     const prompts = { count: 0 };
     const io = capture();
     expect(runIntent(args(dir, a, b), human(prompts))).toBe(0);
-    expect(prompts.count).toBe(1);
+    expect(prompts.count).toBe(0);
     const rec = JSON.parse(
       readFileSync(join(dir, ".deft", "intent-constraint", "story-b.json"), "utf8"),
-    ) as { cohortDigest: string; constraints: unknown[] };
+    ) as {
+      cohortDigest: string;
+      constraints: unknown[];
+      humanApproval: { kind: string; mintedVia: string };
+    };
     expect(rec.cohortDigest).toMatch(/^sha256:/);
+    expect(rec.humanApproval.kind).toBe("declared");
+    expect(rec.humanApproval.mintedVia).toBe("scope:record-intent-constraint");
     expect(rec.constraints).toHaveLength(1);
     expect(io.out()).toContain("constraints:");
   });

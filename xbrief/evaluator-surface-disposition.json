@@ -1,10 +1,18 @@
 {
   "schema": "deft.evaluator-surface-disposition.v1",
   "kind": "disclosure",
-  "issue": 6937,
+  "issue": 7031,
   "surfaces": [
+    "packages/core/src/intent-constraint/mint.test.ts",
+    "packages/core/src/intent-constraint/mint.ts",
+    "packages/core/src/intent-constraint/placement.test.ts",
+    "packages/core/src/intent-constraint/types.test.ts",
+    "packages/core/src/intent-constraint/types.ts",
+    "packages/core/src/observable-scope/mint.test.ts",
+    "packages/core/src/observable-scope/mint.ts",
+    "packages/core/src/observable-scope/types.test.ts",
     "packages/core/src/observable-scope/types.ts",
     "xbrief/evaluator-surface-disposition.json"
   ],
-  "note": "Disclosure for #6937 (cohort record mint). OBSERVABLE_SCOPE_REMEDIATION gains text that names the cohort form and the activation-PR carry, and states that the merge that lands a record is its control. No check, threshold, verifier logic or exit code changes in verify:observable-scope or verify:intent-constraint. Disclosure only; not #3164 authorization. Refs #6937."
+  "note": "Disclosure for #7031 (mint audit), a deliberate authority change through issue and PR (#3156) built from the accepted arc (bound lean 7080205053). The observable-scope and intent-constraint record builders and parsers now accept a declared stamp (kind declared, mintedVia the record's own writer command) beside legacy human stamps, through one predicate in packages/core/src/scope-provenance/record-stamp.ts. isHumanApprovalStamp is unchanged, so approved-scope and the one-PR proof still refuse a declared stamp. INTENT_CONSTRAINT_REMEDIATION and OBSERVABLE_SCOPE_REMEDIATION now say write the declaration and land it before the product PR. No merge-base read, same-PR rewrite rule, threshold, fact extraction or exit code changes in verify:observable-scope or verify:intent-constraint. Tests change to pin the new contract. Disclosure only; not #3164 authorization. Refs #7031."
 }
