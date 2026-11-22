@@ -6,10 +6,12 @@ import {
   type DistTags,
   defaultListJobs,
   defaultListRuns,
+  defaultReadJobLog,
   defaultReadRun,
   defaultReadTagCommit,
   POST_PUBLISH_FIXTURE_JOB,
   PROMOTE_LATEST_JOB_PREFIX,
+  promotedTagOf,
   type ReconcileContext,
   type ReconcileSeams,
   reconcileFlip,
@@ -75,19 +77,53 @@ function run(id: number, over: Partial<WorkflowRun> = {}): WorkflowRun {
 }
 
 const PUBLISH_JOBS: WorkflowJob[] = [
-  { name: "Prepare and pack @deftai/directive*", status: "completed", conclusion: "success" },
-  { name: "Publish @deftai/directive* to npm", status: "completed", conclusion: "success" },
-  { name: POST_PUBLISH_FIXTURE_JOB, status: "completed", conclusion: "success" },
-  { name: `${PROMOTE_LATEST_JOB_PREFIX} (#5852)`, status: "completed", conclusion: "skipped" },
+  {
+    id: 101,
+    name: "Prepare and pack @deftai/directive*",
+    status: "completed",
+    conclusion: "success",
+  },
+  {
+    id: 102,
+    name: "Publish @deftai/directive* to npm",
+    status: "completed",
+    conclusion: "success",
+  },
+  { id: 103, name: POST_PUBLISH_FIXTURE_JOB, status: "completed", conclusion: "success" },
+  {
+    id: 104,
+    name: `${PROMOTE_LATEST_JOB_PREFIX} (#5852)`,
+    status: "completed",
+    conclusion: "skipped",
+  },
 ];
-const PROMOTE_JOBS: WorkflowJob[] = [
-  { name: "Prepare and pack @deftai/directive*", status: "completed", conclusion: "skipped" },
-  { name: `${PROMOTE_LATEST_JOB_PREFIX} (#5852)`, status: "in_progress", conclusion: null },
+/** A promote job; its log names the tag it promoted (job id 200 promotes TAG). */
+const promoteJobs = (id = 200): WorkflowJob[] => [
+  {
+    id: id + 1,
+    name: "Prepare and pack @deftai/directive*",
+    status: "completed",
+    conclusion: "skipped",
+  },
+  { id, name: `${PROMOTE_LATEST_JOB_PREFIX} (#5852)`, status: "in_progress", conclusion: null },
 ];
+const PROMOTE_JOBS = promoteJobs();
 const REPUBLISH_JOBS: WorkflowJob[] = [
-  { name: "Prepare and pack @deftai/directive*", status: "completed", conclusion: "success" },
-  { name: `${PROMOTE_LATEST_JOB_PREFIX} (#5852)`, status: "completed", conclusion: "skipped" },
+  {
+    id: 301,
+    name: "Prepare and pack @deftai/directive*",
+    status: "completed",
+    conclusion: "success",
+  },
+  {
+    id: 302,
+    name: `${PROMOTE_LATEST_JOB_PREFIX} (#5852)`,
+    status: "completed",
+    conclusion: "skipped",
+  },
 ];
+const promoteLog = (tag: string): string =>
+  `2026-11-22T03:19:11.8188517Z env:\r\n2026-11-22T03:19:11.8188517Z   INPUT_TAG: ${tag}\r\n2026-11-22T03:19:12.5Z [36;1mVERSION="\${INPUT_TAG#v}"[0m\r\n`;
 
 interface World {
   tagCommit: string | null;
@@ -99,6 +135,8 @@ interface World {
   /** Successive dist-tag answers per package; the last one repeats. */
   tags: Record<string, DistTags[]>;
   release: "draft" | "published" | "not-found" | "gh-error";
+  /** Job logs by job id; job 200 promotes TAG unless set. */
+  logs: Record<number, string>;
   active: HumanOriginGrant[];
   stored: Record<string, HumanOriginGrant>;
   /** Called on dispatch; may add the run the dispatch starts. */
@@ -117,6 +155,7 @@ function world(over: Partial<World> = {}): World {
       [CLI]: [{ maintainer: V, latest: "1.1.0" }],
     },
     release: "draft",
+    logs: { 200: promoteLog(TAG) },
     active: [],
     stored: {},
     ...over,
@@ -205,6 +244,10 @@ function rig(w: World, grants: ReleaseRunRecord["grants"]): Rig {
       return found === undefined ? { ok: false, reason: "no run" } : { ok: true, run: found };
     },
     listJobs: (_repo, id) => ({ ok: true, jobs: w.jobs[id] ?? [] }),
+    readJobLog: (_repo, id) => {
+      const text = w.logs[id];
+      return text === undefined ? { ok: false, reason: "no log" } : { ok: true, text };
+    },
     readDistTags: (name) => ({ ok: true, tags: next(`tags${name}`, w.tags[name] ?? [{}]) }),
     viewRelease: () => [
       w.release,
@@ -461,6 +504,48 @@ describe("promote by reconciliation (#6878)", () => {
     expect(dispatched(r)).toBe(1);
   });
 
+  it("clause 3: a promote run for another version is not this release's promote run", () => {
+    const other = run(22, {
+      event: "workflow_dispatch",
+      headBranch: "master",
+      createdAt: "2026-11-22T02:40:00Z",
+    });
+    const w = world({
+      active: [promote],
+      dispatchRuns: [other],
+      jobs: { 10: PUBLISH_JOBS, 22: promoteJobs(220) },
+      logs: { 200: promoteLog(TAG), 220: promoteLog("v1.1.0") },
+      onDispatch: (wd) => {
+        wd.dispatchRuns = [
+          run(20, {
+            event: "workflow_dispatch",
+            headBranch: "master",
+            createdAt: "2026-11-22T02:50:00Z",
+          }),
+          other,
+        ];
+        wd.jobs[20] = PROMOTE_JOBS;
+        wd.tags = onLatest;
+        return EXIT_OK;
+      },
+    });
+    const r = rig(w, GRANTS);
+    expect(reconcilePromote(r.ctx, r.seams)).toBe(EXIT_OK);
+    expect(dispatched(r)).toBe(1);
+    const unreadable = rig(
+      world({
+        active: [promote],
+        dispatchRuns: [other],
+        jobs: { 10: PUBLISH_JOBS, 22: promoteJobs(220) },
+        logs: { 220: "no env here" },
+      }),
+      GRANTS,
+    );
+    expect(reconcilePromote(unreadable.ctx, unreadable.seams)).toBe(EXIT_VIOLATION);
+    expect(unreadable.lines.at(-1)).toContain("cannot tell which tag");
+    expect(dispatched(unreadable)).toBe(0);
+  });
+
   it("clause 9: given a spent promote grant and an unknown dispatch result, the run stops", () => {
     const w = world({ active: [promote], onDispatch: () => EXIT_VIOLATION });
     const r = rig(w, GRANTS);
@@ -533,18 +618,28 @@ describe("reconciliation reads (#6878)", () => {
     expect(defaultReadRun(gh({ "runs/10": "{}" }))("o/r", 10).ok).toBe(false);
   });
 
+  it("reads a job log and the tag a promote job promoted", () => {
+    expect(defaultReadJobLog(gh({ "jobs/200/logs": promoteLog(TAG) }))("o/r", 200)).toEqual({
+      ok: true,
+      text: promoteLog(TAG),
+    });
+    expect(defaultReadJobLog(gh({}))("o/r", 200).ok).toBe(false);
+    expect(promotedTagOf(promoteLog(TAG))).toBe(TAG);
+    expect(promotedTagOf('if [[ "$INPUT_TAG" =~ x ]]')).toBeNull();
+  });
+
   it("lists the jobs of a run", () => {
     const jobs = JSON.stringify({
       jobs: [
-        { name: POST_PUBLISH_FIXTURE_JOB, status: "completed", conclusion: "success" },
+        { id: 7, name: POST_PUBLISH_FIXTURE_JOB, status: "completed", conclusion: "success" },
         { name: "x" },
       ],
     });
     expect(defaultListJobs(gh({ jobs }))("o/r", 10)).toEqual({
       ok: true,
       jobs: [
-        { name: POST_PUBLISH_FIXTURE_JOB, status: "completed", conclusion: "success" },
-        { name: "x", status: "", conclusion: null },
+        { id: 7, name: POST_PUBLISH_FIXTURE_JOB, status: "completed", conclusion: "success" },
+        { id: 0, name: "x", status: "", conclusion: null },
       ],
     });
     expect(defaultListJobs(gh({ jobs: "{}" }))("o/r", 10).ok).toBe(false);

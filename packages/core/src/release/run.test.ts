@@ -86,10 +86,15 @@ const PROMOTE_RUN: WorkflowRun = {
   url: "https://github.com/o/r/actions/runs/20",
 };
 const PUBLISH_JOBS: WorkflowJob[] = [
-  { name: POST_PUBLISH_FIXTURE_JOB, status: "completed", conclusion: "success" },
+  { id: 11, name: POST_PUBLISH_FIXTURE_JOB, status: "completed", conclusion: "success" },
 ];
 const PROMOTE_JOBS: WorkflowJob[] = [
-  { name: `${PROMOTE_LATEST_JOB_PREFIX} (#5852)`, status: "completed", conclusion: "success" },
+  {
+    id: 21,
+    name: `${PROMOTE_LATEST_JOB_PREFIX} (#5852)`,
+    status: "completed",
+    conclusion: "success",
+  },
 ];
 
 const PUBLISH = grant("g-publish", "release-publish", [`${V}@${T}`, `v${V}@${T}`]);
@@ -226,6 +231,7 @@ function harness(
           if (id === PUBLISH_RUN.id) calls.push("publish-watch");
           return { ok: true, jobs: id === PUBLISH_RUN.id ? PUBLISH_JOBS : PROMOTE_JOBS };
         },
+        readJobLog: () => ({ ok: true, text: `2026-11-22T02:31:00Z   INPUT_TAG: v${V}\n` }),
         readDistTags: () => ({ ok: true, tags: { maintainer: V, latest: world.latest } }),
         viewRelease: () => [world.release, null, ""],
         loadGrant: () => null,

@@ -23,7 +23,9 @@
  * Promote: only with the recorded `release-promote-latest` grant, after the
  * publish watch (and so the fixture) passed. It first looks for a
  * promote-latest run: a `workflow_dispatch` run of `npm-publish.yml` created
- * since the tag-triggered run, whose promote job was not skipped. In progress
+ * since the tag-triggered run, whose promote job was not skipped and whose job
+ * log names `INPUT_TAG: v<version>` (the workflow sets no run name, so the log
+ * is the only place the tag shows). In progress
  * is waited on; `success` with both packages on `latest` at the version is
  * done; a failed run or a partial state stops without a dispatch. With no run
  * found it dispatches once; the grant is spent before the dispatch, so an
@@ -35,7 +37,6 @@
  * stops and names the mint command.
  */
 
-import { spawnSync } from "node:child_process";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -48,6 +49,7 @@ import type { RunGhFn } from "../pr-merge-readiness/types.js";
 import { viewRelease } from "../release-publish/gh-api.js";
 import { runPromoteLatest, runPublish } from "../release-publish/pipeline.js";
 import type { NormalisedRelease, ViewReleaseState } from "../release-publish/types.js";
+import { spawnCommandText } from "../verify-env/command-spawn.js";
 import {
   CLI_DRIFT_POLL_INTERVAL_MS,
   CLI_DRIFT_POLL_TIMEOUT_MS,
@@ -80,6 +82,7 @@ export interface WorkflowRun {
 }
 
 export interface WorkflowJob {
+  readonly id: number;
   readonly name: string;
   readonly status: string;
   readonly conclusion: string | null;
@@ -102,6 +105,8 @@ export interface ReconcileSeams {
     repo: string,
     runId: number,
   ) => ReadResult<{ readonly jobs: readonly WorkflowJob[] }>;
+  /** The log of a finished job (the promote job names its tag in its env block). */
+  readonly readJobLog?: (repo: string, jobId: number) => ReadResult<{ readonly text: string }>;
   readonly readDistTags?: (name: string) => ReadResult<{ readonly tags: DistTags }>;
   readonly viewRelease?: (
     version: string,
@@ -210,6 +215,7 @@ export function defaultListJobs(runGh: RunGhFn) {
         return { ok: false, reason: `${endpoint} listed a job without a name` };
       }
       jobs.push({
+        id: typeof j.id === "number" ? j.id : 0,
         name: j.name,
         status: typeof j.status === "string" ? j.status : "",
         conclusion: typeof j.conclusion === "string" ? j.conclusion : null,
@@ -217,6 +223,25 @@ export function defaultListJobs(runGh: RunGhFn) {
     }
     return { ok: true, jobs };
   };
+}
+
+/** The plain-text log of one job (REST; gh follows the log redirect). */
+export function defaultReadJobLog(runGh: RunGhFn) {
+  return (repo: string, jobId: number): ReadResult<{ readonly text: string }> => {
+    const endpoint = `repos/${repo}/actions/jobs/${String(jobId)}/logs`;
+    const r = runGh(["gh", "api", endpoint]);
+    if (r.returncode !== 0) return { ok: false, reason: `gh api ${endpoint}: ${r.stderr.trim()}` };
+    return { ok: true, text: r.stdout };
+  };
+}
+
+/**
+ * The tag a promote-latest job promoted, read from the `INPUT_TAG: v<version>`
+ * line of the env block Actions prints in the job log; null when absent.
+ */
+export function promotedTagOf(log: string): string | null {
+  const match = /^\S*\s*INPUT_TAG:\s*(\S+)\s*$/m.exec(log);
+  return match?.[1] ?? null;
 }
 
 /** The commit the remote tag peels to (`git ls-remote`, never a local ref). */
@@ -253,21 +278,19 @@ export function defaultReadDistTags(name: string): ReadResult<{ readonly tags: D
       data: `@deftai:registry=${PUBLIC_NPM_REGISTRY}\nregistry=${PUBLIC_NPM_REGISTRY}\n`,
       mode: "create",
     });
-    const result = spawnSync(
+    // spawnCommandText retries through the shell on win32, where npm is a .cmd shim.
+    const result = spawnCommandText(
       "npm",
       ["view", name, "dist-tags", "--json", "--prefer-online", "--ignore-scripts"],
-      {
-        cwd: dir,
-        encoding: "utf8",
-        timeout: 15_000,
-        stdio: ["ignore", "pipe", "pipe"],
-        windowsHide: true,
-      },
+      { cwd: dir, timeoutMs: 15_000 },
     );
-    if (result.error !== undefined || result.status !== 0) {
-      return { ok: false, reason: `npm view ${name} dist-tags failed` };
+    if (result.status !== 0) {
+      return {
+        ok: false,
+        reason: `npm view ${name} dist-tags failed: ${result.stderr.trim() || `exit ${String(result.status)}`}`,
+      };
     }
-    const parsed = asRecord(JSON.parse(typeof result.stdout === "string" ? result.stdout : ""));
+    const parsed = asRecord(JSON.parse(result.stdout));
     if (parsed === null)
       return { ok: false, reason: `npm view ${name} dist-tags is not an object` };
     const tags: Record<string, string> = {};
@@ -293,6 +316,7 @@ interface Io {
   readonly listRuns: NonNullable<ReconcileSeams["listRuns"]>;
   readonly readRun: NonNullable<ReconcileSeams["readRun"]>;
   readonly listJobs: NonNullable<ReconcileSeams["listJobs"]>;
+  readonly readJobLog: NonNullable<ReconcileSeams["readJobLog"]>;
   readonly readDistTags: NonNullable<ReconcileSeams["readDistTags"]>;
   readonly viewRelease: NonNullable<ReconcileSeams["viewRelease"]>;
   readonly loadGrant: NonNullable<ReconcileSeams["loadGrant"]>;
@@ -306,6 +330,7 @@ function io(seams: ReconcileSeams, release: ReleaseSeams = {}, runGh: RunGhFn = 
     listRuns: seams.listRuns ?? defaultListRuns(runGh),
     readRun: seams.readRun ?? defaultReadRun(runGh),
     listJobs: seams.listJobs ?? defaultListJobs(runGh),
+    readJobLog: seams.readJobLog ?? defaultReadJobLog(runGh),
     readDistTags: seams.readDistTags ?? defaultReadDistTags,
     viewRelease: seams.viewRelease ?? ((v, repo) => viewRelease(v, repo, release)),
     loadGrant: seams.loadGrant ?? loadGrant,
@@ -564,20 +589,37 @@ export function reconcileFlip(
   return EXIT_OK;
 }
 
-/** The newest promote-latest run since `since`, or null. */
+/**
+ * The newest promote-latest run for this version since `since`, or null. A
+ * promote run names its tag only in its job log, so a run still in progress is
+ * waited on before it is read; a run for another tag is passed over.
+ */
 function findPromoteRun(
   x: Io,
   ctx: ReconcileContext,
   since: string,
 ): ReadResult<{ readonly run: WorkflowRun | null }> {
+  const tag = `v${ctx.config.version}`;
   const list = x.listRuns(ctx.config.repo, { event: "workflow_dispatch" });
   if (!list.ok) return list;
-  for (const run of newestFirst(list.runs.filter((r) => r.event === "workflow_dispatch"))) {
-    if (run.createdAt < since) break;
-    const jobs = x.listJobs(ctx.config.repo, run.id);
+  for (const listed of newestFirst(list.runs.filter((r) => r.event === "workflow_dispatch"))) {
+    if (listed.createdAt < since) break;
+    const jobs = x.listJobs(ctx.config.repo, listed.id);
     if (!jobs.ok) return jobs;
     const job = jobs.jobs.find((j) => j.name.startsWith(PROMOTE_LATEST_JOB_PREFIX));
-    if (job !== undefined && job.conclusion !== "skipped") return { ok: true, run };
+    if (job === undefined || job.conclusion === "skipped") continue;
+    const done = waitCompleted(x, ctx.config.repo, listed, (t) => ctx.line(t));
+    if (!done.ok) return done;
+    const log = x.readJobLog(ctx.config.repo, job.id);
+    if (!log.ok) return log;
+    const promoted = promotedTagOf(log.text);
+    if (promoted === null) {
+      return {
+        ok: false,
+        reason: `cannot tell which tag promote-latest run ${done.run.url || String(done.run.id)} promoted; nothing dispatched`,
+      };
+    }
+    if (promoted === tag) return { ok: true, run: done.run };
   }
   return { ok: true, run: null };
 }
