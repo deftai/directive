@@ -7,6 +7,7 @@ import {
   continueCheckpointRefusalNote,
   isContinueCheckpointPath,
   isEligibleContinueCheckpointTarget,
+  payloadHasPaddedCheckpointPath,
 } from "./continue-checkpoint-path.js";
 
 const temps: string[] = [];
@@ -134,6 +135,47 @@ describe("isEligibleContinueCheckpointTarget (#6914)", () => {
   it("declines when the project root cannot be inspected", () => {
     const missing = join(tmpdir(), "6914-checkpoint-missing-root-does-not-exist");
     expect(isEligibleContinueCheckpointTarget(missing, "xbrief/continue.xbrief.json")).toBe(false);
+  });
+});
+
+describe("payloadHasPaddedCheckpointPath (#6914)", () => {
+  it("flags a whitespace-padded checkpoint spelling in a path field", () => {
+    for (const p of [
+      "/repo/xbrief/continue.xbrief.json ",
+      " xbrief/continue.xbrief.json",
+      "vbrief/continue.vbrief.json\t",
+    ]) {
+      expect(payloadHasPaddedCheckpointPath({ tool_input: { file_path: p } }), p).toBe(true);
+    }
+  });
+
+  it("flags a padded checkpoint in a patch header or Move to line", () => {
+    const body = (line: string) => `*** Begin Patch\n${line}\n+x\n*** End Patch`;
+    expect(
+      payloadHasPaddedCheckpointPath({
+        patch: body("*** Update File: xbrief/continue.xbrief.json "),
+      }),
+    ).toBe(true);
+    expect(
+      payloadHasPaddedCheckpointPath({
+        patch: body("*** Update File: src/a.ts\n*** Move to: xbrief/continue.xbrief.json "),
+      }),
+    ).toBe(true);
+  });
+
+  it("passes exact spellings, CRLF patch bodies and padded non-checkpoint strings", () => {
+    expect(
+      payloadHasPaddedCheckpointPath({
+        tool_input: { file_path: "/repo/xbrief/continue.xbrief.json", content: "{}\n" },
+      }),
+    ).toBe(false);
+    expect(
+      payloadHasPaddedCheckpointPath({
+        patch:
+          "*** Begin Patch\r\n*** Add File: xbrief/continue.xbrief.json\r\n+{}\r\n*** End Patch",
+      }),
+    ).toBe(false);
+    expect(payloadHasPaddedCheckpointPath({ content: "x ", cwd: "/repo " })).toBe(false);
   });
 });
 

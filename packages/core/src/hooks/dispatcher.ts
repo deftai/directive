@@ -36,7 +36,10 @@ import {
   evaluateKillAttestation,
   type KillHostStatus,
 } from "../orchestration/subagent-kill-attestation.js";
-import { isEligibleContinueCheckpointTarget } from "../policy/continue-checkpoint-path.js";
+import {
+  isEligibleContinueCheckpointTarget,
+  payloadHasPaddedCheckpointPath,
+} from "../policy/continue-checkpoint-path.js";
 import {
   detectDeftDirectiveDisable,
   formatDeftDirectiveDisableMessage,
@@ -3031,9 +3034,11 @@ function inspectMutationGates(
     );
     if (completedAllow !== null) return completedAllow;
     // #6914: the continue checkpoint is process-owned storage. No story is
-    // selected and no extra-path allowance is read or spent.
+    // selected and no extra-path allowance is read or spent. The harvest trims
+    // paths, so a whitespace-padded raw spelling declines here.
     const checkpointAllow = allowExemptLifecycleWrite(
-      allMutationTargetsMatch(effectiveRoot, input.payload, isEligibleContinueCheckpointTarget),
+      !payloadHasPaddedCheckpointPath(input.payload) &&
+        allMutationTargetsMatch(effectiveRoot, input.payload, isEligibleContinueCheckpointTarget),
       "write-checkpoint-ready",
       `Directive write gate allowed ${toolName} for the continue checkpoint ` +
         "(process-owned storage; active scope not required; #6914).",

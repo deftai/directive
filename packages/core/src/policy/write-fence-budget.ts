@@ -241,8 +241,11 @@ export function resolveStoryWriteAllow(
       };
     }
     const excluded = new Set((input.excludeFromInventory ?? []).map((p) => normalizeRel(p)));
+    // #6914: a saved continue checkpoint is process-owned storage, never a story extra.
     const inventory = new Set(
-      [...linesOf(tracked.stdout), ...linesOf(untracked.stdout)].filter((p) => !excluded.has(p)),
+      [...linesOf(tracked.stdout), ...linesOf(untracked.stdout)].filter(
+        (p) => !excluded.has(p) && !isContinueCheckpointPath(p),
+      ),
     );
     const changed = [...inventory, ...targets.filter((t) => !inventory.has(t))];
 

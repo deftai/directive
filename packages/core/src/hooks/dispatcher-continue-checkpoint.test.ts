@@ -378,6 +378,21 @@ describe("continue checkpoint write admission (#6914)", () => {
       expect(d.message).not.toContain(SPLIT);
     });
 
+    it("a whitespace-padded spelling the harvest would trim to the checkpoint", () => {
+      const root = storyRepo();
+      const seams = seamsFor(root, newSpy());
+      const padded = hook(
+        root,
+        { toolName: "Write", file_path: `${join(root, ...CP.split("/"))} ` },
+        seams,
+      );
+      notCheckpoint(padded);
+      expect(padded.verdict).toBe("deny");
+      const header = hook(root, patch(CP, [`*** Add File: ${CP} `, "+{}"]), seams);
+      notCheckpoint(header);
+      expect(header.verdict).toBe("deny");
+    });
+
     it("an existing checkpoint with more than one hard link", () => {
       const root = storyRepo();
       mkdirSync(join(root, "xbrief"), { recursive: true });

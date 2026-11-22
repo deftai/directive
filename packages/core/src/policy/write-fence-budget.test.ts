@@ -219,6 +219,28 @@ describe("resolveStoryWriteAllow (#6221)", () => {
       }
     });
 
+    it("never counts a saved checkpoint in the inventory, even under sourceRoots **", () => {
+      const { root, sha } = repo(BASE);
+      const input = {
+        projectRoot: root,
+        fence: fence(sha, ["packages/core/src/a.ts"]),
+        targets: ["packages/core/src/c.ts"],
+        roots: { sourceRoots: ["**"] },
+      };
+      write(root, "packages/core/src/b.ts", "b\n");
+      write(root, "xbrief/continue.xbrief.json", "{}\n");
+      write(root, "vbrief/continue.vbrief.json", "{}\n");
+      // b.ts and c.ts spend the allowance of 2; the checkpoints spend nothing.
+      const d = resolveStoryWriteAllow(input);
+      expect(d.kind).toBe("scope");
+      if (d.kind === "scope") {
+        expect(d.assessment?.spent).toEqual(["packages/core/src/b.ts", "packages/core/src/c.ts"]);
+      }
+      // Control: any other untracked path under ** does spend.
+      write(root, "xbrief/notes.json", "{}\n");
+      expect(resolveStoryWriteAllow(input).kind).toBe("refuse");
+    });
+
     it("uses the checkpoint text on a declared enforce-mode refusal", () => {
       const { root, sha } = repo(BASE);
       const d = resolveStoryWriteAllow({

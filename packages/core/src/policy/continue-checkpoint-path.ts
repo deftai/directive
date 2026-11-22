@@ -52,6 +52,34 @@ export function isEligibleContinueCheckpointTarget(projectRoot: string, target: 
   }
 }
 
+/** A checkpoint-named path spelling: ends with a checkpoint basename. */
+const CHECKPOINT_NAME_RE = /continue\.[xv]brief\.json$/;
+/** Patch header path (mutation headers and `*** Move to:`). */
+const PATCH_HEADER_PATH_RE = /^\*\*\* [A-Za-z ]+?: (.*)$/;
+
+/**
+ * True when the payload spells a checkpoint-named path with leading or trailing
+ * whitespace. The shared harvest trims paths, but a host writes the raw
+ * spelling, so `xbrief/continue.xbrief.json ` is another file. The checkpoint
+ * exemption declines such a payload (#6914). Single-line strings are checked
+ * whole; multi-line strings (patch bodies) by their header lines.
+ */
+export function payloadHasPaddedCheckpointPath(payload: unknown, depth = 0): boolean {
+  if (depth > 6 || payload === null || payload === undefined) return false;
+  if (typeof payload === "string") {
+    const candidates = payload.includes("\n")
+      ? payload.split("\n").flatMap((line) => {
+          const m = PATCH_HEADER_PATH_RE.exec(line.replace(/\r$/, ""));
+          return m?.[1] !== undefined ? [m[1]] : [];
+        })
+      : [payload];
+    return candidates.some((c) => c !== c.trim() && CHECKPOINT_NAME_RE.test(c.trim()));
+  }
+  if (typeof payload !== "object") return false;
+  const values = Array.isArray(payload) ? payload : Object.values(payload);
+  return values.some((v) => payloadHasPaddedCheckpointPath(v, depth + 1));
+}
+
 /**
  * Write-fence refusal text for refused checkpoint paths. It names the
  * continue checkpoint and gives no split or widen remedy for it.
