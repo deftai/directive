@@ -1,0 +1,247 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6877",
+    "updated": "2026-11-22T06:54:35Z"
+  },
+  "plan": {
+    "title": "release:run (#6845 S4): enqueue reads, built-in waits and the merge phase",
+    "status": "running",
+    "narratives": {
+      "Description": "After the up-front approval, the release PR still needs a hand-checked merge freeze, a manual watch and merge, and a manual finish (#6877, S4 of #6845). This story builds the merge phase of `deft release:run`: enqueue reads (origin tip still B and an empty merge queue), the in-process `pr:watch` wait, then `pr:wait-mergeable-and-merge --wait`, one re-run of a failed required check per run kept in the run record, and the tag reconciliation the finish step needs on `--resume`. It builds clauses 7, 8, 18, 22, 23 and 25 of the accepted #6845 lean 7032154033 (split comment 7048165729); the S5 (#6878) clauses stay out.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6877",
+      "Overview": "After the up-front approval, the release PR still needs a hand-checked merge freeze, a manual watch and merge, and a manual finish. This story adds the merge phase of `deft release:run` (#6845): enqueue reads, built-in waits with one re-run, and tag reconciliation on resume. In the clauses, B is the cut base (the fetched delivery-branch tip), T is the tree of the release commit and M is the merged release commit.\n\n## Acceptance Criteria\n\n- [ ] Enqueue reads, no hold. The run enqueues the release PR only when the origin tip is still B and the merge queue is empty, and otherwise stops without enqueueing. After an ejection it re-enqueues only under the same reads. The finish step resolves the sole parent of M and refuses unless it is B, before it creates the tag and before it pushes a tag left only local; so when another PR lands ahead anyway, the run stops before the tag and names the break-glass recovery.\n- [ ] Built-in waits. The run waits on the release PR in-process with `pr:watch` until CLEAN, then `pr:wait-mergeable-and-merge --wait`. A failed required check, or a queue ejection for a failed check, is re-run once per run; the count is kept in the run record and `--resume` does not reset it. A second failure or a review finding stops the run.\n- [ ] Given an origin tip that is not B or a non-empty merge queue, when the run would enqueue the release PR, then it does not enqueue and stops.\n- [ ] Given a crash after the local tag on M and before its push, when `--resume` runs, then it pushes the tag and continues.\n- [ ] Given a remote `v<version>` tag on a commit other than M, when `--resume` runs, then it stops.\n- [ ] Given a required check that fails once, then the run re-runs it once; given a second failure, also after a `--resume`, then the run stops without another re-run.\n\nRefs #6845\n\nDepends on: S3 (#6876).\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\n",
+      "Labels": "framework-gap",
+      "UserStory": "As a release operator, I want `deft release:run` to enqueue the release PR only while the cut base is still the tip and the queue is empty, to wait on the PR and the queue itself, to re-run a failed required check once, and to finish a tag a crash left only local, so that after the up-front mint I no longer check the freeze, watch, merge or finish by hand.",
+      "ImplementationPlan": "1. packages/core/src/release/run-merge.ts: the merge phase. Wait on the release PR in-process with the pr:watch engine until CLEAN; read the origin tip (must be B) and the merge queue (must be empty) before every enqueue, else stop without enqueueing; then run the pr:wait-mergeable-and-merge engine with --wait. A failed required check (CI_BLOCKED) or a queue ejection for a failed check uses the one re-run of the run (gh run rerun --failed for the failed Actions runs, or a re-enqueue under the same reads); a second failure or a review finding (NEW_P0_P1) stops (clauses 1, 2, 3, 6).\n2. packages/core/src/release/run-record.ts: keep the re-run count and the enqueue head and time in the run record; --resume never resets the count; records without the fields read as zero and none (clauses 2, 6).\n3. packages/core/src/release/finish.ts: under the run binding, after the parent-of-M check, read the local and remote v<version> tag. A tag only local that peels to M is pushed (after the run-bound gate); a remote tag that peels to M is done; a tag on any other commit stops and nothing is overwritten (clauses 1, 4, 5).\n4. packages/core/src/release/run.ts: the merge phase calls run-merge.ts; help text names the reads, the waits and the re-run.\n5. Colocated vitest suites (run-merge.test.ts, finish-run-tag.test.ts, run.test.ts, run-record.test.ts) and changelog fragment changelog.d/6877-release-run-merge.md.",
+      "Traces": "#6877 clauses 1-6 trace to #6845 lean 7032154033 clauses 7, 8, 18, 22, 23 and 25 (split comment 7048165729)."
+    },
+    "items": [
+      {
+        "title": "Enqueue reads, no hold. The run enqueues the release PR only when the origin tip is still B and the merge queue is empty, and otherwise stops without enqueueing. After an ejection it re-enqueues only under the same reads. The finish step resolves the sole parent of M and refuses unless it is B, before it creates the tag and before it pushes a tag left only local; so when another PR lands ahead anyway, the run stops before the tag and names the break-glass recovery.",
+        "status": "proposed",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "Enqueue reads, no hold. The run enqueues the release PR only when the origin tip is still B and the merge queue is empty, and otherwise stops without enqueueing. After an ejection it re-enqueues only under the same reads. The finish step resolves the sole parent of M and refuses unless it is B, before it creates the tag and before it pushes a tag left only local; so when another PR lands ahead anyway, the run stops before the tag and names the break-glass recovery."
+        }
+      },
+      {
+        "title": "Built-in waits. The run waits on the release PR in-process with `pr:watch` until CLEAN, then `pr:wait-mergeable-and-merge --wait`. A failed required check, or a queue ejection for a failed check, is re-run once per run; the count is kept in the run record and `--resume` does not reset it. A second failure or a review finding stops the run.",
+        "status": "proposed",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "Built-in waits. The run waits on the release PR in-process with `pr:watch` until CLEAN, then `pr:wait-mergeable-and-merge --wait`. A failed required check, or a queue ejection for a failed check, is re-run once per run; the count is kept in the run record and `--resume` does not reset it. A second failure or a review finding stops the run."
+        }
+      },
+      {
+        "title": "Given an origin tip that is not B or a non-empty merge queue, when the run would enqueue the release PR, then it does not enqueue and stops.",
+        "status": "proposed",
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "Given an origin tip that is not B or a non-empty merge queue, when the run would enqueue the release PR, then it does not enqueue and stops."
+        }
+      },
+      {
+        "title": "Given a crash after the local tag on M and before its push, when `--resume` runs, then it pushes the tag and continues.",
+        "status": "proposed",
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "Given a crash after the local tag on M and before its push, when `--resume` runs, then it pushes the tag and continues."
+        }
+      },
+      {
+        "title": "Given a remote `v<version>` tag on a commit other than M, when `--resume` runs, then it stops.",
+        "status": "proposed",
+        "id": "clause.5",
+        "narrative": {
+          "Acceptance": "Given a remote `v<version>` tag on a commit other than M, when `--resume` runs, then it stops."
+        }
+      },
+      {
+        "title": "Given a required check that fails once, then the run re-runs it once; given a second failure, also after a `--resume`, then the run stops without another re-run.",
+        "status": "proposed",
+        "id": "clause.6",
+        "narrative": {
+          "Acceptance": "Given a required check that fails once, then the run re-runs it once; given a second failure, also after a `--resume`, then the run stops without another re-run."
+        }
+      }
+    ],
+    "tags": [
+      "framework-gap"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6877",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6877: release:run (#6845 S4): enqueue reads, built-in waits and the merge phase"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6845",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6845"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "deft release:run",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L3"
+        },
+        {
+          "command": "pr:wait-mergeable-and-merge --wait",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L8"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/release/run-merge.ts",
+          "packages/core/src/release/run.ts",
+          "packages/core/src/release/run-record.ts",
+          "packages/core/src/release/finish.ts",
+          "packages/core/src/release/run-merge.test.ts",
+          "packages/core/src/release/finish-run-tag.test.ts",
+          "packages/core/src/release/run.test.ts",
+          "packages/core/src/release/run-record.test.ts",
+          "changelog.d/6877-release-run-merge.md"
+        ],
+        "verify_commands": [
+          "npx vitest run packages/core/src/release/run-merge.test.ts packages/core/src/release/finish-run-tag.test.ts packages/core/src/release/run.test.ts packages/core/src/release/run-record.test.ts packages/core/src/release/finish.test.ts"
+        ],
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "depends_on": [],
+        "expected_outputs": [
+          "the merge phase of deft release:run waits on the release PR in-process with pr:watch until CLEAN, then runs pr:wait-mergeable-and-merge --wait",
+          "before every enqueue the run reads the origin tip (must be B) and the merge queue (must be empty) and otherwise stops without enqueueing; after an ejection it re-enqueues only under the same reads",
+          "a failed required check or a queue ejection for a failed check is re-run once per run; the count is in the run record and --resume does not reset it; a second failure or a review finding stops",
+          "under the run, finish pushes a tag left only local on M after the parent-of-M check, treats a remote tag on M as done, and stops on a tag on any other commit",
+          "S5 (#6878) parts stay out: no npm, GitHub release, draft flip or promote reconciliation and no runbook rewrite",
+          "changelog fragment changelog.d/6877-release-run-merge.md"
+        ],
+        "model_tier": "standard",
+        "conflict_group": "release-verbs",
+        "acceptance_criteria_justification": "The 6 clauses are the lean clauses 7, 8, 18, 22, 23 and 25 of the accepted #6845 design critique (bound lean 7032154033), copied verbatim into #6877 by the operator-approved split (comment 7048165729); they cannot be merged or dropped without breaking that copy."
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "design-critique: not warranted, because the #6845 arc already designed this split; S4 is one of its five stories.",
+          "id": 7075540038,
+          "html_url": "https://github.com/deftai/directive/issues/6877#issuecomment-7075540038",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T06:48:22Z",
+          "updated_at": "2026-11-22T06:48:22Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6517860375,
+        "origin": "deftai/directive#6877",
+        "id": "github.issue.6517860375"
+      },
+      "kind": "story"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per sentence-list entry (6), in order (#6333)",
+      "sentences": [
+        "Enqueue reads, no hold. The run enqueues the release PR only when the origin tip is still B and the merge queue is empty, and otherwise stops without enqueueing. After an ejection it re-enqueues only under the same reads. The finish step resolves the sole parent of M and refuses unless it is B, before it creates the tag and before it pushes a tag left only local; so when another PR lands ahead anyway, the run stops before the tag and names the break-glass recovery.",
+        "Built-in waits. The run waits on the release PR in-process with `pr:watch` until CLEAN, then `pr:wait-mergeable-and-merge --wait`. A failed required check, or a queue ejection for a failed check, is re-run once per run; the count is kept in the run record and `--resume` does not reset it. A second failure or a review finding stops the run.",
+        "Given an origin tip that is not B or a non-empty merge queue, when the run would enqueue the release PR, then it does not enqueue and stops.",
+        "Given a crash after the local tag on M and before its push, when `--resume` runs, then it pushes the tag and continues.",
+        "Given a remote `v<version>` tag on a commit other than M, when `--resume` runs, then it stops.",
+        "Given a required check that fails once, then the run re-runs it once; given a second failure, also after a `--resume`, then the run stops without another re-run."
+      ],
+      "admitted_source_sentences": [
+        "Enqueue reads, no hold. The run enqueues the release PR only when the origin tip is still B and the merge queue is empty, and otherwise stops without enqueueing. After an ejection it re-enqueues only under the same reads. The finish step resolves the sole parent of M and refuses unless it is B, before it creates the tag and before it pushes a tag left only local; so when another PR lands ahead anyway, the run stops before the tag and names the break-glass recovery.",
+        "Built-in waits. The run waits on the release PR in-process with `pr:watch` until CLEAN, then `pr:wait-mergeable-and-merge --wait`. A failed required check, or a queue ejection for a failed check, is re-run once per run; the count is kept in the run record and `--resume` does not reset it. A second failure or a review finding stops the run.",
+        "Given an origin tip that is not B or a non-empty merge queue, when the run would enqueue the release PR, then it does not enqueue and stops.",
+        "Given a crash after the local tag on M and before its push, when `--resume` runs, then it pushes the tag and continues.",
+        "Given a remote `v<version>` tag on a commit other than M, when `--resume` runs, then it stops.",
+        "Given a required check that fails once, then the run re-runs it once; given a second failure, also after a `--resume`, then the run stops without another re-run."
+      ],
+      "admitted_source_digest": "2cc3e724fc1038c534e267c3e46e34b8efcbd34458bf99e47d0173dc6cc301f2",
+      "admitted_source_extractor": 2,
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Enqueue reads, no hold. The run enqueues the release PR only when the origin tip is still B and the merge queue is empty, and otherwise stops without enqueueing. After an ejection it re-enqueues only under the same reads. The finish step resolves the sole parent of M and refuses unless it is B, before it creates the tag and before it pushes a tag left only local; so when another PR lands ahead anyway, the run stops before the tag and names the break-glass recovery.",
+          "artifact_path": "packages/core/src/release/run-merge.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Built-in waits. The run waits on the release PR in-process with `pr:watch` until CLEAN, then `pr:wait-mergeable-and-merge --wait`. A failed required check, or a queue ejection for a failed check, is re-run once per run; the count is kept in the run record and `--resume` does not reset it. A second failure or a review finding stops the run.",
+          "artifact_path": "packages/core/src/release/run-merge.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Given an origin tip that is not B or a non-empty merge queue, when the run would enqueue the release PR, then it does not enqueue and stops.",
+          "artifact_path": "packages/core/src/release/run-merge.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Given a crash after the local tag on M and before its push, when `--resume` runs, then it pushes the tag and continues.",
+          "artifact_path": "packages/core/src/release/finish-run-tag.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Given a remote `v<version>` tag on a commit other than M, when `--resume` runs, then it stops.",
+          "artifact_path": "packages/core/src/release/finish-run-tag.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Given a required check that fails once, then the run re-runs it once; given a second failure, also after a `--resume`, then the run stops without another re-run.",
+          "artifact_path": "packages/core/src/release/run-merge.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.6517860375",
+    "updated": "2026-11-22T06:54:35Z"
+  }
+}
