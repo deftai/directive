@@ -900,6 +900,21 @@ describe("test_agents_entry_contract", () => {
     expect(section).toContain("\u2297 auto-sync or delete-all host memory");
   });
 
+  it("session_routing_read_only_load_omits_main_md (#4923)", () => {
+    const start = templateManaged.indexOf("## Session routing (#2176)");
+    expect(start).toBeGreaterThanOrEqual(0);
+    const rest = templateManaged.slice(start);
+    const next = rest.indexOf("\n## ", 3);
+    const section = next === -1 ? rest : rest.slice(0, next);
+    expect(section).toContain("load AGENTS.md / USER.md / `xbrief/PROJECT-DEFINITION.xbrief.json`");
+    expect(section).toContain("else USER \u2192 PROJECT-DEFINITION; ~ sync.");
+    expect(section).not.toMatch(/\bmain\b/);
+    // The title-line locator stays as the install-root haystack.
+    expect(templateManaged).toContain(
+      "Full guidelines: node_modules/@deftai/directive-runtime/main.md",
+    );
+  });
+
   it("xbrief_layout_pins_completed_record_not_next (#3383)", () => {
     expect(templateManaged).toContain("zero authority over");
     expect(templateManaged).toContain("what to build next");

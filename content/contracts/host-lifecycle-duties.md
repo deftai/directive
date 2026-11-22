@@ -47,7 +47,7 @@ Cursor / project-deposit remains the **family-1 reference adapter**:
 
 1. Open repo at project root.
 2. Deposit / AGENTS managed section points at Skills Index and pins.
-3. Session routing loads main → USER → PROJECT-DEFINITION before mutation.
+3. Session routing loads USER → PROJECT-DEFINITION before mutation.
 
 ### Cursor parity checklist
 
