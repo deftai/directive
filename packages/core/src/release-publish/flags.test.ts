@@ -7,6 +7,13 @@ describe("release-publish flags", () => {
     expect(formatReleasePublishHelp()).toBe(RELEASE_PUBLISH_HELP);
   });
 
+  it("help names the current working directory as the default root (#6864)", () => {
+    const help = formatReleasePublishHelp();
+    expect(help).toContain("$DEFT_PROJECT_ROOT, else the");
+    expect(help).toContain("current working directory");
+    expect(help).not.toContain("scripts/");
+  });
+
   it("parses dry-run and repo flags", () => {
     const flags = parsePublishFlags([
       "0.21.0",

@@ -19,7 +19,7 @@ export const RELEASE_PUBLISH_HELP =
   "  --repo OWNER/REPO    Override the GitHub repository (default: resolved from\n" +
   "                       `git remote get-url origin`, falling back to\n" +
   "                       'deftai/directive').\n" +
-  "  --project-root PATH  Repository root (default: $DEFT_PROJECT_ROOT or the\n" +
-  "                       parent of the scripts/ directory).\n";
+  "  --project-root PATH  Repository root (default: $DEFT_PROJECT_ROOT, else the\n" +
+  "                       current working directory).\n";
 
 export const RELEASES_LIST_ENDPOINT_TEMPLATE = "repos/{repo}/releases?per_page=100";
