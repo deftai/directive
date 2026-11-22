@@ -1,0 +1,492 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6902",
+    "updated": "2026-11-22T22:13:01Z"
+  },
+  "plan": {
+    "title": "pre-pr:run ignores --project-root and always uses the cwd store",
+    "status": "running",
+    "narratives": {
+      "Description": "pre-pr:run ignores --project-root and always uses the cwd store",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6902",
+      "Overview": "\n1. Default store by root (P1). `getDefaultPrePrStore(projectRoot)` resolves `projectRoot` to an absolute path at call time, keeps that path with its one cached store, and builds the store from it. A call whose resolved root differs replaces the cached store with one for the new root. A store injected with `setDefaultPrePrStore` or `resetDefaultPrePrStore` is returned for any root until cleared. A new export `clearDefaultPrePrStore()` drops the cached and the injected store.\n2. One root in `run()` (P1). `run()` resolves `projectRoot = args.projectRoot?.trim() || process.cwd()` once, before the first store use, and calls `getDefaultPrePrStore(projectRoot)`. Push-admit, the observe gate checks, evaluate, complete and the story-line writer use that same value. `--body-file` paths stay relative to the cwd.\n3. Semantic hash root (P1). `--observe-semantic` calls `computeControllerObservedHash({ reviewedFiles, cwd: projectRoot })`, so relative `--reviewed-file` paths resolve against the root, as `completeRun` already re-hashes them.\n4. Help text (P3). The `--project-root` usage line says it sets the root for the private store, the gate checks, relative `--reviewed-file` paths, `--complete` and `--push-admit`; that it defaults to the cwd; and that `--body-file` paths stay relative to the cwd.\n5. Tests (P1, P2). With the default store cleared: start a run with cwd A; from cwd B with `--project-root A`, record a command phase and a semantic phase whose relative `--reviewed-file` also exists in B with different contents; both succeed, the rows are in A's store, and the hash is of A's file. From cwd B without `--project-root`, the run is reported missing. In one process, `getDefaultPrePrStore` called with A, then B, then A returns the store for each root, and a relative root resolves against the cwd at call time. The existing injected-store tests pass unchanged.\n\n## Acceptance Criteria\n\n- With `--project-root <dir>`, `pre-pr:run` start, observe (command and semantic), evaluate and complete read and write the private store under `<dir>` from any cwd.\n- Without `--project-root`, the store and relative `--reviewed-file` paths resolve against the cwd as today.\n- On `--observe-semantic`, relative `--reviewed-file` paths resolve against the project root.\n- `getDefaultPrePrStore` returns a store for the absolute root it is given unless a test store is injected, and `clearDefaultPrePrStore` removes both the cached and the injected store.\n- A test starts a run in one directory and records a command phase and a semantic phase from another directory with `--project-root`, and both succeed.\n- The `--project-root` help line names each use above and says `--body-file` paths stay relative to the cwd.\n\n\n",
+      "Constraint": "- Comparing or storing the raw `--project-root` string as the store identity (comment 7052371293, finding 1).\n- Making `--body-file` project-relative (comment 7052371293, finding 2: it changes existing behaviour beyond this fix).",
+      "Labels": "design-critique:ingest-ready, framework-gap"
+    },
+    "items": [
+      {
+        "title": "Default store by root (P1). `getDefaultPrePrStore(projectRoot)` resolves `projectRoot` to an absolute path at call time, keeps that path with its one cached store, and builds the store from it. A call whose resolved root differs replaces the cached store with one for the new root. A store injected with `setDefaultPrePrStore` or `resetDefaultPrePrStore` is returned for any root until cleared. A new export `clearDefaultPrePrStore()` drops the cached and the injected store.",
+        "status": "proposed",
+        "id": "clause.1"
+      },
+      {
+        "title": "One root in `run()` (P1). `run()` resolves `projectRoot = args.projectRoot?.trim() || process.cwd()` once, before the first store use, and calls `getDefaultPrePrStore(projectRoot)`. Push-admit, the observe gate checks, evaluate, complete and the story-line writer use that same value. `--body-file` paths stay relative to the cwd.",
+        "status": "proposed",
+        "id": "clause.2"
+      },
+      {
+        "title": "Semantic hash root (P1). `--observe-semantic` calls `computeControllerObservedHash({ reviewedFiles, cwd: projectRoot })`, so relative `--reviewed-file` paths resolve against the root, as `completeRun` already re-hashes them.",
+        "status": "proposed",
+        "id": "clause.3"
+      },
+      {
+        "title": "Help text (P3). The `--project-root` usage line says it sets the root for the private store, the gate checks, relative `--reviewed-file` paths, `--complete` and `--push-admit`; that it defaults to the cwd; and that `--body-file` paths stay relative to the cwd.",
+        "status": "proposed",
+        "id": "clause.4"
+      },
+      {
+        "title": "Tests (P1, P2). With the default store cleared: start a run with cwd A; from cwd B with `--project-root A`, record a command phase and a semantic phase whose relative `--reviewed-file` also exists in B with different contents; both succeed, the rows are in A's store, and the hash is of A's file. From cwd B without `--project-root`, the run is reported missing. In one process, `getDefaultPrePrStore` called with A, then B, then A returns the store for each root, and a relative root resolves against the cwd at call time. The existing injected-store tests pass unchanged.",
+        "status": "proposed",
+        "id": "clause.5"
+      },
+      {
+        "title": "With `--project-root <dir>`, `pre-pr:run` start, observe (command and semantic), evaluate and complete read and write the private store under `<dir>` from any cwd.",
+        "status": "proposed",
+        "id": "clause.6"
+      },
+      {
+        "title": "Without `--project-root`, the store and relative `--reviewed-file` paths resolve against the cwd as today.",
+        "status": "proposed",
+        "id": "clause.7"
+      },
+      {
+        "title": "On `--observe-semantic`, relative `--reviewed-file` paths resolve against the project root.",
+        "status": "proposed",
+        "id": "clause.8"
+      },
+      {
+        "title": "`getDefaultPrePrStore` returns a store for the absolute root it is given unless a test store is injected, and `clearDefaultPrePrStore` removes both the cached and the injected store.",
+        "status": "proposed",
+        "id": "clause.9"
+      },
+      {
+        "title": "A test starts a run in one directory and records a command phase and a semantic phase from another directory with `--project-root`, and both succeed.",
+        "status": "proposed",
+        "id": "clause.10"
+      },
+      {
+        "title": "The `--project-root` help line names each use above and says `--body-file` paths stay relative to the cwd.",
+        "status": "proposed",
+        "id": "clause.11"
+      }
+    ],
+    "tags": [
+      "design-critique:ingest-ready",
+      "framework-gap"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6902",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6902: pre-pr:run ignores --project-root and always uses the cwd store"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6893",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6893"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "projectRoot = args.projectRoot?.trim() || process.cwd()",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L5"
+        },
+        {
+          "command": "--project-root A",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L8"
+        },
+        {
+          "command": "--project-root <dir>",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L12"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": false,
+        "file_scope": [
+          "packages/core/src/pre-pr-controller/store.ts",
+          "packages/core/src/pre-pr-controller/index.ts",
+          "packages/runtime/src/pre-pr-run.ts",
+          "packages/core/src/pre-pr-controller/store.test.ts",
+          "packages/runtime/src/pre-pr-run.test.ts",
+          "packages/runtime/src/pre-pr-run-project-root.test.ts",
+          "changelog.d/6902-pre-pr-run-project-root.md",
+          "docs/RULE-MAP.md",
+          "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "xbrief/evaluator-surface-disposition.json",
+          "xbrief/.audit/spec-drift/github.issue.6519529307.json"
+        ],
+        "verify_commands": [
+          "npx vitest run packages/core/src/pre-pr-controller/store.test.ts",
+          "npx vitest run packages/runtime/src/pre-pr-run.test.ts packages/runtime/src/pre-pr-run-project-root.test.ts"
+        ],
+        "size": "small",
+        "file_scope_confidence": "high",
+        "depends_on": [],
+        "expected_outputs": [
+          "getDefaultPrePrStore keeps one cached store keyed by the absolute root resolved at call time; an injected test store still wins; new export clearDefaultPrePrStore drops both",
+          "pre-pr:run resolves one project root (--project-root, else the cwd) and uses it for the store, the gate checks, evaluate, complete, push-admit and the story-line writer",
+          "--observe-semantic hashes relative --reviewed-file paths against the project root",
+          "the --project-root usage line names each use and says --body-file paths stay relative to the cwd",
+          "tests with no injected store: start in A, observe a command and a semantic phase from B with --project-root A; without the flag the run is missing; A-B-A store selection in one process",
+          "one changelog fragment changelog.d/6902-pre-pr-run-project-root.md"
+        ],
+        "conflict_group": "pre-pr-run-cli",
+        "model_tier": "high",
+        "acceptance_criteria_justification": "The 11 clauses are the 5 Bound remedy items and 6 Acceptance Criteria of the accepted lean 7052402821 on #6902, harvested and digest-pinned by issue ingest; they cannot be merged or dropped without breaking the admitted-source pin."
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: triage\n```\n\nStop 1 — Gate (arc 6902; no-ingest)\n\nmechanism-shaped: true\ndesign-critique: warranted, because the operator asked for a thin arc so the next build ingests a clean criteria list, and the fix changes which private store a `pre-pr:run` call reads and writes, which the push gate and the existing hermetic tests also depend on.\n\nTarget-digest: sha256:0fd550fdc0ec6626a65b2a90a1a33bf69283b39f99825a264678a443e74647ae\ndispatch-sha: 880c91ed079578e900c1f2ef680efbfa6e6d61af\ndest: C:/Repos/deft/wt/arc-6902 (pinKind origin-default, guarded-prep, from `deft design-critique:ensure-arc-dest`)\narc-mode: no-ingest\nyolo-standing: on\ncharter: open critique\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\nspend-why: operator asked for a thin arc: one Codex critic, at most two critic posts; a small CLI fix.\nmateriality-bar: open\ntarget-kind: issue\nceiling-kind: comment-id\nverification-path: pin-read git show 880c91ed079578e900c1f2ef680efbfa6e6d61af: + dest cwd-without-occupy\npain: P1\npain: P2\npain: P3\n\n## In plain English\n`deft pre-pr:run --help` says `--project-root` sets the project root for store resolution. It does not. Every path except `--push-admit` opens the private store from the current directory, so a call from any other directory fails with \"pre-PR run <id> is not in the private store\". Agent hosts that reset the cwd on every shell call must write `cd <worktree> && deft pre-pr:run …`, which a permission rule keyed on `deft pre-pr:run` does not cover.\n\nThe recommended fix: resolve the project root once (`--project-root`, else the cwd) and open the store from it on every path. Relative `--reviewed-file` paths resolve against the same root, as `--complete` already does when it re-hashes them. The help text says so.\n\n## Pains\n- P1 — When `--project-root` is given, every `pre-pr:run` path (start, observe, complete, evaluate) resolves the private store from it.\n- P2 — A test starts a run in one directory and records a phase from another directory with `--project-root`, and it succeeds.\n- P3 — The help text matches the behaviour.\n\n## Excluded (not pains, not in this arc)\n- Semantic-phase hashes, phase order, `merge_chokepoint`, finishing without a PR, and push-gate wording: #6893.\n- What `--complete` does with `verify:ac`: #6888, in review as PR #6913.\n\n## Constraints (not pains)\n- No new flag, gate or policy. Without `--project-root`, behaviour does not change (the cwd stays the default).\n- Coordinate with PR #6913: it edits the `--complete` block and the usage text of `pre-pr-run.ts`. This fix builds on top of it and leaves its `completeRun` changes alone.\n\n## Anchors at the dispatch SHA\n- `packages/runtime/src/pre-pr-run.ts` 472: `const store = getDefaultPrePrStore();` with no argument, used by mark-complete, observe, evaluate, complete and start.\n- `pre-pr-run.ts` 450, 507, 627, 645: `args.projectRoot?.trim() || process.cwd()` reaches only push-admit, the observe gate checks, `completeRun` and the story-line writer.\n- `pre-pr-run.ts` 538: `computeControllerObservedHash({ reviewedFiles })` with no `cwd`, so relative reviewed files resolve against the cwd. `controller.ts` 1013-1021: `completeRun` re-hashes the same manifest with `cwd: options.projectRoot`.\n- `packages/core/src/pre-pr-controller/store.ts` 289-296: `getDefaultPrePrStore(projectRoot = process.cwd())` caches one store per process and ignores the argument once a store exists; `setDefaultPrePrStore` / `resetDefaultPrePrStore` inject a test store.\n- `packages/core/src/preflight-gh/pre-push.ts` 364: the push gate already calls `getDefaultPrePrStore(projectRoot)`.\n- `packages/runtime/src/pre-pr-run.test.ts` 92-102 inject a store per test; 427-452 pass `--project-root` to another directory and expect the row in the injected store.\n- `pre-pr-run.ts` 73: usage line `--project-root <path>   project root for --push-admit / store resolution`.\n\n## Recommended mechanism (the thing to critique)\n- R1 (P1). `run()` resolves `projectRoot = args.projectRoot?.trim() || process.cwd()` once, before the first store use, and calls `getDefaultPrePrStore(projectRoot)`. Every later branch uses that one value.\n- R2 (P1). `getDefaultPrePrStore(projectRoot)` remembers the root of the store it created. A call with a different resolved root opens a store for that root instead of returning the cached one. A store injected with `setDefaultPrePrStore` or `resetDefaultPrePrStore` is still returned for any root, so hermetic tests keep working.\n- R3 (P1). `--observe-semantic` hashes relative `--reviewed-file` paths against `projectRoot` (`computeControllerObservedHash({ reviewedFiles, cwd: projectRoot })`), the same root `completeRun` re-hashes them against.\n- R4 (P3). The usage line says `--project-root` sets the root for the private store, the gate checks, relative `--reviewed-file` paths, `--complete` and `--push-admit`, and defaults to the cwd.\n- R5 (P2). Tests with no injected store: start a run with the cwd in directory A; from cwd B, record a command phase and a semantic phase with relative `--reviewed-file` and `--project-root A`; both succeed and the rows are in A's store. A call from cwd B without `--project-root` still reports the run missing.\n\nQuestions for the critic:\n1. Is R2 needed, or is one store per CLI process enough? Is there a lighter test seam than a root-keyed cache (for example a clear function, or a store factory on `PrePrRunOptions`)?\n2. R3 changes where relative `--reviewed-file` paths resolve when the cwd differs from the root. Is that safe for callers who run from a subdirectory today, given that `completeRun` already hashes against the root?\n3. Does anything else in the four paths still read the cwd (for example `--evaluate`, the story-line writer's `--body-file`, or `git` calls in the controller)?\n\n",
+          "id": 7052325770,
+          "html_url": "https://github.com/deftai/directive/issues/6902#issuecomment-7052325770",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:38:08Z",
+          "updated_at": "2026-11-20T22:38:08Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 1\ninput-ceiling: 7052328943\nseat: codex launcher: codex (exec --ephemeral --skip-git-repo-check --sandbox read-only -C dest -o outfile)\n\ncharter: open critique\nspend: N=1\narc-mode: no-ingest\nmateriality-bar: open\ndispatch-sha: 880c91ed079578e900c1f2ef680efbfa6e6d61af\ndest: C:/Repos/deft/wt/arc-6902\nverification-path: pin-read git show 880c91ed079578e900c1f2ef680efbfa6e6d61af: + dest cwd-without-occupy\naudit-targets: none\nStop 1 cite: comment 7052325770\ncritic-post-cap: 2 (operator-set for this arc: one round-1 critic and one pain audit)\n\n## Launch posture (disclosed)\n- The parent is Claude Code (claude-opus-5-5). The one critic seat is Codex, a different model family, run with a read-only launcher against the dest. The launch probe for that argv returned `pong` rc 0 in this session; that proves launchability only.\n- The Codex seat has no GitHub access. It reads a parent-written thread snapshot (issue body, thread up to the ceiling, this deposit, linked issue bodies) and reads code with `git show <dispatch-sha>:<path>`. The parent posts the critic's final message verbatim.\n- This deposit was created and then edited once, only to record its own comment id as the input ceiling.\n\n",
+          "id": 7052328943,
+          "html_url": "https://github.com/deftai/directive/issues/6902#issuecomment-7052328943",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:38:19Z",
+          "updated_at": "2026-11-20T22:38:20Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\n\n`--project-root` currently selects some checks but not the private store. A command launched elsewhere therefore cannot find the intended run. The proposed shared root and matching semantic-file hashing address that defect. I support the mechanism with two framing clarifications; I found no design blocker.\n\nAnswers to Stop 1:\n\n1. R2 is unnecessary for a fresh process executing one CLI command, but appropriate for repeated in-process calls and the shared store API. A single cached store plus its absolute root and an explicit injection override is sufficient; a multi-root cache is unnecessary. A clear function helps tests but does not itself fix production root switching.\n2. R3 is appropriate because completion already interprets relative reviewed files against the selected root. Explicit-root callers using subdirectory-relative paths will need root-relative or absolute paths. Calls without the flag retain their existing interpretation.\n3. `--body-file` remains cwd-relative in both start and evaluate. The inspected controller deletion-diff Git call already receives the project root. PR #6913’s supplied diff can retain its controller-owned `verify:ac` behavior while consuming the shared root.\n\nAll code references below are at `880c91ed079578e900c1f2ef680efbfa6e6d61af`. Verification used pinned reads only; no tests, writes, or network access.\n\n### 1. sharpens-framing — Root identity must remain stable across cwd changes\n\nEvidence: `packages/core/src/pre-pr-controller/store.ts:171–175` retains the supplied root string; lines 205 and 242 resolve it during later operations. Lines 289–305 implement the singleton and injection seams. The push gate also consumes this singleton at `packages/core/src/preflight-gh/pre-push.ts:364–366`.\n\nConcrete failure mode: comparing a cached raw `\".\"` against a later `\".\"` after changing cwd can reuse the wrong store identity. Comparing absolute roots while constructing the store with the original relative string can instead make a retained store drift when cwd changes. This matters to worktree isolation, not merely test convenience.\n\nDisposition: R2 can bind with “resolved root” explicitly meaning an absolute path captured at selection time and used for both comparison and store construction. One replaceable cache entry suffices. Injected stores remain explicit overrides. Coverage should include switching A→B→A in one process and a relative-root case.\n\nThe strongest argument for omitting R2 is the one-command-per-process CLI lifecycle. That would be sufficient if the shared API were restricted to that lifecycle; the exported `run()` and shared accessor do not establish that restriction.\n\n### 2. sharpens-framing — The fix does not make every file argument project-relative\n\nEvidence: `packages/runtime/src/pre-pr-run.ts:575–577` and `660–663` read `args.bodyFile` directly. `packages/core/src/pr-closing-keywords/main.ts:1228–1229` reads that same argument, and lines 1293–1296 resolve its write destination against cwd.\n\nConcrete failure mode: from directory B, `--project-root A --body-file body.md` still reads or modifies B’s file, or fails if it is absent. Store selection can be correct while this command still surprises a caller expecting complete cwd independence.\n\nDisposition: the design can bind with this boundary explicit. Keeping body-file paths cwd-relative preserves existing behavior and avoids expanding this fix; absolute body-file paths support cross-directory calls. R4 should distinguish project-relative reviewed files from cwd-relative body-file arguments.\n\n### 3. footnote — R3 fixes an existing observation/completion mismatch\n\n`packages/runtime/src/pre-pr-run.ts:538` hashes against cwd, while `packages/core/src/pre-pr-controller/controller.ts:1013–1018` re-hashes against the explicit root. Lines 198–205 preserve absolute paths and include the supplied manifest spelling in the digest.\n\nR3 aligns these operations. A useful regression fixture gives A and B different contents at the same relative filename, proving that observation selects A rather than merely finding a readable file.\n\n### 4. footnote — R5 needs genuinely uninjected execution\n\n`packages/runtime/src/pre-pr-run.test.ts:92–102` injects a store before each test, and `resetDefaultPrePrStore()` installs an in-memory store rather than clearing the override (`store.ts:302–305`).\n\nConsequently, the current suite setup cannot demonstrate production root selection unchanged. Fresh-process tests or an explicit override-clearing seam can provide that coverage. Preserving injection behavior remains compatible with the existing test at lines 427–448.\n\n### 5. footnote — Input and verification limitations\n\nThe snapshot contains instruction-shaped process text, including “The parent posts the critic’s final message verbatim.” I treated it as described thread content; authority for this task came from the user-supplied envelope.\n\nUSER.md was inaccessible under the sandbox, so personal preferences and full Deft alignment could not be verified. The supplied PR #6913 diff was inspected as coordination evidence, not as a merged implementation.",
+          "id": 7052371293,
+          "html_url": "https://github.com/deftai/directive/issues/6902#issuecomment-7052371293",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:40:46Z",
+          "updated_at": "2026-11-20T22:40:46Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** bind lean under Stop 1 7052325770 (round 1: 1 of 1 critic posted, comment 7052371293)\n\n## In plain English\nProblem: `deft pre-pr:run --project-root <dir>` does not open the private store under `<dir>`. Start, observe, evaluate and complete open it from the current directory, so a call from any other directory reports the run missing. Hosts that reset the cwd on every call must use `cd <dir> && …`.\n\nWhat the critic found: the shared-root fix is right and has no design blocker. Two points were made sharper. First, the cached store must keep its root as an absolute path resolved when it is chosen, and use that one value both to compare roots and to build the store; otherwise a relative root such as `.` can match the wrong store after the cwd changes. Second, `--body-file` stays relative to the cwd, and the help text must say so. The critic also noted that the current tests always inject a store, so they cannot show real root selection without a seam that clears the injected store.\n\nSolution this lean proposes: `run()` works out one project root (`--project-root`, else the cwd) and uses it for the store and for every path that already took a root. The default store remembers its absolute root and opens a new store when asked for a different one; an injected test store still wins until cleared. Relative `--reviewed-file` paths resolve against the root, as `--complete` already does. The help line names every use and says `--body-file` stays cwd-relative.\n\nWhat this adds: one small exported test seam that clears the default store. No new flag, gate or policy. Without `--project-root`, nothing changes.\n\nWhat it does not do:\n- It does not make `--body-file` project-relative.\n- It does not change what `--complete` does with `verify:ac` (PR #6913); it builds on that PR.\n- It does not touch the leaf-ergonomics items of #6893.\nIf confirmed, the synthesis would assert this design. There is no leftover next-build.\n\nTarget-digest: sha256:0fd550fdc0ec6626a65b2a90a1a33bf69283b39f99825a264678a443e74647ae\n**Spec-path:** Bound remedy on this lean\nSibling count: 1 (comment 7052371293). Panel deposit: comment 7052328943.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\n## Bound remedy\n1. Default store by root (P1). `getDefaultPrePrStore(projectRoot)` resolves `projectRoot` to an absolute path at call time, keeps that path with its one cached store, and builds the store from it. A call whose resolved root differs replaces the cached store with one for the new root. A store injected with `setDefaultPrePrStore` or `resetDefaultPrePrStore` is returned for any root until cleared. A new export `clearDefaultPrePrStore()` drops the cached and the injected store.\n2. One root in `run()` (P1). `run()` resolves `projectRoot = args.projectRoot?.trim() || process.cwd()` once, before the first store use, and calls `getDefaultPrePrStore(projectRoot)`. Push-admit, the observe gate checks, evaluate, complete and the story-line writer use that same value. `--body-file` paths stay relative to the cwd.\n3. Semantic hash root (P1). `--observe-semantic` calls `computeControllerObservedHash({ reviewedFiles, cwd: projectRoot })`, so relative `--reviewed-file` paths resolve against the root, as `completeRun` already re-hashes them.\n4. Help text (P3). The `--project-root` usage line says it sets the root for the private store, the gate checks, relative `--reviewed-file` paths, `--complete` and `--push-admit`; that it defaults to the cwd; and that `--body-file` paths stay relative to the cwd.\n5. Tests (P1, P2). With the default store cleared: start a run with cwd A; from cwd B with `--project-root A`, record a command phase and a semantic phase whose relative `--reviewed-file` also exists in B with different contents; both succeed, the rows are in A's store, and the hash is of A's file. From cwd B without `--project-root`, the run is reported missing. In one process, `getDefaultPrePrStore` called with A, then B, then A returns the store for each root, and a relative root resolves against the cwd at call time. The existing injected-store tests pass unchanged.\n\n## Acceptance Criteria\n- With `--project-root <dir>`, `pre-pr:run` start, observe (command and semantic), evaluate and complete read and write the private store under `<dir>` from any cwd.\n- Without `--project-root`, the store and relative `--reviewed-file` paths resolve against the cwd as today.\n- On `--observe-semantic`, relative `--reviewed-file` paths resolve against the project root.\n- `getDefaultPrePrStore` returns a store for the absolute root it is given unless a test store is injected, and `clearDefaultPrePrStore` removes both the cached and the injected store.\n- A test starts a run in one directory and records a command phase and a semantic phase from another directory with `--project-root`, and both succeed.\n- The `--project-root` help line names each use above and says `--body-file` paths stay relative to the cwd.\n\n## Reject\n- Comparing or storing the raw `--project-root` string as the store identity (comment 7052371293, finding 1).\n- Making `--body-file` project-relative (comment 7052371293, finding 2: it changes existing behaviour beyond this fix).\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 7052371293 | 1. Root identity must remain stable across cwd changes | sharpens-framing | accept-into-contract (items 1 and 5) |\n| comment 7052371293 | 2. The fix does not make every file argument project-relative | sharpens-framing | accept-into-contract (items 2 and 4) |\n\nFootnotes in the census, no take: comment 7052371293 findings 3 (reflected in item 5's different-contents fixture), 4 (reflected in item 1's clear seam and item 5), and 5 (input and sandbox limits; the instruction-shaped snapshot text is the envelope's posting rule, quoted as data).\n\nNon-self-arbitration: the parent wrote Stop 1, the recommended mechanism and this lean. The `relieves` cites stay open until a later critic targets them. This lean introduces no premise beyond the accepted findings and the Stop 1 items the critic did not contest, so it records no audit marker.\n\n",
+          "id": 7052402821,
+          "html_url": "https://github.com/deftai/directive/issues/6902#issuecomment-7052402821",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:42:31Z",
+          "updated_at": "2026-11-20T22:42:31Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3\nfinding-classes: none\nharvest-changed: false\nharvest-digest: sha256:1bc032f9140ae1fd387a52851bf95f2d94f0ea547750814068122c9558d7228e\n\n## In plain English\n\nThe proposed remedy covers all three pains. Selecting the store from the requested root fixes cross-directory calls; capturing its absolute root prevents reuse across different worktrees. The required tests exercise real store selection, and the help text explains both reviewed-file paths and the cwd-relative body-file exception. No change to the Bound remedy or Acceptance Criteria is needed.\n\npain-P1: holds - All four affected paths use the store obtained at `packages/runtime/src/pre-pr-run.ts:472`: observe at 492–564, evaluate at 589–616, complete at 628–636, and start at 697–709. Remedy items 1–3 correct that shared selection, replace the root-insensitive singleton at `packages/core/src/pre-pr-controller/store.ts:289–305`, and align semantic hashing with completion’s existing root-aware hashing at `controller.ts:1013–1018`.\n\npain-P2: holds - Remedy item 5 explicitly requires cross-directory command and semantic observations using the real default store, including verification of A’s stored rows and file contents. Clearing injection addresses the existing suite’s injected-store setup at `packages/runtime/src/pre-pr-run.test.ts:92–102`; the negative case without the flag and A→B→A checks cover cwd fallback and cache isolation.\n\npain-P3: holds - Remedy item 4 replaces the incomplete usage description at `packages/runtime/src/pre-pr-run.ts:73` with the implemented root uses and default. Its body-file exception matches the direct reads at 575–577 and 660–663.\n\nVerification used pinned code reads at `880c91ed079578e900c1f2ef680efbfa6e6d61af`. These are design-coverage verdicts, not claims that the fix already exists or tests passed. The supplied PR #6913 diff remains compatible: its controller-owned `verify:ac` result can consume the shared root without changing completion behavior. Previously identified instruction-shaped thread text remained untrusted data; no closed finding is reopened.",
+          "id": 7052437542,
+          "html_url": "https://github.com/deftai/directive/issues/6902#issuecomment-7052437542",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:44:34Z",
+          "updated_at": "2026-11-20T22:44:34Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nBound lean: comment 7052402821. Dispatch SHA: 880c91ed079578e900c1f2ef680efbfa6e6d61af. Non-self-arbitration: the parent wrote Stop 1, the recommended mechanism and the lean. Each row has a parent pin-read (`git show <sha>:<path>`) and, where marked, a re-check by a Codex critic, a different model family. Both critic posts are from one family, so their agreement is not counted as extra confirmation. No tests or builds were run.\n\n| # | Claim | Status | Method |\n|---|---|---|---|\n| 1 | `run()` opens the store with `getDefaultPrePrStore()` and no root, so start, observe, evaluate and complete use the cwd store | verified | parent pin-read of `packages/runtime/src/pre-pr-run.ts` 472; critic 7052371293 |\n| 2 | `--project-root` today reaches only push-admit, the observe gate checks, `completeRun` and the story-line writer | verified | parent pin-read of `pre-pr-run.ts` 450, 507, 627, 645 |\n| 3 | `getDefaultPrePrStore` caches one store per process and ignores a later root; set/reset inject a test store | verified | parent pin-read of `packages/core/src/pre-pr-controller/store.ts` 289-306; critic 7052371293 findings 1 and 4 |\n| 4 | `--observe-semantic` hashes relative reviewed files against the cwd while `completeRun` re-hashes them against the root | verified | parent pin-read of `pre-pr-run.ts` 538 and `controller.ts` 1013-1021; critic 7052371293 finding 3 |\n| 5 | `--body-file` is read and written relative to the cwd | verified | parent pin-read of `pre-pr-run.ts` 575-577 and 660-663; critic 7052371293 finding 2 (also `pr-closing-keywords/main.ts` 1228-1229, 1293-1296) |\n| 6 | The existing tests inject a store before each case, so they cannot show real root selection | verified | parent pin-read of `pre-pr-run.test.ts` 92-102; critic 7052371293 finding 4 |\n| 7 | The Bound remedy relieves P1-P3 | verified as design coverage | audit 7052437542 on the bound lean (all three hold; `finding-classes: none`; `harvest-changed: false`; digest equal to the lean's) |\n| 8 | The fix builds on PR #6913 without changing its `completeRun` behaviour | endorsed, not verified | PR #6913 is not merged; parent read of its diff, and the critic read the same copy; to be observed when the fix is built |\n\n",
+          "id": 7052450381,
+          "html_url": "https://github.com/deftai/directive/issues/6902#issuecomment-7052450381",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:45:18Z",
+          "updated_at": "2026-11-20T22:45:18Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nProblem: `deft pre-pr:run --project-root <dir>` did not open the private store under `<dir>`. Start, observe, evaluate and complete opened it from the current directory, so a call from another directory reported the run missing, and hosts that reset the cwd had to use `cd <dir> && …`.\n\nAccepted solution: `run()` works out one project root (`--project-root`, else the cwd) and uses it for the store and every path that already took a root. The default store keeps its absolute root and opens a new store when asked for a different one; an injected test store still wins until a new clear seam removes it. Relative `--reviewed-file` paths resolve against the root, as `--complete` already re-hashes them. The help line names every use and says `--body-file` stays relative to the cwd. Tests start a run in one directory and record a command phase and a semantic phase from another with `--project-root`, with no injected store.\n\nLimits accepted: `--body-file` stays cwd-relative. Without `--project-root` nothing changes. The fix builds on PR #6913 and does not change its `completeRun` behaviour. It was checked by reading the source at the pinned commit; nothing was installed or run.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 7052402821.\nverified-claims table 7052450381\n\nConfirm conjunct: yolo standing (Stop 1 7052325770, `yolo-standing: on`). Round-1 critic: comment 7052371293, posted by the parent verbatim as disclosed on panel-deposit 7052328943; its two classified findings are accepted on the lean. Clean audit of the bound lean: comment 7052437542 (`finding-classes: none`, `harvest-changed: false`, harvest digest equal to the lean's). Critic posts used: 2 of 2.\n\n",
+          "id": 7052450690,
+          "html_url": "https://github.com/deftai/directive/issues/6902#issuecomment-7052450690",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:45:20Z",
+          "updated_at": "2026-11-20T22:45:20Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Problem\n\n`deft pre-pr:run --help` says `--project-root <path>` is the \"project root for --push-admit / store resolution\". In practice, the start, observe, complete and evaluate paths read and write the private store from `process.cwd()`:\n- `packages/runtime/src/pre-pr-run.ts:472` calls `getDefaultPrePrStore()` with no argument;\n- `packages/core/src/pre-pr-controller/store.ts:291` defaults `projectRoot` to `process.cwd()`.\n\n`--project-root` only reaches the gate checks and the `completeRun` stamping.\n\nRepro: start a run with the cwd set to a linked worktree. From any other cwd, run `deft pre-pr:run --observe-command --run-id <id> --phase branch_policy --command \"deft verify:branch\" --exit-code 0 --project-root <worktree>`. The result is \"pre-PR run <id> is not in the private store\", although the record exists at `<worktree>/.deft/pre-pr-execution-private/`.\n\nImpact: an agent host whose shell resets the cwd on every call can only use `cd <worktree> && deft pre-pr:run …`, and a permission rule keyed on the `deft pre-pr:run` prefix does not cover that form. Seen 2026-11-20 on the #6863 build.\n\n## Acceptance Criteria\n\n- [ ] When `--project-root` is given, every `pre-pr:run` path (start, observe, complete, evaluate) resolves the private store from it.\n- [ ] A test starts a run in one directory and records a phase from another directory with `--project-root`, and it succeeds.\n- [ ] The help text matches the behaviour.\n\nRefs #6893, #6888\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6519529307,
+        "origin": "deftai/directive#6902",
+        "id": "github.issue.6519529307"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "0fd550fdc0ec6626a65b2a90a1a33bf69283b39f99825a264678a443e74647ae"
+      },
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 6902,
+        "leanCommentId": 7052402821,
+        "harvestDigest": "1bc032f9140ae1fd387a52851bf95f2d94f0ea547750814068122c9558d7228e",
+        "slice": null
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per harvested lean item (11), in list order (#6333)",
+      "sentences": [
+        "Default store by root (P1). `getDefaultPrePrStore(projectRoot)` resolves `projectRoot` to an absolute path at call time, keeps that path with its one cached store, and builds the store from it. A call whose resolved root differs replaces the cached store with one for the new root. A store injected with `setDefaultPrePrStore` or `resetDefaultPrePrStore` is returned for any root until cleared. A new export `clearDefaultPrePrStore()` drops the cached and the injected store.",
+        "One root in `run()` (P1). `run()` resolves `projectRoot = args.projectRoot?.trim() || process.cwd()` once, before the first store use, and calls `getDefaultPrePrStore(projectRoot)`. Push-admit, the observe gate checks, evaluate, complete and the story-line writer use that same value. `--body-file` paths stay relative to the cwd.",
+        "Semantic hash root (P1). `--observe-semantic` calls `computeControllerObservedHash({ reviewedFiles, cwd: projectRoot })`, so relative `--reviewed-file` paths resolve against the root, as `completeRun` already re-hashes them.",
+        "Help text (P3). The `--project-root` usage line says it sets the root for the private store, the gate checks, relative `--reviewed-file` paths, `--complete` and `--push-admit`; that it defaults to the cwd; and that `--body-file` paths stay relative to the cwd.",
+        "Tests (P1, P2). With the default store cleared: start a run with cwd A; from cwd B with `--project-root A`, record a command phase and a semantic phase whose relative `--reviewed-file` also exists in B with different contents; both succeed, the rows are in A's store, and the hash is of A's file. From cwd B without `--project-root`, the run is reported missing. In one process, `getDefaultPrePrStore` called with A, then B, then A returns the store for each root, and a relative root resolves against the cwd at call time. The existing injected-store tests pass unchanged.",
+        "With `--project-root <dir>`, `pre-pr:run` start, observe (command and semantic), evaluate and complete read and write the private store under `<dir>` from any cwd.",
+        "Without `--project-root`, the store and relative `--reviewed-file` paths resolve against the cwd as today.",
+        "On `--observe-semantic`, relative `--reviewed-file` paths resolve against the project root.",
+        "`getDefaultPrePrStore` returns a store for the absolute root it is given unless a test store is injected, and `clearDefaultPrePrStore` removes both the cached and the injected store.",
+        "A test starts a run in one directory and records a command phase and a semantic phase from another directory with `--project-root`, and both succeed.",
+        "The `--project-root` help line names each use above and says `--body-file` paths stay relative to the cwd."
+      ],
+      "admitted_source_sentences": [
+        "Default store by root (P1). `getDefaultPrePrStore(projectRoot)` resolves `projectRoot` to an absolute path at call time, keeps that path with its one cached store, and builds the store from it. A call whose resolved root differs replaces the cached store with one for the new root. A store injected with `setDefaultPrePrStore` or `resetDefaultPrePrStore` is returned for any root until cleared. A new export `clearDefaultPrePrStore()` drops the cached and the injected store.",
+        "One root in `run()` (P1). `run()` resolves `projectRoot = args.projectRoot?.trim() || process.cwd()` once, before the first store use, and calls `getDefaultPrePrStore(projectRoot)`. Push-admit, the observe gate checks, evaluate, complete and the story-line writer use that same value. `--body-file` paths stay relative to the cwd.",
+        "Semantic hash root (P1). `--observe-semantic` calls `computeControllerObservedHash({ reviewedFiles, cwd: projectRoot })`, so relative `--reviewed-file` paths resolve against the root, as `completeRun` already re-hashes them.",
+        "Help text (P3). The `--project-root` usage line says it sets the root for the private store, the gate checks, relative `--reviewed-file` paths, `--complete` and `--push-admit`; that it defaults to the cwd; and that `--body-file` paths stay relative to the cwd.",
+        "Tests (P1, P2). With the default store cleared: start a run with cwd A; from cwd B with `--project-root A`, record a command phase and a semantic phase whose relative `--reviewed-file` also exists in B with different contents; both succeed, the rows are in A's store, and the hash is of A's file. From cwd B without `--project-root`, the run is reported missing. In one process, `getDefaultPrePrStore` called with A, then B, then A returns the store for each root, and a relative root resolves against the cwd at call time. The existing injected-store tests pass unchanged.",
+        "With `--project-root <dir>`, `pre-pr:run` start, observe (command and semantic), evaluate and complete read and write the private store under `<dir>` from any cwd.",
+        "Without `--project-root`, the store and relative `--reviewed-file` paths resolve against the cwd as today.",
+        "On `--observe-semantic`, relative `--reviewed-file` paths resolve against the project root.",
+        "`getDefaultPrePrStore` returns a store for the absolute root it is given unless a test store is injected, and `clearDefaultPrePrStore` removes both the cached and the injected store.",
+        "A test starts a run in one directory and records a command phase and a semantic phase from another directory with `--project-root`, and both succeed.",
+        "The `--project-root` help line names each use above and says `--body-file` paths stay relative to the cwd."
+      ],
+      "admitted_source_digest": "fbaf6ccee5a27585ba29315a19fd700a2bf501690519bc9da16e162c8fdff985",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Default store by root (P1). `getDefaultPrePrStore(projectRoot)` resolves `projectRoot` to an absolute path at call time, keeps that path with its one cached store, and builds the store from it. A call whose resolved root differs replaces the cached store with one for the new root. A store injected with `setDefaultPrePrStore` or `resetDefaultPrePrStore` is returned for any root until cleared. A new export `clearDefaultPrePrStore()` drops the cached and the injected store.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "One root in `run()` (P1). `run()` resolves `projectRoot = args.projectRoot?.trim() || process.cwd()` once, before the first store use, and calls `getDefaultPrePrStore(projectRoot)`. Push-admit, the observe gate checks, evaluate, complete and the story-line writer use that same value. `--body-file` paths stay relative to the cwd.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Semantic hash root (P1). `--observe-semantic` calls `computeControllerObservedHash({ reviewedFiles, cwd: projectRoot })`, so relative `--reviewed-file` paths resolve against the root, as `completeRun` already re-hashes them.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Help text (P3). The `--project-root` usage line says it sets the root for the private store, the gate checks, relative `--reviewed-file` paths, `--complete` and `--push-admit`; that it defaults to the cwd; and that `--body-file` paths stay relative to the cwd.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Tests (P1, P2). With the default store cleared: start a run with cwd A; from cwd B with `--project-root A`, record a command phase and a semantic phase whose relative `--reviewed-file` also exists in B with different contents; both succeed, the rows are in A's store, and the hash is of A's file. From cwd B without `--project-root`, the run is reported missing. In one process, `getDefaultPrePrStore` called with A, then B, then A returns the store for each root, and a relative root resolves against the cwd at call time. The existing injected-store tests pass unchanged.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "With `--project-root <dir>`, `pre-pr:run` start, observe (command and semantic), evaluate and complete read and write the private store under `<dir>` from any cwd.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Without `--project-root`, the store and relative `--reviewed-file` paths resolve against the cwd as today.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "On `--observe-semantic`, relative `--reviewed-file` paths resolve against the project root.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "`getDefaultPrePrStore` returns a store for the absolute root it is given unless a test store is injected, and `clearDefaultPrePrStore` removes both the cached and the injected store.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "A test starts a run in one directory and records a command phase and a semantic phase from another directory with `--project-root`, and both succeed.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "The `--project-root` help line names each use above and says `--body-file` paths stay relative to the cwd.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.6519529307",
+    "updated": "2026-11-22T22:13:01Z"
+  }
+}
