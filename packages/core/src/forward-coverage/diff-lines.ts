@@ -5,7 +5,7 @@
 /** Repo-relative path -> 1-indexed new-file line numbers introduced by the diff. */
 export type ChangedLineMap = Map<string, Set<number>>;
 
-const HUNK_RE = /^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@/;
+const HUNK_RE = /^@@ -\d+(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/;
 
 /** Git `core.quotePath` C-style escapes (quote.c). */
 const GIT_C_ESCAPES: Readonly<Record<string, string>> = {
@@ -105,57 +105,61 @@ export function stripGitDiffPath(raw: string): string {
 /**
  * Collect 1-indexed lines added on the new side of a unified diff (`-U0` ok).
  * Deletions-only hunks contribute nothing. `/dev/null` destinations are skipped.
+ *
+ * Each `@@` header's old and new counts (missing count = 1) bound the hunk: every
+ * line until both are used up is payload, so payload starting with `+++ `,
+ * `--- ` or `diff --git ` never changes the current file (#7077). A no-newline
+ * marker (`\`) does not count. Headers are recognised only outside a hunk.
  */
 export function parseUnifiedDiffAddedLines(diffText: string): ChangedLineMap {
   const result: ChangedLineMap = new Map();
   let current: string | null = null;
   let newLine = 0;
-  let inHunk = false;
+  let oldLeft = 0;
+  let newLeft = 0;
 
   for (const raw of diffText.split("\n")) {
     const line = raw.replace(/\r$/, "");
+    if (oldLeft > 0 || newLeft > 0) {
+      if (line.startsWith("\\")) {
+        continue;
+      }
+      const lines = current === null ? undefined : result.get(current);
+      if (line.startsWith("+")) {
+        lines?.add(newLine);
+        newLine += 1;
+        newLeft -= 1;
+      } else if (line.startsWith("-")) {
+        // old-file deletion; new-file cursor stays
+        oldLeft -= 1;
+      } else {
+        newLine += 1;
+        oldLeft -= 1;
+        newLeft -= 1;
+      }
+      continue;
+    }
     if (line.startsWith("diff --git ")) {
       current = null;
-      inHunk = false;
       continue;
     }
     if (line.startsWith("+++ ")) {
       const rest = line.slice(4).trim();
       if (rest === "/dev/null") {
         current = null;
-        inHunk = false;
         continue;
       }
       current = stripGitDiffPath(rest);
       if (!result.has(current)) {
         result.set(current, new Set());
       }
-      inHunk = false;
       continue;
     }
     const hunk = HUNK_RE.exec(line);
     if (hunk) {
-      newLine = Number(hunk[1]);
-      inHunk = current !== null;
-      continue;
-    }
-    if (!inHunk || current === null) {
-      continue;
-    }
-    if (line.startsWith("\\")) {
-      continue;
-    }
-    const lines = result.get(current);
-    if (lines === undefined) {
-      continue;
-    }
-    if (line.startsWith("+")) {
-      lines.add(newLine);
-      newLine += 1;
-    } else if (line.startsWith("-")) {
-      // old-file deletion; new-file cursor stays
-    } else {
-      newLine += 1;
+      oldLeft = hunk[1] === undefined ? 1 : Number(hunk[1]);
+      newLine = Number(hunk[2]);
+      newLeft = hunk[3] === undefined ? 1 : Number(hunk[3]);
     }
   }
   return result;
