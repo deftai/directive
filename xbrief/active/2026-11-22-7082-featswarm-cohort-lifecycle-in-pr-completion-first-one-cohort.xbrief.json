@@ -1,0 +1,268 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #7082",
+    "updated": "2026-11-22T20:29:22Z"
+  },
+  "plan": {
+    "title": "feat(swarm): cohort lifecycle - in-PR completion first, one cohort lifecycle PR (slice of #7062)",
+    "status": "running",
+    "narratives": {
+      "Description": "Slice cohort-lifecycle of the accepted #7062 lean (comment 7082701528). In a cohort, a story that scope:complete --in-pr admits completes inside its product PR, and the parent, as cohort closer, completes the other merged stories in one swarm:finalize-cohort lifecycle PR with no changelog fragment. The closer passes only merged PRs, names and keeps every unmerged, omitted or refused story for a later run, and owns each story until verify:completed-tracked and verify:orphan-active pass. The preamble, AGENTS.md, the agents-entry template and the swarm and build skill sources say so; a solo story keeps today's worker-owned completion.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/7082",
+      "Overview": "- In-PR completion first. In a cohort, a worker whose story `scope:complete -- <active-path> --in-pr` admits (#6277) completes it in its product PR with the closing keyword that verb requires; that story needs no lifecycle PR. A worker whose story the verb refuses stops at product merge with `deft-story: N` and leaves completion to the cohort closer. A solo story keeps today's worker-owned completion.\n- Cohort closer. The parent runs `swarm:finalize-cohort -- --pr <list>` with only the merged product PRs of post-merge stories, which opens one lifecycle PR with no changelog fragment (#680 / #6764). It reports each unmerged, omitted or refused story by id, keeps it on its list and finalizes it in a later run. It owns each story through lifecycle-PR merge, then runs `verify:completed-tracked -- --issue N` and `verify:orphan-active -- --issue N` for each.\n- Lifecycle rule texts change together: the DONE reservation and completion rules in `content/templates/agent-prompt-preamble.md`, the cohort-closer carve-out in `content/templates/agents-entry.md` (DONE rule) and `AGENTS.md` (post-merge scope lifecycle), mirrored per #1309, and in `content/packs/skills/skills-pack-0.1.json` (regenerated) the swarm skill and the build skill, whose swarm-cohort text sends post-merge completion to the cohort closer instead of a `scope:complete` after each story.\n- Lifecycle tests: an admitted in-PR completion in a cohort opens no lifecycle PR; one `finalizeCohort` run over several `deft-story` PRs completes them in one PR with no fragment that passes `verify:changelog-unreleased`, #5656 scope-cover and closing-keywords; an unmerged PR left off the list stays active and is named in the report.\n- A cohort story that `scope:complete --in-pr` admits completes in its product PR; the other merged stories complete in one `swarm:finalize-cohort` lifecycle PR with no changelog fragment that passes `verify:changelog-unreleased`, #5656 scope-cover and the closing-keywords check.\n- The cohort closer passes only merged PRs, names every unmerged or refused story, and `verify:completed-tracked -- --issue N` and `verify:orphan-active -- --issue N` pass for every story it completes.\n- The preamble, `AGENTS.md`, the agents-entry template and the swarm and build skill sources send a cohort's post-merge completion to the cohort closer, and a solo story keeps the unbatched path.\n\n",
+      "Constraint": "- Every cohort worker deferring completion to the closer when in-PR completion admits the story (comment 7082620305, finding 1).\n- One shared cohort branch whose product PRs carry every peer brief and record pair, and a free-path rule for peer record pairs (comment 7082620305, findings 2 and 3).\n- Full `deft-story: N` marks on a product PR for stories it does not deliver (comment 7082620305, finding 3).\n- A cohort mint that shows only file paths, or reuses the one-file cohort runner without the approved-scope parser and pair builder (comment 7082620305, finding 5).\n- Dropping the terminal mint for approved-scope (#7031), or folding #6284's allowance and expiry grant into this change.",
+      "UserStory": "As a maintainer running a cohort of stories, I want each eligible story to complete inside its product PR and the rest to complete in one cohort lifecycle PR, so that a cohort no longer costs one lifecycle PR per story.",
+      "ImplementationPlan": "1. packages/core/src/swarm/finalize-cohort.ts (+ finalize-cohort-cli.ts): one run over several merged deft-story PRs completes them in one lifecycle PR with no changelog fragment; a story already completed in its product PR (in-PR) is a no-op and opens no PR; the report names each unmerged, omitted or refused story by id and leaves its brief active for a later run.\n2. content/templates/agent-prompt-preamble.md: DONE reservation and completion rules send a cohort story's post-merge completion to the cohort closer after the worker tries scope:complete --in-pr; solo story unchanged.\n3. content/templates/agents-entry.md (DONE rule) and AGENTS.md (post-merge scope lifecycle): cohort-closer carve-out, mirrored per #1309, then task agents:refresh.\n4. content/packs/skills/skills-pack-0.1.json, then task packs:render (content/skills/deft-directive-swarm/SKILL.md, content/skills/deft-directive-build/SKILL.md) and the swarm references core-phase-0.md, core-phase-3.md, core-phase-5-6.md: swarm-cohort text uses in-PR completion first and the cohort closer, not scope:complete after each story.\n5. Tests: packages/core/src/swarm/finalize-cohort-batch-7082.test.ts (lifecycle behaviour: in-PR no-op, one PR over several stories with no fragment passing the changelog, #5656 scope-cover and closing-keywords checks, unmerged PR named and kept active); packages/core/src/content-contracts/standards/cohort_lifecycle_7082.test.ts (rule text in preamble, AGENTS.md, agents-entry and both skill sources). Regenerate docs/RULE-MAP.md and the evaluator-surface disposition if the gates ask. changelog.d/7082-cohort-lifecycle.md.",
+      "Traces": "#7082 clauses 1-7 trace to the cohort-lifecycle slice of the accepted #7062 lean 7082701528: Bound remedy items 1, 2, 3 and 8 and Acceptance Criteria 1-3 (synthesis 7082734597, verified-claims table 7082732735)."
+    },
+    "items": [
+      {
+        "title": "In-PR completion first. In a cohort, a worker whose story `scope:complete -- <active-path> --in-pr` admits (#6277) completes it in its product PR with the closing keyword that verb requires; that story needs no lifecycle PR. A worker whose story the verb refuses stops at product merge with `deft-story: N` and leaves completion to the cohort closer. A solo story keeps today's worker-owned completion.",
+        "status": "proposed",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "When a cohort worker's story is admitted by scope:complete --in-pr, it completes in its product PR and no lifecycle PR is opened for it; a refused story stops at merge with deft-story: N; a solo story completes as today."
+        }
+      },
+      {
+        "title": "Cohort closer. The parent runs `swarm:finalize-cohort -- --pr <list>` with only the merged product PRs of post-merge stories, which opens one lifecycle PR with no changelog fragment (#680 / #6764). It reports each unmerged, omitted or refused story by id, keeps it on its list and finalizes it in a later run. It owns each story through lifecycle-PR merge, then runs `verify:completed-tracked -- --issue N` and `verify:orphan-active -- --issue N` for each.",
+        "status": "proposed",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "When the closer runs swarm:finalize-cohort over merged post-merge PRs, one lifecycle PR with no changelog fragment is opened, each unmerged, omitted or refused story is named by id and stays active, and completed-tracked and orphan-active pass for each completed story."
+        }
+      },
+      {
+        "title": "Lifecycle rule texts change together: the DONE reservation and completion rules in `content/templates/agent-prompt-preamble.md`, the cohort-closer carve-out in `content/templates/agents-entry.md` (DONE rule) and `AGENTS.md` (post-merge scope lifecycle), mirrored per #1309, and in `content/packs/skills/skills-pack-0.1.json` (regenerated) the swarm skill and the build skill, whose swarm-cohort text sends post-merge completion to the cohort closer instead of a `scope:complete` after each story.",
+        "status": "proposed",
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "When the preamble, agents-entry template, AGENTS.md and the swarm and build skill sources are read, each sends cohort post-merge completion to the cohort closer, the pack source and rendered skills agree, and agents:refresh reports no drift."
+        }
+      },
+      {
+        "title": "Lifecycle tests: an admitted in-PR completion in a cohort opens no lifecycle PR; one `finalizeCohort` run over several `deft-story` PRs completes them in one PR with no fragment that passes `verify:changelog-unreleased`, #5656 scope-cover and closing-keywords; an unmerged PR left off the list stays active and is named in the report.",
+        "status": "proposed",
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "When the lifecycle tests run, an in-PR-completed story opens no lifecycle PR, one finalizeCohort run over several deft-story PRs makes one PR that passes verify:changelog-unreleased, #5656 scope-cover and closing-keywords, and an unlisted unmerged PR stays active and is named."
+        }
+      },
+      {
+        "title": "A cohort story that `scope:complete --in-pr` admits completes in its product PR; the other merged stories complete in one `swarm:finalize-cohort` lifecycle PR with no changelog fragment that passes `verify:changelog-unreleased`, #5656 scope-cover and the closing-keywords check.",
+        "status": "proposed",
+        "id": "clause.5",
+        "narrative": {
+          "Acceptance": "When a cohort finishes, an in-PR-admitted story is completed by its product PR and the other merged stories are completed by one fragment-free lifecycle PR that passes the changelog, scope-cover and closing-keywords checks."
+        }
+      },
+      {
+        "title": "The cohort closer passes only merged PRs, names every unmerged or refused story, and `verify:completed-tracked -- --issue N` and `verify:orphan-active -- --issue N` pass for every story it completes.",
+        "status": "proposed",
+        "id": "clause.6",
+        "narrative": {
+          "Acceptance": "When the closer runs, only merged PRs are completed, every unmerged or refused story is named in the report, and verify:completed-tracked and verify:orphan-active exit 0 for every story it completed."
+        }
+      },
+      {
+        "title": "The preamble, `AGENTS.md`, the agents-entry template and the swarm and build skill sources send a cohort's post-merge completion to the cohort closer, and a solo story keeps the unbatched path.",
+        "status": "proposed",
+        "id": "clause.7",
+        "narrative": {
+          "Acceptance": "When the rule texts are read, the preamble, AGENTS.md, agents-entry template and swarm and build skill sources route cohort post-merge completion to the cohort closer and leave the solo path unchanged."
+        }
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/7082",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #7082: feat(swarm): cohort lifecycle - in-PR completion first, one cohort lifecycle PR (slice of #7062)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/7062",
+        "type": "x-xbrief/refs",
+        "title": "Issue #7062"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "swarm:finalize-cohort -- --pr <list>",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L4"
+        },
+        {
+          "command": "verify:completed-tracked -- --issue N",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L4"
+        },
+        {
+          "command": "verify:orphan-active -- --issue N",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L4"
+        },
+        {
+          "command": "deft-story",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L6"
+        },
+        {
+          "command": "scope:complete --in-pr",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L7"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/swarm/finalize-cohort.ts",
+          "packages/core/src/swarm/finalize-cohort-cli.ts",
+          "packages/core/src/swarm/finalize-cohort-batch-7082.test.ts",
+          "packages/core/src/swarm/finalize-cohort.test.ts",
+          "packages/core/src/scope/transition-in-pr.test.ts",
+          "packages/core/src/content-contracts/standards/cohort_lifecycle_7082.test.ts",
+          "packages/core/src/content-contracts/skills/agents_entry_contract.test.ts",
+          "packages/core/src/content-contracts/skills/agent_prompt_preamble_template.test.ts",
+          "content/templates/agent-prompt-preamble.md",
+          "content/templates/agents-entry.md",
+          "AGENTS.md",
+          "content/packs/skills/skills-pack-0.1.json",
+          "content/skills/deft-directive-swarm/SKILL.md",
+          "content/skills/deft-directive-build/SKILL.md",
+          "content/skills/deft-directive-swarm/references/core-phase-0.md",
+          "content/skills/deft-directive-swarm/references/core-phase-3.md",
+          "content/skills/deft-directive-swarm/references/core-phase-5-6.md",
+          "content/commands.md",
+          "docs/RULE-MAP.md",
+          "xbrief/evaluator-surface-disposition.json",
+          "changelog.d/7082-cohort-lifecycle.md"
+        ],
+        "verify_commands": [
+          "npx vitest run packages/core/src/swarm/finalize-cohort-batch-7082.test.ts packages/core/src/scope/transition-in-pr.test.ts",
+          "npx vitest run packages/core/src/content-contracts/standards/cohort_lifecycle_7082.test.ts packages/core/src/content-contracts/skills/agents_entry_contract.test.ts"
+        ],
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "depends_on": [],
+        "expected_outputs": [
+          "one finalize-cohort run completes several merged deft-story PRs in one lifecycle PR with no changelog fragment; in-PR-completed stories open no lifecycle PR",
+          "the finalize report names each unmerged, omitted or refused story by id and leaves it active",
+          "preamble, AGENTS.md, agents-entry and swarm/build skill text route cohort post-merge completion to the cohort closer"
+        ],
+        "conflict_group": "cohort-lifecycle-7062",
+        "model_tier": "strong",
+        "acceptance_criteria_justification": "Seven clauses because the slice harvest is fixed by the accepted lean: four Bound remedy items and three Acceptance Criteria of the cohort-lifecycle slice. Each binds to one of two test files."
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueBody": "Slice 1 of #7062 (build first). Scope is the `cohort-lifecycle` slice of the accepted lean on #7062 (comment 7082701528): in-PR completion first for cohort stories, one `swarm:finalize-cohort` lifecycle PR for the rest, and the preamble, agent rules and swarm/build skill text that send post-merge completion to the cohort closer.\n\nAcceptance comes from the lean slice at ingest, not from this body.\n\nRefs #7062\n\ndeft-slice: #7062 cohort-lifecycle\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6547311015,
+        "origin": "deftai/directive#7082",
+        "id": "github.issue.6547311015"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "e4bfa306f0c8c0a2ce718e5bb528bf27d042a42be5527853d1514e4f1d2ed3b7"
+      },
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 7062,
+        "leanCommentId": 7082701528,
+        "harvestDigest": "5b6020381d230a41ed3bea3538be539db8e6a473ee8b805ebf6cf5313e71116c",
+        "slice": "cohort-lifecycle"
+      },
+      "kind": "story"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per harvested lean item (7), in list order (#6333)",
+      "sentences": [
+        "In-PR completion first. In a cohort, a worker whose story `scope:complete -- <active-path> --in-pr` admits (#6277) completes it in its product PR with the closing keyword that verb requires; that story needs no lifecycle PR. A worker whose story the verb refuses stops at product merge with `deft-story: N` and leaves completion to the cohort closer. A solo story keeps today's worker-owned completion.",
+        "Cohort closer. The parent runs `swarm:finalize-cohort -- --pr <list>` with only the merged product PRs of post-merge stories, which opens one lifecycle PR with no changelog fragment (#680 / #6764). It reports each unmerged, omitted or refused story by id, keeps it on its list and finalizes it in a later run. It owns each story through lifecycle-PR merge, then runs `verify:completed-tracked -- --issue N` and `verify:orphan-active -- --issue N` for each.",
+        "Lifecycle rule texts change together: the DONE reservation and completion rules in `content/templates/agent-prompt-preamble.md`, the cohort-closer carve-out in `content/templates/agents-entry.md` (DONE rule) and `AGENTS.md` (post-merge scope lifecycle), mirrored per #1309, and in `content/packs/skills/skills-pack-0.1.json` (regenerated) the swarm skill and the build skill, whose swarm-cohort text sends post-merge completion to the cohort closer instead of a `scope:complete` after each story.",
+        "Lifecycle tests: an admitted in-PR completion in a cohort opens no lifecycle PR; one `finalizeCohort` run over several `deft-story` PRs completes them in one PR with no fragment that passes `verify:changelog-unreleased`, #5656 scope-cover and closing-keywords; an unmerged PR left off the list stays active and is named in the report.",
+        "A cohort story that `scope:complete --in-pr` admits completes in its product PR; the other merged stories complete in one `swarm:finalize-cohort` lifecycle PR with no changelog fragment that passes `verify:changelog-unreleased`, #5656 scope-cover and the closing-keywords check.",
+        "The cohort closer passes only merged PRs, names every unmerged or refused story, and `verify:completed-tracked -- --issue N` and `verify:orphan-active -- --issue N` pass for every story it completes.",
+        "The preamble, `AGENTS.md`, the agents-entry template and the swarm and build skill sources send a cohort's post-merge completion to the cohort closer, and a solo story keeps the unbatched path."
+      ],
+      "admitted_source_sentences": [
+        "In-PR completion first. In a cohort, a worker whose story `scope:complete -- <active-path> --in-pr` admits (#6277) completes it in its product PR with the closing keyword that verb requires; that story needs no lifecycle PR. A worker whose story the verb refuses stops at product merge with `deft-story: N` and leaves completion to the cohort closer. A solo story keeps today's worker-owned completion.",
+        "Cohort closer. The parent runs `swarm:finalize-cohort -- --pr <list>` with only the merged product PRs of post-merge stories, which opens one lifecycle PR with no changelog fragment (#680 / #6764). It reports each unmerged, omitted or refused story by id, keeps it on its list and finalizes it in a later run. It owns each story through lifecycle-PR merge, then runs `verify:completed-tracked -- --issue N` and `verify:orphan-active -- --issue N` for each.",
+        "Lifecycle rule texts change together: the DONE reservation and completion rules in `content/templates/agent-prompt-preamble.md`, the cohort-closer carve-out in `content/templates/agents-entry.md` (DONE rule) and `AGENTS.md` (post-merge scope lifecycle), mirrored per #1309, and in `content/packs/skills/skills-pack-0.1.json` (regenerated) the swarm skill and the build skill, whose swarm-cohort text sends post-merge completion to the cohort closer instead of a `scope:complete` after each story.",
+        "Lifecycle tests: an admitted in-PR completion in a cohort opens no lifecycle PR; one `finalizeCohort` run over several `deft-story` PRs completes them in one PR with no fragment that passes `verify:changelog-unreleased`, #5656 scope-cover and closing-keywords; an unmerged PR left off the list stays active and is named in the report.",
+        "A cohort story that `scope:complete --in-pr` admits completes in its product PR; the other merged stories complete in one `swarm:finalize-cohort` lifecycle PR with no changelog fragment that passes `verify:changelog-unreleased`, #5656 scope-cover and the closing-keywords check.",
+        "The cohort closer passes only merged PRs, names every unmerged or refused story, and `verify:completed-tracked -- --issue N` and `verify:orphan-active -- --issue N` pass for every story it completes.",
+        "The preamble, `AGENTS.md`, the agents-entry template and the swarm and build skill sources send a cohort's post-merge completion to the cohort closer, and a solo story keeps the unbatched path."
+      ],
+      "admitted_source_digest": "e221efe44c57f0838e76b25e5492b7547e38103a5d0bc8ff13c1195d59a62641",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "In-PR completion first. In a cohort, a worker whose story `scope:complete -- <active-path> --in-pr` admits (#6277) completes it in its product PR with the closing keyword that verb requires; that story needs no lifecycle PR. A worker whose story the verb refuses stops at product merge with `deft-story: N` and leaves completion to the cohort closer. A solo story keeps today's worker-owned completion.",
+          "artifact_path": "packages/core/src/swarm/finalize-cohort-batch-7082.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Cohort closer. The parent runs `swarm:finalize-cohort -- --pr <list>` with only the merged product PRs of post-merge stories, which opens one lifecycle PR with no changelog fragment (#680 / #6764). It reports each unmerged, omitted or refused story by id, keeps it on its list and finalizes it in a later run. It owns each story through lifecycle-PR merge, then runs `verify:completed-tracked -- --issue N` and `verify:orphan-active -- --issue N` for each.",
+          "artifact_path": "packages/core/src/swarm/finalize-cohort-batch-7082.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Lifecycle rule texts change together: the DONE reservation and completion rules in `content/templates/agent-prompt-preamble.md`, the cohort-closer carve-out in `content/templates/agents-entry.md` (DONE rule) and `AGENTS.md` (post-merge scope lifecycle), mirrored per #1309, and in `content/packs/skills/skills-pack-0.1.json` (regenerated) the swarm skill and the build skill, whose swarm-cohort text sends post-merge completion to the cohort closer instead of a `scope:complete` after each story.",
+          "artifact_path": "packages/core/src/content-contracts/standards/cohort_lifecycle_7082.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Lifecycle tests: an admitted in-PR completion in a cohort opens no lifecycle PR; one `finalizeCohort` run over several `deft-story` PRs completes them in one PR with no fragment that passes `verify:changelog-unreleased`, #5656 scope-cover and closing-keywords; an unmerged PR left off the list stays active and is named in the report.",
+          "artifact_path": "packages/core/src/swarm/finalize-cohort-batch-7082.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "A cohort story that `scope:complete --in-pr` admits completes in its product PR; the other merged stories complete in one `swarm:finalize-cohort` lifecycle PR with no changelog fragment that passes `verify:changelog-unreleased`, #5656 scope-cover and the closing-keywords check.",
+          "artifact_path": "packages/core/src/swarm/finalize-cohort-batch-7082.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "The cohort closer passes only merged PRs, names every unmerged or refused story, and `verify:completed-tracked -- --issue N` and `verify:orphan-active -- --issue N` pass for every story it completes.",
+          "artifact_path": "packages/core/src/swarm/finalize-cohort-batch-7082.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "The preamble, `AGENTS.md`, the agents-entry template and the swarm and build skill sources send a cohort's post-merge completion to the cohort closer, and a solo story keeps the unbatched path.",
+          "artifact_path": "packages/core/src/content-contracts/standards/cohort_lifecycle_7082.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.6547311015",
+    "updated": "2026-11-22T20:29:22Z"
+  }
+}
