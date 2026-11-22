@@ -3,6 +3,7 @@
  * OS temp directory; the class's own temp and home anchors are seams so each
  * case controls exactly which directory is "temp" and which is "home".
  */
+import { execFileSync } from "node:child_process";
 import {
   linkSync,
   lstatSync,
@@ -16,7 +17,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   allTargetsOutsideEveryCheckout,
@@ -527,6 +528,116 @@ describe("original target spelling (#6376 round 3)", () => {
     expect(targetsKeepOriginalSpelling(body("*** Update File: /tmp/a "), ["/tmp/a"])).toBe(false);
     expect(targetsKeepOriginalSpelling(body("*** Add File:  /tmp/a"), ["/tmp/a"])).toBe(false);
     expect(targetsKeepOriginalSpelling(body("*** Move to: /tmp/a"), ["/tmp/a"])).toBe(true);
+  });
+});
+
+describe("the checkout folder (#6871)", () => {
+  function git(cwd: string, args: readonly string[]): void {
+    execFileSync("git", [...args], { cwd, encoding: "utf8", stdio: "pipe" });
+  }
+
+  function initRepo(dir: string): void {
+    mkdirSync(dir, { recursive: true });
+    git(dir, ["init", "-q"]);
+    git(dir, ["config", "user.email", "t@t.dev"]);
+    git(dir, ["config", "user.name", "t"]);
+    git(dir, ["commit", "--allow-empty", "-q", "-m", "base"]);
+  }
+
+  /** `<folder>/main` is the main worktree; `<folder>/wt` is a plain folder. */
+  function checkout(folderName = "checkouts"): { folder: string; main: string; wt: string } {
+    const folder = join(base, folderName);
+    const main = join(folder, "main");
+    const wt = join(folder, "wt");
+    initRepo(main);
+    mkdirSync(wt, { recursive: true });
+    return { folder, main, wt };
+  }
+
+  function classifyAt(root: string, target: string, env: NodeJS.ProcessEnv = {}) {
+    return classifyOutsideEveryCheckoutTarget(root, target, env, seams());
+  }
+
+  it("admits a plain folder beside the main worktree, from the main or a linked worktree", () => {
+    const { main, wt } = checkout();
+    expect(classifyAt(main, join(wt, "notes.md"))).toEqual({ inClass: true });
+    const linked = join(wt, "story");
+    git(main, ["worktree", "add", "--detach", "-q", linked]);
+    expect(classifyAt(linked, join(wt, "notes.md"))).toEqual({ inClass: true });
+  });
+
+  it("skips the name rule only for the checkout folder's own components", () => {
+    const { folder, main, wt } = checkout("deft-checkouts");
+    expect(classifyAt(main, join(wt, "notes.md"))).toEqual({ inClass: true });
+    for (const below of [".deft-scratch", "deft-state", "directive-notes"]) {
+      const verdict = classifyAt(main, join(folder, below, "x"));
+      expect(verdict, below).toMatchObject({ inClass: false });
+      expect(JSON.stringify(verdict)).toContain("deft or directive");
+    }
+  });
+
+  it("keeps every other rule inside the checkout folder", () => {
+    const { folder, main, wt } = checkout();
+    const marked = join(folder, "marked");
+    mkdirSync(join(marked, ".deft"), { recursive: true });
+    expect(classifyAt(main, join(marked, "x.md")).inClass).toBe(false);
+    const gitAncestor = join(folder, "gitted");
+    mkdirSync(join(gitAncestor, ".git"), { recursive: true });
+    expect(classifyAt(main, join(gitAncestor, "x.md")).inClass).toBe(false);
+    const other = join(folder, "other-repo");
+    initRepo(other);
+    expect(classifyAt(main, join(other, "x.md")).inClass).toBe(false);
+    expect(classifyAt(main, join(wt, "n.md"), { DEFT_STATE: wt }).inClass).toBe(false);
+    expect(classifyAt(main, join(main, "x.md")).inClass).toBe(false);
+  });
+
+  it("has no checkout folder when the payload root is not a repository", () => {
+    const { wt } = checkout();
+    const verdict = classifyAt(payload, join(wt, "notes.md"));
+    expect(verdict).toMatchObject({ inClass: false });
+    expect(JSON.stringify(verdict)).toContain("nor in the checkout folder");
+  });
+
+  it("has no checkout folder for a bare repository", () => {
+    const { main } = checkout();
+    const bareRepo = join(base, "bare-host", "repo.git");
+    mkdirSync(join(base, "bare-host"), { recursive: true });
+    git(base, ["clone", "-q", "--bare", main, bareRepo]);
+    const linked = join(base, "bare-host", "linked");
+    git(bareRepo, ["worktree", "add", "--detach", "-q", linked]);
+    const verdict = classifyAt(linked, join(base, "bare-host", "notes.md"));
+    expect(verdict).toMatchObject({ inClass: false });
+    expect(JSON.stringify(verdict)).toContain("nor in the checkout folder");
+  });
+
+  it("has no checkout folder when the main worktree's parent is a filesystem root", () => {
+    const rootCommon = resolve("/.git");
+    const verdict = classifyOutsideEveryCheckoutTarget(
+      payload,
+      join(base, "elsewhere", "n.md"),
+      {},
+      seams({
+        realpath: (p) => (p === rootCommon ? p : realpathSync.native(p)),
+        runGit: (_cwd, args) =>
+          args.includes("--git-common-dir")
+            ? { code: 0, stdout: `${rootCommon}\n`, stderr: "" }
+            : args.includes("--is-bare-repository")
+              ? { code: 0, stdout: "false\n", stderr: "" }
+              : { code: 128, stdout: "", stderr: "fatal: not a git repository" },
+      }),
+    );
+    expect(verdict).toMatchObject({ inClass: false });
+    expect(JSON.stringify(verdict)).toContain("nor in the checkout folder");
+  });
+
+  it("keeps today's rules when the checkout folder is inside a home directory", () => {
+    const folder = join(home, "deft-src");
+    const main = join(folder, "main");
+    initRepo(main);
+    mkdirSync(join(folder, "wt"), { recursive: true });
+    const verdict = classifyAt(main, join(folder, "wt", "n.md"));
+    expect(verdict).toMatchObject({ inClass: false });
+    expect(JSON.stringify(verdict)).toContain("deft or directive");
   });
 });
 

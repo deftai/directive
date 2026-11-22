@@ -100,8 +100,15 @@ Code: `packages/core/src/hooks/outside-every-checkout.ts`.
 (the target as given, normalized) and the physical destination (each existing component resolved
 with the native resolver, the missing rest appended unchanged). Both paths must pass every rule:
 
-1. **Positive location.** Inside the physical OS temp directory, or inside a home directory (the
-   OS home directory, `HOME`, `USERPROFILE`).
+1. **Positive location.** Inside the physical OS temp directory, inside a home directory (the
+   OS home directory, `HOME`, `USERPROFILE`), or inside the **checkout folder** (#6871): the
+   parent of the payload repository's main worktree. The main worktree is the folder that holds
+   the common directory `git rev-parse --git-common-dir` reports for the payload root, compared in
+   physical form. There is no checkout folder when the payload root is not a repository, the
+   lookup fails, the repository is bare (its common directory is not a `.git` folder of a
+   non-bare repository), or the parent is a filesystem or drive root. `git worktree list` is not
+   read, so a worktree registration cannot add a location. A path inside temp or a home directory
+   keeps those rules exactly, even when it is also inside the checkout folder.
 2. **Not a configuration area.** A configuration area is a directory directly under a home
    directory whose name starts with a dot or is `Library` or `AppData` (any letter case), or a
    directory named by `APPDATA`, `LOCALAPPDATA` or an `XDG_*` base directory variable. When a path
@@ -111,7 +118,10 @@ with the native resolver, the missing rest appended unchanged). Both paths must 
    Git toplevel lookup that ran and reported no
    repository, and outside the payload root (`isOutsideProjectRootWrite`).
 4. **Exclusions** (any letter case): a component that contains `deft` or `directive` or is named
-   `.git`; a path equal to or inside a path named by any `DEFT_*` or `DIRECTIVE_*` variable or by
+   `.git` (for a path in the checkout folder and not in temp or a home directory, the
+   `deft`/`directive` part skips only the components of the checkout folder's own path and reads
+   every component below it, so `<folder>/.deft-scratch/x` stays out; the `.git` part and every
+   other rule read the whole path); a path equal to or inside a path named by any `DEFT_*` or `DIRECTIVE_*` variable or by
    `OPENCLAW_STATE_DIR`, `CODEX_HOME`, `GH_CONFIG_DIR`, `PNPM_HOME`, `GIT_DIR`, `GIT_WORK_TREE`,
    `GITHUB_EVENT_PATH`, `GITHUB_STEP_SUMMARY`; a path inside a `PATH` directory; a path inside the
    running Directive runtime package. Each excluded value is compared in its typed form and in the
@@ -152,9 +162,10 @@ class is also allowed under requirements posture.
 
 **What this gives up, on purpose.** Before #6376 a session with no valid ritual could not use Write
 or Edit on a file in the OS temp directory or an ordinary home folder; now it can. Shell writes to
-the same files never needed a ritual. A file in a configuration area (for example an agent memory
-folder under a host's dot-folder) and a folder outside the home and temp directories stay judged
-as before. A link created between the check and the write is not caught (the same check/use
+the same files never needed a ritual. Since #6871 the same holds for a plain folder beside the
+main checkout (for example the folder that holds this repository's linked worktrees). A file in a
+configuration area (for example an agent memory folder under a host's dot-folder) and a folder
+outside the home, temp and checkout folders stay judged as before. A link created between the check and the write is not caught (the same check/use
 residual as #3953).
 
 **Naming rule for Directive code.** A file or folder that Directive keeps outside a checkout has

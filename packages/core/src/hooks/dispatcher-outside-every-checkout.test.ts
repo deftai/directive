@@ -229,6 +229,52 @@ describe("the gates that still run on a write in the class (#6376)", () => {
   });
 });
 
+describe("the checkout folder joins the class (#6871)", () => {
+  it("allows a Write to a plain folder beside the main worktree under a stale ritual", () => {
+    const plain = join(base, "repos", "wt");
+    mkdirSync(plain, { recursive: true });
+    const { ritualRoots, seams } = staleSeams();
+    const decision = decideHook(write(join(plain, "notes.md")), seams);
+    expect(decision).toMatchObject({ verdict: "allow", code: OUTSIDE_EVERY_CHECKOUT_READY_CODE });
+    expect(ritualRoots).toEqual([]);
+  });
+
+  it("allows it when the checkout folder itself has a deft component", () => {
+    const folder = join(base, "deft-repos");
+    const main = join(folder, "main");
+    initRepo(main);
+    mkdirSync(join(folder, "wt"), { recursive: true });
+    const { seams } = staleSeams();
+    const input = write(join(folder, "wt", "notes.md"));
+    const decision = decideHook(
+      { ...input, projectRoot: main, payload: { ...input.payload, cwd: main } },
+      seams,
+    );
+    expect(decision).toMatchObject({ verdict: "allow", code: OUTSIDE_EVERY_CHECKOUT_READY_CODE });
+  });
+
+  it("judges Directive-named, marked and repository paths in the folder as today", () => {
+    const repos = join(base, "repos");
+    const marked = join(repos, "marked");
+    mkdirSync(join(marked, ".deft"), { recursive: true });
+    for (const target of [
+      join(repos, ".deft-scratch", "x"),
+      join(repos, "deft-state", "x"),
+      join(marked, "x.md"),
+      join(primary, "x.md"),
+    ]) {
+      const { seams } = staleSeams();
+      const decision = decideHook(write(target), seams);
+      expect(decision, target).toMatchObject({ verdict: "deny", code: "ritual-not-ready" });
+    }
+    const env = { DEFT_SESSION_ID: "owner", DEFT_STATE_DIR: join(repos, "state") };
+    const named = decideHook(write(join(repos, "state", "x.md"), env), staleSeams().seams);
+    expect(named.code).not.toBe(OUTSIDE_EVERY_CHECKOUT_READY_CODE);
+    const inForeign = decideHook(write(join(foreign, "x.md")), staleSeams().seams);
+    expect(inForeign.code).not.toBe(OUTSIDE_EVERY_CHECKOUT_READY_CODE);
+  });
+});
+
 describe("writes out of the class are judged as today (#6376)", () => {
   it("denies a target inside the payload root on the stale ritual", () => {
     const { ritualRoots, seams } = staleSeams();
