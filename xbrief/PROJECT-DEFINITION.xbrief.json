@@ -742,32 +742,6 @@
         }
       },
       {
-        "id": "2026-11-18-6609-bugingest-the-derived-acceptance-rung-turns-every-prose-sent",
-        "title": "bug(ingest): the derived acceptance rung turns every prose sentence of an issue into a clause, even when the body has an explicit Acceptance Criteria list",
-        "status": "running",
-        "metadata": {
-          "source_path": "active/2026-11-18-6609-bugingest-the-derived-acceptance-rung-turns-every-prose-sent.xbrief.json",
-          "lifecycle_folder": "active",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/6609",
-              "type": "x-xbrief/github-issue",
-              "title": "Issue #6609: bug(ingest): the derived acceptance rung turns every prose sentence of an issue into a clause, even when the body has an explicit Acceptance Criteria list"
-            },
-            {
-              "uri": "https://github.com/deftai/directive/issues/6594",
-              "type": "x-xbrief/refs",
-              "title": "Issue #6594"
-            },
-            {
-              "uri": "https://github.com/deftai/directive/issues/6599",
-              "type": "x-xbrief/refs",
-              "title": "Issue #6599"
-            }
-          ]
-        }
-      },
-      {
         "id": "2026-11-18-6643-bugscope-a-story-bound-worktree-cannot-edit-its-own-brief-an",
         "title": "bug(scope): a story-bound worktree cannot edit its own brief, and an arced issue's criteria have no correction path",
         "status": "running",
