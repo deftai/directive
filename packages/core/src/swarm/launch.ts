@@ -462,7 +462,7 @@ export type WorktreeResolverFn = (
  * unreadable or malformed map yields no rows here; the later map resolution
  * reports it as today.
  */
-export function worktreeMapRowBases(mapPath: string | null | undefined): Map<string, string> {
+function worktreeMapRowBases(mapPath: string | null | undefined): Map<string, string> {
   const out = new Map<string, string>();
   if (mapPath === undefined || mapPath === null || mapPath.length === 0) return out;
   let payload: unknown;
@@ -536,6 +536,7 @@ function crossGroupClash(
   }
   return null;
 }
+
 export type RuntimeAuthProbeFn = () => [string, string];
 export type OccupancyReleaseFn = typeof releaseOccupancy;
 

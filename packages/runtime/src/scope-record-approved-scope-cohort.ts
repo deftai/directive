@@ -9,7 +9,7 @@
  * is display metadata, never authority.
  */
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, readFileSync, realpathSync, rmSync } from "node:fs";
 import { resolve } from "node:path";
 import { containedWrite, scopeProvenance, slice } from "@deftai/directive-core";
 
@@ -121,8 +121,8 @@ export function acceptanceLines(payload: unknown): string[] {
   return out;
 }
 
-/** Repo-relative posix path of `abs` under `root`, or null when it escapes. */
-function relUnder(root: string, abs: string): string | null {
+/** Lexical posix path of `abs` under `root`, or null when it is not below it. */
+function lexicalRel(root: string, abs: string): string | null {
   const r = resolve(root).replace(/\\/g, "/").replace(/\/+$/, "");
   const a = resolve(abs).replace(/\\/g, "/");
   const fold = process.platform === "win32";
@@ -130,6 +130,23 @@ function relUnder(root: string, abs: string): string | null {
   const ac = fold ? a.toLowerCase() : a;
   if (!ac.startsWith(`${rc}/`)) return null;
   return a.slice(r.length + 1);
+}
+
+/**
+ * Repo-relative posix path of `abs` under `root`, or null when it escapes,
+ * lexically or through a symlink (as the single-brief mint refuses, #3205).
+ */
+function relUnder(root: string, abs: string): string | null {
+  const rel = lexicalRel(root, abs);
+  if (rel === null) return null;
+  try {
+    if (existsSync(abs) && lexicalRel(realpathSync(root), realpathSync(abs)) === null) {
+      return null;
+    }
+  } catch {
+    return null;
+  }
+  return rel;
 }
 
 /** True when an existing record binds the same brief, scope, intent and auth-hash. */
