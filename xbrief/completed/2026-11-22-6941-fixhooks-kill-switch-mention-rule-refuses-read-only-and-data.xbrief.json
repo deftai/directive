@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6941",
-    "updated": "2026-11-22T03:41:12Z"
+    "updated": "2026-11-22T05:18:38Z"
   },
   "plan": {
     "title": "fix(hooks): kill-switch mention rule refuses read-only and data-only commands that name the flag file",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "fix(hooks): kill-switch mention rule refuses read-only and data-only commands that name the flag file",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6941",
@@ -17,73 +17,171 @@
     "items": [
       {
         "title": "Plain reads. `PLAIN_READ_BINS` gains `cut`, `tr`, `nl`, `jq`, `sort` and `sed`; `PLAIN_READ_GIT_SUBCOMMANDS` gains `grep`. Unsafe options: `sort`: `-o`, `--output`, `--compress-program`; `git grep`: `-o` (the text is lowercased, so `-O` is caught), `--open-files-in-pager`, `--textconv`; `rg`: `--pre`, `--hostname-bin`; `file`: `-c`, `--compile`; `less`: `-o`, `-k`, `--log-file`, `--lesskey-file`; `more`: `-o`. `sed` is a plain read only when every option word is exactly one of `-n`, `--quiet`, `--silent`, `-e`, `--expression`, `-r`, `-z`, `-u`, `-s` (any other spelling, abbreviation or attached value fails) and every script is a line-range print (`N`, `N,M`, `$` or `N,$`, then `p`).",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2424c40be9aae2f639d1fa2c7142312f1ac64fba",
+          "recorded_at": "2026-11-22T05:18:38Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "One unsafe-option test, replacing the exact-word match in `usesUnsafeReadFlag` for every reader with unsafe options. It reads every word of the segment after the program name, a lone `--` and every word after it included. A short unsafe option `-x` matches any word that starts with a single `-` and holds the letter `x` anywhere after it. A long unsafe option `--name` matches any word that starts with `--` when the text after `--`, up to the first `=` if any, is a non-empty prefix of `name`. So `-o<file>`, `-uo<file>`, `--o=<file>`, `--o`, `--out` and `--output=<file>` all match.",
-        "status": "proposed",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2424c40be9aae2f639d1fa2c7142312f1ac64fba",
+          "recorded_at": "2026-11-22T05:18:38Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "`xargs`. An `xargs` segment counts as a plain read only when every word between `xargs` and the program is on this closed list, matched exactly after normalization: `-0`, `--null`, `-r`, `--no-run-if-empty`, `-t`, `--verbose`, `-n` followed by a separate all-digit word, `-n` with all digits attached, `--max-args=` with all digits, and `--max-args` followed by a separate all-digit word. Any other word that starts with `-` before the program (another option, a cluster such as `-0r`, an abbreviation such as `--nu`, `--arg-file` or `-a`, or a lone `--`) means the segment is not a plain read. `XARGS_VALUE_OPTIONS` is replaced by this list; the guard never guesses whether an unknown option takes a value. Behind `xargs`, `sort`, `sed`, `git`, `file`, `less`, `more` and `rg` never count as plain reads; `cat`, `grep`, `head`, `cut`, `jq` and the other flag-free readers keep counting.",
-        "status": "proposed",
-        "id": "clause.3"
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2424c40be9aae2f639d1fa2c7142312f1ac64fba",
+          "recorded_at": "2026-11-22T05:18:38Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Heredoc data. In the mention test, the body of a quoted-delimiter heredoc is not a mention when all of these hold: its command is `cat` with exactly one `>` or `>>` redirect, or `tee` with an optional `-a` and one or more operands; every destination is a literal path (no `$`, backtick, glob character, `<(` or `>(`, and not `-`); no destination mentions the flag; and that command is the only command in the call (no pipe, no `;`, `&&`, `||`, `&` or newline-separated second command, and no `$(`, backtick, `<(` or `>(` outside the removed body). These checks read the raw call with the heredoc body removed; a quoted or escaped separator anywhere outside the body fails the rule. Otherwise the body is read as today. An unquoted heredoc body is always read as today.",
-        "status": "proposed",
-        "id": "clause.4"
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2424c40be9aae2f639d1fa2c7142312f1ac64fba",
+          "recorded_at": "2026-11-22T05:18:38Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Routing text. The kill-switch deny for a shell command adds one sentence: to edit a scratch file whose text names the flag, use the Edit or Write tool, which checks the target's name rather than its contents; other write checks still apply.",
-        "status": "proposed",
-        "id": "clause.5"
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2424c40be9aae2f639d1fa2c7142312f1ac64fba",
+          "recorded_at": "2026-11-22T05:18:38Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Docs. `content/docs/deft-directive-disable.md` (agent self-serve ban section) states the plain reads, the option test, the `xargs` rule, the heredoc rule and the Edit/Write route, each with its limit.",
-        "status": "proposed",
-        "id": "clause.6"
+        "status": "completed",
+        "id": "clause.6",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2424c40be9aae2f639d1fa2c7142312f1ac64fba",
+          "recorded_at": "2026-11-22T05:18:38Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "One PR, with tests beside `classify.ts`. No new verb, flag, policy field or stored file.",
-        "status": "proposed",
-        "id": "clause.7"
+        "status": "completed",
+        "id": "clause.7",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2424c40be9aae2f639d1fa2c7142312f1ac64fba",
+          "recorded_at": "2026-11-22T05:18:38Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given a command that names the flag file and is `git grep -n <flag> HEAD -- p | cut -c1-200`, `grep -rn <flag> p | sort -u`, `sed -n 1,20p a.md | grep <flag>`, or `grep <flag> a | tr a b | nl | jq -R .`, then the mention rule allows it.",
-        "status": "proposed",
-        "id": "clause.8"
+        "status": "completed",
+        "id": "clause.8",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2424c40be9aae2f639d1fa2c7142312f1ac64fba",
+          "recorded_at": "2026-11-22T05:18:38Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given `sort -o <flag> x`, `sort -o<flag> x`, `sort -uo<flag> x`, `sort --out=<flag> x`, `sort --o=<flag> x`, `sort --o <flag> x`, `sort -T -- -o<flag> /dev/null`, `sort -T ';cat' -o<flag> /dev/null`, `sort -T '|cat' -o<flag> /dev/null`, `sort -T '&cat' -o<flag> /dev/null`, `sort -T \\;cat -o<flag> /dev/null`, a `sort -T` whose quoted value holds a line break before `cat -o<flag>`, `sort -T $'\\x3bcat' -o<flag> /dev/null`, `sort --compress=sh x <flag>`, `git grep -O <flag>`, `git grep --open=sh <flag>`, `git grep --textconv <flag>`, `less -o<flag> f`, `rg --hostname-bin=x <flag>`, `printf '%s\\n' -o <flag> /dev/null | xargs sort`, `xargs less -o <flag>`, `sed -n 'w <flag>' a`, `sed -i s/a/b/ <flag>`, `cut -c1 /dev/null | xargs --arg-file cat touch <flag>`, `echo x | xargs -a cat touch <flag>`, `echo x | xargs --a cat touch <flag>`, `echo x | xargs -i cat touch <flag>`, `echo x | xargs -p cat touch <flag>`, `echo x | xargs -0r cat <flag>`, `echo x | xargs -n x cat <flag>`, or a `sed -i` whose script names the flag, then the mention rule refuses.",
-        "status": "proposed",
-        "id": "clause.9"
+        "status": "completed",
+        "id": "clause.9",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2424c40be9aae2f639d1fa2c7142312f1ac64fba",
+          "recorded_at": "2026-11-22T05:18:38Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given `grep -l <flag> p | xargs -0 -r -n 1 cat` or `grep -l <flag> p | xargs --null --max-args=2 grep x`, then the mention rule allows it.",
-        "status": "proposed",
-        "id": "clause.10"
+        "status": "completed",
+        "id": "clause.10",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2424c40be9aae2f639d1fa2c7142312f1ac64fba",
+          "recorded_at": "2026-11-22T05:18:38Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given `cat > /tmp/b.md <<'EOF'` or `tee -a /tmp/b.md <<'EOF'` whose body names the flag, as the only command in the call, then the mention rule allows it.",
-        "status": "proposed",
-        "id": "clause.11"
+        "status": "completed",
+        "id": "clause.11",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2424c40be9aae2f639d1fa2c7142312f1ac64fba",
+          "recorded_at": "2026-11-22T05:18:38Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given the same body with `tee >(sh)`, `cat <<'EOF' | sh`, an unquoted delimiter, a destination holding `$`, a destination that names the flag, or any second command in the call (including `rg --hostname-bin=/tmp/h x /dev/null` or `cat /tmp/b.md`), then the mention rule refuses.",
-        "status": "proposed",
-        "id": "clause.12"
+        "status": "completed",
+        "id": "clause.12",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2424c40be9aae2f639d1fa2c7142312f1ac64fba",
+          "recorded_at": "2026-11-22T05:18:38Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given a shell command refused by the mention rule, then the deny text names the Edit and Write tools as the route for a scratch file whose text names the flag.",
-        "status": "proposed",
-        "id": "clause.13"
+        "status": "completed",
+        "id": "clause.13",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2424c40be9aae2f639d1fa2c7142312f1ac64fba",
+          "recorded_at": "2026-11-22T05:18:38Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given `content/docs/deft-directive-disable.md`, then it states each rule above and its limit.",
-        "status": "proposed",
-        "id": "clause.14"
+        "status": "completed",
+        "id": "clause.14",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "2424c40be9aae2f639d1fa2c7142312f1ac64fba",
+          "recorded_at": "2026-11-22T05:18:38Z",
+          "recorded_by": "scope:complete"
+        }
       }
     ],
     "tags": [
@@ -667,6 +765,36 @@
         "leanCommentId": 7070849780,
         "harvestDigest": "c1fd37e2fbfcd36620451ff4c65b9de90f3e608c59f791be66b0b3d0c2d7e9d9",
         "slice": null
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "00c8abf58e4a840254c258b52ecb468a137a0f90",
+        "prNumber": 6998,
+        "prBase": "master",
+        "mergeCommit": "2424c40be9aae2f639d1fa2c7142312f1ac64fba",
+        "deliveryBranch": "master",
+        "deliveryCommit": "8d15ebbc608026e86863ce2db213e9d462c5def9",
+        "verifiedAt": "2026-11-22T05:18:38Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:ZTYxMTJjZWUtZTUxNC00NjVlLTk1ZjUtN2QwZDljMmE5OWVl",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          6975,
+          6989
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-22T05:18:38Z",
+      "completedSessionId": "host:claude:v1:ZTYxMTJjZWUtZTUxNC00NjVlLTk1ZjUtN2QwZDljMmE5OWVl",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-22T05:18:38Z"
       }
     },
     "acceptance": {
@@ -810,6 +938,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.6535557561",
-    "updated": "2026-11-22T03:41:12Z"
+    "updated": "2026-11-22T05:18:38Z"
   }
 }
