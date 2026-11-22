@@ -215,3 +215,53 @@ describe("readRunTagState (#6877)", () => {
     expect(runFinish(config(), broken)).toBe(EXIT_CONFIG_ERROR);
   });
 });
+
+describe("run-bound finish: the GitHub release on --resume (#6878)", () => {
+  /** A run-bound finish with Steps 12 and 13 on, and `releases` as the REST list. */
+  function withRelease(
+    releases: string | null,
+  ): ReleaseSeams & { calls: string[][]; err: string[] } {
+    const s = seams({ local: M, remote: annotated(M) });
+    const inner = s.spawnText;
+    return {
+      ...s,
+      whichGh: () => "gh",
+      sleep: () => undefined,
+      spawnText: (c, a, o) => {
+        if (a[0] === "api" && a.some((x) => x.includes("/releases"))) {
+          s.calls.push([...a]);
+          return releases === null ? fail("rate limited") : ok(releases);
+        }
+        if (a[0] === "release") {
+          s.calls.push([...a]);
+          return a[1] === "view" ? ok('{"isDraft":true}') : ok();
+        }
+        return inner?.(c, a, o) ?? ok();
+      },
+    };
+  }
+  const releaseCreated = (calls: string[][]): boolean =>
+    calls.some((a) => a[0] === "release" && a[1] === "create");
+  const on = (): ReleaseConfig => ({ ...config(), skipRelease: false });
+
+  it("clause 2: a GitHub release that already exists for the tag is done and is not created again", () => {
+    for (const draft of [true, false]) {
+      const s = withRelease(JSON.stringify([{ tag_name: TAG, draft, id: 1, html_url: "u" }]));
+      expect(runFinish(on(), s)).toBe(EXIT_OK);
+      expect(releaseCreated(s.calls)).toBe(false);
+      expect(s.err.join("")).toContain(`exists for the tag as ${draft ? "draft" : "published"}`);
+    }
+  });
+
+  it("clause 2: with no release for the tag, finish creates the draft from M", () => {
+    const s = withRelease(JSON.stringify([{ tag_name: "v1.1.0", draft: false, id: 2 }]));
+    expect(runFinish(on(), s)).toBe(EXIT_OK);
+    expect(releaseCreated(s.calls)).toBe(true);
+  });
+
+  it("an unreadable release list stops without creating one", () => {
+    const s = withRelease(null);
+    expect(runFinish(on(), s)).toBe(EXIT_VIOLATION);
+    expect(releaseCreated(s.calls)).toBe(false);
+  });
+});

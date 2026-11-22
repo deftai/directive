@@ -12,6 +12,7 @@
  * the cut base, and only the run's grant for `<version>@<tree of M>` counts.
  * The run also reconciles the tag (#6877): a tag left only local on M is
  * pushed, a remote tag on M is done, and a tag on any other commit stops.
+ * A GitHub release that already exists for the tag is done (#6878).
  */
 import {
   CHANGELOG_FILE_REL,
@@ -26,6 +27,7 @@ import {
 } from "../changelog/release-line.js";
 import { defaultRunGh } from "../pr-merge-readiness/gh.js";
 import { evaluateAlwaysOnNamedMergeGate } from "../pr-wait-mergeable/semantic-green.js";
+import { viewRelease } from "../release-publish/gh-api.js";
 import { plainGhEnv } from "../subprocess/plain-gh-env.js";
 import { prependBannerText, prependUpgradeBanner, sectionForVersion } from "./changelog.js";
 import {
@@ -625,6 +627,24 @@ export function runFinish(config: ReleaseConfig, seams: ReleaseSeams = {}): numb
       return EXIT_VIOLATION;
     }
     emitFinish(7, label, `OK (pushed refs/tags/${tag})`);
+  }
+
+  // #6878: under the run a GitHub release that already exists for the tag
+  // (a draft from an earlier finish, or one flipped since) is done; Steps 12
+  // and 13 do not create it again.
+  if (binding !== null && !config.skipRelease) {
+    const [state, , reason] = viewRelease(version, repo, seams);
+    if (state === "gh-error") {
+      releaseStepEmit(12, `GitHub release ${tag}`, `FAIL (${reason})`);
+      return EXIT_VIOLATION;
+    }
+    if (state !== "not-found") {
+      releaseStepEmit(12, `GitHub release ${tag}`, `SKIP (exists for the tag as ${state}; done)`);
+      releaseStepEmit(13, `Verify draft state of ${tag}`, "SKIP (release not created in this run)");
+      process.stderr.write(`Release ${tag} finished from merge commit ${merge.slice(0, 12)}.\n`);
+      emitReleaseDriftReport(config, seams);
+      return EXIT_OK;
+    }
   }
 
   const published = runGithubReleaseSteps(

@@ -17,6 +17,12 @@ import {
   runReleaseRun,
 } from "./run.js";
 import type { ReadinessResult } from "./run-readiness.js";
+import {
+  POST_PUBLISH_FIXTURE_JOB,
+  PROMOTE_LATEST_JOB_PREFIX,
+  type WorkflowJob,
+  type WorkflowRun,
+} from "./run-reconcile.js";
 import { readReleaseRunRecord, releaseRunRecordPath, writeReleaseRunRecord } from "./run-record.js";
 import type { ReleaseConfig, SpawnResult } from "./types.js";
 
@@ -61,6 +67,31 @@ function grant(
   };
 }
 
+const PUBLISH_RUN: WorkflowRun = {
+  id: 10,
+  event: "push",
+  headBranch: `v${V}`,
+  headSha: R,
+  status: "completed",
+  conclusion: "success",
+  createdAt: "2026-11-22T02:00:00Z",
+  url: "https://github.com/o/r/actions/runs/10",
+};
+const PROMOTE_RUN: WorkflowRun = {
+  ...PUBLISH_RUN,
+  id: 20,
+  event: "workflow_dispatch",
+  headBranch: "master",
+  createdAt: "2026-11-22T02:30:00Z",
+  url: "https://github.com/o/r/actions/runs/20",
+};
+const PUBLISH_JOBS: WorkflowJob[] = [
+  { name: POST_PUBLISH_FIXTURE_JOB, status: "completed", conclusion: "success" },
+];
+const PROMOTE_JOBS: WorkflowJob[] = [
+  { name: `${PROMOTE_LATEST_JOB_PREFIX} (#5852)`, status: "completed", conclusion: "success" },
+];
+
 const PUBLISH = grant("g-publish", "release-publish", [`${V}@${T}`, `v${V}@${T}`]);
 const PROMOTE = grant("g-promote", "release-promote-latest", [V, `v${V}`]);
 
@@ -87,6 +118,11 @@ function harness(
   const configs: Record<string, ReleaseConfig> = {};
   let out = "";
   let branch = "master";
+  const world: {
+    release: "draft" | "published";
+    latest: string;
+    dispatchRuns: WorkflowRun[];
+  } = { release: "draft", latest: "1.1.0", dispatchRuns: [] };
   // HEAD is B until the local cut commits R on it.
   let committed = opts.committed ?? false;
   const h: Harness = {
@@ -179,17 +215,33 @@ function harness(
         calls.push("finish");
         return EXIT_OK;
       },
-      waitNpm: () => {
-        calls.push("publish-watch");
-        return EXIT_OK;
+      // #6878: GitHub and npm as the reconciliation reads them.
+      reconcile: {
+        readTagCommit: () => ({ ok: true, sha: R }),
+        listRuns: (_repo, q) => ({
+          ok: true,
+          runs: q.event === "push" ? [PUBLISH_RUN] : world.dispatchRuns,
+        }),
+        listJobs: (_repo, id) => {
+          if (id === PUBLISH_RUN.id) calls.push("publish-watch");
+          return { ok: true, jobs: id === PUBLISH_RUN.id ? PUBLISH_JOBS : PROMOTE_JOBS };
+        },
+        readDistTags: () => ({ ok: true, tags: { maintainer: V, latest: world.latest } }),
+        viewRelease: () => [world.release, null, ""],
+        loadGrant: () => null,
+        sleepMs: () => undefined,
+        nowMs: () => NOW.getTime(),
       },
       flip: (c, id) => {
         configs.flip = c;
         calls.push(`flip ${id}`);
+        world.release = "published";
         return EXIT_OK;
       },
       promote: () => {
         calls.push("promote");
+        world.dispatchRuns = [PROMOTE_RUN];
+        world.latest = V;
         return EXIT_OK;
       },
       listGrants: () => h.grants,
@@ -543,7 +595,14 @@ describe("release:run phase failures (#6876)", () => {
         (h) => ({ ...h.seams, runNode: (args) => (args[1] === "--clear-cut-context" ? 1 : 0) }),
         "finish",
       ],
-      ["npm", (h) => ({ ...h.seams, waitNpm: () => EXIT_VIOLATION }), "publish-watch"],
+      [
+        "npm",
+        (h) => ({
+          ...h.seams,
+          reconcile: { ...h.seams.reconcile, readTagCommit: () => ({ ok: false, reason: "boom" }) },
+        }),
+        "publish-watch",
+      ],
       ["flip", (h) => ({ ...h.seams, flip: () => EXIT_VIOLATION }), "flip"],
       ["promote", (h) => ({ ...h.seams, promote: () => EXIT_VIOLATION }), "promote"],
     ];

@@ -23,9 +23,10 @@
  * `pr:watch` until CLEAN and then with `pr:wait-mergeable-and-merge --wait`,
  * and re-runs a failed required check once per run (run-merge.ts). Under the
  * run the finish step pushes a tag left only local on M and stops on a tag on
- * any other commit. Still out of scope: reconciliation of npm, release and
- * promote state on `--resume`, and the runbook (#6878). `--resume` continues
- * at the first phase the run record has not completed.
+ * any other commit. Publish watch, draft flip and promote (#6878, S5) decide
+ * from what GitHub and npm show on every run and `--resume` (run-reconcile.ts):
+ * a done step is never redone and anything they cannot place stops the run.
+ * `--resume` continues at the first phase the run record has not completed.
  */
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
@@ -37,11 +38,8 @@ import type { RunGhFn } from "../pr-merge-readiness/types.js";
 import {
   evaluateReleasePromoteLatestGate,
   evaluateReleasePublishGate,
-  runPromoteLatest,
-  runPublish,
 } from "../release-publish/pipeline.js";
 import { sectionForVersion } from "./changelog.js";
-import { cmdReleaseWaitNpm } from "./cli-drift-report.js";
 import { runBoundTarget } from "./closed-verb-gate.js";
 import { DEFAULT_BASE_BRANCH, EXIT_CONFIG_ERROR, EXIT_OK, EXIT_VIOLATION } from "./constants.js";
 import { runFinish } from "./finish.js";
@@ -58,9 +56,19 @@ import {
   runReleaseReadiness,
 } from "./run-readiness.js";
 import {
+  defaultRunFlip,
+  defaultRunPromote,
+  type ReconcileContext,
+  type ReconcileSeams,
+  reconcileFlip,
+  reconcilePromote,
+  reconcilePublishWatch,
+} from "./run-reconcile.js";
+import {
   markPhaseCompleted,
   newReleaseRunRecord,
   nextReleaseRunPhase,
+  type ReleaseRunGrantIds,
   type ReleaseRunPhase,
   type ReleaseRunRecord,
   readReleaseRunRecord,
@@ -93,6 +101,12 @@ export const RELEASE_RUN_HELP =
   "ejection for a failed check is re-run once per run; the count is in the run record and --resume\n" +
   "keeps it. A second failure or a review finding stops the run. Finish pushes a tag left only local\n" +
   "on M and stops on a v<version> tag on any other commit.\n" +
+  "\n" +
+  "Publish watch, draft flip and promote decide from GitHub and npm on every run and --resume:\n" +
+  "npm is done when the tag-triggered npm-publish run at M and its post-publish fixture concluded\n" +
+  "success and both packages are on maintainer (a failed run stops; no republish dispatch); a\n" +
+  "published release is done; promote looks for its run first and dispatches at most once. An\n" +
+  "expired or spent grant a phase still needs stops the run and names the mint command.\n" +
   "\n" +
   "  --expires <ISO>     Grant expiry, chosen by the operator (required for a new run).\n" +
   "  --promote-latest    Also mint a release-promote-latest grant at approve.\n" +
@@ -238,9 +252,12 @@ export interface ReleaseRunSeams {
   /** Seams of the merge phase (#6877): watch, enqueue reads, re-run and queue waits. */
   readonly merge?: ReleaseMergeSeams;
   readonly finish?: (config: ReleaseConfig) => number;
-  readonly waitNpm?: (version: string) => number;
+  /** Reads of the publish watch, draft flip and promote reconciliation (#6878). */
+  readonly reconcile?: ReconcileSeams;
+  /** The run-bound draft flip with this grant id. */
   readonly flip?: (config: ReleaseConfig, grantId: string) => number;
-  readonly promote?: (config: ReleaseConfig) => number;
+  /** The promote-latest dispatch with this grant id (spent before the dispatch). */
+  readonly promote?: (config: ReleaseConfig, grantId: string) => number;
   readonly listGrants?: (projectRoot: string) => readonly HumanOriginGrant[];
 }
 
@@ -503,6 +520,12 @@ function readPromotedSection(ctx: Ctx): string {
   return section.length > 0 ? section : "(no promoted section found)";
 }
 
+function listGrantsOf(ctx: Ctx): (projectRoot: string) => readonly HumanOriginGrant[] {
+  return (
+    ctx.seams.listGrants ?? ((root: string) => listActiveHumanGrants(root, loadAuthzState(root)))
+  );
+}
+
 function phaseApprove(ctx: Ctx): number {
   const r = ctx.record;
   if (r.releaseTree === null || r.cutBase === null) {
@@ -513,8 +536,7 @@ function phaseApprove(ctx: Ctx): number {
   const commands = [releaseRunMintArgv("release-publish", target, r.expires)];
   if (r.promoteLatest)
     commands.push(releaseRunMintArgv("release-promote-latest", r.version, r.expires));
-  const listGrants =
-    ctx.seams.listGrants ?? ((root: string) => listActiveHumanGrants(root, loadAuthzState(root)));
+  const listGrants = listGrantsOf(ctx);
 
   if (r.approveRequestedAt === null) {
     ctx.out(
@@ -666,61 +688,56 @@ function phaseFinish(ctx: Ctx): number {
   return EXIT_OK;
 }
 
+/** The mint command for a grant kind the run still needs, with an expiry placeholder. */
+function mintCommandOf(record: ReleaseRunRecord, kind: keyof ReleaseRunGrantIds): string {
+  const argv =
+    kind === "releasePublish"
+      ? releaseRunMintArgv(
+          "release-publish",
+          runBoundTarget(record.version, record.releaseTree ?? "<T>"),
+          "<ISO>",
+        )
+      : releaseRunMintArgv("release-promote-latest", record.version, "<ISO>");
+  return `deft ${argv.join(" ")}`;
+}
+
+function reconcileCtx(ctx: Ctx, phase: ReleaseRunPhase): ReconcileContext {
+  const release = ctx.seams.release ?? {};
+  return {
+    projectRoot: ctx.projectRoot,
+    config: releaseConfigOf(ctx.record, ctx.projectRoot),
+    record: () => ctx.record,
+    save: (patch) => save(ctx, patch),
+    line: (status) => line(ctx, phase, status),
+    out: ctx.out,
+    listGrants: listGrantsOf(ctx),
+    findGrants: (grants) => findRunGrants(ctx.record, ctx.projectRoot, grants),
+    mintCommand: (kind) => mintCommandOf(ctx.record, kind),
+    flip: ctx.seams.flip ?? defaultRunFlip(release),
+    promote: ctx.seams.promote ?? defaultRunPromote(release, ctx.projectRoot),
+  };
+}
+
 function phasePublishWatch(ctx: Ctx): number {
-  const wait = ctx.seams.waitNpm ?? ((v: string) => cmdReleaseWaitNpm([v]));
-  const code = wait(ctx.record.version);
-  if (code !== EXIT_OK) {
-    line(ctx, "publish-watch", `FAIL (npm publish watch exited ${String(code)})`);
-    return code;
-  }
-  line(ctx, "publish-watch", "OK");
-  return EXIT_OK;
+  return reconcilePublishWatch(
+    reconcileCtx(ctx, "publish-watch"),
+    ctx.seams.reconcile,
+    ctx.seams.release,
+    ctx.seams.runGh,
+  );
 }
 
 function phaseFlip(ctx: Ctx): number {
-  const grantId = ctx.record.grants.releasePublish;
-  if (grantId === null) {
-    line(ctx, "flip", "FAIL (the run record has no grant id)");
-    return EXIT_VIOLATION;
-  }
-  const config = releaseConfigOf(ctx.record, ctx.projectRoot);
-  const flip =
-    ctx.seams.flip ??
-    ((c: ReleaseConfig, id: string) =>
-      runPublish(
-        { version: c.version, repo: c.repo, projectRoot: c.projectRoot, dryRun: false },
-        ctx.seams.release ?? {},
-        { grantId: id },
-      ));
-  const code = flip(config, grantId);
-  if (code !== EXIT_OK) {
-    line(ctx, "flip", `FAIL (draft flip exited ${String(code)})`);
-    return code;
-  }
-  line(ctx, "flip", "OK (release published)");
-  return EXIT_OK;
+  return reconcileFlip(reconcileCtx(ctx, "flip"), ctx.seams.reconcile, ctx.seams.release);
 }
 
 function phasePromote(ctx: Ctx): number {
-  if (ctx.record.grants.promoteLatest === null) {
-    line(ctx, "promote", "SKIP (no release-promote-latest grant; latest unchanged)");
-    return EXIT_OK;
-  }
-  const config = releaseConfigOf(ctx.record, ctx.projectRoot);
-  const promote =
-    ctx.seams.promote ??
-    ((c: ReleaseConfig) =>
-      runPromoteLatest(
-        { version: c.version, repo: c.repo, projectRoot: c.projectRoot, dryRun: false },
-        ctx.seams.release ?? {},
-      ));
-  const code = promote(config);
-  if (code !== EXIT_OK) {
-    line(ctx, "promote", `FAIL (promote exited ${String(code)})`);
-    return code;
-  }
-  line(ctx, "promote", "OK");
-  return EXIT_OK;
+  return reconcilePromote(
+    reconcileCtx(ctx, "promote"),
+    ctx.seams.reconcile,
+    ctx.seams.release,
+    ctx.seams.runGh,
+  );
 }
 
 const PHASES: Readonly<Record<Exclude<ReleaseRunPhase, "readiness">, (ctx: Ctx) => number>> = {

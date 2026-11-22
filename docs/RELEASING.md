@@ -12,7 +12,7 @@ The interactive operator-side workflow (`task release` / `task release:publish` 
 
 A maintainer cut needs one human act: the release grant. Branch protection stays on, nothing is pushed to `master` directly, and the next PR needs no `hotfix` label.
 
-For the full stable-cut order, including quiescence, the cut context, the merge freeze and the pin steps, follow `skills/deft-directive-release/SKILL.md` § Stable cut runbook (#6793).
+A stable cut runs these steps as one command, `deft release:run` (§ Release run (#6845) below), which mints the grant up front. The steps below are what the run does, and the manual path when the run cannot be used.
 
 1. Make the release branch from the fetched tip: `git fetch origin master && git switch -c release/vX.Y.Z origin/master`.
 2. Run `task release -- X.Y.Z`. Step 2 accepts only `release/vX.Y.Z` at the fetched `origin/master` tip. It refuses `master` (and every other branch) and names the release branch; it refuses a `release/vX.Y.Z` that already exists on origin or no longer sits at the tip (an earlier attempt) and names the recovery. Steps 3 to 9 are unchanged. In place of the old Steps 10 and 11, the cut pushes `release/vX.Y.Z` and opens the release PR. The generated body carries the version and the documentation-impact block, and no closing keyword or release notes. The cut then stops and prints the finish command.
@@ -34,6 +34,53 @@ For the full stable-cut order, including quiescence, the cut context, the merge 
 - Tagged: `task release:rollback`, which is unchanged. It still pushes `master` directly and needs an operator with ruleset bypass, so it is break-glass.
 
 The pin-bump PR after a release is an ordinary PR: it adds its own entry next to the release line and merges through the queue with no `hotfix` label.
+
+## Release run (#6845)
+
+A stable cut is one command, one approval and the post-run pin steps. The operator approves once, up front, and the run goes to the end unless a phase stops.
+
+```bash
+deft release:run X.Y.Z --expires <ISO> [--promote-latest] [--summary "<text>"]
+```
+
+Run it on a clean primary checkout on the default branch, after each agent has released its own lease on the primary. In order:
+
+1. **Readiness**, before any write: the Phase 1 checks, the Phase 2 dry run, a free tag, consistent version files and the CI rule (§ Step 5 CI reuse (#6791)). It says whether Step 5 will reuse CI or run the full local check, and about how long that takes. A failed check refuses. Queued PRs and armed auto-merge are reported, not refused.
+2. **Setup and the local cut**: the release branch from the fetched tip B, `session:start --primary-claim-exception=release-cut`, the cut context, then Steps 1 to 9 with no push.
+3. **Approve** (the one human act): the run shows the version, B, the release tree T and the promoted CHANGELOG section, then mints one `release-publish` grant for `X.Y.Z@<T>` with your `--expires` (and, with `--promote-latest`, one `release-promote-latest` grant). Type `mint` at the TTY. Without a TTY it prints the mint commands and stops: mint them from your own terminal, then run `deft release:run X.Y.Z --resume`.
+4. **Release PR**: push and open it, wait with `pr:watch` until CLEAN, then `pr:wait-mergeable-and-merge --wait`. It enqueues only while the origin tip is still B and the merge queue is empty; otherwise it stops without enqueueing. A failed required check is re-run once per run.
+5. **Finish**: refuses unless the sole parent of the merge commit M is B; tags M, pushes only the tag, creates the draft GitHub release with the notes and upgrade banner read from M, and clears the cut context.
+6. **Publish watch**: waits on the tag-triggered `npm-publish.yml` run at M. npm is done only when that run and its post-publish two-pass fixture job concluded `success` and both packages carry X.Y.Z on the `maintainer` dist-tag. A failed run stops the run. The run publishes only by the tag push and never dispatches the manual republish workflow.
+7. **Draft flip**: a published release is done; a draft is flipped with the run's `release-publish` grant (it never moves `latest`).
+8. **Promote**, only with the up-front `release-promote-latest` grant: it looks for a promote-latest run first (in progress: wait; `success` with both packages on `latest`: done; failed or partial: stop), and with none it dispatches once. Without that grant `latest` stays where it was.
+
+The run ends by printing the post-run steps (§ Post-run pin steps).
+
+**Fixture caveat (#6966).** Until #6966 lands, a post-publish fixture that gave up waiting for the registry (`two-pass closure deferred`) still concludes `success`. The publish-watch line says so; read the fixture log before you promote.
+
+### Stops and `--resume`
+
+Every stop names the phase and the run record (`.deft-scratch/release-run/X.Y.Z.json`). Fix the cause, then run `deft release:run X.Y.Z --resume`. The record keeps B, T, the PR number, the grant ids and the retry counts; `--resume` never resets the re-run count. Each phase decides from what GitHub and npm show, so a done step is never redone and nothing is overwritten:
+
+- A tag on M only local is pushed; a remote tag on M is done; a tag on any other commit stops.
+- A GitHub release that exists for the tag is done; the flip is done when it is not a draft.
+- A tag-triggered run in progress is waited on; a failed run stops.
+- An expired or spent grant that an unfinished phase needs stops the run and names the mint command. A newer grant you mint for the same target is used on `--resume`.
+- A promote dispatch whose result is unknown stops; the grant was spent before the dispatch, so it is not retried.
+- Any other state stops the run.
+
+### Release run recovery
+
+- A PR landed ahead of the release PR: finish refuses before the tag. Undo the release with the break-glass path (§ Break-glass below) until #6485 ships.
+- The tag-triggered publish run failed: the run stops and does not republish. Fix the cause on a later commit, re-publish the tag by hand (`gh workflow run npm-publish.yml --ref master -f tag=vX.Y.Z`, an operator act), check both packages on npm, then flip the draft with `task release:publish -- X.Y.Z` and decide on `latest`. `--resume` keeps stopping on the failed tag-triggered run.
+- A promote run failed or left a partial state: fix it by hand; the run does not dispatch again.
+
+### Post-run pin steps
+
+1. Pin PR on a branch from `origin/master`: set the `@deftai/directive-runtime` pin to X.Y.Z in `package.json` and its `minimumReleaseAgeExclude` row, run `pnpm update -w @deftai/directive-runtime@X.Y.Z` to regenerate the lockfile, check that `pnpm install --frozen-lockfile` passes, add one changelog line, then open the pin PR and merge it through the queue. The agent commit gate refuses a dogfood pin commit, so the operator commits the pin from their own terminal until #5771 lands. Installing the new version re-deposits host files on the first commit; the pin PR carries that deposit.
+2. Switch the primary to the default branch, then `task release:local-update -- X.Y.Z --checkout <primary>`.
+3. `npm i -g @deftai/directive@X.Y.Z`.
+4. Phase 7 closeout in the release skill: issue auto-close checks, roadmap render, umbrella reopen sweep.
 
 ## Break-glass: base-branch release (#1553 / #6296)
 
@@ -192,35 +239,15 @@ Canonical agent contract: `skills/deft-directive-release/SKILL.md` § **Step 5 b
 
 ## Routine vs hard cut for Step 5 (#2953)
 
-Release Step 5 (`task check` with host `--coverage` per #6041) is the longest local gate. When the release tree is identical to a fetched tip whose latest required checks succeeded, Step 5 reuses CI on its own (§ Step 5 CI reuse (#6791)) in either mode: it runs only the host smoke check and no host coverage. Otherwise both modes run the full Step 5; they differ in hygiene and intent, not in silent soft-pass.
+Step 5 has one rule, and no mode or flag changes it. When the clean Step 5 input tree is identical to a fetched tip whose latest required checks succeeded, Step 5 reuses CI on its own and runs only the host smoke check, with no host coverage (§ Step 5 CI reuse (#6791)). Otherwise it runs the full `task check` with host `--coverage` (#6041), where the branch-hairline auto-hatch and `--allow-coverage-debt=#N` apply. `deft release:run` asks for no choice: readiness says which path Step 5 will take, and Step 5 says again if that changed.
 
-### Hard cut (default)
+There is no routine-cut skip path. `--skip-ci` with `--allow-skip-ci=#N` (#2652) is incident-only (a tracked hang or an untested ship under review), is never passed by `deft release:run`, and prints a loud WARN. Silent soft-pass of coverage is forbidden.
 
-- Run `task release -- <version>` with **no** `--skip-ci`. Step 5 runs in full unless the CI reuse rule holds.
-- Use when the tip is unproven, the change set is large, or you need maximum local certainty before the tag.
-- Coverage floor is host `--coverage` thresholds (#6041). Branch-hairline auto-hatch / `--allow-coverage-debt` soft-pass applies to the host report.
-  - incident hang / untested ship → `--skip-ci` + `--allow-skip-ci=#N` (#2652) only
-- ⊗ Silent soft-pass of coverage (no tip-SHA GHA cite, no `#N` on incident skip) is forbidden in every mode.
-
-### Routine cut (faster wall-clock, same gates)
-
-Speed comes from **not scanning junk trees** and from **pre-cut hygiene**, not from skipping coverage:
+What makes a full Step 5 faster is hygiene, not a lighter gate:
 
 1. **Default-exclude scratch / worktree noise (#2953).** Content, link, stub, codebase-map, and build-dist walks skip `.deft-scratch/` (and legacy `swarm-worktrees/`) by default. Release Step 5 must not enumerate `.deft-scratch/worktrees/**` unless you are deliberately debugging those trees.
-2. **Prefer a clean tip.** Cut from the fetched `master` tip with green required checks. Step 5 then reuses CI with no flag (§ Step 5 CI reuse (#6791)) and runs only the host smoke check; with any other tip state it runs in full.
-3. **Prune stale worktrees before the cut** when a maintainer clone is heavy: `git worktree list`, remove abandoned `.deft-scratch/worktrees/*` entries, or cut from a clean clone. This is operator hygiene, not a flag.
-4. **Do not skip Step 5 by hand.** Step 5 itself decides between CI reuse and the full check. The only manual skip is the incident path (`--skip-ci` + `--allow-skip-ci=#N`).
-
-### Trust CI vs full local check
-
-| Mode | When | Step 5 coverage | Soft-pass rule |
-| --- | --- | --- | --- |
-| **Hard cut** | Default; large / risky tip | Full `task check` assertions + host coverage (#6041) | Host thresholds fail-closed; debt hatch for branch-hairline; #2652 skip-ci with `#N` |
-| **CI reuse** | Release tree identical to the fetched tip; latest required checks `success` | Host smoke check only; no host coverage (#6791, ruling B; #6849 closes the gap) | Automatic; no flag or citation; any other state runs the full check |
-| **Routine cut** | Calm tip; scratch excluded; CI green on tip | CI reuse when its rule holds, else full `task check` + host coverage | Same — no silent soft-pass |
-| **Incident skip** | Tracked hang / unblock with review | Skipped via `--skip-ci` | Requires `--allow-skip-ci=#N` + loud WARN |
-
-CI reuse (#6791) is the only lighter Step 5 path, and it needs no flag: **hard cut and routine cut = CI reuse when its rule holds, else full Step 5**; routine adds scratch exclude and hygiene. Do not invent any other lighter path that skips host coverage.
+2. **Prefer a calm tip.** Cut from a fetched `master` tip with green required checks, so the CI reuse rule can hold.
+3. **Prune stale worktrees before the cut** when a maintainer clone is heavy: `git worktree list`, remove abandoned `.deft-scratch/worktrees/*` entries, or cut from a clean clone.
 
 ### Debugging scratch inclusion
 
@@ -230,7 +257,7 @@ Pointer: `skills/deft-directive-release/SKILL.md` § Routine vs hard cut (#2953)
 
 ## Stable cut order
 
-Do not tag `master` by hand. A stable cut follows `skills/deft-directive-release/SKILL.md` § Stable cut runbook, which links back here for the mechanics (#6793).
+Do not tag `master` by hand. A stable cut is `deft release:run` (§ Release run (#6845)); the release skill's § Stable cut runbook gives the same order with the operator and agent roles.
 
 > **Canonical consumer install:** `npm i -g @deftai/directive` then `directive install` / `upgrade` / `install --repair` / `doctor`. Do **not** download deleted `install-*` / `deft-install` binaries.
 
