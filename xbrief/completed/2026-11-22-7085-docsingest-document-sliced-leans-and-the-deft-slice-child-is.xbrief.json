@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #7085",
-    "updated": "2026-11-22T20:32:33Z"
+    "updated": "2026-11-22T22:45:48Z"
   },
   "plan": {
     "title": "docs+ingest: document sliced leans and the deft-slice child-issue route; name it in the refusal",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Document sliced leans and the deft-slice child-issue route in the design-critique contract, content/commands.md and the swarm/build skills, with a gh issue create recipe for each child issue. Make the ingest refusal for a fully sliced lean list the slice labels and the exact deft-slice line, so the next agent does not have to read the code.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/7085",
@@ -19,34 +19,62 @@
     "items": [
       {
         "title": "The arc/ingest docs (design-critique contract or skill, and `content/commands.md` for `issue:ingest`) describe slices: when a lean should declare them, the `deft-slice: #<parent> <label>` child-issue line, that the parent body must stay unedited, and how briefs and PRs map to slices.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "Given the design-critique contract and the issue:ingest entry in content/commands.md, then they describe when a lean declares Slices, the `deft-slice: #<parent> <label>` child line, the unedited parent body, and one brief and one PR per slice."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "01116178e551929c07f4ae30e271ae2fa74798d3",
+          "recorded_at": "2026-11-22T22:45:48Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "The ingest refusal for a fully sliced lean names the remedy: file one child issue per slice label with the exact `deft-slice:` line, and lists the slice labels found.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "When issue:ingest runs on a parent whose accepted lean assigns every item to a slice, then it rejects the parent with a message that lists the slice labels and the exact `deft-slice: #<parent> <label>` line for each child issue."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "01116178e551929c07f4ae30e271ae2fa74798d3",
+          "recorded_at": "2026-11-22T22:45:48Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "A verb (for example `deft issue:slice -- --parent <N> --label <label>`) or documented `gh issue create` recipe creates a correct child issue body from the lean's slice.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "Given a parent with an accepted sliced lean, then the documented `gh issue create` recipe creates a child issue whose body carries the correct `deft-slice:` line that issue:ingest accepts for that slice."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "01116178e551929c07f4ae30e271ae2fa74798d3",
+          "recorded_at": "2026-11-22T22:45:48Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "The swarm and build skills mention slices where they describe ingest.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "Given the rendered swarm and build SKILL.md files, then the text where each skill describes ingest shows the slice route and points to the child-issue recipe."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "01116178e551929c07f4ae30e271ae2fa74798d3",
+          "recorded_at": "2026-11-22T22:45:48Z",
+          "recorded_by": "scope:complete"
         }
       }
     ],
@@ -197,9 +225,36 @@
         "model_tier": "high",
         "acceptance_criteria_justification": "The 4 clauses are the 4 Acceptance Criteria items of issue #7085, ingested after a recorded not-warranted arc decision (comment 7085301103)."
       },
-      "kind": "story"
+      "kind": "story",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "e732b7fa7065a055ae5200c8176040440679ed2b",
+        "prNumber": 7098,
+        "prBase": "master",
+        "mergeCommit": "01116178e551929c07f4ae30e271ae2fa74798d3",
+        "deliveryBranch": "master",
+        "deliveryCommit": "d491f88e98ba45bd8384ba873ccc4a1945f747d3",
+        "verifiedAt": "2026-11-22T22:45:48Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          7090
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-22T22:45:48Z",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-22T22:45:48Z"
+      }
     },
     "id": "github.issue.6547355899",
-    "updated": "2026-11-22T20:32:33Z"
+    "updated": "2026-11-22T22:45:48Z"
   }
 }
