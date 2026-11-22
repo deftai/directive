@@ -1,0 +1,196 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4905",
+    "updated": "2026-11-22T17:57:26Z"
+  },
+  "plan": {
+    "title": "bug(xbrief): drift gate rejects a canonical brief that only quotes the legacy x-vbrief prefix",
+    "status": "running",
+    "narratives": {
+      "Description": "`verify:xbrief-drift` fails a canonical brief when any text in it contains the legacy x-vbrief reference prefix, even prose that only quotes it. `scanCorpusToken` in `packages/core/src/xbrief-migrate/drift-gate.ts` counts every occurrence as a legacy reference. This story narrows the scan to JSON string values that start with the legacy prefix, such as a reference `type`, so quoting prose passes and a real legacy reference still fails. Pre-commit keeps running the gate with no brief-specific allow-list. This blocks committing the #4846 and #7025 briefs.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4905",
+      "Overview": "## What happened\n`verify:xbrief-drift` fails a canonical `xbrief/**/*.xbrief.json` when the file contains the legacy `x-vbrief` reference prefix (x-vbrief followed by a slash), including prose that only quotes that legacy prefix. `scanCorpusToken` in `packages/core/src/xbrief-migrate/drift-gate.ts` treats any occurrence as a hit. It does not require a reference `type` field.\n\nThe completed #4846 brief quotes the legacy `x-vbrief` prefix inside ingested design-critique comments. It has no reference `type` field whose value starts with that prefix. Pre-commit runs `verify:xbrief-drift --staged --project-root` and does not pass `--allow-list` (`.githooks/pre-commit`). Allow-listing that brief would hide the false positive. Stripping the quoted prefix from that brief to pass the hook is the wrong fix.\n\nThe Class B validation change for #4846 is already on master (`18644ed08`, PR 4860). This issue is only the drift scan. The brief stays uncommitted until a quotation is not read as a legacy reference type.\n\nThis issue's own text names the prefix without the slash form, because ingest copies the issue into the brief and the current gate would refuse that brief.\n\n## Acceptance Criteria\n- [ ] Given a canonical brief whose only occurrences of the legacy `x-vbrief` prefix are narrative, comment, or contract prose, `verify:xbrief-drift` returns exit 0.\n- [ ] A reference object whose `type` starts with the legacy `x-vbrief` prefix still fails.\n- [ ] When a brief is committed, pre-commit still runs `verify:xbrief-drift --staged` with no brief-specific allow-list.\n\nRefs #4846, #2109, #4086.\n\n",
+      "Labels": "bug, area:vbrief, framework-gap, core-capabilities, promise:gates",
+      "UserStory": "As an agent committing a brief whose prose quotes the legacy x-vbrief prefix, I want `verify:xbrief-drift` to flag only real legacy references, so that I can commit the brief without stripping the quote or allow-listing it.",
+      "ImplementationPlan": "1. packages/core/src/xbrief-migrate/drift-gate.ts: drop the any-occurrence half of `scanCorpusToken`. Flag only a JSON string value that starts with the legacy prefix. Prefer checking parsed JSON string values (reference `type` and similar) over a raw substring scan, so escaped quotes inside prose (backslash, quote, then the prefix) do not match (clause 1, clause 2).\n2. packages/core/src/xbrief-migrate/drift-gate.test.ts: a canonical brief whose only occurrences of the legacy prefix are narrative, comment and contract prose (including an escaped-quote form) passes; a reference object whose `type` starts with the legacy prefix still fails (clauses 1, 2).\n3. packages/core/src/xbrief-migrate/drift-gate.test.ts: pin that `.githooks/pre-commit` still runs `verify:xbrief-drift --staged` and passes no `--allow-list` (clause 3).\n4. changelog.d/4905-drift-gate-prose-quote.md.",
+      "Traces": "#4905 Acceptance Criteria. Blocks #7025 and the completed #4846 brief. Related: #2109, #4086 (legacy-layout drift gate)."
+    },
+    "items": [
+      {
+        "title": "Given a canonical brief whose only occurrences of the legacy `x-vbrief` prefix are narrative, comment, or contract prose, `verify:xbrief-drift` returns exit 0.",
+        "status": "proposed",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "Given a canonical brief whose only occurrences of the legacy `x-vbrief` prefix are narrative, comment, or contract prose, `verify:xbrief-drift` returns exit 0."
+        }
+      },
+      {
+        "title": "A reference object whose `type` starts with the legacy `x-vbrief` prefix still fails.",
+        "status": "proposed",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "A reference object whose `type` starts with the legacy `x-vbrief` prefix still fails."
+        }
+      },
+      {
+        "title": "When a brief is committed, pre-commit still runs `verify:xbrief-drift --staged` with no brief-specific allow-list.",
+        "status": "proposed",
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "When a brief is committed, pre-commit still runs `verify:xbrief-drift --staged` with no brief-specific allow-list."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "area:vbrief",
+      "framework-gap",
+      "core-capabilities",
+      "promise:gates"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4905",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4905: bug(xbrief): drift gate rejects a canonical brief that only quotes the legacy x-vbrief prefix"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4846",
+        "type": "x-xbrief/refs",
+        "title": "Issue #4846"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "verify:xbrief-drift --staged --project-root",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L6"
+        },
+        {
+          "command": "verify:xbrief-drift --staged",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L15"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/xbrief-migrate/drift-gate.ts",
+          "packages/core/src/xbrief-migrate/drift-gate.test.ts",
+          "changelog.d/4905-drift-gate-prose-quote.md",
+          "docs/RULE-MAP.md",
+          "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "xbrief/evaluator-surface-disposition.json",
+          "xbrief/.audit/spec-drift/github.issue.5542072439.json"
+        ],
+        "verify_commands": [
+          "npx vitest run packages/core/src/xbrief-migrate/drift-gate.test.ts"
+        ],
+        "size": "small",
+        "file_scope_confidence": "high",
+        "depends_on": [],
+        "expected_outputs": [
+          "verify:xbrief-drift passes a canonical brief whose only legacy x-vbrief prefix occurrences are prose, including escaped-quote prose",
+          "verify:xbrief-drift still fails a reference object whose type starts with the legacy x-vbrief prefix",
+          "a test pins that .githooks/pre-commit runs verify:xbrief-drift --staged with no --allow-list",
+          "one changelog fragment changelog.d/4905-drift-gate-prose-quote.md"
+        ],
+        "conflict_group": "xbrief-drift-gate",
+        "model_tier": "high",
+        "acceptance_criteria_justification": "The 3 clauses are the 3 Acceptance Criteria of #4905, harvested and digest-pinned by issue ingest; they cannot be merged or dropped without breaking the admitted-source pin."
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "design-critique: not warranted, because this is a precision fix to one existing scanner (`scanCorpusToken` in `packages/core/src/xbrief-migrate/drift-gate.ts`), and the acceptance criteria already fix the design: prose quoting the legacy `x-vbrief` prefix passes, a reference `type` that starts with that prefix still fails, and pre-commit keeps the gate with no allow-list. There is no design fork, no new surface and no security question. The gate change is deliberate and goes through this issue and its PR (#3156).\n\n",
+          "id": 7082902141,
+          "html_url": "https://github.com/deftai/directive/issues/4905#issuecomment-7082902141",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T17:31:23Z",
+          "updated_at": "2026-11-22T17:53:54Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5542072439,
+        "origin": "deftai/directive#4905",
+        "id": "github.issue.5542072439"
+      },
+      "kind": "story"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per sentence-list entry (3), in order (#6333)",
+      "sentences": [
+        "Given a canonical brief whose only occurrences of the legacy `x-vbrief` prefix are narrative, comment, or contract prose, `verify:xbrief-drift` returns exit 0.",
+        "A reference object whose `type` starts with the legacy `x-vbrief` prefix still fails.",
+        "When a brief is committed, pre-commit still runs `verify:xbrief-drift --staged` with no brief-specific allow-list."
+      ],
+      "admitted_source_sentences": [
+        "Given a canonical brief whose only occurrences of the legacy `x-vbrief` prefix are narrative, comment, or contract prose, `verify:xbrief-drift` returns exit 0.",
+        "A reference object whose `type` starts with the legacy `x-vbrief` prefix still fails.",
+        "When a brief is committed, pre-commit still runs `verify:xbrief-drift --staged` with no brief-specific allow-list."
+      ],
+      "admitted_source_digest": "0aa0606818209217c777350f43773e6e5ca220afe6ccfeaa71fbd2fddbda2923",
+      "admitted_source_extractor": 2,
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Given a canonical brief whose only occurrences of the legacy `x-vbrief` prefix are narrative, comment, or contract prose, `verify:xbrief-drift` returns exit 0.",
+          "artifact_path": "packages/core/src/xbrief-migrate/drift-gate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "A reference object whose `type` starts with the legacy `x-vbrief` prefix still fails.",
+          "artifact_path": "packages/core/src/xbrief-migrate/drift-gate.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "When a brief is committed, pre-commit still runs `verify:xbrief-drift --staged` with no brief-specific allow-list.",
+          "artifact_path": "packages/core/src/xbrief-migrate/drift-gate.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.5542072439",
+    "updated": "2026-11-22T17:57:26Z"
+  }
+}
