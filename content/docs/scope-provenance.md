@@ -187,7 +187,7 @@ Already-shipped briefs can remain in `xbrief/active/` when `scope:complete` refu
 **Stage ladder (historical class):**
 
 1. Stage 1 (#3284): empty commands migrate to `none_stated: true` only when merge provenance is present.
-2. Stage 2 (#4870): Prefer-A binds the **clause-less** path (`acceptance.clauses` absent/empty). Clause-bearing empty-commands are refused with an honest remedy (not "stamp npm test" as the only path).
+2. Stage 2 (#4870): Prefer-A binds the **clause-less** path (`acceptance.clauses` absent/empty). Clause-bearing empty-commands are refused with an honest remedy (not "stamp npm test" as the only path). Before that refusal, `scope:complete` runs the project's declared test command (`plan.policy.testCommand`, else `package.json` `scripts.test`) once as a transient floor through the ordinary acceptance walk; a green run completes with "declared test command passed" and writes nothing to the brief. With no declared command, a refused command or a failed run, the refusal names which, then lists each unresolved clause with the acceptance-disposition grant command (#7047).
 3. Stage 3 (#3240 / #5105): with completion provenance present, merge-kind stamps may land on items missing `x-directive/requires: merge` (declaration-side admit). Strict axes (smoke/uat/deploy/observed_behavior) are not relabeled as merge.
 
 **Fence unblock (local):** `deft scope:block -- <brief>` removes a competitor from eligibility without network. Multi-eligible deny also names `DEFT_ACTIVE_SCOPE`, keep-one-running, and the conditional closeout above. Softening #4007 for true concurrency is rejected.
