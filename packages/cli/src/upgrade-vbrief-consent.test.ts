@@ -194,6 +194,18 @@ describe("detectLegacyVbriefTree (#7056)", () => {
     git(["add", "vbrief/completed/a.vbrief.json"]);
     expect(detectLegacyVbriefTree(root)).toEqual({ files: 3, tracked: 1 });
   });
+
+  it("does not count tracked paths already deleted from disk", () => {
+    const root = tempProject();
+    seedVbrief(root);
+    const git = (args: string[]) =>
+      spawnSync("git", ["-C", root, ...args], { encoding: "utf8" }).status;
+    if (git(["init", "-q"]) !== 0) return; // no git on this machine
+    git(["add", "vbrief"]);
+    rmSync(join(root, "vbrief", "completed", "a.vbrief.json"));
+    rmSync(join(root, "vbrief", "DEPRECATED.md"));
+    expect(detectLegacyVbriefTree(root)).toEqual({ files: 1, tracked: 1 });
+  });
 });
 
 describe("upgrade asks before the vbrief→xbrief migration (#7056)", () => {
@@ -368,6 +380,42 @@ describe("upgrade asks before the vbrief→xbrief migration (#7056)", () => {
     expect(r.text).not.toContain("Legacy data migration");
     expect(r.text).not.toContain("Not done");
     expect(r.text).not.toContain("Ran the vbrief → xbrief migration");
+  });
+
+  it("files that appear in vbrief/ after the plan stay pending without the flag", () => {
+    const root = tempProject();
+    installRuntime(root, "1.2.3");
+    const calls = { setup: 0, migrate: 0 };
+    const deps = versionChangeDeps(calls);
+    const r = upgrade(root, ["--yes", "--target-version", "2.0.0"], {
+      ...deps,
+      invokeSetup: (argv) => {
+        seedVbrief(root); // legacy files land after the plan was shown
+        return deps.invokeSetup?.(argv) ?? OK_SETUP;
+      },
+    });
+    expect(r.code).toBe(0);
+    expect(calls.migrate).toBe(0);
+    expect(existsSync(join(root, "vbrief", "completed", "a.vbrief.json"))).toBe(true);
+    expect(r.text).toContain("Not done");
+    expect(r.text).toContain("3 files found under vbrief/");
+  });
+
+  it("files that appear after the plan still migrate with --migrate-xbrief, and the summary names it", () => {
+    const root = tempProject();
+    installRuntime(root, "1.2.3");
+    const calls = { setup: 0, migrate: 0 };
+    const deps = versionChangeDeps(calls);
+    const r = upgrade(root, ["--yes", MIGRATE_XBRIEF_FLAG, "--target-version", "2.0.0"], {
+      ...deps,
+      invokeSetup: (argv) => {
+        seedVbrief(root);
+        return deps.invokeSetup?.(argv) ?? OK_SETUP;
+      },
+    });
+    expect(r.code).toBe(0);
+    expect(calls.migrate).toBe(1);
+    expect(r.text).toContain("Ran the vbrief → xbrief migration");
   });
 
   it("install rejects --migrate-xbrief", () => {

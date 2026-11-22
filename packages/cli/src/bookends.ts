@@ -186,44 +186,48 @@ function readOnlyPlanGit(projectRoot: string, args: readonly string[]): string |
 /** Upgrade-only flag: consent to the vbrief→xbrief data migration (#7056). */
 export const MIGRATE_XBRIEF_FLAG = "--migrate-xbrief";
 
-function countFilesUnder(dir: string): number {
-  let count = 0;
-  const pending = [dir];
+/** Project-relative POSIX paths of the files under `rel` (symlinks listed, not followed). */
+function listFilesUnder(projectRoot: string, rel: string): string[] {
+  const files: string[] = [];
+  const pending = [rel];
   for (let current = pending.pop(); current !== undefined; current = pending.pop()) {
     let entries: Dirent[];
     try {
-      entries = readdirSync(current, { withFileTypes: true });
+      entries = readdirSync(join(projectRoot, current), { withFileTypes: true });
     } catch {
       continue;
     }
     for (const entry of entries) {
+      const child = `${current}/${entry.name}`;
       // Dirent reports a symlink as a symlink (never followed): count it as a file.
-      if (entry.isDirectory()) pending.push(join(current, entry.name));
-      else count++;
+      if (entry.isDirectory()) pending.push(child);
+      else files.push(child);
     }
   }
-  return count;
+  return files;
 }
 
 /**
  * #7056: the legacy `vbrief/` tree the upgrade migration would process and
  * delete. Null when there is no `vbrief/` or it holds no files. `tracked` is
- * the number of those files Git tracks: 0 outside a Git repo, null when Git
- * could not be read. Read-only.
+ * how many of those on-disk files Git tracks (tracked paths already deleted
+ * from disk are not counted): 0 outside a Git repo, null when Git could not
+ * be read. Read-only.
  */
 export function detectLegacyVbriefTree(projectRoot: string): LegacyVbriefTree | null {
-  const dir = join(projectRoot, "vbrief");
   try {
-    if (!statSync(dir).isDirectory()) return null;
+    if (!statSync(join(projectRoot, "vbrief")).isDirectory()) return null;
   } catch {
     return null;
   }
-  const files = countFilesUnder(dir);
+  const onDisk = listFilesUnder(projectRoot, "vbrief");
+  const files = onDisk.length;
   if (files === 0) return null;
   if (!existsSync(join(projectRoot, ".git"))) return { files, tracked: 0 };
   const stdout = readOnlyPlanGit(projectRoot, ["ls-files", "-z", "--", "vbrief"]);
   if (stdout === null) return { files, tracked: null };
-  return { files, tracked: stdout.split("\0").filter((p) => p.length > 0).length };
+  const trackedPaths = new Set(stdout.split("\0").filter((p) => p.length > 0));
+  return { files, tracked: onDisk.filter((p) => trackedPaths.has(p)).length };
 }
 
 /**
@@ -1523,6 +1527,16 @@ export function runUpgrade(
     }
   }
 
+  // #7056: consent was granted for the tree the plan showed. If vbrief/ was
+  // empty or absent then and files appeared since (during the prompt, PM add
+  // or setup), recheck right before the hand-off: without the flag the
+  // migration stays pending rather than deleting files nobody was shown.
+  const migrationGate = (): { run: boolean; legacy: LegacyVbriefTree | null } => {
+    if (legacyVbrief !== null) return { run: migrateConsent, legacy: legacyVbrief };
+    const late = detectLegacyVbriefTree(projectRoot);
+    return { run: late === null || migrateXbrief, legacy: late };
+  };
+
   const stale = assertPlanStillValid(projectRoot, pmDetect.pm, planFp, io);
   if (stale !== null) return stale;
 
@@ -1636,7 +1650,8 @@ export function runUpgrade(
     // #7056: without consent the migrate entry is not invoked at all (the
     // contract-1 argv cannot skip part of it), so vbrief/ stays untouched.
     let migrateSummary: SetupSummary | null = null;
-    if (migrateConsent) {
+    const gate = migrationGate();
+    if (gate.run) {
       const migrateResult = handOffMigrate({
         projectRoot,
         launcherVersion,
@@ -1665,8 +1680,8 @@ export function runUpgrade(
       migrateSummary,
       verbosity: flags.verbosity,
       pnpmWorkspaceChanged,
-      legacyVbrief,
-      migrationRan: migrateConsent,
+      legacyVbrief: gate.legacy,
+      migrationRan: gate.run,
     });
     return EXIT_CODES.SUCCESS;
   }
@@ -1693,7 +1708,8 @@ export function runUpgrade(
   }
   let migrateSummary: SetupSummary | null = null;
   // #7056: without consent the migrate entry is not invoked at all.
-  if (needMigrate && migrateConsent) {
+  const gate = needMigrate ? migrationGate() : { run: false, legacy: null };
+  if (gate.run) {
     const migrateResult = handOffMigrate({
       projectRoot,
       launcherVersion,
@@ -1720,8 +1736,8 @@ export function runUpgrade(
     summary: setupSummary,
     migrateSummary,
     verbosity: flags.verbosity,
-    legacyVbrief,
-    migrationRan: migrateConsent,
+    legacyVbrief: gate.legacy,
+    migrationRan: gate.run,
   });
   return EXIT_CODES.SUCCESS;
 }
