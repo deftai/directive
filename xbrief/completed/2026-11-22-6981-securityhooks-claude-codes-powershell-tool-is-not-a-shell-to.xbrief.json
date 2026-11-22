@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6981",
-    "updated": "2026-11-22T16:39:26Z"
+    "updated": "2026-11-22T20:41:55Z"
   },
   "plan": {
     "title": "security(hooks): Claude Code's PowerShell tool is not a shell tool, so shell-class guards never inspect it",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "security(hooks): Claude Code's PowerShell tool is not a shell tool, so shell-class guards never inspect it",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6981",
@@ -17,53 +17,123 @@
     "items": [
       {
         "title": "Tool list. `SHELL_TOOL_NAMES` in `packages/core/src/hooks/tools.ts` gains `PowerShell` and `Monitor`, so `isShellTool` and `SHELL_HOOK_MATCHER` carry both. `HOST_TOOL_SURFACE_AUDIT.claude.mutation.shell` gains both, with this issue as the observation source.",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5c474e243a03532fe517b18e95b987da8e46049f",
+          "recorded_at": "2026-11-22T20:41:55Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Deposits. The shell matcher in `.claude/settings.json`, `.codex/hooks.json`, `.cursor/hooks.json` and `.grok/hooks/deft.json` equals the new `SHELL_HOOK_MATCHER`.",
-        "status": "proposed",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5c474e243a03532fe517b18e95b987da8e46049f",
+          "recorded_at": "2026-11-22T20:41:55Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Docs. A changelog fragment states that consumers run `directive install --repair` after upgrading, and that until then existing deposits read as drifted. `content/docs/deft-directive-disable.md` states that the shell rules cover `PowerShell` and `Monitor`, and that PowerShell-only forms are tracked in #7050: file-writing cmdlets and their aliases, program runners, `-EncodedCommand`, backtick escapes, location control and script-block commits.",
-        "status": "proposed",
-        "id": "clause.3"
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5c474e243a03532fe517b18e95b987da8e46049f",
+          "recorded_at": "2026-11-22T20:41:55Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Tests, through the hook with `tool_name` `PowerShell` and `Monitor`. One PR; no new verb, flag, policy field or stored file.",
-        "status": "proposed",
-        "id": "clause.4"
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5c474e243a03532fe517b18e95b987da8e46049f",
+          "recorded_at": "2026-11-22T20:41:55Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given `SHELL_TOOL_NAMES`, `SHELL_HOOK_MATCHER`, the Claude audit shell row and the four repository deposits, then each carries `PowerShell` and `Monitor`, and `isShellTool` is true for both.",
-        "status": "proposed",
-        "id": "clause.5"
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5c474e243a03532fe517b18e95b987da8e46049f",
+          "recorded_at": "2026-11-22T20:41:55Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given a `PowerShell` tool call `Set-Content -Path .deft/authz/x.json -Value x`, or a `Monitor` tool call `echo x > .deft/approved-scope/x.json`, then the hook refuses it through the existing store guard.",
-        "status": "proposed",
-        "id": "clause.6"
+        "status": "completed",
+        "id": "clause.6",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5c474e243a03532fe517b18e95b987da8e46049f",
+          "recorded_at": "2026-11-22T20:41:55Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given a `PowerShell` or `Monitor` tool call that creates a kill-switch flag with `New-Item` or `touch`, then the hook refuses it through the existing kill-switch guard.",
-        "status": "proposed",
-        "id": "clause.7"
+        "status": "completed",
+        "id": "clause.7",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5c474e243a03532fe517b18e95b987da8e46049f",
+          "recorded_at": "2026-11-22T20:41:55Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given a `PowerShell` or `Monitor` tool call `cd <absolute path>; git commit -m x`, then the commit gate refuses it as unresolvable, as it does for `Bash`.",
-        "status": "proposed",
-        "id": "clause.8"
+        "status": "completed",
+        "id": "clause.8",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5c474e243a03532fe517b18e95b987da8e46049f",
+          "recorded_at": "2026-11-22T20:41:55Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given `Get-Content README.md`, `Select-String -Path README.md -Pattern x` or `Get-ChildItem -Recurse src` through the `PowerShell` tool, then the shell guards admit it.",
-        "status": "proposed",
-        "id": "clause.9"
+        "status": "completed",
+        "id": "clause.9",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5c474e243a03532fe517b18e95b987da8e46049f",
+          "recorded_at": "2026-11-22T20:41:55Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given the changelog fragment and `content/docs/deft-directive-disable.md`, then they state the `directive install --repair` step, the two tools, and the #7050 pointer with the deferred forms it names.",
-        "status": "proposed",
-        "id": "clause.10"
+        "status": "completed",
+        "id": "clause.10",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5c474e243a03532fe517b18e95b987da8e46049f",
+          "recorded_at": "2026-11-22T20:41:55Z",
+          "recorded_by": "scope:complete"
+        }
       }
     ],
     "tags": [
@@ -1080,6 +1150,34 @@
         "leanCommentId": 7082149222,
         "harvestDigest": "8957e8d83e69b1d995b1f764ed97f381e0167fa8e127bc41cf9ce3b0e26d0bbb",
         "slice": null
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "bac3a322943a4d12374114f67522769bc9b663c6",
+        "prNumber": 7084,
+        "prBase": "master",
+        "mergeCommit": "5c474e243a03532fe517b18e95b987da8e46049f",
+        "deliveryBranch": "master",
+        "deliveryCommit": "e1aecbe9d4c2ac141ed917972f1e44cd219a9b06",
+        "verifiedAt": "2026-11-22T20:41:55Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          7055,
+          7073
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-22T20:41:55Z",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-22T20:41:55Z"
       }
     },
     "acceptance": {
@@ -1187,6 +1285,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.6538270445",
-    "updated": "2026-11-22T16:39:26Z"
+    "updated": "2026-11-22T20:41:55Z"
   }
 }
