@@ -8,6 +8,7 @@ import {
   SESSION_COMPLETED_AC_REMEDIATION,
   writeSessionCompletedMarker,
 } from "../check/session-completed-ac.js";
+import { resolveDeclaredTestCommand } from "../consumer-test-lane/evaluate.js";
 import { InstrumentedVbriefCrud, persistCrudMetrics } from "../eval/crud-telemetry.js";
 import {
   ContainedWriteError,
@@ -1003,6 +1004,8 @@ export function runTransition(
       smallChangeLane: { ...options.smallChangeLane, deliveredCommit: laneDeliveredCommit },
       // #6644: only the clauses a grant stamped in this run; never a disposition read from the brief.
       grantedClauses: granted.grantedClauses,
+      // #7047: the declared test command is the completion floor's source.
+      resolveDeclaredTestCommand,
     });
     if (!acWalk.ok) {
       return {

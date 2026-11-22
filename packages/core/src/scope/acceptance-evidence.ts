@@ -23,10 +23,7 @@ import {
   SCOPE_COMPLETE_ZERO_VERIFIED_NOTICE,
   scopeCompleteRejectsZeroVerifiedWalk,
 } from "../check/rapid-zero-verified.js";
-import {
-  type DeclaredTestCommand,
-  resolveDeclaredTestCommand,
-} from "../consumer-test-lane/evaluate.js";
+import type { DeclaredTestCommand } from "../consumer-test-lane/evaluate.js";
 import type { LiteralAcceptanceCommand } from "../literal-acceptance/types.js";
 import {
   type AcceptancePredicate,
@@ -2163,6 +2160,7 @@ interface DeclaredTestFloorResult {
 function runDeclaredTestFloor(
   plan: Record<string, unknown>,
   walkOptions: EvaluateVerifyAcOptions,
+  resolveDeclared: (projectRoot: string) => DeclaredTestCommand | null,
   provenance: { readonly prNumber: number | null; readonly mergeCommit: string },
 ): DeclaredTestFloorResult | null {
   const contract = resolveAcceptanceCommandRecords(plan, {
@@ -2172,7 +2170,7 @@ function runDeclaredTestFloor(
     return null;
   }
   const projectRoot = resolve(walkOptions.projectRoot ?? process.cwd());
-  const declared = resolveDeclaredTestCommand(projectRoot);
+  const declared = resolveDeclared(projectRoot);
   if (declared === null) {
     return { admitted: null, outcome: DECLARED_TEST_FLOOR_NONE, walk: null, predicate: null };
   }
@@ -2235,6 +2233,17 @@ function runDeclaredTestFloor(
   return { admitted: null, outcome, walk: floorWalk, predicate: verdict.predicate };
 }
 
+/** Options for the scope:complete acceptance walk. */
+export interface ScopeCompleteAcceptanceWalkOptions extends EvaluateVerifyAcOptions {
+  /**
+   * The completion floor's command source (#7047). scope:complete passes
+   * `resolveDeclaredTestCommand` from the consumer test lane; it is injected,
+   * not imported here, because that module's import graph reaches back into
+   * this one. Absent means no floor runs.
+   */
+  readonly resolveDeclaredTestCommand?: (projectRoot: string) => DeclaredTestCommand | null;
+}
+
 /**
  * Hard precondition for scope:complete (#3357 / #3267 / #3284).
  *
@@ -2247,12 +2256,13 @@ function runDeclaredTestFloor(
  */
 export function evaluateScopeCompleteAcceptanceWalk(
   plan: Record<string, unknown>,
-  options: EvaluateVerifyAcOptions = {},
+  options: ScopeCompleteAcceptanceWalkOptions = {},
 ): AcceptanceEvidenceGateResult {
   const stamped = plan.acceptance !== undefined;
   const profile = resolveAcceptanceGateProfile("complete");
+  const { resolveDeclaredTestCommand: resolveDeclared, ...verifyOptions } = options;
   const walkOptions: EvaluateVerifyAcOptions = {
-    ...options,
+    ...verifyOptions,
     checkIntegrated: profile.checkIntegrated,
     captureFromNarratives: options.captureFromNarratives ?? profile.captureFromNarratives,
     reuseMode: options.reuseMode ?? profile.reuseMode,
@@ -2309,12 +2319,13 @@ export function evaluateScopeCompleteAcceptanceWalk(
       }
       // #7047: a clause-bearing brief with no effective command gets one more
       // ordinary walk with the project's declared test command as a floor.
-      const floor = clauseLess
-        ? null
-        : runDeclaredTestFloor(plan, walkOptions, {
-            prNumber,
-            mergeCommit,
-          });
+      const floor =
+        clauseLess || resolveDeclared === undefined
+          ? null
+          : runDeclaredTestFloor(plan, walkOptions, resolveDeclared, {
+              prNumber,
+              mergeCommit,
+            });
       if (floor !== null && floor.admitted !== null) {
         return floor.admitted;
       }

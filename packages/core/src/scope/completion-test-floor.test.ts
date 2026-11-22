@@ -9,6 +9,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { SCOPE_COMPLETE_ZERO_VERIFIED_NOTICE } from "../check/rapid-zero-verified.js";
+import { resolveDeclaredTestCommand } from "../consumer-test-lane/evaluate.js";
 import type { LiteralAcceptanceCommand } from "../literal-acceptance/types.js";
 import {
   evaluateVerifyAcFromPath,
@@ -102,6 +103,8 @@ function walkOptions(projectRoot: string, runner: Recorder["runner"]) {
     bankOnPass: false,
     reuseMode: "never" as const,
     runner,
+    // scope:complete passes the consumer test lane's resolver (transition.ts).
+    resolveDeclaredTestCommand,
   };
 }
 
@@ -208,6 +211,17 @@ describe("completion test floor (#7047)", () => {
     expect(walk.message).toContain("no declared test command (set `plan.policy.testCommand`");
     expect(walk.message).toContain("  - clause 1:");
     expect(walk.message).toContain("  - clause 2:");
+    expect(walk.message).toContain("--template acceptance-disposition");
+  });
+
+  it("clause 8: a caller that passes no resolver runs no floor and refuses as before", () => {
+    const root = rootWithScriptsTest();
+    const rec = recorder(0);
+    const { resolveDeclaredTestCommand: _omit, ...noResolver } = walkOptions(root, rec.runner);
+    const walk = evaluateScopeCompleteAcceptanceWalk(clausePlan(), noResolver);
+    expect(walk.ok).toBe(false);
+    expect(rec.commands).toEqual([]);
+    expect(walk.message).not.toContain("declared test command");
     expect(walk.message).toContain("--template acceptance-disposition");
   });
 
