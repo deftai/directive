@@ -46,8 +46,20 @@ _Scopes not yet promoted to pending. Orientation only — not a substitute for `
 
 ## Completed
 
-_Showing 25 of 2032 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
+_Showing 25 of 2044 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
 
+- **#6873** -- bug(scope): scope:complete never discovers a deft-story: N product PR (two-PR path needs --merge-commit/--pr by hand) -- `[completed]`
+- **#6934** -- [framework-gap] Readiness and preflight accept stories that share one origin issue, which can never be completed -- `[completed]`
+- **#6937** -- [framework-gap] observable-scope mints need one human approval per cohort, not one terminal command per story -- `[completed]`
+- **#6886** -- bug(acceptance): no admitted acceptance-command form for JS workspace test runners (vitest) across scope:activate and verify:ac -- `[completed]`
+- **#6888** -- bug(pre-pr): leaves cannot complete pre-pr:run controller runs, and --complete publishes a pass after verify:ac failed -- `[completed]`
+- **#6887** -- bug(cli): review-monitor:register rejects the documented lone -- form -- `[completed]`
+- **#6863** -- chore: retire Go from master (frozen installer bridge leftovers in toolchain:check, CI and CodeQL) -- `[completed]`
+- **#6791** -- release: reuse the green CI merge gate on an identical tree instead of re-running task check in Step 5 -- `[completed]`
+- **#6875** -- release:run (#6845 S2): publish gates accept only the run's grant, bound to the merged tree and the cut base -- `[completed]`
+- **#6645** -- bug(scope): scope:complete's printed delivery-identity-attest remedy is unreachable; story-line marks and orphan check trap stories -- `[completed]`
+- **#5771** -- [framework-gap] Initial installation commit blocked by prospective scope-cover despite documented pre-activation bootstrap -- `[completed]`
+- **#6862** -- ci: taskfile_release_names test intermittently hangs the merge gate (spawns the real release task chain) -- `[completed]`
 - **#6842** -- bug(setup): 0.130.1 .gitignore hides .deft/directive/data-schema.json from fresh-install commits -- `[completed]`
 - **#6808** -- 0.130.1: consumer setup fixes (hook rewrite, forward-coverage warn-only, getting-started order, runtime gitignore) -- `[completed]`
 - **#6793** -- docs(release): release skill predates the release-PR flow; document the full cut sequence -- `[completed]`
@@ -61,16 +73,4 @@ _Showing 25 of 2032 completed scopes (newest first). Full history: lifecycle `co
 - **#6002** -- Legacy upgrade deletes .deft/core on a dirty tree without warning (successor to #4158) -- `[completed]`
 - **#6022** -- bug(installer): `task upgrade` still dispatches the retired `install-upgrade` verb, so it always refuses -- `[completed]`
 - **#5838** -- [framework-gap] 0.127.0 refresh leaves feedback and tutorial skill pointers on retired .deft/core path -- `[completed]`
-- **#6001** -- After legacy upgrade (0.126.2 → 0.127.0) doctor fails manifest-agreement on leftover xbrief/.deft-version -- `[completed]`
-- **#6571** -- bug(upgrade,xbrief): upgrade keeps vbrief/ behind a DEPRECATED.md marker when vbrief/ and xbrief/ both have content, and the marker fails the pre-commit drift gate -- `[completed]`
-- **#6141** -- bug(installer,doctor): whole-scope @deftai→GitHub Packages breaks public @deftai/directive-runtime install/repair (split-registry honesty) -- `[completed]`
-- **#5976** -- [framework-gap] Upgrade and repair keep old committed git hooks without saying so, so recommended gates stay off, and doctor does not probe pre-push -- `[completed]`
-- **#6615** -- installer: one read-only API for what Directive owns in a project (ownership record + per-file 'Directive-only change' check) -- `[completed]`
-- **#6614** -- P1-U3: no-agent fixture test, steps 4 and 6 (missing packages, old layout) (ovpr-p1-u3) -- `[completed]`
-- **#5960** -- P1-U2: old (pre-OVPR) repos keep blocking when their hooks reach the new deft-hook (ovpr-p1-u2) -- `[completed]`
-- **#6201** -- P1-U1: hosts block a tool call when the Directive hook cannot decide (ovpr-p1-u1) -- `[completed]`
-- **#6562** -- bug(session,worktree): session start re-deposits retired .deft/core into linked worktrees of runtime-pinned projects -- `[completed]`
-- **#5999** -- Uninstall deletes the sole-author package.json before PM remove: npm recreates {} + stub lockfile, pnpm fails but reports success -- `[completed]`
-- **#5959** -- Generated agent hook commands use a cwd-relative node path and exit 1 when node_modules is not in the working directory -- `[completed]`
-- **#6005** -- --root with a lowercase drive letter is rejected as not the Git working-tree root on Windows -- `[completed]`
 
