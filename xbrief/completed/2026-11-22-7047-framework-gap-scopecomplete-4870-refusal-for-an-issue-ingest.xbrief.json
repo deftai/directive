@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #7047",
-    "updated": "2026-11-22T16:47:05Z"
+    "updated": "2026-11-22T18:16:45Z"
   },
   "plan": {
     "title": "[framework-gap] scope:complete #4870 refusal for an issue-ingested brief names no remedy, and the documented remedy (swarm.verify_commands) is fenced",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "scope:complete refuses a shipped clause-bearing story whose acceptance carries no command (#4870), and the remedy it names needs a brief edit the story write fence refuses. This story lets completion run the project's declared test command once as a transient floor through the ordinary acceptance walk, and makes every clause-bearing refusal show the clause list and grant command instead of the #5403 historical text.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/7047",
@@ -20,110 +20,182 @@
     "items": [
       {
         "title": "Floor eligibility. In the zero-verified branch of `evaluateScopeCompleteAcceptanceWalk` (`packages/core/src/scope/acceptance-evidence.ts`), the floor applies only when the brief has acceptance clauses, `resolveExecutableAcceptanceContract` for the plan yields no commands and no refused records, and the walk would otherwise refuse with the #4870 notice. No other reader and no other branch changes.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "When the zero-verified walk would refuse a clause-bearing brief with no effective command and no refused record, completion runs the floor; any other walk returns as today."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "cd49d43c65af3bf5e1b193206c6ce1b181f6eff7",
+          "recorded_at": "2026-11-22T18:16:45Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Floor source. The command comes from `resolveDeclaredTestCommand` (`packages/core/src/consumer-test-lane/evaluate.ts`), read from the completing checkout, and keeps its argv split (command plus arguments) when it becomes an acceptance record. Absence means no floor.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "When completion builds the floor, it returns the command from resolveDeclaredTestCommand in the completing checkout with its argv split kept; with no declaration it runs no floor."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "cd49d43c65af3bf5e1b193206c6ce1b181f6eff7",
+          "recorded_at": "2026-11-22T18:16:45Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Floor run. Completion calls `evaluateVerifyAcFromPlan` again with the same complete profile and one completion-only option that adds the declared command as one transient `project_floor` record to the resolved contract. That record passes `evaluateCommandSafety`, the blocking-record refusal, `tryReuseVerifyAc` (keyed on the resolved contract, so the floor record is part of the reuse identity), the executor and `applyOracle`. The second walk's verdict replaces the first. The brief is not written.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "When the floor runs, completion re-runs evaluateVerifyAcFromPlan with one transient floor record, so safety, the blocking refusal, reuse and applyOracle apply, and the brief is not written."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "cd49d43c65af3bf5e1b193206c6ce1b181f6eff7",
+          "recorded_at": "2026-11-22T18:16:45Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Listing. A completion admitted by the floor names the command, its source (`plan.policy.testCommand` or `package.json scripts.test`) and the working directory, with the words \"declared test command passed\", not \"clauses verified\".",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "When the floor admits a completion, the listing shows 'declared test command passed' with the command, its source and the working directory."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "cd49d43c65af3bf5e1b193206c6ce1b181f6eff7",
+          "recorded_at": "2026-11-22T18:16:45Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Refusal. Every clause-bearing zero-verified refusal uses `scopeCompleteRemediation` (the #6644 clause list and grant command). It first states the floor outcome: \"no declared test command (set `plan.policy.testCommand` in PROJECT-DEFINITION, or `scripts.test` in package.json)\", \"declared test command refused: <safety reason>\", or \"declared test command failed\" with the command, source, working directory and the last lines of output. `HISTORICAL_SHIP_CLAUSE_BEARING_REMEDIATION` is no longer selected for that message. Historical admission and the none-stated migration are unchanged.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "When a clause-bearing zero-verified walk refuses, the message shows the floor outcome first, then the #6644 clause list and grant command, never the #5403 historical text."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "cd49d43c65af3bf5e1b193206c6ce1b181f6eff7",
+          "recorded_at": "2026-11-22T18:16:45Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Tests: a clause-bearing brief with no commands and a green declared command completes; a failing command refuses with the failure details; a command the allowlist refuses never runs and refuses with the safety reason; no declared command refuses with the clause list and grant command; a delivered completion of a clause-bearing brief prints the clause list and grant command, not the #5403 text; a brief with stated commands, and a brief whose clauses already verify, behave as today; a banked floor run is not served to a walk without the floor record.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "When the test file runs, it validates green, failing, refused and absent floors, the delivered refusal text, unchanged briefs and floor-keyed reuse."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "cd49d43c65af3bf5e1b193206c6ce1b181f6eff7",
+          "recorded_at": "2026-11-22T18:16:45Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "`scope:complete` completes a clause-bearing brief with no acceptance commands when the project's declared test command runs green through the ordinary acceptance evaluation, and writes nothing to the brief to do so.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "When the declared test command runs green through the ordinary walk, scope:complete completes a clause-bearing brief with no commands and writes nothing to the brief."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "cd49d43c65af3bf5e1b193206c6ce1b181f6eff7",
+          "recorded_at": "2026-11-22T18:16:45Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "The floor runs only where the #4870 zero-verified refusal would otherwise fire; a story that completes today completes the same way.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.8",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "When a story already completes today, completion returns the same result and the floor never runs."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "cd49d43c65af3bf5e1b193206c6ce1b181f6eff7",
+          "recorded_at": "2026-11-22T18:16:45Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "A declared command that the acceptance allowlist refuses does not run, and the refusal names the safety reason.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.9",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "When the acceptance allowlist refuses the declared command, it never runs and the refusal shows the safety reason."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "cd49d43c65af3bf5e1b193206c6ce1b181f6eff7",
+          "recorded_at": "2026-11-22T18:16:45Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "With no declared command, or a failed run, the refusal names that outcome and lists each unresolved clause with the acceptance-disposition grant command.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.10",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "When no command is declared or the floor run fails, the refusal shows that outcome and lists each unresolved clause with the acceptance-disposition grant command."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "cd49d43c65af3bf5e1b193206c6ce1b181f6eff7",
+          "recorded_at": "2026-11-22T18:16:45Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "A delivered completion of a clause-bearing brief no longer prints the #5403 historical-closeout text.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.11",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "When a delivered completion of a clause-bearing brief refuses, it shows the clause list and grant command, not the #5403 historical-closeout text."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "cd49d43c65af3bf5e1b193206c6ce1b181f6eff7",
+          "recorded_at": "2026-11-22T18:16:45Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "A banked floor run is reused only by a walk whose resolved contract includes the floor record.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.12",
         "x-directive/requires": "merge",
         "narrative": {
           "Acceptance": "When a run was banked with the floor record, reuse returns it only for a walk whose resolved contract includes that record."
+        },
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "cd49d43c65af3bf5e1b193206c6ce1b181f6eff7",
+          "recorded_at": "2026-11-22T18:16:45Z",
+          "recorded_by": "scope:complete"
         }
       }
     ],
@@ -530,9 +602,38 @@
         "model_tier": "strong",
         "conflict_group": "completion-floor-7047",
         "acceptance_criteria_justification": "Every clause comes from the accepted #7047 lean 7082159427 (bind lean; audit 7082190510, table 7082195572, synthesis 7082201248). All clauses bind to one core test file that exercises the completion walk."
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "cf450ee966c1b87cf9575d381fc5f55726af377b",
+        "prNumber": 7067,
+        "prBase": "master",
+        "mergeCommit": "cd49d43c65af3bf5e1b193206c6ce1b181f6eff7",
+        "deliveryBranch": "master",
+        "deliveryCommit": "fcb80f2946dc56c3f6fc592b52f7dbdcb7bfa628",
+        "verifiedAt": "2026-11-22T18:16:45Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:ZTYxMTJjZWUtZTUxNC00NjVlLTk1ZjUtN2QwZDljMmE5OWVl",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          7060
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-22T18:16:45Z",
+      "completedSessionId": "host:claude:v1:ZTYxMTJjZWUtZTUxNC00NjVlLTk1ZjUtN2QwZDljMmE5OWVl",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-22T18:16:45Z"
       }
     },
     "id": "github.issue.6544583180",
-    "updated": "2026-11-22T16:47:05Z"
+    "updated": "2026-11-22T18:16:45Z"
   }
 }
