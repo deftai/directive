@@ -7,7 +7,15 @@
  * Two consecutive runs both leave `git status --porcelain` empty.
  */
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -100,6 +108,9 @@ describe("session:start leaves a clean install clean across runs (#7057)", () =>
     for (const run of [1, 2]) {
       const r = runSessionStart(root);
       const output = `run ${run}\n${r.stdout}${r.stderr}`;
+      // session:start really ran (it writes its gitignored runtime state)...
+      expect(existsSync(join(root, ".deft", "occupancy.json")), output).toBe(true);
+      // ...and left every tracked file unchanged.
       expect(git(root, "status", "--porcelain", "-uall"), output).toBe("");
       expect(readFileSync(join(root, EVAL_README_REL), "utf8"), output).toBe(EVAL_README_BODY);
       expect(readFileSync(join(root, "AGENTS.md"), "utf8"), output).toBe(agentsBefore);
