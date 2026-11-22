@@ -9,11 +9,12 @@
  * variables, an invalid GitHub token and no `DEFT_*` variables; the fixture root must be
  * unchanged after every run.
  */
-import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { lifecycleMain } from "@deftai/directive-core/dist/scope/main.js";
+import { resolveProjectRoot } from "@deftai/directive-core/dist/scope/project-context.js";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { routeAndDispatch, routeArgv } from "./cli-router/index.js";
 import { dispatch } from "./dispatch.js";
@@ -270,7 +271,8 @@ function listTree(root: string): string[] {
 
 beforeAll(() => {
   savedCwd = process.cwd();
-  fixtureRoot = mkdtempSync(join(tmpdir(), "deft-6897-documented-forms-"));
+  // realpath: on macOS the temp directory is a symlink, and process.cwd() reports the target.
+  fixtureRoot = realpathSync(mkdtempSync(join(tmpdir(), "deft-6897-documented-forms-")));
   // Empty `.git` marker: scope project-root discovery (xbrief / vbrief / .git sentinels) stops
   // here instead of walking up into the temp directory's ancestors.
   mkdirSync(join(fixtureRoot, ".git"));
@@ -403,6 +405,11 @@ describe("documented deft <verb> -- forms are covered (#6897)", () => {
       'missing probe entry for "deft policy show --" (in a.md)',
       'stale probe entry "verify:gone": no doc shows "deft verify:gone --"',
     ]);
+  });
+
+  it("anchors project-root discovery at the fixture root, not an ancestor of it", () => {
+    // A stray `xbrief` folder in the OS temp directory must not become the project root.
+    expect(resolveProjectRoot(undefined, runDir)).toBe(fixtureRoot);
   });
 
   it("uses no --help / -h probe and marks at least one parser as refusing --", () => {
