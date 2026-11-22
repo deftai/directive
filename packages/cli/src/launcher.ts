@@ -49,7 +49,8 @@ function printHelp(version: string, io: LauncherIo): void {
       `Installation management:\n` +
       `  install [--repair] [--target-version <exact>] [--package-manager npm|pnpm]\n` +
       `          [--dry-run] [--yes] [--root <path>]\n` +
-      `  upgrade [--target-version <ver>] [--dry-run] [--yes] [--root <path>]\n` +
+      `  upgrade [--target-version <ver>] [--migrate-xbrief] [--dry-run] [--yes]\n` +
+      `          [--root <path>]\n` +
       `  uninstall [--dry-run] [--yes] [--root <path>]\n` +
       `  doctor [--root <path>] [--full] [--json]\n` +
       `\n` +
@@ -77,6 +78,8 @@ function printHelp(version: string, io: LauncherIo): void {
       `  --target-version <exact>   Exact runtime version (required for prereleases)\n` +
       `  --package-manager npm|pnpm Force PM when lockfile evidence is absent\n` +
       `  --repair                  Restore the existing exact pin + wiring\n` +
+      `  --migrate-xbrief           Upgrade: also run the vbrief→xbrief data migration\n` +
+      `                             (--yes alone does not run it)\n` +
       `  --dry-run                  Show plan; change nothing\n` +
       `  --yes, -y                  Approve a fully resolved bookend plan\n`,
   );

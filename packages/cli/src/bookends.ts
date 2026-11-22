@@ -2,7 +2,14 @@
  * Install / upgrade / uninstall / doctor bookends (Wave 2a–2g).
  */
 import { execFileSync, spawnSync } from "node:child_process";
-import { existsSync, readdirSync, readFileSync, realpathSync, statSync } from "node:fs";
+import {
+  type Dirent,
+  existsSync,
+  readdirSync,
+  readFileSync,
+  realpathSync,
+  statSync,
+} from "node:fs";
 import { join, resolve } from "node:path";
 import {
   CONTRACT_NUMBER,
@@ -36,11 +43,13 @@ import type { ProjectInstallState } from "./pin.js";
 import { isContractSupported, readInstalledRuntime, readProjectInstallState } from "./pin.js";
 import {
   type HooksTakeover,
+  type LegacyVbriefTree,
   parseVerbosityFlags,
   presentAmbiguousYes,
   presentFirstInstallPlan,
   presentInstallSuccess,
   presentMigrateFailedAfterUpgrade,
+  presentMigrationPending,
   presentPathSummary,
   presentRepairPlan,
   presentRepairSuccess,
@@ -160,29 +169,84 @@ export interface InstallDeps {
 }
 
 /**
+ * Plan-time read-only Git query (#6002 / #7056). Null when Git is missing,
+ * fails, or times out; callers never block the upgrade on it.
+ */
+function readOnlyPlanGit(projectRoot: string, args: readonly string[]): string | null {
+  const result = spawnSync(
+    "git",
+    ["-C", projectRoot, ...args],
+    // Read-only: no optional index refresh writes; bounded so a slow Git never stalls the plan.
+    { encoding: "utf8", env: { ...process.env, GIT_OPTIONAL_LOCKS: "0" }, timeout: 5000 },
+  );
+  if (result.error || result.status !== 0 || typeof result.stdout !== "string") return null;
+  return result.stdout;
+}
+
+/** Upgrade-only flag: consent to the vbrief→xbrief data migration (#7056). */
+export const MIGRATE_XBRIEF_FLAG = "--migrate-xbrief";
+
+/** Project-relative POSIX paths of the files under `rel` (symlinks listed, not followed). */
+function listFilesUnder(projectRoot: string, rel: string): string[] {
+  const files: string[] = [];
+  const pending = [rel];
+  for (let current = pending.pop(); current !== undefined; current = pending.pop()) {
+    let entries: Dirent[];
+    try {
+      entries = readdirSync(join(projectRoot, current), { withFileTypes: true });
+    } catch {
+      continue;
+    }
+    for (const entry of entries) {
+      const child = `${current}/${entry.name}`;
+      // Dirent reports a symlink as a symlink (never followed): count it as a file.
+      if (entry.isDirectory()) pending.push(child);
+      else files.push(child);
+    }
+  }
+  return files;
+}
+
+/**
+ * #7056: the legacy `vbrief/` tree the upgrade migration would process and
+ * delete. Null when there is no `vbrief/` or it holds no files. `tracked` is
+ * how many of those on-disk files Git tracks (tracked paths already deleted
+ * from disk are not counted): 0 outside a Git repo, null when Git could not
+ * be read. Read-only.
+ */
+export function detectLegacyVbriefTree(projectRoot: string): LegacyVbriefTree | null {
+  try {
+    if (!statSync(join(projectRoot, "vbrief")).isDirectory()) return null;
+  } catch {
+    return null;
+  }
+  const onDisk = listFilesUnder(projectRoot, "vbrief");
+  const files = onDisk.length;
+  if (files === 0) return null;
+  if (!existsSync(join(projectRoot, ".git"))) return { files, tracked: 0 };
+  const stdout = readOnlyPlanGit(projectRoot, ["ls-files", "-z", "--", "vbrief"]);
+  if (stdout === null) return { files, tracked: null };
+  const trackedPaths = new Set(stdout.split("\0").filter((p) => p.length > 0));
+  return { files, tracked: onDisk.filter((p) => trackedPaths.has(p)).length };
+}
+
+/**
  * Read-only: paths Git reports as modified or untracked under `.deft/core`
  * (AC10.6 / RC-03, #6002). Empty when there is no Git repo, Git is missing,
  * or `.deft/core` is ignored or clean. Never blocks the upgrade.
  */
 export function listDeftCoreGitEdits(projectRoot: string): string[] {
   if (!existsSync(join(projectRoot, ".deft", "core"))) return [];
-  const result = spawnSync(
-    "git",
-    [
-      "-C",
-      projectRoot,
-      "status",
-      "--porcelain=v1",
-      "-z",
-      "--untracked-files=all",
-      "--",
-      ".deft/core",
-    ],
-    // Read-only: no optional index refresh writes; bounded so a slow Git never stalls the plan.
-    { encoding: "utf8", env: { ...process.env, GIT_OPTIONAL_LOCKS: "0" }, timeout: 5000 },
-  );
-  if (result.error || result.status !== 0 || typeof result.stdout !== "string") return [];
-  const tokens = result.stdout.split("\0");
+  const stdout = readOnlyPlanGit(projectRoot, [
+    "status",
+    "--porcelain=v1",
+    "-z",
+    "--untracked-files=all",
+    "--",
+    ".deft/core",
+  ]);
+  if (stdout === null) return [];
+  const tokens = stdout.split("\0");
   const paths: string[] = [];
   for (let i = 0; i < tokens.length; i++) {
     const entry = tokens[i] ?? "";
@@ -600,6 +664,30 @@ function requireApproval(
   if (parseYesNo(result.line)) return null;
   io.writeOut(`${CANCELLED_NO_CHANGES}\n`);
   return EXIT_CODES.SUCCESS;
+}
+
+/**
+ * #7056: separate default-No question for the vbrief→xbrief migration.
+ * Asked only in an interactive session without --yes (or --dry-run); a --yes
+ * run never asks and never migrates without --migrate-xbrief. EOF = no.
+ */
+function askMigrationConsent(
+  flags: BookendFlags,
+  deps: Pick<InstallDeps, "stdinIsTTY" | "confirm" | "readInteractiveLine">,
+  io: BookendIo,
+  prompt: string,
+): boolean {
+  if (flags.dryRun || flags.yes) return false;
+  const tty = deps.stdinIsTTY ?? Boolean(process.stdin.isTTY);
+  if (!tty) return false;
+  if (deps.confirm) {
+    io.writeOut(`${prompt} [y/N]\n`);
+    return deps.confirm(prompt);
+  }
+  io.writeOut(`${prompt} [y/N] `);
+  const result = resolveLineReader(deps)();
+  if (result.eof) return false;
+  return parseYesNo(result.line);
 }
 
 /**
@@ -1212,7 +1300,10 @@ export function runUpgrade(
   io: BookendIo = defaultIo(),
   deps: UpgradeDeps = {},
 ): number {
-  const { flags, rest, usageError } = parseFlags(argv);
+  // #7056: upgrade-only consent flag; taken out before the shared parser so
+  // install / repair / uninstall still reject it.
+  const migrateXbrief = argv.includes(MIGRATE_XBRIEF_FLAG);
+  const { flags, rest, usageError } = parseFlags(argv.filter((a) => a !== MIGRATE_XBRIEF_FLAG));
   const env = deps.env ?? process.env;
 
   if (usageError !== null) {
@@ -1370,6 +1461,10 @@ export function runUpgrade(
     ? formatPmExactAddCommand(pmDetect.pm, targetVersion, projectRoot)
     : null;
 
+  // #7056: a migration that would process and delete a non-empty vbrief/ tree
+  // needs its own consent; null means the migrate hand-off runs as before.
+  const legacyVbrief = needMigrate ? detectLegacyVbriefTree(projectRoot) : null;
+
   presentUpgradePlan(io, {
     projectRoot,
     pm: pmDetect.pm,
@@ -1391,6 +1486,8 @@ export function runUpgrade(
     gitHooksInactive: !existsSync(join(projectRoot, ".git")),
     nodeWarning: checkNodeVersion(deps.nodeVersion).warning ?? null,
     verbosity: flags.verbosity,
+    legacyVbrief,
+    migrateXbrief,
   });
   const planFp = fingerprintPlanCriticalFiles(projectRoot, pmDetect.pm);
 
@@ -1399,15 +1496,46 @@ export function runUpgrade(
     return EXIT_CODES.SUCCESS;
   }
 
-  const approval = requireApproval(
-    flags,
-    deps,
-    io,
-    versionChange
-      ? `Upgrade Directive from ${currentPin} to ${targetVersion}?`
-      : `Finish equal-version upgrade work for ${currentPin}?`,
-  );
-  if (approval !== null) return approval;
+  const migrationPrompt =
+    legacyVbrief === null
+      ? ""
+      : `Run the vbrief → xbrief migration now (processes ${legacyVbrief.files} file(s) under vbrief/ and deletes vbrief/)?`;
+  // True when the migrate hand-off may run: no legacy tree, or consent given.
+  let migrateConsent = legacyVbrief === null || migrateXbrief;
+
+  if (legacyVbrief !== null && !migrateXbrief && !versionChange && !needSetup) {
+    // #7056: the gated migration is the only remaining work; its own
+    // question is the approval, and no consent means nothing to do.
+    migrateConsent = askMigrationConsent(flags, deps, io, migrationPrompt);
+    if (!migrateConsent) {
+      presentMigrationPending(io, legacyVbrief, currentPin);
+      io.writeOut(`${CANCELLED_NO_CHANGES}\n`);
+      return EXIT_CODES.SUCCESS;
+    }
+  } else {
+    const approval = requireApproval(
+      flags,
+      deps,
+      io,
+      versionChange
+        ? `Upgrade Directive from ${currentPin} to ${targetVersion}?`
+        : `Finish equal-version upgrade work for ${currentPin}?`,
+    );
+    if (approval !== null) return approval;
+    if (!migrateConsent && legacyVbrief !== null) {
+      migrateConsent = askMigrationConsent(flags, deps, io, migrationPrompt);
+    }
+  }
+
+  // #7056: consent was granted for the tree the plan showed. If vbrief/ was
+  // empty or absent then and files appeared since (during the prompt, PM add
+  // or setup), recheck right before the hand-off: without the flag the
+  // migration stays pending rather than deleting files nobody was shown.
+  const migrationGate = (): { run: boolean; legacy: LegacyVbriefTree | null } => {
+    if (legacyVbrief !== null) return { run: migrateConsent, legacy: legacyVbrief };
+    const late = detectLegacyVbriefTree(projectRoot);
+    return { run: late === null || migrateXbrief, legacy: late };
+  };
 
   const stale = assertPlanStillValid(projectRoot, pmDetect.pm, planFp, io);
   if (stale !== null) return stale;
@@ -1519,22 +1647,29 @@ export function runUpgrade(
       }
     }
 
-    const migrateResult = handOffMigrate({
-      projectRoot,
-      launcherVersion,
-      runtime: installed,
-      from: fromLabel,
-      io,
-      deps,
-      verbosity: flags.verbosity,
-    });
-    if (migrateResult.exitCode !== 0) {
-      presentMigrateFailedAfterUpgrade(io, {
-        version: targetVersion,
-        versionChange: true,
-        summary: migrateResult.summary,
+    // #7056: without consent the migrate entry is not invoked at all (the
+    // contract-1 argv cannot skip part of it), so vbrief/ stays untouched.
+    let migrateSummary: SetupSummary | null = null;
+    const gate = migrationGate();
+    if (gate.run) {
+      const migrateResult = handOffMigrate({
+        projectRoot,
+        launcherVersion,
+        runtime: installed,
+        from: fromLabel,
+        io,
+        deps,
+        verbosity: flags.verbosity,
       });
-      return migrateResult.exitCode;
+      if (migrateResult.exitCode !== 0) {
+        presentMigrateFailedAfterUpgrade(io, {
+          version: targetVersion,
+          versionChange: true,
+          summary: migrateResult.summary,
+        });
+        return migrateResult.exitCode;
+      }
+      migrateSummary = migrateResult.summary;
     }
 
     presentUpgradeSuccess(io, {
@@ -1542,9 +1677,11 @@ export function runUpgrade(
       versionChange: true,
       pm: pmDetect.pm,
       summary: setupResult.summary,
-      migrateSummary: migrateResult.summary,
+      migrateSummary,
       verbosity: flags.verbosity,
       pnpmWorkspaceChanged,
+      legacyVbrief: gate.legacy,
+      migrationRan: gate.run,
     });
     return EXIT_CODES.SUCCESS;
   }
@@ -1570,7 +1707,9 @@ export function runUpgrade(
     setupSummary = setupResult.summary;
   }
   let migrateSummary: SetupSummary | null = null;
-  if (needMigrate) {
+  // #7056: without consent the migrate entry is not invoked at all.
+  const gate = needMigrate ? migrationGate() : { run: false, legacy: null };
+  if (gate.run) {
     const migrateResult = handOffMigrate({
       projectRoot,
       launcherVersion,
@@ -1597,6 +1736,8 @@ export function runUpgrade(
     summary: setupSummary,
     migrateSummary,
     verbosity: flags.verbosity,
+    legacyVbrief: gate.legacy,
+    migrationRan: gate.run,
   });
   return EXIT_CODES.SUCCESS;
 }

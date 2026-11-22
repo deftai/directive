@@ -161,6 +161,8 @@ describe("launcher smoke", () => {
     expect(text).toMatch(/--yes|-y/i);
     expect(text).toMatch(/--dry-run/i);
     expect(text).toMatch(/Automation|automation|--yes/i);
+    // #7056: the upgrade migration consent flag is listed.
+    expect(text).toMatch(/--migrate-xbrief/);
   });
 
   it("install --help stays on the launcher help surface", () => {

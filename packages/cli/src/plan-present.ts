@@ -219,6 +219,18 @@ export interface UpgradePlanFields extends CommonPlanFields {
    * RC-03, #6002). Listed in the conversion plan before removal; no prompt.
    */
   readonly deftCoreGitEdits?: readonly string[] | null;
+  /** #7056: legacy vbrief/ tree the migration would process; null/absent when none. */
+  readonly legacyVbrief?: LegacyVbriefTree | null;
+  /** #7056: `--migrate-xbrief` was passed. */
+  readonly migrateXbrief?: boolean;
+}
+
+/** Legacy `vbrief/` tree found before an upgrade migration (#7056). */
+export interface LegacyVbriefTree {
+  /** Files found under vbrief/ (recursive; symlinks counted, not followed). */
+  readonly files: number;
+  /** Files Git tracks under vbrief/; null when Git could not be read. */
+  readonly tracked: number | null;
 }
 
 // biome-ignore lint/suspicious/noControlCharactersInRegex: matching control characters is the point.
@@ -708,6 +720,9 @@ export function presentUpgradePlan(io: PresentIo, fields: UpgradePlanFields): vo
     );
   }
   writeBlank(io);
+  if (fields.legacyVbrief) {
+    writeLegacyVbriefNotice(io, fields.legacyVbrief, fields.migrateXbrief === true);
+  }
   writeDisclosures(io, fields);
   if (fields.versionChange) {
     writePmCommandAndScriptVerbose(io, fields.pmCommand, fields.verbosity);
@@ -715,6 +730,10 @@ export function presentUpgradePlan(io: PresentIo, fields: UpgradePlanFields): vo
 
   if (fields.verbosity >= 1) {
     writeBlank(io);
+    const migrateGate =
+      fields.legacyVbrief && fields.migrateXbrief !== true
+        ? ` (vbrief/ migration waits for --migrate-xbrief or a yes)`
+        : "";
     const keyed = [
       `operation: upgrade`,
       `root: ${fields.projectRoot}`,
@@ -731,7 +750,7 @@ export function presentUpgradePlan(io: PresentIo, fields: UpgradePlanFields): vo
         ? `setup: runtime setup --operation upgrade --from ${fields.currentVersion}`
         : `setup: none (wiring current for pin)`,
       fields.needMigrate
-        ? `migrate: runtime migrate --from ${fields.currentVersion}`
+        ? `migrate: runtime migrate --from ${fields.currentVersion}${migrateGate}`
         : `migrate: none`,
       `disclosure: target runtime performs required setup/migrations; project settings/data preserved`,
       `global launcher: unchanged`,
@@ -1253,12 +1272,21 @@ export function presentUpgradeSuccess(
     migrateSummary: SetupSummary | null;
     verbosity: Verbosity;
     pnpmWorkspaceChanged?: boolean;
+    /** #7056: legacy vbrief/ tree found before migrate; null/absent when none. */
+    legacyVbrief?: LegacyVbriefTree | null;
+    /** #7056: the migrate entry ran (consent given); false = pending. */
+    migrationRan?: boolean;
   },
 ): void {
   if (opts.versionChange) {
     io.writeOut(`✓ Installed Directive ${opts.version}\n`);
   }
   io.writeOut(`✓ Completed project setup\n`);
+  if (opts.legacyVbrief && opts.migrationRan === true) {
+    io.writeOut(
+      `✓ Ran the vbrief → xbrief migration (vbrief/ had ${fileCount(opts.legacyVbrief.files)})\n`,
+    );
+  }
   // #5846 / P20: upgrade never takes over another hooks folder; it names the fix.
   const foreignInactive = foreignHooksInactiveFromSummary(opts.summary);
   if (foreignInactive !== null) {
@@ -1301,6 +1329,10 @@ export function presentUpgradeSuccess(
     io.writeOut(`  ${p}\n`);
   }
   writeRetiredCoreGuardOutcome(io, opts.summary);
+  if (opts.legacyVbrief && opts.migrationRan !== true) {
+    writeBlank(io);
+    presentMigrationPending(io, opts.legacyVbrief, opts.version);
+  }
   if (opts.verbosity >= 1) {
     writeBlank(io);
     if (opts.summary) presentPathSummary(io, "setup upgrade", opts.summary, opts.verbosity);
@@ -1308,6 +1340,60 @@ export function presentUpgradeSuccess(
       presentPathSummary(io, "migrate", opts.migrateSummary, opts.verbosity);
     }
   }
+}
+
+function fileCount(n: number): string {
+  return `${n} ${n === 1 ? "file" : "files"}`;
+}
+
+function filesFound(n: number): string {
+  return `${fileCount(n)} found under vbrief/`;
+}
+
+/**
+ * #7056: the upgrade plan names the vbrief→xbrief migration before any approval.
+ * The count is files found, not records moved; Git tracking is not a recovery promise.
+ */
+export function writeLegacyVbriefNotice(
+  io: PresentIo,
+  legacy: LegacyVbriefTree,
+  migrateXbrief: boolean,
+): void {
+  io.writeOut("Legacy data migration (vbrief → xbrief):\n");
+  writeBullet(
+    io,
+    `${filesFound(legacy.files)}. The migration processes this tree into xbrief/ and deletes vbrief/.`,
+  );
+  if (legacy.tracked === null) {
+    writeBullet(io, "Git could not be read, so how many of these files Git tracks is unknown.");
+  } else {
+    writeBullet(io, `${legacy.tracked} of ${legacy.files} are tracked by Git.`);
+  }
+  writeBullet(io, "Git restores only committed contents: commit or back up vbrief/ first.");
+  if (migrateXbrief) {
+    writeBullet(io, "You passed --migrate-xbrief, so the migration runs with this upgrade.");
+  } else {
+    writeBullet(
+      io,
+      "This runs only with --migrate-xbrief, or if you answer yes to the migration question. --yes alone does not run it.",
+    );
+  }
+  writeBlank(io);
+}
+
+/** #7056: the pending vbrief→xbrief migration and the commands that run it later. */
+export function presentMigrationPending(
+  io: PresentIo,
+  legacy: LegacyVbriefTree,
+  version: string,
+): void {
+  io.writeOut(`Not done: the vbrief → xbrief migration (${filesFound(legacy.files)}).\n`);
+  writeHumanParagraph(io, "vbrief/ was left as it is; project data is still behind.");
+  io.writeOut("To run it later:\n");
+  io.writeOut("  deft migrate:xbrief\n");
+  io.writeOut(
+    `  directive upgrade --target-version ${version} --migrate-xbrief --yes   (also finishes the data update)\n`,
+  );
 }
 
 /** Folders that hold the worktrees, with counts: ".deft-scratch/worktrees/ (60)". */
