@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6876",
-    "updated": "2026-11-22T05:03:43Z"
+    "updated": "2026-11-22T06:26:29Z"
   },
   "plan": {
     "title": "release:run (#6845 S3): the verb, readiness, run record and the single up-front approval",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "A stable cut has no single command today: the operator runs about 15 runbook steps and is pulled back in to cut and to mint after the release PR merges (#6876, S3 of #6845). This story adds the `deft release:run <version>` verb with readiness before any write, the run record at `.deft-scratch/release-run/<version>.json` and the single up-front approval that the S2 gates (#6875) accept. It builds clauses 1, 2, 4, 13, 15 and 31 of the accepted #6845 lean 7032154033 (split comment 7048165729); the S4 (#6877) and S5 (#6878) clauses stay out.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6876",
@@ -19,50 +19,92 @@
     "items": [
       {
         "title": "One verb. `deft release:run <version>` runs in order: readiness; setup (release branch from the fetched tip B, `session:start --primary-claim-exception=release-cut`, cut context); the local cut (Steps 1 to 9, no push); approve; push and open the release PR; review wait and merge; finish (tag, draft release, clear the cut context); npm publish watch; draft flip and closeout; promote only when its grant was minted. It ends by printing the pin PR, `release:local-update` and `npm i -g` commands.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "One verb. `deft release:run <version>` runs in order: readiness; setup (release branch from the fetched tip B, `session:start --primary-claim-exception=release-cut`, cut context); the local cut (Steps 1 to 9, no push); approve; push and open the release PR; review wait and merge; finish (tag, draft release, clear the cut context); npm publish watch; draft flip and closeout; promote only when its grant was minted. It ends by printing the pin PR, `release:local-update` and `npm i -g` commands."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4a3dbaa9b26b9efb810b7c3030878bd2f81a262d",
+          "recorded_at": "2026-11-22T06:26:29Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Readiness before any write: the Phase 1 checks, the Phase 2 dry run, a free tag, consistent version files and the CI rule of item 3. A failed check refuses. Queued PRs and armed auto-merge are reported, not refused.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "Given a failed readiness check (Phase 1 checks, the Phase 2 dry run, a free tag, consistent version files), when `deft release:run` starts, then it rejects the run before any write; queued PRs and armed auto-merge are shown as a report and never refuse; the CI rule of item 3 is evaluated at readiness."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4a3dbaa9b26b9efb810b7c3030878bd2f81a262d",
+          "recorded_at": "2026-11-22T06:26:29Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Approve. After the local cut made release commit R with tree T, the run shows the version, B, T and the promoted CHANGELOG section, then mints one `release-publish` grant with target `<version>@<T>` and an operator-chosen `--expires`, and optionally one `release-promote-latest` grant. On a TTY it uses the existing mint path (typed `mint`). Without a TTY it stops and prints the mint commands; `--resume` continues. The run records the grant ids. No new template and no new default expiry.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "Approve. After the local cut made release commit R with tree T, the run shows the version, B, T and the promoted CHANGELOG section, then mints one `release-publish` grant with target `<version>@<T>` and an operator-chosen `--expires`, and optionally one `release-promote-latest` grant. On a TTY it uses the existing mint path (typed `mint`). Without a TTY it stops and prints the mint commands; `--resume` continues. The run records the grant ids. No new template and no new default expiry."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4a3dbaa9b26b9efb810b7c3030878bd2f81a262d",
+          "recorded_at": "2026-11-22T06:26:29Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given readiness, then it prints that CI reuse is provisional and about how long the full local check takes; given a latest required check attempt that failed or is missing at readiness, then readiness says before the mint that the full local check will run.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "Given readiness, then it prints that CI reuse is provisional and about how long the full local check takes; given a latest required check attempt that failed or is missing at readiness, then readiness says before the mint that the full local check will run."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4a3dbaa9b26b9efb810b7c3030878bd2f81a262d",
+          "recorded_at": "2026-11-22T06:26:29Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given readiness and the dry run pass and the operator mints once, when the run continues, then no later phase prompts the operator unless a phase fails.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "Given readiness and the dry run pass and the operator mints once, when the run continues, then no later phase prompts the operator unless a phase fails."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4a3dbaa9b26b9efb810b7c3030878bd2f81a262d",
+          "recorded_at": "2026-11-22T06:26:29Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given the run ends, then it prints the pin PR, `release:local-update` and `npm i -g` commands.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "narrative": {
           "Acceptance": "Given the run ends, then it prints the pin PR, `release:local-update` and `npm i -g` commands."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4a3dbaa9b26b9efb810b7c3030878bd2f81a262d",
+          "recorded_at": "2026-11-22T06:26:29Z",
+          "recorded_by": "scope:complete"
         }
       }
     ],
@@ -181,7 +223,34 @@
         "origin": "deftai/directive#6876",
         "id": "github.issue.6517858126"
       },
-      "kind": "story"
+      "kind": "story",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "a321f27d6cb2bc7832c74dac47c43ac4cf42ce09",
+        "prNumber": 7010,
+        "prBase": "master",
+        "mergeCommit": "4a3dbaa9b26b9efb810b7c3030878bd2f81a262d",
+        "deliveryBranch": "master",
+        "deliveryCommit": "4a3dbaa9b26b9efb810b7c3030878bd2f81a262d",
+        "verifiedAt": "2026-11-22T06:26:29Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          6997
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-22T06:26:29Z",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-22T06:26:29Z"
+      }
     },
     "acceptance": {
       "commands": [],
@@ -253,6 +322,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.6517858126",
-    "updated": "2026-11-22T05:03:43Z"
+    "updated": "2026-11-22T06:26:29Z"
   }
 }
