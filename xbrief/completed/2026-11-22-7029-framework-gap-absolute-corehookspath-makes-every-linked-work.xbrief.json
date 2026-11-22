@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #7029",
-    "updated": "2026-11-22T16:45:52Z"
+    "updated": "2026-11-22T17:45:14Z"
   },
   "plan": {
     "title": "[framework-gap] Absolute core.hooksPath makes every linked worktree run the primary checkout's hooks; breaks commits after the _directive-run.sh rename",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "An absolute core.hooksPath in the shared Git config makes every linked worktree run the primary checkout's hook scripts, which then source helpers from the current worktree; when the primary is on an older commit, commits and pushes in the worktree fail. Setup rewrites an absolute value that names a checkout's .githooks to the relative value .githooks, so each checkout runs its own tracked hooks, and directive doctor warns when core.hooksPath is an absolute path outside the current worktree.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/7029",
@@ -18,18 +18,32 @@
     "items": [
       {
         "title": "Set `core.hooksPath` to the **relative** value `.githooks`. Git resolves a relative path against each worktree's own root, so every checkout runs its own tracked hooks and helpers from one version. Or, if an absolute path is required, write it per worktree (`extensions.worktreeConfig` + `git config --worktree`). This repo already has `extensions.worktreeConfig=true`.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "Set `core.hooksPath` to the **relative** value `.githooks`. Git resolves a relative path against each worktree's own root, so every checkout runs its own tracked hooks and helpers from one version. Or, if an absolute path is required, write it per worktree (`extensions.worktreeConfig` + `git config --worktree`). This repo already has `extensions.worktreeConfig=true`."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8509e3d4ca1bb421c3664049269b92a35c04f533",
+          "recorded_at": "2026-11-22T17:45:14Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "`directive doctor` should flag an absolute `core.hooksPath` that points outside the current worktree.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "`directive doctor` should flag an absolute `core.hooksPath` that points outside the current worktree."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8509e3d4ca1bb421c3664049269b92a35c04f533",
+          "recorded_at": "2026-11-22T17:45:14Z",
+          "recorded_by": "scope:complete"
         }
       }
     ],
@@ -161,7 +175,36 @@
         "origin": "deftai/directive#7029",
         "id": "github.issue.6541018146"
       },
-      "kind": "story"
+      "kind": "story",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "2bcae6f83fc0f0c51bc969c27f602758cea7bd96",
+        "prNumber": 7066,
+        "prBase": "master",
+        "mergeCommit": "8509e3d4ca1bb421c3664049269b92a35c04f533",
+        "deliveryBranch": "master",
+        "deliveryCommit": "8509e3d4ca1bb421c3664049269b92a35c04f533",
+        "verifiedAt": "2026-11-22T17:45:14Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:ZTYxMTJjZWUtZTUxNC00NjVlLTk1ZjUtN2QwZDljMmE5OWVl",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          7059
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-22T17:45:14Z",
+      "completedSessionId": "host:claude:v1:ZTYxMTJjZWUtZTUxNC00NjVlLTk1ZjUtN2QwZDljMmE5OWVl",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-22T17:45:14Z"
+      }
     },
     "acceptance": {
       "commands": [],
@@ -197,6 +240,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.6541018146",
-    "updated": "2026-11-22T16:45:52Z"
+    "updated": "2026-11-22T17:45:14Z"
   }
 }
