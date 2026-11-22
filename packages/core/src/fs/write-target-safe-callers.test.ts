@@ -30,6 +30,8 @@ const WRITE_TARGET_SAFE_CALLERS: readonly string[] = [
   "orchestration/probe-session.ts",
   "orchestration/verify-judgment-gates.ts",
   "platform/changelog-cli.ts",
+  // #6914: continue checkpoint eligibility (a link on any part declines the exemption).
+  "policy/continue-checkpoint-path.ts",
   "policy/no-deft-directive.ts",
   "render/roadmap-render.ts",
   "render/rule-map.ts",
