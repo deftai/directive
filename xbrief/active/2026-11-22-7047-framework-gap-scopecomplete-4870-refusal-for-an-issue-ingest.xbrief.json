@@ -8,73 +8,123 @@
     "title": "[framework-gap] scope:complete #4870 refusal for an issue-ingested brief names no remedy, and the documented remedy (swarm.verify_commands) is fenced",
     "status": "running",
     "narratives": {
-      "Description": "[framework-gap] scope:complete #4870 refusal for an issue-ingested brief names no remedy, and the documented remedy (swarm.verify_commands) is fenced",
+      "Description": "scope:complete refuses a shipped clause-bearing story whose acceptance carries no command (#4870), and the remedy it names needs a brief edit the story write fence refuses. This story lets completion run the project's declared test command once as a transient floor through the ordinary acceptance walk, and makes every clause-bearing refusal show the clause list and grant command instead of the #5403 historical text.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/7047",
       "Overview": "\n1. Floor eligibility. In the zero-verified branch of `evaluateScopeCompleteAcceptanceWalk` (`packages/core/src/scope/acceptance-evidence.ts`), the floor applies only when the brief has acceptance clauses, `resolveExecutableAcceptanceContract` for the plan yields no commands and no refused records, and the walk would otherwise refuse with the #4870 notice. No other reader and no other branch changes.\n2. Floor source. The command comes from `resolveDeclaredTestCommand` (`packages/core/src/consumer-test-lane/evaluate.ts`), read from the completing checkout, and keeps its argv split (command plus arguments) when it becomes an acceptance record. Absence means no floor.\n3. Floor run. Completion calls `evaluateVerifyAcFromPlan` again with the same complete profile and one completion-only option that adds the declared command as one transient `project_floor` record to the resolved contract. That record passes `evaluateCommandSafety`, the blocking-record refusal, `tryReuseVerifyAc` (keyed on the resolved contract, so the floor record is part of the reuse identity), the executor and `applyOracle`. The second walk's verdict replaces the first. The brief is not written.\n4. Listing. A completion admitted by the floor names the command, its source (`plan.policy.testCommand` or `package.json scripts.test`) and the working directory, with the words \"declared test command passed\", not \"clauses verified\".\n5. Refusal. Every clause-bearing zero-verified refusal uses `scopeCompleteRemediation` (the #6644 clause list and grant command). It first states the floor outcome: \"no declared test command (set `plan.policy.testCommand` in PROJECT-DEFINITION, or `scripts.test` in package.json)\", \"declared test command refused: <safety reason>\", or \"declared test command failed\" with the command, source, working directory and the last lines of output. `HISTORICAL_SHIP_CLAUSE_BEARING_REMEDIATION` is no longer selected for that message. Historical admission and the none-stated migration are unchanged.\n6. Tests: a clause-bearing brief with no commands and a green declared command completes; a failing command refuses with the failure details; a command the allowlist refuses never runs and refuses with the safety reason; no declared command refuses with the clause list and grant command; a delivered completion of a clause-bearing brief prints the clause list and grant command, not the #5403 text; a brief with stated commands, and a brief whose clauses already verify, behave as today; a banked floor run is not served to a walk without the floor record.\n\n## Acceptance Criteria\n\n- `scope:complete` completes a clause-bearing brief with no acceptance commands when the project's declared test command runs green through the ordinary acceptance evaluation, and writes nothing to the brief to do so.\n- The floor runs only where the #4870 zero-verified refusal would otherwise fire; a story that completes today completes the same way.\n- A declared command that the acceptance allowlist refuses does not run, and the refusal names the safety reason.\n- With no declared command, or a failed run, the refusal names that outcome and lists each unresolved clause with the acceptance-disposition grant command.\n- A delivered completion of a clause-bearing brief no longer prints the #5403 historical-closeout text.\n- A banked floor run is reused only by a walk whose resolved contract includes the floor record.\n\n\n",
       "Constraint": "- A side run of the declared command that sets `executable-pass` outside `evaluateVerifyAcFromPlan` (comment 7082143006, finding 1).\n- Reading the declared command at the product merge's first parent; it still runs the checkout's script (comment 7082143006, answer 3).\n- Accepting the delivered PR's CI checks as the oracle in this change (comment 7082143006, answer 4).\n- Admitting the story's own brief to the write fence, a new stamp verb, or ingest stamping a command (Stop 1 7082094468, K3).",
       "Labels": "design-critique:ingest-ready",
-      "UserStory": "As a maintainer completing a shipped issue-first story whose acceptance clauses are behavioural and carry no command, I want scope:complete to run the project's declared test command as a temporary floor, so that the story can leave active/ without a brief edit, and a refusal names what failed and the grant command."
+      "UserStory": "As a maintainer completing a shipped issue-first story whose acceptance clauses are behavioural and carry no command, I want scope:complete to run the project's declared test command as a temporary floor, so that the story can leave active/ without a brief edit, and a refusal names what failed and the grant command.",
+      "ImplementationPlan": "1. product-first-done-gate/evaluate.ts: one completion-only option carries a transient floor record; the resolved contract (records, safety, blocking refusal, reuse hash and bank ledger) includes it. No other reader passes it.\n2. scope/acceptance-evidence.ts: in the zero-verified branch of evaluateScopeCompleteAcceptanceWalk, when the brief has clauses and the effective contract has no commands and no refused records, resolve the declared test command (resolveDeclaredTestCommand), keep its argv split, and re-run evaluateVerifyAcFromPlan once with the floor record. Green admits with 'declared test command passed' (command, source, cwd). No, refused or failed floor states which, then the #6644 clause list and grant command.\n3. Clause-bearing refusals no longer select HISTORICAL_SHIP_CLAUSE_BEARING_REMEDIATION; clause-less historical admission and the none-stated migration are unchanged.\n4. Tests: completion-test-floor.test.ts for every clause; update acceptance-evidence.test.ts cases whose expectations change. Doc line in content/docs/scope-provenance.md; changelog fragment.",
+      "Traces": "#7047 clauses 1-12 trace to the accepted lean 7082159427 Bound remedy items 1-6 and its Acceptance Criteria."
     },
     "items": [
       {
         "title": "Floor eligibility. In the zero-verified branch of `evaluateScopeCompleteAcceptanceWalk` (`packages/core/src/scope/acceptance-evidence.ts`), the floor applies only when the brief has acceptance clauses, `resolveExecutableAcceptanceContract` for the plan yields no commands and no refused records, and the walk would otherwise refuse with the #4870 notice. No other reader and no other branch changes.",
         "status": "proposed",
-        "id": "clause.1"
+        "id": "clause.1",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "When the zero-verified walk would refuse a clause-bearing brief with no effective command and no refused record, completion runs the floor; any other walk returns as today."
+        }
       },
       {
         "title": "Floor source. The command comes from `resolveDeclaredTestCommand` (`packages/core/src/consumer-test-lane/evaluate.ts`), read from the completing checkout, and keeps its argv split (command plus arguments) when it becomes an acceptance record. Absence means no floor.",
         "status": "proposed",
-        "id": "clause.2"
+        "id": "clause.2",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "When completion builds the floor, it returns the command from resolveDeclaredTestCommand in the completing checkout with its argv split kept; with no declaration it runs no floor."
+        }
       },
       {
         "title": "Floor run. Completion calls `evaluateVerifyAcFromPlan` again with the same complete profile and one completion-only option that adds the declared command as one transient `project_floor` record to the resolved contract. That record passes `evaluateCommandSafety`, the blocking-record refusal, `tryReuseVerifyAc` (keyed on the resolved contract, so the floor record is part of the reuse identity), the executor and `applyOracle`. The second walk's verdict replaces the first. The brief is not written.",
         "status": "proposed",
-        "id": "clause.3"
+        "id": "clause.3",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "When the floor runs, completion re-runs evaluateVerifyAcFromPlan with one transient floor record, so safety, the blocking refusal, reuse and applyOracle apply, and the brief is not written."
+        }
       },
       {
         "title": "Listing. A completion admitted by the floor names the command, its source (`plan.policy.testCommand` or `package.json scripts.test`) and the working directory, with the words \"declared test command passed\", not \"clauses verified\".",
         "status": "proposed",
-        "id": "clause.4"
+        "id": "clause.4",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "When the floor admits a completion, the listing shows 'declared test command passed' with the command, its source and the working directory."
+        }
       },
       {
         "title": "Refusal. Every clause-bearing zero-verified refusal uses `scopeCompleteRemediation` (the #6644 clause list and grant command). It first states the floor outcome: \"no declared test command (set `plan.policy.testCommand` in PROJECT-DEFINITION, or `scripts.test` in package.json)\", \"declared test command refused: <safety reason>\", or \"declared test command failed\" with the command, source, working directory and the last lines of output. `HISTORICAL_SHIP_CLAUSE_BEARING_REMEDIATION` is no longer selected for that message. Historical admission and the none-stated migration are unchanged.",
         "status": "proposed",
-        "id": "clause.5"
+        "id": "clause.5",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "When a clause-bearing zero-verified walk refuses, the message shows the floor outcome first, then the #6644 clause list and grant command, never the #5403 historical text."
+        }
       },
       {
         "title": "Tests: a clause-bearing brief with no commands and a green declared command completes; a failing command refuses with the failure details; a command the allowlist refuses never runs and refuses with the safety reason; no declared command refuses with the clause list and grant command; a delivered completion of a clause-bearing brief prints the clause list and grant command, not the #5403 text; a brief with stated commands, and a brief whose clauses already verify, behave as today; a banked floor run is not served to a walk without the floor record.",
         "status": "proposed",
-        "id": "clause.6"
+        "id": "clause.6",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "When the test file runs, it validates green, failing, refused and absent floors, the delivered refusal text, unchanged briefs and floor-keyed reuse."
+        }
       },
       {
         "title": "`scope:complete` completes a clause-bearing brief with no acceptance commands when the project's declared test command runs green through the ordinary acceptance evaluation, and writes nothing to the brief to do so.",
         "status": "proposed",
-        "id": "clause.7"
+        "id": "clause.7",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "When the declared test command runs green through the ordinary walk, scope:complete completes a clause-bearing brief with no commands and writes nothing to the brief."
+        }
       },
       {
         "title": "The floor runs only where the #4870 zero-verified refusal would otherwise fire; a story that completes today completes the same way.",
         "status": "proposed",
-        "id": "clause.8"
+        "id": "clause.8",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "When a story already completes today, completion returns the same result and the floor never runs."
+        }
       },
       {
         "title": "A declared command that the acceptance allowlist refuses does not run, and the refusal names the safety reason.",
         "status": "proposed",
-        "id": "clause.9"
+        "id": "clause.9",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "When the acceptance allowlist refuses the declared command, it never runs and the refusal shows the safety reason."
+        }
       },
       {
         "title": "With no declared command, or a failed run, the refusal names that outcome and lists each unresolved clause with the acceptance-disposition grant command.",
         "status": "proposed",
-        "id": "clause.10"
+        "id": "clause.10",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "When no command is declared or the floor run fails, the refusal shows that outcome and lists each unresolved clause with the acceptance-disposition grant command."
+        }
       },
       {
         "title": "A delivered completion of a clause-bearing brief no longer prints the #5403 historical-closeout text.",
         "status": "proposed",
-        "id": "clause.11"
+        "id": "clause.11",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "When a delivered completion of a clause-bearing brief refuses, it shows the clause list and grant command, not the #5403 historical-closeout text."
+        }
       },
       {
         "title": "A banked floor run is reused only by a walk whose resolved contract includes the floor record.",
         "status": "proposed",
-        "id": "clause.12"
+        "id": "clause.12",
+        "x-directive/requires": "merge",
+        "narrative": {
+          "Acceptance": "When a run was banked with the floor record, reuse returns it only for a walk whose resolved contract includes that record."
+        }
       }
     ],
     "tags": [
@@ -463,7 +513,6 @@
           "packages/core/src/literal-acceptance/inline-prose-mention.test.ts",
           "packages/core/src/scope/transition.test.ts",
           "content/docs/scope-provenance.md",
-          "docs/RULE-MAP.md",
           "changelog.d/7047-completion-test-floor.md"
         ],
         "verify_commands": [
