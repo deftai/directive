@@ -1325,15 +1325,16 @@ export function bodyHasStoryPartLine(body: string, issueNumber: number): boolean
  * Bounded exhaustive uniqueness scan (#5710 basis a). Enumerates every merged
  * PR, reconstructs each merge-time body, and classifies sole-mark hits for
  * `issueNumber`. Returns the non-excluded sole-mark PRs other than the
- * candidate, and the merged PRs whose merge-time body carries the part line
- * for the story (#6317: a part-line PR is never a competitor). Any incomplete
- * page, unreadable revision or competitor, truncated listing, or exhausted
- * budget fails closed. No recent-window shortcut.
+ * candidate (every one when no candidate is given, as delivery discovery
+ * uses it, #6873), and the merged PRs whose merge-time body carries the part
+ * line for the story (#6317: a part-line PR is never a competitor). Any
+ * incomplete page, unreadable revision or competitor, truncated listing, or
+ * exhausted budget fails closed. No recent-window shortcut.
  */
 export function scanSoleMarkCompetitors(input: {
   readonly repository: string;
   readonly issueNumber: number;
-  readonly candidatePr: number;
+  readonly candidatePr?: number;
   readonly forge: MergeTimeForge;
   readonly budget?: ScanBudget;
 }): { ok: true; competitors: number[]; partLinePrs: number[] } | { ok: false; error: string } {
@@ -3125,6 +3126,12 @@ function deliveryEvidenceRemediation(deliveryBranch: string): string {
   );
 }
 
+/** The remediation after "Stamp plan.metadata.productPullRequest or " (#6873). */
+function orDeliveryEvidenceRemediation(deliveryBranch: string): string {
+  const text = deliveryEvidenceRemediation(deliveryBranch);
+  return `Stamp plan.metadata.productPullRequest or ${text.charAt(0).toLowerCase()}${text.slice(1)}`;
+}
+
 /**
  * #5710 P4: refuse a non-delivery disposition when the stamped productPullRequest
  * is merged in the authoritative repository (the issue repository, else the
@@ -3206,9 +3213,11 @@ function refuseNonDeliveryForMergedStamp(input: {
 export function evaluateDeliveryGate(options: DeliveryGateOptions): DeliveryGateResult {
   const runGit = options.runGit ?? defaultGitRunner;
   const runGh = options.runGh ?? defaultRunGh;
+  // #6873: the identity join re-reads the PR discovery found; read it live too.
   const fetchPrPayload =
     options.fetchPrPayload ??
-    ((prNumber: number, repository: string) => defaultFetchPrPayload(prNumber, repository, runGh));
+    ((prNumber: number, repository: string) =>
+      defaultFetchPrPayload(prNumber, repository, liveRunGh(runGh)));
   // Live defaults only when the PR payload is not injected, so injected test
   // seams never fall through to a live gh call.
   const liveForge = options.fetchPrPayload === undefined;
@@ -3890,6 +3899,12 @@ export interface DiscoverDeliveryEvidenceOptions {
   readonly runGh?: RunGhFn;
   readonly fetchPrPayload?: FetchPrPayloadFn;
   readonly fetchClosingPrRefs?: FetchClosingPrRefsFn;
+  /**
+   * Merged-PR reads for the `deft-story: N` mark step (#6873). Without one, a
+   * live forge is built only when `fetchPrPayload` is not injected (the gate's
+   * rule); with neither, the mark step does not run.
+   */
+  readonly mergeTimeForge?: MergeTimeForge;
   readonly verifier?: string;
 }
 
@@ -3934,14 +3949,128 @@ function candidatePassesDeliveryBaseFilter(
   return prBase === deliveryBranch;
 }
 
+function markedMergeCommit(payload: Record<string, unknown>): string {
+  return typeof payload.merge_commit_sha === "string" && payload.merge_commit_sha.trim().length > 0
+    ? payload.merge_commit_sha.trim()
+    : "<sha>";
+}
+
+function describeMarkedPr(prNumber: number, payload: Record<string, unknown>): string {
+  const base = asRecord(payload.base);
+  const prBase =
+    typeof base?.ref === "string" && base.ref.trim().length > 0 ? base.ref.trim() : "unknown";
+  return `#${prNumber} (base '${prBase}', merge commit ${markedMergeCommit(payload)})`;
+}
+
+/**
+ * Mark step (#6873): after a zero closing-PR result, pick the sole merged PR
+ * whose merge-time body carries `deft-story: N`. The scan is the identity
+ * join's own (every base, part lines and brief-land-only PRs skipped), so
+ * discovery never picks a PR the join counts as contested. Discovery only
+ * selects; the join still proves basis (a).
+ */
+function discoverByStoryMark(input: {
+  readonly forge: MergeTimeForge;
+  readonly repository: string;
+  readonly issueNumber: number;
+  readonly deliveryBranch: string;
+  readonly verifier: string;
+  readonly existing: DeliveryEvidenceInput | null | undefined;
+  readonly fetchPrPayload: FetchPrPayloadFn;
+}): DiscoverDeliveryEvidenceResult {
+  const { repository, issueNumber, deliveryBranch } = input;
+  const story = `${repository}#${issueNumber}`;
+  const mark = `\`deft-story: ${issueNumber}\``;
+  const scan = scanSoleMarkCompetitors({ repository, issueNumber, forge: input.forge });
+  if (!scan.ok) {
+    return {
+      ok: false,
+      message:
+        `Delivery auto-discovery found no closing PR for ${story} and could not finish the ` +
+        `${mark} mark search: ${scan.error}. Retry; passing --pr and --merge-commit runs the ` +
+        `same scan in the identity join (#6873). ${deliveryEvidenceRemediation(deliveryBranch)}`,
+    };
+  }
+  if (scan.competitors.length === 0) {
+    return {
+      ok: false,
+      message:
+        `Delivery auto-discovery found no merged PR into '${deliveryBranch}' that closes ` +
+        `#${issueNumber}, and no merged PR whose merge-time body carries the sole mark ${mark} ` +
+        `(searched: the issue's closing-PR links and the merged-PR mark scan) (#3583 / #6873). ` +
+        orDeliveryEvidenceRemediation(deliveryBranch),
+    };
+  }
+  const marked: { prNumber: number; payload: Record<string, unknown> }[] = [];
+  for (const prNumber of [...scan.competitors].sort((a, b) => a - b)) {
+    const payload = input.fetchPrPayload(prNumber, repository);
+    if (payload === null) {
+      return {
+        ok: false,
+        message:
+          `Delivery auto-discovery incomplete: could not fetch PR #${prNumber} carrying ${mark} ` +
+          `in ${repository}. Retry (#6873). ${deliveryEvidenceRemediation(deliveryBranch)}`,
+      };
+    }
+    marked.push({ prNumber, payload });
+  }
+  if (marked.length > 1) {
+    return {
+      ok: false,
+      message:
+        `Delivery auto-discovery found ${marked.length} merged PRs whose merge-time body carries ` +
+        `the sole mark ${mark}: ${marked.map((m) => describeMarkedPr(m.prNumber, m.payload)).join(", ")}; ` +
+        `refuse to guess (#6873). The identity join accepts one of them only when ` +
+        `metadata.productPullRequest in the brief on the fetched origin/${deliveryBranch} names it ` +
+        `(a working-tree stamp does not count); with that in place, pass --pr <n> --merge-commit <sha>. ` +
+        deliveryEvidenceRemediation(deliveryBranch),
+    };
+  }
+  const sole = marked[0];
+  if (sole === undefined) {
+    return {
+      ok: false,
+      message:
+        `Delivery auto-discovery failed unexpectedly (#6873). ` +
+        deliveryEvidenceRemediation(deliveryBranch),
+    };
+  }
+  if (!candidatePassesDeliveryBaseFilter(sole.payload, deliveryBranch)) {
+    return {
+      ok: false,
+      message:
+        `Delivery auto-discovery found one merged PR carrying the sole mark ${mark}, ` +
+        `${describeMarkedPr(sole.prNumber, sole.payload)}, but it is not merged into ` +
+        `'${deliveryBranch}' (#6873). It can complete only with --pr ${sole.prNumber} ` +
+        `--merge-commit ${markedMergeCommit(sole.payload)} once that merge commit is an ` +
+        `ancestor of origin/${deliveryBranch}. ` +
+        deliveryEvidenceRemediation(deliveryBranch),
+    };
+  }
+  const discovered = evidenceFromPrPayload(
+    sole.payload,
+    sole.prNumber,
+    repository,
+    deliveryBranch,
+    input.verifier,
+  );
+  return {
+    ok: true,
+    evidence: mergePreservingExplicitFacts(input.existing, discovered),
+    discovered: true,
+    message: `auto-discovered delivery evidence from \`deft-story: ${issueNumber}\` PR #${sole.prNumber}`,
+  };
+}
+
 /**
  * Auto-build delivery evidence for code-bearing scope:complete when both
  * `--pr` and `--merge-commit` are omitted (#3583 Prefer-A Bound).
  *
  * Primary seed: plan.metadata.productPullRequest. Else: complete deduplicated
  * closedByPullRequestsReferences set filtered to base.ref === resolved delivery.
- * Fail closed on zero/many/incomplete. Does not set assumeEvidenceValidated.
- * evaluateDeliveryGate stays validate-only.
+ * Else (#6873): the sole merged PR whose merge-time body carries
+ * `deft-story: N` (discoverByStoryMark). Fail closed on zero/many/incomplete.
+ * Does not set assumeEvidenceValidated. evaluateDeliveryGate stays validate-only.
  */
 export function discoverDeliveryEvidenceForComplete(
   options: DiscoverDeliveryEvidenceOptions,
@@ -3974,9 +4103,11 @@ export function discoverDeliveryEvidenceForComplete(
 
   const runGit = options.runGit ?? defaultGitRunner;
   const runGh = options.runGh ?? defaultRunGh;
+  // #6873: read PR payloads live, so a PR cached by ghx before merge is not "unmerged".
   const fetchPrPayload =
     options.fetchPrPayload ??
-    ((prNumber: number, repository: string) => defaultFetchPrPayload(prNumber, repository, runGh));
+    ((prNumber: number, repository: string) =>
+      defaultFetchPrPayload(prNumber, repository, liveRunGh(runGh)));
   const fetchClosingPrRefs =
     options.fetchClosingPrRefs ??
     ((issueNumber: number, repository: string) =>
@@ -4068,8 +4199,8 @@ export function discoverDeliveryEvidenceForComplete(
       message:
         `Delivery evidence required for code-bearing scope completion (#3041). ` +
         `A merge commit that is an ancestor of refreshed origin/${deliveryBranch} is delivery; ` +
-        `PR base is provenance only. Stamp plan.metadata.productPullRequest or ` +
-        deliveryEvidenceRemediation(deliveryBranch),
+        `PR base is provenance only. ` +
+        orDeliveryEvidenceRemediation(deliveryBranch),
     };
   }
 
@@ -4105,14 +4236,29 @@ export function discoverDeliveryEvidenceForComplete(
   }
 
   if (qualifying.length === 0) {
-    return {
-      ok: false,
-      message:
-        `Delivery auto-discovery found zero merged delivery-base PRs for ` +
-        `${expected.repository}#${expected.issueNumber} on '${deliveryBranch}' (#3583). ` +
-        `Stamp plan.metadata.productPullRequest or ` +
-        deliveryEvidenceRemediation(deliveryBranch),
-    };
+    // #6873: the `deft-story: N` mark step, only after a zero closing-PR result.
+    const forge =
+      options.mergeTimeForge ??
+      (options.fetchPrPayload === undefined ? defaultMergeTimeForge(runGh) : undefined);
+    if (forge === undefined) {
+      return {
+        ok: false,
+        message:
+          `Delivery auto-discovery found zero merged delivery-base PRs for ` +
+          `${expected.repository}#${expected.issueNumber} on '${deliveryBranch}'; it searched ` +
+          `only the issue's closing-PR links (#3583). ` +
+          orDeliveryEvidenceRemediation(deliveryBranch),
+      };
+    }
+    return discoverByStoryMark({
+      forge,
+      repository: expected.repository,
+      issueNumber: expected.issueNumber,
+      deliveryBranch,
+      verifier,
+      existing,
+      fetchPrPayload,
+    });
   }
   if (qualifying.length > 1) {
     const nums = qualifying

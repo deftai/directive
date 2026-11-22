@@ -168,7 +168,10 @@ export interface TransitionOptions {
   readonly fetchPrPayload?: FetchPrPayloadFn;
   /** One-PR-unit closer-set seam only; not a delivery-identity basis (#5710). */
   readonly fetchClosingIssueIds?: FetchClosingIssueIdsFn;
-  /** Merge-time association seam (#5710 P3); forwarded to evaluateDeliveryGate. */
+  /**
+   * Merge-time association seam (#5710 P3); forwarded to evaluateDeliveryGate
+   * and to delivery discovery's `deft-story: N` mark step (#6873).
+   */
   readonly mergeTimeForge?: MergeTimeForge;
   /** Brief-in-PR-diff identity fallback seam (#3675); forwarded to evaluateDeliveryGate. */
   readonly fetchPrChangedFiles?: FetchPrChangedFilesFn;
@@ -848,6 +851,7 @@ export function runTransition(
       runGh: options.runGh,
       fetchPrPayload: options.fetchPrPayload,
       fetchClosingPrRefs: options.fetchClosingPrRefs,
+      mergeTimeForge: options.mergeTimeForge,
       verifier: options.verifier ?? "scope:complete",
     });
     if (!discovered.ok) {
@@ -1490,6 +1494,7 @@ function restampCompletedBrief(args: RestampArgs): TransitionResult {
     runGh: options.runGh,
     fetchPrPayload: options.fetchPrPayload,
     fetchClosingPrRefs: options.fetchClosingPrRefs,
+    mergeTimeForge: options.mergeTimeForge,
     verifier: options.verifier ?? "scope:complete",
   });
   if (!discovered.ok) {

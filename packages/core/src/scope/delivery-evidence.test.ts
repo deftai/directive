@@ -479,6 +479,8 @@ describe("delivery evidence (#3041)", () => {
       runGit: gitOk(),
       // Offline: empty complete closing set (no productPullRequest) (#3583).
       fetchClosingPrRefs: () => ({ ok: true, refs: [] }),
+      // Offline: no merged PR carries the mark, so the #6873 mark step finds none.
+      mergeTimeForge: makeForge({}),
     });
     expect(result.ok).toBe(false);
     expect(result.message).toMatch(/Delivery auto-discovery found zero|#3041|#3583/);
