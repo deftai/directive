@@ -830,27 +830,6 @@
             }
           ]
         }
-      },
-      {
-        "id": "2026-11-22-6877-releaserun-6845-s4-enqueue-reads-built-in-waits-and-the-merg",
-        "title": "release:run (#6845 S4): enqueue reads, built-in waits and the merge phase",
-        "status": "running",
-        "metadata": {
-          "source_path": "active/2026-11-22-6877-releaserun-6845-s4-enqueue-reads-built-in-waits-and-the-merg.xbrief.json",
-          "lifecycle_folder": "active",
-          "references": [
-            {
-              "uri": "https://github.com/deftai/directive/issues/6877",
-              "type": "x-xbrief/github-issue",
-              "title": "Issue #6877: release:run (#6845 S4): enqueue reads, built-in waits and the merge phase"
-            },
-            {
-              "uri": "https://github.com/deftai/directive/issues/6845",
-              "type": "x-xbrief/refs",
-              "title": "Issue #6845"
-            }
-          ]
-        }
       }
     ],
     "metadata": {
