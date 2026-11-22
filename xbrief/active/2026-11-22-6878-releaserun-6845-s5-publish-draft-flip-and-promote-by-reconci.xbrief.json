@@ -1,0 +1,350 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6878",
+    "updated": "2026-11-22T08:24:52Z"
+  },
+  "plan": {
+    "title": "release:run (#6845 S5): publish, draft flip and promote by reconciliation, and the runbook",
+    "status": "running",
+    "narratives": {
+      "Description": "After the tag, the operator still watches the npm publish, flips the draft release and decides on promotion by hand, and a run that stops part-way leaves the state to work out by hand (#6878, S5 of #6845). This story builds the publish-watch, draft-flip and promote phases of `deft release:run` by reconciliation with GitHub and npm, the GitHub-release check on a resumed finish, and the operator runbook. It builds clauses 6, 9, 10, 11, 24, 26, 27, 28, 29 and 30 of the accepted #6845 lean 7032154033 (split comment 7048165729).",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6878",
+      "Overview": "After the tag, the operator still watches the npm publish, flips the draft release and decides on promotion by hand, and a run that stops part-way leaves the state to work out by hand. This story adds the publish, draft-flip and promote phases of `deft release:run` (#6845) by reconciliation with GitHub and npm, and replaces the Stable cut runbook. In the clauses, B is the cut base (the fetched delivery-branch tip), T is the tree of the release commit and M is the merged release commit.\n\n## Acceptance Criteria\n\n- [ ] Approved scope. The approval covers source tree T at M, built by the tag-triggered npm workflow at M, and release notes read from M. The draft release notes and the upgrade banner are read from M with `git show`, not from the local checkout. The run publishes only by the tag push and never dispatches the manual republish workflow; a failed publish run stops the run.\n- [ ] Resume by reconciliation. The run record (`.deft-scratch/release-run/<version>.json`) keeps B, T, the PR number, the grant ids and the retry counts. Each phase decides from observed state. A tag that peels to M only locally is pushed; a remote tag that peels to M is done; a tag on any other commit stops the run. npm is done only when both packages carry the version on `maintainer` and the tag-triggered workflow run, with its post-publish fixture, concluded `success`; a run in progress is waited on; a failed run stops. The GitHub release is done when it exists for the tag, and the flip is done when it is not a draft. An expired or spent grant that an unfinished phase needs stops the run and names the mint command. Any other state stops the run; nothing is overwritten.\n- [ ] Promote. The promote phase runs only with its up-front grant and after the post-publish fixture passed. It first looks for a promote-latest workflow run for the version: a run in progress is waited on; a run that concluded `success`, with both packages on `latest` at the version, is done; a failed run or a partial state stops the run without a new dispatch. With no run found it dispatches once. An unknown dispatch result after the grant was spent stops the run; it is not retried.\n- [ ] Docs. The release skill Stable cut runbook and `docs/RELEASING.md` become this command, its approval step and the post-run pin steps. The merge-freeze rule and the routine-cut skip path leave the runbook.\n- [ ] Given one package published and a failed publish workflow run, then the run stops and does not dispatch a republish.\n- [ ] Given an expired `release-publish` grant when the draft flip is due, then the run stops and names the mint command.\n- [ ] Given a promote grant minted up front and a green post-publish fixture, then promote dispatches once.\n- [ ] Given both packages on `latest` and the promote workflow run still in progress, when `--resume` runs, then it waits and does not mark promote done; given a failed promote run, then it stops and does not dispatch again.\n- [ ] Given a spent promote grant and an unknown dispatch result, then the run stops.\n- [ ] Given no promote grant, then the run ends with `latest` unchanged.\n\nRefs #6845\n\nDepends on: S4 (#6877).\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\n",
+      "Labels": "framework-gap",
+      "UserStory": "As a release operator, I want `deft release:run` to watch the tag-triggered npm publish, flip the draft release and promote `latest` (only with its up-front grant) by reading GitHub and npm on every run and `--resume`, so that after the up-front mint I no longer watch, flip or promote by hand and a stopped run never redoes a done step.",
+      "ImplementationPlan": "1. packages/core/src/release/run-reconcile.ts (new): the reconciliation phases.\n   - Publish watch: read the commit the remote v<version> tag peels to (M) and the tag-triggered npm-publish.yml run (event push, branch v<version>) whose head is M. No run yet is waited on for the Phase 7 npm wait budget; a run in progress is waited on; a run that did not conclude success stops, and so does a post-publish two-pass fixture job that did not conclude success (#6966: a deferred Pass 2 still reads success). Then both packages must carry the version on the maintainer dist-tag (registry wait). The run never dispatches the manual republish workflow (clauses 1, 2, 5).\n   - Draft flip: read the GitHub release for the tag. Published is done; missing or unreadable stops; a draft needs the run's release-publish grant. A recorded grant that is expired, spent or revoked is replaced only by a newer active grant for the same <version>@<T> target; otherwise the run stops and names the mint command. Then the run-bound draft flip (#6875) (clauses 2, 6).\n   - Promote: only with the recorded release-promote-latest grant (none: SKIP, latest unchanged). Look for a promote-latest run (workflow_dispatch npm-publish.yml run created since the publish run, with the promote job not skipped): in progress is waited on; success with both packages on latest at the version is done; failure or a partial state stops without a dispatch. With no run found and a usable grant it dispatches once (grant spent before dispatch); a failed or unknown dispatch result stops and is not retried; a spent grant with no run found stops and names the mint command (clauses 2, 3, 7, 8, 9, 10).\n2. packages/core/src/release/run.ts: publish-watch, flip and promote call run-reconcile.ts; header and help text name the reconciliation.\n3. packages/core/src/release/finish.ts: under the run binding, a GitHub release that already exists for the tag (draft or published) is done; Steps 12 and 13 do not create it again (clause 2).\n4. Docs: the release skill Stable cut runbook (content/packs/skills/skills-pack-0.1.json, rendered to content/skills/ and content/.agents/skills/) and docs/RELEASING.md become `deft release:run`, its approval step and the post-run pin steps (pnpm update -w @deftai/directive-runtime@<v>, then pnpm install --frozen-lockfile, then the pin PR). The merge-freeze rule and the routine-cut skip path leave the runbook; the release skill's Routine vs hard cut section follows the Step 5 CI reuse rule (#6791 carry-over). docs/RULE-MAP.md regenerated if the rule counts move (clause 4).\n5. Colocated vitest suites (run-reconcile.test.ts, run.test.ts, finish-run-tag.test.ts) and a content-contract test release_run_runbook.test.ts; changelog fragment changelog.d/6878-release-run-reconcile.md.",
+      "Traces": "#6878 clauses 1-10 trace to #6845 lean 7032154033 clauses 6, 9, 10, 11, 24, 26, 27, 28, 29 and 30 (split comment 7048165729). Carry-overs: comment 7050808180 (Routine vs hard cut contradiction) and comment 7052455705 (pin lockfile step)."
+    },
+    "items": [
+      {
+        "title": "Approved scope. The approval covers source tree T at M, built by the tag-triggered npm workflow at M, and release notes read from M. The draft release notes and the upgrade banner are read from M with `git show`, not from the local checkout. The run publishes only by the tag push and never dispatches the manual republish workflow; a failed publish run stops the run.",
+        "status": "proposed",
+        "id": "clause.1"
+      },
+      {
+        "title": "Resume by reconciliation. The run record (`.deft-scratch/release-run/<version>.json`) keeps B, T, the PR number, the grant ids and the retry counts. Each phase decides from observed state. A tag that peels to M only locally is pushed; a remote tag that peels to M is done; a tag on any other commit stops the run. npm is done only when both packages carry the version on `maintainer` and the tag-triggered workflow run, with its post-publish fixture, concluded `success`; a run in progress is waited on; a failed run stops. The GitHub release is done when it exists for the tag, and the flip is done when it is not a draft. An expired or spent grant that an unfinished phase needs stops the run and names the mint command. Any other state stops the run; nothing is overwritten.",
+        "status": "proposed",
+        "id": "clause.2"
+      },
+      {
+        "title": "Promote. The promote phase runs only with its up-front grant and after the post-publish fixture passed. It first looks for a promote-latest workflow run for the version: a run in progress is waited on; a run that concluded `success`, with both packages on `latest` at the version, is done; a failed run or a partial state stops the run without a new dispatch. With no run found it dispatches once. An unknown dispatch result after the grant was spent stops the run; it is not retried.",
+        "status": "proposed",
+        "id": "clause.3"
+      },
+      {
+        "title": "Docs. The release skill Stable cut runbook and `docs/RELEASING.md` become this command, its approval step and the post-run pin steps. The merge-freeze rule and the routine-cut skip path leave the runbook.",
+        "status": "proposed",
+        "id": "clause.4"
+      },
+      {
+        "title": "Given one package published and a failed publish workflow run, then the run stops and does not dispatch a republish.",
+        "status": "proposed",
+        "id": "clause.5"
+      },
+      {
+        "title": "Given an expired `release-publish` grant when the draft flip is due, then the run stops and names the mint command.",
+        "status": "proposed",
+        "id": "clause.6"
+      },
+      {
+        "title": "Given a promote grant minted up front and a green post-publish fixture, then promote dispatches once.",
+        "status": "proposed",
+        "id": "clause.7"
+      },
+      {
+        "title": "Given both packages on `latest` and the promote workflow run still in progress, when `--resume` runs, then it waits and does not mark promote done; given a failed promote run, then it stops and does not dispatch again.",
+        "status": "proposed",
+        "id": "clause.8"
+      },
+      {
+        "title": "Given a spent promote grant and an unknown dispatch result, then the run stops.",
+        "status": "proposed",
+        "id": "clause.9"
+      },
+      {
+        "title": "Given no promote grant, then the run ends with `latest` unchanged.",
+        "status": "proposed",
+        "id": "clause.10"
+      }
+    ],
+    "tags": [
+      "framework-gap"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6878",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6878: release:run (#6845 S5): publish, draft flip and promote by reconciliation, and the runbook"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6845",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6845"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "deft release:run",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L3"
+        },
+        {
+          "command": "git show",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L7"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/release/run-reconcile.ts",
+          "packages/core/src/release/run.ts",
+          "packages/core/src/release/finish.ts",
+          "packages/core/src/release/run-record.ts",
+          "docs/RELEASING.md",
+          "content/packs/skills/skills-pack-0.1.json",
+          "content/skills/deft-directive-release/SKILL.md",
+          "content/.agents/skills/deft-directive-release/SKILL.md",
+          "docs/RULE-MAP.md",
+          "packages/core/src/release/run-reconcile.test.ts",
+          "packages/core/src/release/run.test.ts",
+          "packages/core/src/release/finish-run-tag.test.ts",
+          "packages/core/src/release/finish.test.ts",
+          "packages/core/src/release/run-record.test.ts",
+          "packages/core/src/content-contracts/standards/release_run_runbook.test.ts",
+          "changelog.d/6878-release-run-reconcile.md"
+        ],
+        "verify_commands": [
+          "npx vitest run packages/core/src/release/run-reconcile.test.ts packages/core/src/release/run.test.ts packages/core/src/release/finish-run-tag.test.ts packages/core/src/release/finish.test.ts packages/core/src/release/run-record.test.ts",
+          "npx vitest run packages/core/src/content-contracts/standards/release_run_runbook.test.ts packages/core/src/content-contracts/skills/skills.test.ts"
+        ],
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "depends_on": [],
+        "expected_outputs": [
+          "publish-watch reconciles the tag-triggered npm-publish run at M and the maintainer dist-tag of both packages; a failed run or fixture stops; no republish dispatch",
+          "draft flip reconciles the GitHub release: published is done, a draft needs an active run grant, an expired or spent grant stops and names the mint command",
+          "promote reconciles the promote-latest run: in progress waits, success with both on latest is done, failure or partial stops, none found dispatches once, unknown dispatch result stops",
+          "under the run, finish treats a GitHub release that already exists for the tag as done",
+          "the release skill Stable cut runbook and docs/RELEASING.md describe deft release:run, its approval and the post-run pin steps; merge freeze and routine-cut skip path removed",
+          "changelog fragment changelog.d/6878-release-run-reconcile.md"
+        ],
+        "model_tier": "standard",
+        "conflict_group": "release-verbs",
+        "acceptance_criteria_justification": "The 10 clauses are the lean clauses 6, 9, 10, 11, 24, 26, 27, 28, 29 and 30 of the accepted #6845 design critique (bound lean 7032154033), copied verbatim into #6878 by the operator-approved split (comment 7048165729); they cannot be merged or dropped without breaking that copy."
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "Carry-over from S1 (#6791, PR #6898). Step 5 now reuses green CI automatically on an identical tree, and `docs/RELEASING.md` § Step 5 CI reuse describes this. Two places still contradict it, and S5's runbook rewrite should fix both:\n- `content/skills/deft-directive-release/SKILL.md` § Routine vs hard cut (around lines 247-259) still says green tip CI is \"a precondition, not a replacement for Step 5\". That file was outside S1's scope.\n- Greptile flagged remaining routine-cut wording in `docs/RELEASING.md` near line 103 on the final #6898 head (\"Release instructions disagree\"). Re-check the whole routine-cut section against the Step 5 reuse rule.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\n",
+          "id": 7050808180,
+          "html_url": "https://github.com/deftai/directive/issues/6878#issuecomment-7050808180",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T21:15:47Z",
+          "updated_at": "2026-11-20T21:15:47Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "Carry-over from the #6869 arc (scoped to `--repo` inference only). The pin-bump lockfile problem from the 0.130.2 cut belongs to the release run's post-run pin steps:\n- Swapping the `minimumReleaseAgeExclude` row made pnpm refuse the old lockfile entry (`ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION`). `pnpm update -w @deftai/directive-runtime@<version>` rewrote it.\n\nRequested test for S5 (and S3 should print the same step):\n- [ ] The pin preparation regenerates the lockfile for the new pin.\n- [ ] `pnpm install --frozen-lockfile` passes on the pin branch before the pin PR opens.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\n",
+          "id": 7052455705,
+          "html_url": "https://github.com/deftai/directive/issues/6878#issuecomment-7052455705",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:45:37Z",
+          "updated_at": "2026-11-20T22:45:37Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "design-critique: not warranted, because the #6845 arc already designed this split; S5 is one of its five stories.\n\n",
+          "id": 7076485680,
+          "html_url": "https://github.com/deftai/directive/issues/6878#issuecomment-7076485680",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T08:23:11Z",
+          "updated_at": "2026-11-22T08:23:11Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6517863228,
+        "origin": "deftai/directive#6878",
+        "id": "github.issue.6517863228"
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per sentence-list entry (10), in order (#6333)",
+      "sentences": [
+        "Approved scope. The approval covers source tree T at M, built by the tag-triggered npm workflow at M, and release notes read from M. The draft release notes and the upgrade banner are read from M with `git show`, not from the local checkout. The run publishes only by the tag push and never dispatches the manual republish workflow; a failed publish run stops the run.",
+        "Resume by reconciliation. The run record (`.deft-scratch/release-run/<version>.json`) keeps B, T, the PR number, the grant ids and the retry counts. Each phase decides from observed state. A tag that peels to M only locally is pushed; a remote tag that peels to M is done; a tag on any other commit stops the run. npm is done only when both packages carry the version on `maintainer` and the tag-triggered workflow run, with its post-publish fixture, concluded `success`; a run in progress is waited on; a failed run stops. The GitHub release is done when it exists for the tag, and the flip is done when it is not a draft. An expired or spent grant that an unfinished phase needs stops the run and names the mint command. Any other state stops the run; nothing is overwritten.",
+        "Promote. The promote phase runs only with its up-front grant and after the post-publish fixture passed. It first looks for a promote-latest workflow run for the version: a run in progress is waited on; a run that concluded `success`, with both packages on `latest` at the version, is done; a failed run or a partial state stops the run without a new dispatch. With no run found it dispatches once. An unknown dispatch result after the grant was spent stops the run; it is not retried.",
+        "Docs. The release skill Stable cut runbook and `docs/RELEASING.md` become this command, its approval step and the post-run pin steps. The merge-freeze rule and the routine-cut skip path leave the runbook.",
+        "Given one package published and a failed publish workflow run, then the run stops and does not dispatch a republish.",
+        "Given an expired `release-publish` grant when the draft flip is due, then the run stops and names the mint command.",
+        "Given a promote grant minted up front and a green post-publish fixture, then promote dispatches once.",
+        "Given both packages on `latest` and the promote workflow run still in progress, when `--resume` runs, then it waits and does not mark promote done; given a failed promote run, then it stops and does not dispatch again.",
+        "Given a spent promote grant and an unknown dispatch result, then the run stops.",
+        "Given no promote grant, then the run ends with `latest` unchanged."
+      ],
+      "admitted_source_sentences": [
+        "Approved scope. The approval covers source tree T at M, built by the tag-triggered npm workflow at M, and release notes read from M. The draft release notes and the upgrade banner are read from M with `git show`, not from the local checkout. The run publishes only by the tag push and never dispatches the manual republish workflow; a failed publish run stops the run.",
+        "Resume by reconciliation. The run record (`.deft-scratch/release-run/<version>.json`) keeps B, T, the PR number, the grant ids and the retry counts. Each phase decides from observed state. A tag that peels to M only locally is pushed; a remote tag that peels to M is done; a tag on any other commit stops the run. npm is done only when both packages carry the version on `maintainer` and the tag-triggered workflow run, with its post-publish fixture, concluded `success`; a run in progress is waited on; a failed run stops. The GitHub release is done when it exists for the tag, and the flip is done when it is not a draft. An expired or spent grant that an unfinished phase needs stops the run and names the mint command. Any other state stops the run; nothing is overwritten.",
+        "Promote. The promote phase runs only with its up-front grant and after the post-publish fixture passed. It first looks for a promote-latest workflow run for the version: a run in progress is waited on; a run that concluded `success`, with both packages on `latest` at the version, is done; a failed run or a partial state stops the run without a new dispatch. With no run found it dispatches once. An unknown dispatch result after the grant was spent stops the run; it is not retried.",
+        "Docs. The release skill Stable cut runbook and `docs/RELEASING.md` become this command, its approval step and the post-run pin steps. The merge-freeze rule and the routine-cut skip path leave the runbook.",
+        "Given one package published and a failed publish workflow run, then the run stops and does not dispatch a republish.",
+        "Given an expired `release-publish` grant when the draft flip is due, then the run stops and names the mint command.",
+        "Given a promote grant minted up front and a green post-publish fixture, then promote dispatches once.",
+        "Given both packages on `latest` and the promote workflow run still in progress, when `--resume` runs, then it waits and does not mark promote done; given a failed promote run, then it stops and does not dispatch again.",
+        "Given a spent promote grant and an unknown dispatch result, then the run stops.",
+        "Given no promote grant, then the run ends with `latest` unchanged."
+      ],
+      "admitted_source_digest": "01f907ae078f1dc82d13d01bc22dfda7783ec75c6eba199208e4f8f479517b1f",
+      "admitted_source_extractor": 2,
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Approved scope. The approval covers source tree T at M, built by the tag-triggered npm workflow at M, and release notes read from M. The draft release notes and the upgrade banner are read from M with `git show`, not from the local checkout. The run publishes only by the tag push and never dispatches the manual republish workflow; a failed publish run stops the run.",
+          "artifact_path": "packages/core/src/release/run-reconcile.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Resume by reconciliation. The run record (`.deft-scratch/release-run/<version>.json`) keeps B, T, the PR number, the grant ids and the retry counts. Each phase decides from observed state. A tag that peels to M only locally is pushed; a remote tag that peels to M is done; a tag on any other commit stops the run. npm is done only when both packages carry the version on `maintainer` and the tag-triggered workflow run, with its post-publish fixture, concluded `success`; a run in progress is waited on; a failed run stops. The GitHub release is done when it exists for the tag, and the flip is done when it is not a draft. An expired or spent grant that an unfinished phase needs stops the run and names the mint command. Any other state stops the run; nothing is overwritten.",
+          "artifact_path": "packages/core/src/release/run-reconcile.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Promote. The promote phase runs only with its up-front grant and after the post-publish fixture passed. It first looks for a promote-latest workflow run for the version: a run in progress is waited on; a run that concluded `success`, with both packages on `latest` at the version, is done; a failed run or a partial state stops the run without a new dispatch. With no run found it dispatches once. An unknown dispatch result after the grant was spent stops the run; it is not retried.",
+          "artifact_path": "packages/core/src/release/run-reconcile.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Docs. The release skill Stable cut runbook and `docs/RELEASING.md` become this command, its approval step and the post-run pin steps. The merge-freeze rule and the routine-cut skip path leave the runbook.",
+          "artifact_path": "packages/core/src/content-contracts/standards/release_run_runbook.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Given one package published and a failed publish workflow run, then the run stops and does not dispatch a republish.",
+          "artifact_path": "packages/core/src/release/run-reconcile.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Given an expired `release-publish` grant when the draft flip is due, then the run stops and names the mint command.",
+          "artifact_path": "packages/core/src/release/run-reconcile.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Given a promote grant minted up front and a green post-publish fixture, then promote dispatches once.",
+          "artifact_path": "packages/core/src/release/run-reconcile.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Given both packages on `latest` and the promote workflow run still in progress, when `--resume` runs, then it waits and does not mark promote done; given a failed promote run, then it stops and does not dispatch again.",
+          "artifact_path": "packages/core/src/release/run-reconcile.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Given a spent promote grant and an unknown dispatch result, then the run stops.",
+          "artifact_path": "packages/core/src/release/run-reconcile.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Given no promote grant, then the run ends with `latest` unchanged.",
+          "artifact_path": "packages/core/src/release/run-reconcile.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.6517863228",
+    "updated": "2026-11-22T08:24:52Z"
+  }
+}
