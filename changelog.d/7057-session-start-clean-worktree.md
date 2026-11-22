@@ -1,2 +1,0 @@
-section: Fixed
-- `session:start` no longer deletes a tracked `xbrief/.eval/README.md` (or `vbrief/.eval/README.md`). The legacy triage-cache migration now leaves that README in place and does not write `.triage-cache/README.md`; `triage:bootstrap` still creates it on request. A new test runs `session:start` twice on a committed install and finds the tree clean and AGENTS.md unchanged after each run (#7057).

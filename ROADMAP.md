@@ -13,11 +13,9 @@
 - **#6644** -- bug(scope): acceptance walk gaps: no non-executable pass, disposition grant is deferred-only, no verb to drop non-criterion clauses -- `[running]`
 - **#6647** -- enhancement(cli): flag and path friction across verify, occupancy, xbrief:preflight, session:start and finalize on Windows -- `[running]`
 - **#6613** -- P3-U1a: revert release checks that contradict the #5947 decision (U1a: code removal, release finish step, release skill) -- `[running]`
+- **#4905** -- bug(xbrief): drift gate rejects a canonical brief that only quotes the legacy x-vbrief prefix -- `[running]`
 - **#6981** -- security(hooks): Claude Code's PowerShell tool is not a shell tool, so shell-class guards never inspect it -- `[running]`
-- **#7029** -- [framework-gap] Absolute core.hooksPath makes every linked worktree run the primary checkout's hooks; breaks commits after the _directive-run.sh rename -- `[running]`
 - **#7047** -- [framework-gap] scope:complete #4870 refusal for an issue-ingested brief names no remedy, and the documented remedy (swarm.verify_commands) is fenced -- `[running]`
-- **#7056** -- upgrade: ask before the vbrief→xbrief data migration (safe interim for #7009) -- `[running]`
-- **#7057** -- session:start leaves tracked .eval/README.md and a current AGENTS.md managed section unchanged -- `[running]`
 
 ## Proposed
 
@@ -50,8 +48,11 @@ _Scopes not yet promoted to pending. Orientation only — not a substitute for `
 
 ## Completed
 
-_Showing 25 of 2061 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
+_Showing 25 of 2064 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
 
+- **#7057** -- session:start leaves tracked .eval/README.md and a current AGENTS.md managed section unchanged -- `[completed]`
+- **#7056** -- upgrade: ask before the vbrief→xbrief data migration (safe interim for #7009) -- `[completed]`
+- **#7029** -- [framework-gap] Absolute core.hooksPath makes every linked worktree run the primary checkout's hooks; breaks commits after the _directive-run.sh rename -- `[completed]`
 - **#6973** -- [framework-gap] The AGENTS.md header completion chokepoint pastes the whole Overview narrative into the one-liner, on any agent write, outside every story file_scope -- `[completed]`
 - **#7031** -- mint audit: keep the terminal mint only where it guards a protected store -- `[completed]`
 - **#6929** -- [framework-gap] swarm:readiness flags 'placeholder' inside file names and domain terms as placeholder text -- `[completed]`
@@ -74,7 +75,4 @@ _Showing 25 of 2061 completed scopes (newest first). Full history: lifecycle `co
 - **#6937** -- [framework-gap] observable-scope mints need one human approval per cohort, not one terminal command per story -- `[completed]`
 - **#6886** -- bug(acceptance): no admitted acceptance-command form for JS workspace test runners (vitest) across scope:activate and verify:ac -- `[completed]`
 - **#6888** -- bug(pre-pr): leaves cannot complete pre-pr:run controller runs, and --complete publishes a pass after verify:ac failed -- `[completed]`
-- **#6887** -- bug(cli): review-monitor:register rejects the documented lone -- form -- `[completed]`
-- **#6863** -- chore: retire Go from master (frozen installer bridge leftovers in toolchain:check, CI and CodeQL) -- `[completed]`
-- **#6791** -- release: reuse the green CI merge gate on an identical tree instead of re-running task check in Step 5 -- `[completed]`
 

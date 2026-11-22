@@ -7,13 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- [release-line] v0.131.1
+- [release-line] v0.131.2
 
 ### Added
 
 ### Changed
 
 ### Fixed
+
+### Removed
+
+## [0.131.2] - 2026-11-22
+
+> Follow-up to 0.131.0 (supersedes the unpublished 0.131.1 cut): no terminal mint for UI-scope and new-constant approvals, check --no-suite on main-branch repos, worktrees run their own hooks, upgrade asks before the vbrief migration, readiness, hook and lifecycle fixes, and the release:run verb
+
+### Added
+
+### Changed
+
+- The Cursor hook matcher includes Claude Code's `PowerShell` and `Monitor` tools; consumers run `directive install --repair` after upgrading (#6981).
+- Complete #7029 after merge of #7066.
+- Complete #7056 after merge of #7070.
+- `directive upgrade` no longer runs the vbrief→xbrief data migration without asking (#7056, safe interim for #7009). When the migration would process a `vbrief/` tree that holds files, the plan names it, gives the number of files found under `vbrief/`, says it deletes `vbrief/`, and gives how many of the files Git tracks (Git restores only committed contents). The migration runs only with the new `--migrate-xbrief` flag or an interactive yes to a separate question; `--yes` alone neither asks nor migrates. Without consent the upgrade finishes the rest, does not call the runtime `migrate` entry, leaves `vbrief/` untouched, and names `deft migrate:xbrief` and a version-pinned `directive upgrade --migrate-xbrief --yes`. With consent the migration runs as before, and the summary says it ran. What the migration does is unchanged; a project without files under `vbrief/` upgrades as before.
+- Complete #7057 after merge of #7069.
+
+### Fixed
+
+- `scope:complete` can now finish a shipped story whose acceptance criteria carry no command: it runs the project's declared test command (`plan.policy.testCommand`, else `scripts.test`) once, and a green run completes the story without a brief edit. When there is no declared command, or it is refused or fails, the refusal says which and lists each open clause with the grant command, instead of the old historical-closeout text (#7047).
+- `session:start` no longer deletes a tracked `xbrief/.eval/README.md` (or `vbrief/.eval/README.md`). The legacy triage-cache migration now leaves that README in place and does not write `.triage-cache/README.md`; `triage:bootstrap` still creates it on request. A new test runs `session:start` twice on a committed install and finds the tree clean and AGENTS.md unchanged after each run (#7057).
 
 ### Removed
 
@@ -8441,7 +8462,8 @@ If you have custom scripts or references to deft files, update these paths:
 
 
 
-[Unreleased]: https://github.com/deftai/directive/compare/v0.131.1...HEAD
+[Unreleased]: https://github.com/deftai/directive/compare/v0.131.2...HEAD
+[0.131.2]: https://github.com/deftai/directive/compare/v0.131.1...v0.131.2
 [0.131.1]: https://github.com/deftai/directive/compare/v0.131.0...v0.131.1
 [0.131.0]: https://github.com/deftai/directive/compare/v0.130.2...v0.131.0
 [0.130.2]: https://github.com/deftai/directive/compare/v0.130.1...v0.130.2
