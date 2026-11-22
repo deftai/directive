@@ -16,7 +16,7 @@ import {
   stripArtifactSuffix,
 } from "../layout/resolve.js";
 import { SERIALIZE_N_PRS } from "../one-pr-unit/types.js";
-import { sharedStoryIssueWarnings } from "../pr-closing-keywords/story-issue.js";
+import { briefKindOf, sharedStoryIssueWarnings } from "../pr-closing-keywords/story-issue.js";
 import { clauseKeyedItemId } from "../scope/acceptance-evidence.js";
 import {
   acceptanceTextsFromItems,
@@ -261,52 +261,9 @@ function swarmOf(metadata: Record<string, unknown>): Record<string, unknown> {
     : {};
 }
 
-function hasChildPlanRefs(plan: Record<string, unknown>): boolean {
-  const refs = plan.references;
-  if (!Array.isArray(refs)) {
-    return false;
-  }
-  return refs.some(
-    (ref) =>
-      typeof ref === "object" &&
-      ref !== null &&
-      !Array.isArray(ref) &&
-      referenceTypeMatches(String((ref as Record<string, unknown>).type ?? ""), "plan"),
-  );
-}
-
-function looksLikePhase(path: string, plan: Record<string, unknown>): boolean {
-  const title = String(plan.title ?? "");
-  const planId = String(plan.id ?? "");
-  const narratives = plan.narratives;
-  let hasAcceptanceNarrative = false;
-  if (typeof narratives === "object" && narratives !== null && !Array.isArray(narratives)) {
-    const acc = (narratives as Record<string, unknown>).Acceptance;
-    hasAcceptanceNarrative = typeof acc === "string" && acc.trim().length > 0;
-  }
-  const hasItems = Array.isArray(plan.items) && plan.items.length > 0;
-  const stem = basename(path);
-  return (
-    stem.includes("-ip") ||
-    title.toLowerCase().startsWith("ip-") ||
-    planId.toLowerCase().startsWith("ip-") ||
-    (!hasItems && hasAcceptanceNarrative)
-  );
-}
-
+/** One epic / phase / story classifier, shared with the #6934 shared-issue check. */
 function kindOf(path: string, plan: Record<string, unknown>): string {
-  const metadata = metadataOf(plan);
-  const explicit = metadata.kind;
-  if (explicit === "story" || explicit === "epic" || explicit === "phase") {
-    return String(explicit);
-  }
-  if (hasChildPlanRefs(plan)) {
-    return "epic";
-  }
-  if (looksLikePhase(path, plan)) {
-    return "phase";
-  }
-  return "story";
+  return briefKindOf(path, plan);
 }
 
 function storyId(path: string, plan: Record<string, unknown>): string {

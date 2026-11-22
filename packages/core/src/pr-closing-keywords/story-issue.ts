@@ -7,7 +7,7 @@
  * that issue (#6934).
  */
 import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { join, relative, resolve } from "node:path";
+import { basename, join, relative, resolve } from "node:path";
 import { referenceTypeMatches } from "@deftai/directive-types";
 import { briefOwnsIssue, issueOriginFromRepoSlug } from "../intake/residual-identity.js";
 import { listActiveBriefEntries } from "../intent-constraint/plan-id-adopter.js";
@@ -268,17 +268,7 @@ function planRecordOf(data: unknown): Record<string, unknown> | null {
     : null;
 }
 
-/**
- * Epic and phase briefs are not stories: an explicit `metadata.kind` of `epic` or
- * `phase`, or child plan references (the epic shape `swarm:readiness` reads).
- */
-function isEpicOrPhaseBrief(plan: Record<string, unknown>): boolean {
-  const metadata = plan.metadata;
-  if (typeof metadata === "object" && metadata !== null && !Array.isArray(metadata)) {
-    const kind = (metadata as Record<string, unknown>).kind;
-    if (kind === "epic" || kind === "phase") return true;
-    if (kind === "story") return false;
-  }
+function childPlanRefs(plan: Record<string, unknown>): boolean {
   const refs = plan.references;
   return (
     Array.isArray(refs) &&
@@ -292,11 +282,49 @@ function isEpicOrPhaseBrief(plan: Record<string, unknown>): boolean {
   );
 }
 
+function looksLikePhase(path: string, plan: Record<string, unknown>): boolean {
+  const title = String(plan.title ?? "");
+  const planId = String(plan.id ?? "");
+  const narratives = plan.narratives;
+  let hasAcceptanceNarrative = false;
+  if (typeof narratives === "object" && narratives !== null && !Array.isArray(narratives)) {
+    const acc = (narratives as Record<string, unknown>).Acceptance;
+    hasAcceptanceNarrative = typeof acc === "string" && acc.trim().length > 0;
+  }
+  const hasItems = Array.isArray(plan.items) && plan.items.length > 0;
+  return (
+    basename(path).includes("-ip") ||
+    title.toLowerCase().startsWith("ip-") ||
+    planId.toLowerCase().startsWith("ip-") ||
+    (!hasItems && hasAcceptanceNarrative)
+  );
+}
+
+/**
+ * The kind `swarm:readiness` gives a brief: an explicit `metadata.kind`, else
+ * `epic` for child plan references, else `phase` for the legacy phase shape,
+ * else `story`. The #6934 shared-issue check counts stories only.
+ */
+export function briefKindOf(
+  path: string,
+  plan: Record<string, unknown>,
+): "story" | "epic" | "phase" {
+  const metadata = plan.metadata;
+  if (typeof metadata === "object" && metadata !== null && !Array.isArray(metadata)) {
+    const kind = (metadata as Record<string, unknown>).kind;
+    if (kind === "story" || kind === "epic" || kind === "phase") return kind;
+  }
+  if (childPlanRefs(plan)) return "epic";
+  if (looksLikePhase(path, plan)) return "phase";
+  return "story";
+}
+
 /** The completion issue of a story brief, or null for epics, phases and unanchored briefs. */
 function storyAnchorOf(
+  path: string,
   plan: Record<string, unknown>,
 ): { repository: string; issue: number; key: string } | null {
-  if (isEpicOrPhaseBrief(plan)) return null;
+  if (briefKindOf(path, plan) !== "story") return null;
   const anchor = resolvePlanGithubIssueRef(plan);
   if (anchor === null) return null;
   return {
@@ -333,7 +361,7 @@ function listOpenStoryBriefs(projectRoot: string): OpenStoryBrief[] {
         const abs = join(dir, name);
         const plan = readPlan(abs);
         if (plan === null) continue;
-        const anchor = storyAnchorOf(plan);
+        const anchor = storyAnchorOf(name, plan);
         if (anchor === null) continue;
         out.push({ abs: resolve(abs), rel: `${base}/${folder}/${name}`, ...anchor });
       }
@@ -362,7 +390,7 @@ export function findSharedStoryIssues(
     const abs = resolve(projectRoot, path);
     const plan = readPlan(abs);
     if (plan === null) continue;
-    const anchor = storyAnchorOf(plan);
+    const anchor = storyAnchorOf(abs, plan);
     if (anchor === null || seen.has(anchor.key)) continue;
     open ??= listOpenStoryBriefs(projectRoot);
     const others = open

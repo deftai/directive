@@ -7,6 +7,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 import {
+  briefKindOf,
   findSharedStoryIssues,
   formatSharedStoryIssueWarning,
   sharedStoryIssueWarnings,
@@ -103,6 +104,19 @@ describe("findSharedStoryIssues (#6934)", () => {
     writeBrief(root, "pending", "parent.xbrief.json", 9, { childPlan: true });
     expect(findSharedStoryIssues(root, [story])).toEqual([]);
     expect(findSharedStoryIssues(root, [epic])).toEqual([]);
+  });
+
+  it("skips a legacy phase brief with no metadata.kind, as swarm:readiness does", () => {
+    const root = makeRoot();
+    const story = writeBrief(root, "active", "story.xbrief.json", 10, { kind: "story" });
+    writeBrief(root, "pending", "2026-01-01-ip1-phase.xbrief.json", 10);
+    expect(findSharedStoryIssues(root, [story])).toEqual([]);
+    expect(briefKindOf("x-ip2.xbrief.json", {})).toBe("phase");
+    expect(briefKindOf("s.xbrief.json", { title: "IP-3 rollout" })).toBe("phase");
+    expect(briefKindOf("s.xbrief.json", { narratives: { Acceptance: "done" } })).toBe("phase");
+    expect(briefKindOf("s.xbrief.json", { items: [{}], narratives: { Acceptance: "x" } })).toBe(
+      "story",
+    );
   });
 
   it("ignores the same number in another repository and completed briefs", () => {

@@ -4,7 +4,7 @@
  */
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, relative } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 import { evaluate } from "../preflight/evaluate.js";
 import { readinessReport } from "./readiness.js";
@@ -108,6 +108,15 @@ describe("xbrief:preflight shared-issue warning (#6934)", () => {
     expect(result.message).toContain("lifecycle-ready");
     expect(result.message).toContain(`WARN: ${a} shares completion issue deftai/directive#1840`);
     expect(result.message).toContain(b);
+  });
+
+  it("warns when the brief path is relative to a cwd outside the project", () => {
+    const root = makeRoot();
+    const a = writeBrief(root, "active", "a.xbrief.json", 1840);
+    writeBrief(root, "active", "b.xbrief.json", 1840);
+    const result = evaluate(relative(process.cwd(), join(root, a)), opts);
+    expect(result.exitCode).toBe(0);
+    expect(result.message).toContain(`WARN: ${a} shares completion issue deftai/directive#1840`);
   });
 
   it("prints no warning for an epic sharer, another repository or a completed brief", () => {

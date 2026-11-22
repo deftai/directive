@@ -668,9 +668,10 @@ export function run(argv: string[], options: PrePrRunOptions = {}): number {
       return written.code;
     }
     if (startArgsAbsent(args)) {
-      emit(args.json, written, written.message, false);
-      // #6934: the writer's message (and any part-line note) reaches stderr in --json too.
-      if (args.json) process.stderr.write(`${written.message}\n`);
+      // #6934: the writer's message (and any part-line note) is on stderr in every
+      // mode; with --json, stdout carries the writer JSON.
+      if (args.json) emit(true, written, written.message, false);
+      process.stderr.write(`${written.message}\n`);
       return 0;
     }
     // #6934: stderr in every mode; with --json, stdout stays the controller JSON.

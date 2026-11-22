@@ -1,5 +1,5 @@
 import { readFileSync, statSync } from "node:fs";
-import { basename, dirname } from "node:path";
+import { basename, dirname, resolve } from "node:path";
 import { evaluateObservableMintPreflight } from "../observable-scope/mint.js";
 import { evaluateIntentCeilingFromEnv } from "../policy/intent-ceiling.js";
 import {
@@ -334,9 +334,10 @@ export function evaluate(vbriefPath: string, options: EvaluateOptions = {}): Eva
     message = `${message} ${placementWarning}`;
   }
   // #6934: open story briefs sharing this brief's completion issue; a warning only.
+  // The brief was read relative to the cwd, so pass its absolute path.
   for (const warning of sharedStoryIssueWarnings(
     resolveProjectRootFromBrief(path, options.projectRoot),
-    [path],
+    [resolve(path)],
   )) {
     message = `${message}\nWARN: ${warning}`;
   }

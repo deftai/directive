@@ -848,6 +848,17 @@ describe("deft pre-pr:run", () => {
     ).toBe(0);
     expect(err.join("")).toContain(formatPartLineNote(6934));
     expect(JSON.parse(out.join("").trim())).toMatchObject({ code: 0 });
+
+    // Writer-only text mode: the message and note go to stderr, nothing to stdout.
+    out.length = 0;
+    err.length = 0;
+    expect(
+      run(["--body-file", bodyFile, "--project-root", root, "--repo", "deftai/directive"], {
+        writeStoryLine: (a) => writeStoryLineToBodyFile({ ...a, runGit }),
+      }),
+    ).toBe(0);
+    expect(err.join("")).toContain(formatPartLineNote(6934));
+    expect(out.join("")).toBe("");
   });
 
   describe("--complete runs verify:ac itself (#6888)", () => {
