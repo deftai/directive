@@ -7,13 +7,67 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- [release-line] v0.131.0
+- [release-line] v0.131.1
 
 ### Added
 
 ### Changed
 
 ### Fixed
+
+### Removed
+
+## [0.131.1] - 2026-11-22
+
+> Follow-up to 0.131.0: no terminal mint for UI-scope and new-constant approvals, check --no-suite on main-branch repos, readiness, hook and lifecycle fixes, and the release:run verb
+
+### Added
+
+- `deft release:run <version>` runs a stable cut as one command: readiness before any write, setup, the local cut, one up-front approval (a `release-publish` grant for `<version>@<tree>` with the operator's `--expires`, plus an optional `release-promote-latest` grant), then push, merge, finish, npm watch, draft flip and promote with no further prompt. Without a TTY it prints the mint commands and stops; `--resume` continues from the run record in `.deft-scratch/release-run/` (#6876).
+- `deft release:run` now runs the merge phase itself: it waits on the release PR with `pr:watch` until CLEAN, enqueues it with `pr:wait-mergeable-and-merge --wait` only while the origin tip is still the cut base and the merge queue is empty, and re-runs a failed required check (or re-enqueues after a failed-check ejection) once per run, keeping the count in the run record across `--resume`. Under the run, finish pushes a tag a crash left only local and stops on a tag on any other commit (#6877).
+- `deft release:run` now finishes the cut on its own after the tag: it waits for the npm publish, publishes the draft release and, only with its up-front grant, promotes `latest`. A stopped run continues with `--resume` and never repeats a finished step. The release runbook now describes this command (#6878).
+
+### Changed
+
+- Complete #6609 after merge of #6736.
+- Complete #6864 after merge of #6983 and #6991.
+- `release-publish`: the `[publish]` and `[promote-latest]` deny lines end with `projectRoot=<path>`, the root whose grant store the gate read, and the `--project-root` help names the current working directory as the default (#6864).
+- Complete #6871 after merge of #7033 and #7037.
+- Complete #6872 after merge of #7002.
+- Complete #6876 after merge of #7010.
+- Complete #6877 after merge of #7023.
+- Complete #6878 after merge of #7027.
+- Complete #6912 after merge of #7006.
+- Complete #6925 after merge of #6986.
+- Complete #6929 after merge of #7000.
+- Complete #6936 after merge of #7000.
+- Complete #6941 after merge of #6989 and #6998.
+- Complete #6965 after merge of #6974.
+- chore(dogfood): pin Directive to 0.131.0.
+- Complete #6970 after merge of #6977.
+- Complete #6973 after merge of #7052.
+- Complete #7001 after merge of #7040.
+- `scope:record-observable-scope` and `scope:record-intent-constraint` no longer stop for a terminal mint (#7031). Both commands, single path and cohort form, write their record from any shell, an agent's included, with `humanApproval: {kind: "declared", actor, mintedAt, mintedVia: <command>}`. They refuse `--kind` and `--minted-via`; `--actor` is an optional declared-by name; an active UAT lease still refuses. A declared record is a declaration the product check holds the PR to, not an approval: `isHumanApprovalStamp` does not accept it, so approved-scope and the one-PR proof still refuse it. Every `authz:*` command and template and `scope:record-approved-scope` keep the mint. Worker instructions now say: write the declaration and land it on the merge base before the product PR, instead of parking for a human mint. `content/contracts/human-origin-authz.md` lists every operator mint, what it guards and its known limits. The reader ships with the writer in this release: move the runtime pin to this release before writing a declared record, because an older runtime fails the whole record folder on a record it cannot parse.
+- Complete #7031 after merge of #7058.
+
+### Fixed
+
+- Release verbs (`release`, `release-publish`, `release-rollback`, `release-e2e`) without `--project-root` or `DEFT_PROJECT_ROOT` now use the current working directory as the project root, where `authz:grant` mints grants, instead of the runtime package; a verb started outside the repository root uses that directory, and `--project-root` or `DEFT_PROJECT_ROOT` selects another root. The `[release]` tag-push deny line names the root it searched (#6864).
+- The commit hook no longer refuses correct work outside its own repository. A commit named into a different repository that is not a Directive project (no `.deft`, no project definition) gets no decision from this repository's gate; a foreign Directive project, including a separate clone, is still refused and the message says to commit from a session in that project. A variable command word or a `-c` / `env -S` / `eval` string with a variable now blocks only when the call shows the word `commit`, and bash array-element assignments (`M[$k]=v`) read as assignments (#6871).
+- A direct Write or Edit to a plain folder beside the main checkout (for example the folder that holds a repository's linked worktrees) is no longer judged against the primary checkout's session ritual. The outside-every-checkout class (#6376) now also takes the checkout folder, found from the repository's own common directory, not from worktree registrations; inside it the `deft`/`directive` name rule skips only that folder's own path, and every other rule still applies (#6871).
+- Four story-lifecycle verbs no longer get in the way (#6872). `scope:promote`, `scope:activate` and the other moves into `proposed/`, `pending/` or `active/` no longer add or update a PROJECT-DEFINITION row, so a brief-only activation leaves the file unchanged; terminal moves still remove the row, and a top-level `plan.references` entry that names the moved brief by its old path is now rewritten on every move, also after the file has moved. `swarm:readiness` with no path says it checked `xbrief/active/` only and how to check a proposed or pending brief. `issue:ingest --help` and `-h` print usage and exit 0 before any SCM check. With no `.deft/plan-sequence.json`, `verify:plan-sequence` without a target and `plan-sequence:current` report a skip with exit 0.
+- A lone `--` after a multi-token verb now works: `deft cache:clear -- --project-root <dir>`, `deft policy show -- ...` and `deft policy resolve -- ...` give the handler the same arguments as the form without `--`. The router drops at most one `--`, at the boundary after the verb (after the subcommand word for handlers that take one); a later `--`, a `--` that is a flag value, and `scm issue <sub>` pass-through are kept (#6912).
+- `xbrief:preflight` now resolves a `file://` planRef the way `xbrief:validate` does: the parent-lineage check drops the scheme through the same helper before its exact-path, absolute-path and traversal checks, so a story with `"planRef": "file://proposed/<epic>.xbrief.json"` no longer fails with `parent not found at .../xbrief/file:/proposed/...` (#6925).
+- `swarm:readiness`, `scope:decompose` and the scope-provenance fence now accept Next.js dynamic-route paths (`[id]`) in `file_scope` as concrete paths. Brackets match literally; only `*` and `?` are glob characters (#6936).
+- Readiness no longer reads a file name or domain term as placeholder text: `placeholder`, `todo` and `tbd` count only as a whole line, a leading label, a template token or a standalone `tbd` (#6929).
+- A shell command refused by the kill-switch mention rule now names the Edit and Write tools as the route for a scratch file whose text names the flag (#6941).
+- The kill-switch mention rule lets more reads through: `cut`, `tr`, `nl`, `jq`, `sort`, `git grep` and `sed` line-range prints, and a quoted heredoc that `cat` or `tee` writes to a literal path as the only command. Write and run options are caught in any spelling, a quoted or escaped separator gives no read relief, and `xargs` passes only with a closed list of options, which also refuses `xargs --arg-file` (#6941).
+- The post-publish two-pass fixture now accepts `.deft/directive/data-schema.json` and `xbrief/.directive-seed-placeholder`, which install writes; both are exact entries in the installer-managed allowlist (#6965).
+- `deft check --no-suite` now fetches the project's branch instead of a hardcoded `origin master`: the PR's base (else `plan.policy.baseBranch`) and the delivery branch, through the safe fetch helper. When nothing local names a default it asks origin for its HEAD branch, fetches it, then sets `origin/HEAD`. A malformed branch policy stops the run naming the key, and a missing branch is reported with its source and fix instead of a network message (#6970).
+- Directive no longer writes the AGENTS.md one-liner by itself. Product writes, `deft check`, occupancy release and `scope:complete` only refuse while the scaffold line stays, and name the new `deft project:write-header-line`. That command writes the first sentence of the confirmed Overview (at most 120 characters, never truncated) or `--line`, prints it, does not commit, and writes nothing in a linked worktree. Commit scope-cover admits that exact AGENTS.md change without a story scope (#6973).
+- Minted the intent-constraint record for the #6973 AGENTS.md one-liner cap (value 120 characters, rejection scope invocation). Refs #6973.
+- Spec-path ingest now harvests a lean whose Bound remedy or Acceptance Criteria item continues on indented lines: each continuation line folds into its item. A blank line still ends an item, and an indented `- x` or `1. x` line stays its own item. The harvest digest covers the folded text; a lean with no continuation line keeps its digest. An audit recorded with the old digest still counts for a never-edited lean posted before the audit, so #6904's arc stays valid. The completed-arc reader now refuses a Spec-path lean that ingest cannot harvest with the new reason `unharvestable-lean`, so path-1, the ingest-ready chip and ingest refuse before the record (#7001).
+- Each linked worktree now runs its own git hooks (#7029). Install, repair, upgrade and automatic setup rewrite an absolute `core.hooksPath` that names a checkout's `.githooks` (this worktree's or another worktree's of the same repository) to the relative value `.githooks`; automatic setup and upgrade do this without the takeover approval. Before, every worktree ran the primary checkout's hooks, and commits failed when the primary was on an older commit. Another tool's hooks folder still needs the plan's approval. `directive doctor` warns, without failing, when `core.hooksPath` is an absolute path outside the current worktree.
 
 ### Removed
 
@@ -8387,7 +8441,8 @@ If you have custom scripts or references to deft files, update these paths:
 
 
 
-[Unreleased]: https://github.com/deftai/directive/compare/v0.131.0...HEAD
+[Unreleased]: https://github.com/deftai/directive/compare/v0.131.1...HEAD
+[0.131.1]: https://github.com/deftai/directive/compare/v0.131.0...v0.131.1
 [0.131.0]: https://github.com/deftai/directive/compare/v0.130.2...v0.131.0
 [0.130.2]: https://github.com/deftai/directive/compare/v0.130.1...v0.130.2
 [0.130.1]: https://github.com/deftai/directive/compare/v0.130.0...v0.130.1

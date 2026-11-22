@@ -1,2 +1,0 @@
-section: Fixed
-- The kill-switch mention rule lets more reads through: `cut`, `tr`, `nl`, `jq`, `sort`, `git grep` and `sed` line-range prints, and a quoted heredoc that `cat` or `tee` writes to a literal path as the only command. Write and run options are caught in any spelling, a quoted or escaped separator gives no read relief, and `xargs` passes only with a closed list of options, which also refuses `xargs --arg-file` (#6941).

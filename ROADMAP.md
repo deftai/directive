@@ -9,11 +9,15 @@
 
 - **#6567** -- docs(setup): tell users at setup that reduced local gates need the full merge-path stack (#6535) -- `[running]`
 - **#6601** -- bug(swarm): finalize has no route for a long-shipped stranded brief (R7 refuses the product PR, the stamp refuses the activation PR) -- `[running]`
-- **#6609** -- bug(ingest): the derived acceptance rung turns every prose sentence of an issue into a clause, even when the body has an explicit Acceptance Criteria list -- `[running]`
 - **#6643** -- bug(scope): a story-bound worktree cannot edit its own brief, and an arced issue's criteria have no correction path -- `[running]`
 - **#6644** -- bug(scope): acceptance walk gaps: no non-executable pass, disposition grant is deferred-only, no verb to drop non-criterion clauses -- `[running]`
 - **#6647** -- enhancement(cli): flag and path friction across verify, occupancy, xbrief:preflight, session:start and finalize on Windows -- `[running]`
 - **#6613** -- P3-U1a: revert release checks that contradict the #5947 decision (U1a: code removal, release finish step, release skill) -- `[running]`
+- **#6981** -- security(hooks): Claude Code's PowerShell tool is not a shell tool, so shell-class guards never inspect it -- `[running]`
+- **#7029** -- [framework-gap] Absolute core.hooksPath makes every linked worktree run the primary checkout's hooks; breaks commits after the _directive-run.sh rename -- `[running]`
+- **#7047** -- [framework-gap] scope:complete #4870 refusal for an issue-ingested brief names no remedy, and the documented remedy (swarm.verify_commands) is fenced -- `[running]`
+- **#7056** -- upgrade: ask before the vbrief→xbrief data migration (safe interim for #7009) -- `[running]`
+- **#7057** -- session:start leaves tracked .eval/README.md and a current AGENTS.md managed section unchanged -- `[running]`
 
 ## Proposed
 
@@ -46,8 +50,25 @@ _Scopes not yet promoted to pending. Orientation only — not a substitute for `
 
 ## Completed
 
-_Showing 25 of 2044 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
+_Showing 25 of 2061 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
 
+- **#6973** -- [framework-gap] The AGENTS.md header completion chokepoint pastes the whole Overview narrative into the one-liner, on any agent write, outside every story file_scope -- `[completed]`
+- **#7031** -- mint audit: keep the terminal mint only where it guards a protected store -- `[completed]`
+- **#6929** -- [framework-gap] swarm:readiness flags 'placeholder' inside file names and domain terms as placeholder text -- `[completed]`
+- **#7001** -- intake: an arc can record a lean that ingest cannot harvest (indented sub-items refuse; #6904) -- `[completed]`
+- **#6871** -- bug(hooks): commit hook and Write hook refuse correct work in other repos and the worktree folder -- `[completed]`
+- **#6872** -- bug(cli): swarm:readiness, scope:activate, issue:ingest --help, scope:decompose and plan-sequence verbs are rough -- `[completed]`
+- **#6878** -- release:run (#6845 S5): publish, draft flip and promote by reconciliation, and the runbook -- `[completed]`
+- **#6877** -- release:run (#6845 S4): enqueue reads, built-in waits and the merge phase -- `[completed]`
+- **#6936** -- [framework-gap] swarm:readiness treats Next.js dynamic-route paths ([id]) in file_scope as globs -- `[completed]`
+- **#6912** -- cli: lone -- after a multi-token verb (cache:clear -- ...) is still rejected (#6887 follow-up) -- `[completed]`
+- **#6876** -- release:run (#6845 S3): the verb, readiness, run record and the single up-front approval -- `[completed]`
+- **#6941** -- fix(hooks): kill-switch mention rule refuses read-only and data-only commands that name the flag file -- `[completed]`
+- **#6864** -- release-publish: installed CLI looks for grants in the runtime package, not the repo (promote-latest denied after a valid mint) -- `[completed]`
+- **#6925** -- [framework-gap] xbrief:preflight does not resolve file:// planRef that xbrief:validate accepts -- `[completed]`
+- **#6970** -- [framework-gap] check --no-suite hardcodes origin master, so the merge-chokepoint gate cannot run in a repo whose default branch is main -- `[completed]`
+- **#6965** -- install: two-pass fixture allowlist drifted from owned-paths (data-schema.json, seed placeholder) -- `[completed]`
+- **#6609** -- bug(ingest): the derived acceptance rung turns every prose sentence of an issue into a clause, even when the body has an explicit Acceptance Criteria list -- `[completed]`
 - **#6873** -- bug(scope): scope:complete never discovers a deft-story: N product PR (two-PR path needs --merge-commit/--pr by hand) -- `[completed]`
 - **#6934** -- [framework-gap] Readiness and preflight accept stories that share one origin issue, which can never be completed -- `[completed]`
 - **#6937** -- [framework-gap] observable-scope mints need one human approval per cohort, not one terminal command per story -- `[completed]`
@@ -56,21 +77,4 @@ _Showing 25 of 2044 completed scopes (newest first). Full history: lifecycle `co
 - **#6887** -- bug(cli): review-monitor:register rejects the documented lone -- form -- `[completed]`
 - **#6863** -- chore: retire Go from master (frozen installer bridge leftovers in toolchain:check, CI and CodeQL) -- `[completed]`
 - **#6791** -- release: reuse the green CI merge gate on an identical tree instead of re-running task check in Step 5 -- `[completed]`
-- **#6875** -- release:run (#6845 S2): publish gates accept only the run's grant, bound to the merged tree and the cut base -- `[completed]`
-- **#6645** -- bug(scope): scope:complete's printed delivery-identity-attest remedy is unreachable; story-line marks and orphan check trap stories -- `[completed]`
-- **#5771** -- [framework-gap] Initial installation commit blocked by prospective scope-cover despite documented pre-activation bootstrap -- `[completed]`
-- **#6862** -- ci: taskfile_release_names test intermittently hangs the merge gate (spawns the real release task chain) -- `[completed]`
-- **#6842** -- bug(setup): 0.130.1 .gitignore hides .deft/directive/data-schema.json from fresh-install commits -- `[completed]`
-- **#6808** -- 0.130.1: consumer setup fixes (hook rewrite, forward-coverage warn-only, getting-started order, runtime gitignore) -- `[completed]`
-- **#6793** -- docs(release): release skill predates the release-PR flow; document the full cut sequence -- `[completed]`
-- **#6749** -- ci: scope the OVPR fixture jobs to launcher/hook changes; Windows leg off pull requests -- `[completed]`
-- **#5854** -- directive upgrade appends a duplicate pnpm minimumReleaseAgeExclude entry for the runtime instead of replacing it (install fails for 24h after a release) -- `[completed]`
-- **#5873** -- Drop Node 20 from supported engines (runtime needs Node 22+) -- `[completed]`
-- **#6616** -- class-checks: class 4 counts Directive's own wiring files only by what is committed, so automatic setup in CI doesn't fail story PRs (D-026) -- `[completed]`
-- **#5846** -- setup/upgrade refuses under a host-managed core.hooksPath (Cursor Cloud Agents), leaving wiring-ready missing and every edit fail-closed -- `[completed]`
-- **#6765** -- fix(scope): post-merge completion gives merge evidence to clause items only, never to hand-written acceptance items -- `[completed]`
-- **#6764** -- fix(lifecycle): completion PRs fail the merge gate because scope:complete now also writes PROJECT-DEFINITION -- `[completed]`
-- **#6002** -- Legacy upgrade deletes .deft/core on a dirty tree without warning (successor to #4158) -- `[completed]`
-- **#6022** -- bug(installer): `task upgrade` still dispatches the retired `install-upgrade` verb, so it always refuses -- `[completed]`
-- **#5838** -- [framework-gap] 0.127.0 refresh leaves feedback and tutorial skill pointers on retired .deft/core path -- `[completed]`
 

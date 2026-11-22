@@ -1,2 +1,0 @@
-section: Fixed
-- Directive no longer writes the AGENTS.md one-liner by itself. Product writes, `deft check`, occupancy release and `scope:complete` only refuse while the scaffold line stays, and name the new `deft project:write-header-line`. That command writes the first sentence of the confirmed Overview (at most 120 characters, never truncated) or `--line`, prints it, does not commit, and writes nothing in a linked worktree. Commit scope-cover admits that exact AGENTS.md change without a story scope (#6973).

@@ -1,2 +1,0 @@
-section: Fixed
-- A lone `--` after a multi-token verb now works: `deft cache:clear -- --project-root <dir>`, `deft policy show -- ...` and `deft policy resolve -- ...` give the handler the same arguments as the form without `--`. The router drops at most one `--`, at the boundary after the verb (after the subcommand word for handlers that take one); a later `--`, a `--` that is a flag value, and `scm issue <sub>` pass-through are kept (#6912).
