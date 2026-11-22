@@ -152,6 +152,7 @@ export * from "./host-hooks.js";
 export * from "./host-slash-commands.js";
 export * from "./hotfix-criteria.js";
 export * from "./intent-ceiling.js";
+export * from "./kill-switch-record.js";
 export * from "./merge-approval-head.js";
 export * from "./min-greptile-confidence.js";
 export * from "./no-deft-directive.js";

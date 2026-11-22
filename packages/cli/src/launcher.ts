@@ -17,7 +17,12 @@ import {
 } from "./constants.js";
 import { invokeRuntime } from "./contract-invoke.js";
 import { discoverProject, takeRootFlag } from "./discover.js";
-import { classifyLauncherSituation, DISABLE_ONE_LINE, isDisableFlagActive } from "./entry-guard.js";
+import {
+  classifyLauncherSituation,
+  DISABLE_ONE_LINE,
+  isDisableFlagActive,
+  KILL_SWITCH_LAUNCHER_COMMANDS,
+} from "./entry-guard.js";
 import { runHookLauncher, runProjectLocalCopy } from "./hook-launcher.js";
 import { type ProjectLocalCopy, recognisePreOvprLayout } from "./legacy-shapes/pre-ovpr.js";
 import { checkNodeVersion } from "./node-check.js";
@@ -238,12 +243,13 @@ export function runLauncher(argv: readonly string[], io: LauncherIo = defaultIo(
     return EXIT_CODES.SUCCESS;
   }
 
-  // --- AC9.12 step 1: an untracked disable flag stops commands that would
-  // start Directive (not install / upgrade / uninstall / doctor, --version or
-  // --help); the hook entry has its own check.
+  // --- AC9.12 step 1: a valid kill record (#6740) stops commands that would
+  // start Directive (not install / upgrade / uninstall / doctor, the kill
+  // record verbs, --version or --help); the hook entry has its own check.
   if (
     projectRoot !== null &&
     rawCmd !== "hook:dispatch" &&
+    !KILL_SWITCH_LAUNCHER_COMMANDS.has(rawCmd ?? "") &&
     !isInstallManagement(cmd) &&
     !RETIRED_INSTALL_VERBS.has(cmd) &&
     isDisableFlagActive(projectRoot)

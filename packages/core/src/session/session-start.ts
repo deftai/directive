@@ -44,14 +44,15 @@ import {
 } from "../policy/ceremony-dial-escalation.js";
 import { maybeFormatCoverageCheckResumeDisclosure } from "../policy/coverage-debt.js";
 import {
-  DEFT_DIRECTIVE_DISABLE_FLAG_NAME,
   DEFT_DIRECTIVE_DISABLE_STATUS,
+  type DeftDirectiveDisableState,
   detectDeftDirectiveDisable,
   formatDeftDirectiveDisableMessage,
-  isDeftDirectiveDisableActive,
+  killRecordProvenanceLine,
 } from "../policy/deft-directive-disable.js";
 import { resolveDeliveryBranch } from "../policy/delivery-branch.js";
 import { disclosureLine } from "../policy/disclosure.js";
+import { KILL_SWITCH_RECORD_REL } from "../policy/kill-switch-record.js";
 import {
   detectNoDeftDirective,
   NO_DEFT_DIRECTIVE_DISABLED_MESSAGE,
@@ -2280,6 +2281,23 @@ export function runSessionStart(
   projectRoot: string,
   options: SessionStartOptions = {},
 ): SessionStartResult {
+  // #6740: one kill-switch read per run. A valid record stands down below; a
+  // bare flag or an invalid record keeps the ritual and prints one warning.
+  const killSwitch = detectDeftDirectiveDisable(projectRoot);
+  const result = runSessionStartWithKillSwitch(projectRoot, options, killSwitch);
+  if (killSwitch.active || killSwitch.warning === null) return result;
+  return {
+    ...result,
+    payload: { ...result.payload, kill_switch_warning: killSwitch.warning },
+    lines: [killSwitch.warning, ...result.lines],
+  };
+}
+
+function runSessionStartWithKillSwitch(
+  projectRoot: string,
+  options: SessionStartOptions,
+  killSwitch: DeftDirectiveDisableState,
+): SessionStartResult {
   // Keep ritual/session directory at the supplied projectRoot. Occupancy
   // claim/read/rollback resolve the lease root internally (#5544) so
   // verify:session-ritual still finds ritual-state beside this path.
@@ -2290,15 +2308,19 @@ export function runSessionStart(
   const environment = (options.probeEnvironment ?? detectEnvironmentContext)();
   const ceremonyTier = options.ceremonyTier ?? COLD_CEREMONY_TIER;
 
-  // #3039: local (untracked) test kill-switch — skip ritual write; deposit may remain.
-  // Recovery requires delete + new session. Tracked flags do not short-circuit.
-  if (isDeftDirectiveDisableActive(projectRoot)) {
-    const killSwitch = detectDeftDirectiveDisable(projectRoot);
+  // #3039 / #6740: a valid kill record skips the ritual write; deposit may
+  // remain. Recovery is `kill-switch:off --confirm` + new session. A bare
+  // flag never short-circuits.
+  if (killSwitch.active) {
     const optOutAlso = detectNoDeftDirective(projectRoot);
-    const message = formatDeftDirectiveDisableMessage({
-      permanentOptOutAlsoPresent: optOutAlso.present,
-      trackedByGit: false,
-    });
+    const provenance = killRecordProvenanceLine(killSwitch);
+    const message = [
+      formatDeftDirectiveDisableMessage({
+        permanentOptOutAlsoPresent: optOutAlso.present,
+        trackedByGit: false,
+      }),
+      ...(provenance !== null ? [provenance] : []),
+    ].join("\n");
     const lines = message.split("\n");
     return {
       code: 0,
@@ -2306,7 +2328,7 @@ export function runSessionStart(
         ready: false,
         exit_code: 0,
         disabled: true,
-        disabled_via: DEFT_DIRECTIVE_DISABLE_FLAG_NAME,
+        disabled_via: KILL_SWITCH_RECORD_REL,
         status: DEFT_DIRECTIVE_DISABLE_STATUS,
         kill_switch: true,
         inconsistent: false,

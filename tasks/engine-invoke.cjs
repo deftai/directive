@@ -68,6 +68,16 @@ const PIN_INSTALL_REMEDIATION = RUNTIME_MISSING_ROW.replace("{install}", () => A
 const PIN_MATERIALIZE_REMEDIATION = "task materialize:runtime";
 const PIN_BIN_REL = path.join("node_modules", "@deftai", "directive-runtime", "dist", "bin.js");
 const DISABLE_FLAG = ".deft-directive-disable";
+/**
+ * Kill record (#6740): the shared whole-line contract (core
+ * `policy/kill-switch-record.ts`). A bare DISABLE_FLAG turns nothing off.
+ */
+const KILL_RECORD_REL = path.join(".deft", "authz", "kill-switch.disable");
+const KILL_RECORD_SCHEMA_LINE = "schema=deft.kill-switch.v1";
+const KILL_RECORD_GIT_DIR_PREFIX = "gitDir=";
+const KILL_SWITCH_BARE_FLAG_WARNING =
+  "Directive warning: root `.deft-directive-disable` is present, but a bare flag file turns nothing off (#6740). " +
+  "Enforcement stays on. To turn Directive off for this checkout, a person runs `deft kill-switch:on --confirm` at a terminal.";
 
 /**
  * cmd.exe command separators / metacharacters. Free-text DEFT_ENGINE_CMD_JSON
@@ -219,26 +229,100 @@ function resolveFrameworkPinBin(projectRoot, opts = {}) {
  * @param {{ fs?: typeof fs, path?: typeof path }} [opts]
  */
 /**
- * AC9.12 / #5994: untracked root .deft-directive-disable → quiet skip before pin require.
+ * Kill record verdict (#6740): "absent", "valid", or an invalid reason. A
+ * regular file (not a link) with the exact whole lines KILL_RECORD_SCHEMA_LINE
+ * and KILL_RECORD_GIT_DIR_PREFIX + `git rev-parse --absolute-git-dir` (trailing
+ * newlines removed). Every CR is removed, then lines split on LF.
+ * @param {string} projectRoot
+ * @param {{ fs?: typeof fs, path?: typeof path, spawnSync?: typeof spawnSync }} [opts]
+ */
+function killRecordVerdict(projectRoot, opts = {}) {
+  const io = opts.fs || fs;
+  const pathMod = opts.path || path;
+  const spawn = opts.spawnSync || spawnSync;
+  if (!projectRoot) return "absent";
+  const recordPath = pathMod.join(projectRoot, KILL_RECORD_REL);
+  let lst;
+  try {
+    lst = io.lstatSync(recordPath);
+  } catch {
+    return "absent";
+  }
+  if (lst.isSymbolicLink() || !lst.isFile()) return "not-a-regular-file";
+  let text;
+  try {
+    text = io.readFileSync(recordPath, "utf8");
+  } catch {
+    return "unreadable";
+  }
+  const lines = String(text).replace(/\r/g, "").split("\n");
+  if (!lines.includes(KILL_RECORD_SCHEMA_LINE)) return "missing-schema-line";
+  const r = spawn("git", ["-C", projectRoot, "rev-parse", "--absolute-git-dir"], {
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "ignore"],
+  });
+  if (r.error || r.status !== 0 || typeof r.stdout !== "string") return "git-dir-unresolved";
+  const gitDir = r.stdout.replace(/\n+$/, "");
+  if (gitDir.length === 0) return "git-dir-unresolved";
+  if (!lines.includes(KILL_RECORD_GIT_DIR_PREFIX + gitDir)) return "git-dir-mismatch";
+  return "valid";
+}
+
+/**
+ * The one warning for a bare flag or an invalid record, or "" (#6740).
+ * @param {string} projectRoot
+ * @param {string} verdict
+ * @param {{ fs?: typeof fs, path?: typeof path }} [opts]
+ */
+function killSwitchWarning(projectRoot, verdict, opts = {}) {
+  const io = opts.fs || fs;
+  const pathMod = opts.path || path;
+  let flag = false;
+  try {
+    const lst = io.lstatSync(pathMod.join(projectRoot, DISABLE_FLAG));
+    flag = !lst.isSymbolicLink() && lst.isFile();
+  } catch {
+    flag = false;
+  }
+  if (verdict !== "absent" && verdict !== "valid") {
+    const also = flag ? " The root `.deft-directive-disable` flag also turns nothing off." : "";
+    return (
+      "Directive warning: `.deft/authz/kill-switch.disable` is not a valid kill record for this checkout (" +
+      verdict +
+      "). Enforcement stays on." +
+      also +
+      " A person runs `deft kill-switch:on --confirm` at a terminal to write a new one, or `deft kill-switch:off --confirm` to remove it."
+    );
+  }
+  return verdict === "absent" && flag ? KILL_SWITCH_BARE_FLAG_WARNING : "";
+}
+
+/**
+ * True when the engine command is a kill record verb (#6740). Those run even
+ * while the record is valid, or `task kill-switch:off` could never turn it off.
+ * @param {NodeJS.ProcessEnv} [env]
+ */
+function engineCmdIsKillSwitch(env = process.env) {
+  let cmdLine = "";
+  try {
+    cmdLine = env.DEFT_ENGINE_CMD_JSON
+      ? String(JSON.parse(env.DEFT_ENGINE_CMD_JSON))
+      : String(env.DEFT_ENGINE_CMD || "");
+  } catch {
+    return false;
+  }
+  const first = shellSplit(cmdLine.trim())[0] || "";
+  return first === "kill-switch" || first.startsWith("kill-switch:");
+}
+
+/**
+ * AC9.12 / #5994 / #6740: a valid kill record → quiet skip before pin require.
+ * A bare DISABLE_FLAG never selects the skip.
  * @param {string} projectRoot
  * @param {{ fs?: typeof fs, path?: typeof path, spawnSync?: typeof spawnSync }} [opts]
  */
 function isDirectiveDisableActive(projectRoot, opts = {}) {
-  const io = opts.fs || fs;
-  const pathMod = opts.path || path;
-  const spawn = opts.spawnSync || spawnSync;
-  if (!projectRoot) return false;
-  const killPath = pathMod.join(projectRoot, DISABLE_FLAG);
-  try {
-    if (!io.existsSync(killPath)) return false;
-    if (io.lstatSync(killPath).isSymbolicLink()) return false;
-  } catch {
-    return false;
-  }
-  const r = spawn("git", ["-C", projectRoot, "ls-files", "--error-unmatch", "--", DISABLE_FLAG], {
-    stdio: ["ignore", "ignore", "ignore"],
-  });
-  return r.status !== 0;
+  return killRecordVerdict(projectRoot, opts) === "valid";
 }
 
 function hasFrameworkPinBin(projectRoot, opts = {}) {
@@ -473,11 +557,19 @@ if (require.main === module) {
     process.exit(0);
   }
   if (mode === "disable-active") {
-    process.exit(isDirectiveDisableActive(process.argv[3] || "") ? 0 : 1);
+    // #6740: the one warning for this task run prints here (pin-bin stays quiet).
+    // Kill record verbs always run, so `task kill-switch:off` can turn the record off.
+    const root = process.argv[3] || "";
+    if (engineCmdIsKillSwitch()) process.exit(1);
+    const verdict = killRecordVerdict(root);
+    if (verdict === "valid") process.exit(0);
+    const warning = root ? killSwitchWarning(root, verdict) : "";
+    if (warning) console.error(warning);
+    process.exit(1);
   }
   if (mode === "pin-bin") {
     const root = process.argv[3] || "";
-    if (isDirectiveDisableActive(root)) {
+    if (!engineCmdIsKillSwitch() && isDirectiveDisableActive(root)) {
       process.exit(0);
     }
     const pin = resolveFrameworkPinBin(root);
@@ -517,5 +609,10 @@ module.exports = {
   consumerMissingMessage,
   LAUNCHER_MISSING_ROW,
   isDirectiveDisableActive,
+  killRecordVerdict,
+  killSwitchWarning,
+  engineCmdIsKillSwitch,
   DISABLE_FLAG,
+  KILL_RECORD_REL,
+  KILL_SWITCH_BARE_FLAG_WARNING,
 };

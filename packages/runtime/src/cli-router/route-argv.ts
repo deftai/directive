@@ -118,6 +118,8 @@ export const SUBCOMMAND_ROUTES: Readonly<Record<string, readonly [string, string
   "authz:uat-suspend": ["authz", "uat-suspend"],
   "authz:grant": ["authz", "grant"],
   "authz:revoke": ["authz", "revoke"],
+  "kill-switch:on": ["kill-switch", "on"],
+  "kill-switch:off": ["kill-switch", "off"],
   "escalation:file": ["escalation-cli", "file"],
   "escalation:list": ["escalation-cli", "list"],
   "escalation:resolve": ["escalation-cli", "resolve"],

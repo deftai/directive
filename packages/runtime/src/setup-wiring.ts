@@ -58,6 +58,16 @@ import {
   isHostSlashCommandDepositEnabled,
   loadHostSlashCommandsPolicyFromProject,
 } from "@deftai/directive-core/dist/policy/host-slash-commands.js";
+import {
+  formatInvalidKillRecordWarning,
+  KILL_SWITCH_BARE_FLAG_NAME,
+  KILL_SWITCH_BARE_FLAG_WARNING,
+  KILL_SWITCH_GITHOOK_MARKER,
+  KILL_SWITCH_RECORD_GIT_DIR_PREFIX,
+  KILL_SWITCH_RECORD_REL,
+  KILL_SWITCH_RECORD_SCHEMA_LINE,
+  type KillSwitchRecordInvalidReason,
+} from "@deftai/directive-core/dist/policy/kill-switch-record.js";
 import { depositOpenClawSoftRebindSkill } from "@deftai/directive-core/dist/session/openclaw-soft-rebind-deposit.js";
 import {
   emitHostCommandFiles,
@@ -1129,13 +1139,26 @@ const GITHOOK_RUNTIME_MISSING_LINE = shDoubleQuoted(
   ENTRY_GUARD_MESSAGES["runtime-missing"],
 ).replace("{install}", () => "$_directive_install");
 
-// Taskfile F1 disable-first + project-PM pin miss live in tasks/engine.yml +
-// tasks/engine-invoke.cjs (#5994) — disable-active runs BEFORE pin-bin / is-buildable-source;
-// pin-bin also quiet-exits when disable is active. This GITHOOK_HELPER is the .githooks twin.
+/** Helper warning lines (#6740); `{reason}` becomes the shell verdict variable. */
+const GITHOOK_BARE_FLAG_WARNING = shDoubleQuoted(KILL_SWITCH_BARE_FLAG_WARNING);
+const GITHOOK_INVALID_WARNING = shDoubleQuoted(
+  formatInvalidKillRecordWarning("{reason}" as KillSwitchRecordInvalidReason, false),
+).replace("{reason}", () => "$_directive_kill_verdict");
+const GITHOOK_INVALID_WARNING_FLAG = shDoubleQuoted(
+  formatInvalidKillRecordWarning("{reason}" as KillSwitchRecordInvalidReason, true),
+).replace("{reason}", () => "$_directive_kill_verdict");
+
+// Taskfile F1 kill-record-first + project-PM pin miss live in tasks/engine.yml +
+// tasks/engine-invoke.cjs (#5994 / #6740) — disable-active runs BEFORE pin-bin / is-buildable-source;
+// pin-bin also quiet-exits when the record is valid. This GITHOOK_HELPER is the .githooks twin.
+// #6740: the helper checks the kill record with shell tests, git and grep -qxF only, before
+// it looks for the runtime or node, so git-hook stand-down needs no Node. It carries the
+// reader marker line that doctor reports.
 const GITHOOK_HELPER = `#!/usr/bin/env sh
-# Package-relative Directive git-hook helper (AC9.9 / AC9.12 / #5994).
+# Package-relative Directive git-hook helper (AC9.9 / AC9.12 / #5994 / #6740).
+${KILL_SWITCH_GITHOOK_MARKER}
 # Sourced by pre-commit/pre-push; defines run_directive.
-# Shared entry order: disable → runtime missing (project install, by lockfile) → pin bin.js.
+# Shared entry order: kill record → runtime missing (project install, by lockfile) → pin bin.js.
 if [ -z "\${REPO_ROOT:-}" ]; then
   REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
 fi
@@ -1143,12 +1166,59 @@ if [ -z "$REPO_ROOT" ]; then
   echo "directive hooks: unable to resolve repo root." >&2
   exit 1
 fi
+_directive_kill_warned=""
+# #6740: kill record verdict (valid | absent | an invalid reason). CR removed (tr), then exact
+# whole lines (grep -qxF); the record binds to git rev-parse --absolute-git-dir. No node.
+_directive_kill_record() {
+  _rec="$REPO_ROOT/${KILL_SWITCH_RECORD_REL}"
+  if [ ! -e "$_rec" ] && [ ! -L "$_rec" ]; then
+    echo absent
+    return 0
+  fi
+  if [ -L "$_rec" ] || [ ! -f "$_rec" ]; then
+    echo not-a-regular-file
+    return 0
+  fi
+  if [ ! -r "$_rec" ]; then
+    echo unreadable
+    return 0
+  fi
+  if ! tr -d '\\r' <"$_rec" 2>/dev/null | grep -qxF "${KILL_SWITCH_RECORD_SCHEMA_LINE}"; then
+    echo missing-schema-line
+    return 0
+  fi
+  _gd="$(git -C "$REPO_ROOT" rev-parse --absolute-git-dir 2>/dev/null)" || _gd=""
+  if [ -z "$_gd" ]; then
+    echo git-dir-unresolved
+    return 0
+  fi
+  if ! tr -d '\\r' <"$_rec" 2>/dev/null | grep -qxF "${KILL_SWITCH_RECORD_GIT_DIR_PREFIX}$_gd"; then
+    echo git-dir-mismatch
+    return 0
+  fi
+  echo valid
+}
 run_directive() {
-  # #3039 / #5543 / #5994 F1: disable BEFORE requiring pin bin.js; quiet skip.
-  _kill="$REPO_ROOT/.deft-directive-disable"
-  if [ -f "$_kill" ] && [ ! -L "$_kill" ]; then
-    if ! git -C "$REPO_ROOT" ls-files --error-unmatch -- .deft-directive-disable >/dev/null 2>&1; then
-      return 0
+  # #3039 / #5543 / #5994 F1 / #6740: a valid kill record stands down BEFORE requiring
+  # pin bin.js or node; a bare flag file turns nothing off and gets one warning per hook.
+  _directive_kill_verdict="$(_directive_kill_record)"
+  if [ "$_directive_kill_verdict" = "valid" ]; then
+    return 0
+  fi
+  if [ -z "$_directive_kill_warned" ]; then
+    _directive_kill_warned=1
+    _directive_kill_flag=""
+    if [ -f "$REPO_ROOT/${KILL_SWITCH_BARE_FLAG_NAME}" ] && [ ! -L "$REPO_ROOT/${KILL_SWITCH_BARE_FLAG_NAME}" ]; then
+      _directive_kill_flag=1
+    fi
+    if [ "$_directive_kill_verdict" != "absent" ]; then
+      if [ -n "$_directive_kill_flag" ]; then
+        echo "${GITHOOK_INVALID_WARNING_FLAG}" >&2
+      else
+        echo "${GITHOOK_INVALID_WARNING}" >&2
+      fi
+    elif [ -n "$_directive_kill_flag" ]; then
+      echo "${GITHOOK_BARE_FLAG_WARNING}" >&2
     fi
   fi
   RUNTIME_BIN="$REPO_ROOT/${RUNTIME_BIN_REL}"

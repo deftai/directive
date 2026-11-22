@@ -12,15 +12,15 @@ import {
   type SessionStartNoticeInspection,
 } from "../init-deposit/agent-hooks.js";
 import { checkRuntimeLinkOwner } from "../install-health/runtime-link.js";
+import { checkKillSwitchReaderMarkers } from "../install-health/wiring.js";
 import { resolveLifecycleLayout } from "../layout/resolve.js";
 import {
-  DEFT_DIRECTIVE_DISABLE_FLAG_NAME,
   DEFT_DIRECTIVE_DISABLE_STATUS,
-  DEFT_DIRECTIVE_DISABLE_TRACKED_WARNING,
   detectDeftDirectiveDisable,
   formatDeftDirectiveDisableMessage,
-  isDeftDirectiveDisableActive,
+  killRecordProvenanceLine,
 } from "../policy/deft-directive-disable.js";
+import { KILL_SWITCH_RECORD_REL } from "../policy/kill-switch-record.js";
 import {
   detectNoDeftDirective,
   NO_DEFT_DIRECTIVE_DISABLED_MESSAGE,
@@ -593,6 +593,40 @@ function collectKillSwitchSessionStartNoticeLines(
   }
 }
 
+/**
+ * Kill-switch status (#6740): the one bare-flag / invalid-record warning, then
+ * old readers still wired in (a host-hook call without the reader flag, an
+ * unmarked checkout-local git-hook helper), each naming the redeposit.
+ * Compatibility information only; nothing here turns enforcement on or off.
+ */
+function runKillSwitchChecks(
+  projectRoot: string,
+  warning: string | null,
+  sink: ReturnType<typeof createPlainSink>,
+  addFinding: (f: Finding) => void,
+): void {
+  let clean = true;
+  if (warning !== null) {
+    clean = false;
+    sink.warn(warning);
+    addFinding({ severity: "warning", message: warning, check: "kill-switch" });
+  }
+  // Old readers are compatibility information, not a fault: an advisory row,
+  // so a checkout waiting for its redeposit still passes the system check.
+  for (const finding of checkKillSwitchReaderMarkers(projectRoot)) {
+    clean = false;
+    sink.info(finding.message);
+    addFinding({
+      severity: "skip",
+      message: finding.message,
+      check: "kill-switch-reader",
+      status: "old-reader",
+      path: finding.rel,
+    });
+  }
+  if (clean) sink.success("kill switch: no bare flag, no invalid record, readers current");
+}
+
 /** Merge `seams.extraJson` into a `--json` payload without replacing doctor's own keys (#6004). */
 function withExtraJson(
   payload: Record<string, unknown>,
@@ -628,31 +662,31 @@ export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): num
   const consumerContext = resolve(projectRoot) !== resolve(frameworkRoot);
   const whichFn = seams.whichFn ?? defaultWhich;
   const nowFn = seams.now ?? (() => new Date());
-  // #3039: temporary test kill-switch. Active (untracked) → disabled short-circuit.
-  // Tracked/committed flag → warn only and continue normal doctor (no enforcement bypass).
+  // #3039 / #6740: temporary test kill-switch. A valid kill record → disabled
+  // short-circuit, with the record's mintedVia and mintedAt. A bare flag or an
+  // invalid record → one warning below and the normal doctor run.
   const killSwitch = detectDeftDirectiveDisable(projectRoot, { skipTrackedCache: true });
-  if (
-    killSwitch.present &&
-    killSwitch.trackedByGit &&
-    !isDeftDirectiveDisableActive(projectRoot, { skipTrackedCache: true })
-  ) {
-    if (!jsonMode && !quietMode) {
-      process.stderr.write(`${DEFT_DIRECTIVE_DISABLE_TRACKED_WARNING}\n`);
-    }
-    // Continue into full doctor; do not short-circuit.
-  } else if (isDeftDirectiveDisableActive(projectRoot, { skipTrackedCache: true })) {
+  if (killSwitch.active) {
     const optOutAlso = detectNoDeftDirective(projectRoot);
-    const message = formatDeftDirectiveDisableMessage({
-      permanentOptOutAlsoPresent: optOutAlso.present,
-      trackedByGit: false,
-    });
+    const provenance = killRecordProvenanceLine(killSwitch);
+    const message = [
+      formatDeftDirectiveDisableMessage({
+        permanentOptOutAlsoPresent: optOutAlso.present,
+        trackedByGit: false,
+      }),
+      ...(provenance !== null ? [provenance] : []),
+    ].join("\n");
     const noticeLines = collectKillSwitchSessionStartNoticeLines(projectRoot, seams);
     const fullMessage = noticeLines.length > 0 ? `${message}\n${noticeLines.join("\n")}` : message;
     if (jsonMode) {
       const payload = {
         status: DEFT_DIRECTIVE_DISABLE_STATUS,
         disabled: true,
-        disabled_via: DEFT_DIRECTIVE_DISABLE_FLAG_NAME,
+        disabled_via: KILL_SWITCH_RECORD_REL,
+        kill_record:
+          killSwitch.record.kind === "valid"
+            ? { minted_at: killSwitch.record.mintedAt, minted_via: killSwitch.record.mintedVia }
+            : null,
         kill_switch: true,
         inconsistent: false,
         deposit_present: killSwitch.depositPresent,
@@ -791,6 +825,12 @@ export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): num
   }
   sink.info("Checking install integrity...");
   runInstallIntegrityChecks(projectRoot, sink, addFinding, seams);
+
+  if (!jsonMode) {
+    sink.blank();
+  }
+  sink.info("Checking kill switch (#6740)...");
+  runKillSwitchChecks(projectRoot, killSwitch.warning, sink, addFinding);
 
   if (!jsonMode) {
     sink.blank();

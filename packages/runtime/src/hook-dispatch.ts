@@ -22,7 +22,11 @@ import {
   resolveLaunchingCheckoutRootFromPath,
 } from "@deftai/directive-core/dist/install-health/runtime-link.js";
 import type { CheapInSyncResult } from "@deftai/directive-core/dist/install-health/types.js";
-import { isDeftDirectiveDisableActive } from "@deftai/directive-core/dist/policy/deft-directive-disable.js";
+import { detectDeftDirectiveDisable } from "@deftai/directive-core/dist/policy/deft-directive-disable.js";
+import {
+  KILL_SWITCH_READER_FLAG,
+  KILL_SWITCH_READER_VERSION,
+} from "@deftai/directive-core/dist/policy/kill-switch-record.js";
 import {
   decideHook,
   firstString,
@@ -58,6 +62,12 @@ interface ParsedArgs {
   host?: HookHost;
   event?: HookEvent;
   projectRoot?: string;
+  /**
+   * Kill-record reader version the outer hook passed (#6740). Compatibility
+   * information only, never authority: it tells this runtime the outer reads
+   * the record too. Absent for an older outer or a direct `deft hook:dispatch`.
+   */
+  killSwitchReader?: string;
   error?: string;
 }
 
@@ -99,10 +109,19 @@ export interface HookDispatchCliSeams {
    */
   readonly cheapInSync?: (root: string) => CheapInSyncResult;
   /**
-   * Untracked root disable-flag check (#6620). Defaults to
-   * `isDeftDirectiveDisableActive`; injected in unit tests.
+   * Kill-record check (#6620 / #6740): true only when the kill record is valid
+   * for this checkout. Defaults to the core detector; injected in unit tests.
+   * When injected, no kill-switch warning is printed.
    */
   readonly disableActive?: (root: string) => boolean;
+  /**
+   * Kill-switch state for one hook event (#6740): `active` and the one warning
+   * (bare flag or invalid record) or null. Defaults to the core detector.
+   */
+  readonly killSwitchState?: (root: string) => {
+    readonly active: boolean;
+    readonly warning: string | null;
+  };
   /** Strict session-end release (#6274). Injected in tests to force a throw. */
   readonly sessionEndRelease?: SessionEndHookSeams["release"];
 }
@@ -349,6 +368,18 @@ export function parseArgs(argv: readonly string[]): ParsedArgs {
       i = taken.next;
       continue;
     }
+    if (token === KILL_SWITCH_READER_FLAG || token?.startsWith(`${KILL_SWITCH_READER_FLAG}=`)) {
+      const taken = takeValue(argv, i, KILL_SWITCH_READER_FLAG);
+      if (taken.error) return { error: taken.error };
+      if (taken.value !== KILL_SWITCH_READER_VERSION) {
+        return {
+          error: `unsupported kill-switch reader: ${JSON.stringify(taken.value)} (this runtime reads ${KILL_SWITCH_READER_VERSION})`,
+        };
+      }
+      parsed.killSwitchReader = taken.value;
+      i = taken.next;
+      continue;
+    }
     return { error: `unrecognized argument: ${token}` };
   }
   if (parsed.host === undefined) return { error: "--host is required" };
@@ -387,6 +418,25 @@ export function parsePayload(raw: string): ParsedPayload {
  * paths. Empty-stdin denies still exit `0` with a Cursor JSON body carrying
  * `code: "stdin-empty"`.
  */
+/**
+ * Kill-switch state for one hook event (#6740). Prints the one warning (bare
+ * flag or invalid record) to stderr and returns whether the record is valid.
+ */
+function killSwitchForEvent(
+  projectRoot: string,
+  seams: HookDispatchCliSeams,
+  writeErr: (text: string) => void,
+): boolean {
+  if (seams.killSwitchState === undefined && seams.disableActive !== undefined) {
+    return seams.disableActive(projectRoot);
+  }
+  const state = (seams.killSwitchState ?? detectDeftDirectiveDisable)(projectRoot);
+  if (state.warning !== null)
+    writeErr(`${state.warning}
+`);
+  return state.active;
+}
+
 /** session.end CLI path (#6274): every failure is one stderr line; exit 0 always. */
 function runSessionEnd(
   host: HookHost,
@@ -406,6 +456,7 @@ function runSessionEnd(
     const projectRoot = normalizeHookProjectRoot(
       projectRootArg ? resolve(projectRootArg) : projectRootFromHookPayload(payload, cwd),
     );
+    killSwitchForEvent(projectRoot, seams, writeErr);
     const launchRoot = (seams.launchingCheckoutRoot ?? resolveLaunchingCheckoutRoot)();
     const ended = runSessionEndHook(
       { host, projectRoot, payload, environ: process.env, launchRoot },
@@ -456,10 +507,11 @@ export function run(argv: string[], seams: HookDispatchCliSeams = {}): number {
     args.projectRoot ? resolve(args.projectRoot) : projectRootFromHookPayload(payload, cwd),
   );
 
-  // #6620 / AC9.12 step 1: the untracked disable flag comes before every
-  // install check. Skip the root, pin and setup steps; decideHook returns the
-  // disabled allow (the decision itself stays in the dispatcher).
-  const disabled = (seams.disableActive ?? isDeftDirectiveDisableActive)(projectRoot);
+  // #6620 / AC9.12 step 1: the kill record comes before every install check
+  // (#6740: a bare flag file turns nothing off and prints one warning). Skip
+  // the root, pin and setup steps; decideHook returns the disabled allow (the
+  // decision itself stays in the dispatcher).
+  const disabled = killSwitchForEvent(projectRoot, seams, writeErr);
 
   // Wave 2k / AC9.4+AC9.5: payload project root must match the checkout that
   // owns the running hook-bin. Mismatch → fail closed (no setup, no policy).
