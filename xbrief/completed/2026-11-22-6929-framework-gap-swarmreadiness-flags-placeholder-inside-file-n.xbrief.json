@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6929",
-    "updated": "2026-11-22T14:02:13Z"
+    "updated": "2026-11-22T16:08:34Z"
   },
   "plan": {
     "title": "[framework-gap] swarm:readiness flags 'placeholder' inside file names and domain terms as placeholder text",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Issue #6929 was folded into the #6936 story and fixed in product PR #7000 (merge 9061e61b). This brief records that delivery and adds no code. The tests that assert the fixed behaviour are in packages/core/src/vbrief-validation/marker-text.test.ts.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6929",
@@ -18,26 +18,47 @@
     "items": [
       {
         "title": "Given the three examples above (the desk widget file name, the widget term and the top-bar chip term, each holding the stub-marker word inside a longer term), when readiness checks acceptance criteria and the ImplementationPlan, then it reports no stub-text issue.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "When readiness checks the three #6929 examples, then it reports no stub-text issue."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9061e61b7c196d9c0d3c983c4a151c5892c0a618",
+          "recorded_at": "2026-11-22T16:08:34Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given a line that holds only a stub marker, a leading marker label with a colon, or a marker template token in angle brackets, when readiness checks it, then it still reports a stub-text issue.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "When readiness checks a marker-only line, a leading marker label or a marker template token, then it still reports a stub-text issue."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9061e61b7c196d9c0d3c983c4a151c5892c0a618",
+          "recorded_at": "2026-11-22T16:08:34Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given the same acceptance texts, when `scope:decompose` checks a story, then it applies the same stub-text check as readiness.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "When scope:decompose checks a story, then it applies the same stub-text check as readiness."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9061e61b7c196d9c0d3c983c4a151c5892c0a618",
+          "recorded_at": "2026-11-22T16:08:34Z",
+          "recorded_by": "scope:complete"
         }
       }
     ],
@@ -152,7 +173,32 @@
         "origin": "deftai/directive#6929",
         "id": "github.issue.6525749542"
       },
-      "kind": "story"
+      "kind": "story",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "2ecec1fbd808ba28d7e9ebad9c235ecbf81b8f24",
+        "prNumber": 7000,
+        "prBase": "master",
+        "mergeCommit": "9061e61b7c196d9c0d3c983c4a151c5892c0a618",
+        "deliveryBranch": "master",
+        "deliveryCommit": "128b0cb5801bc44515c03fecca00c72685d72ba1",
+        "verifiedAt": "2026-11-22T16:08:34Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "identityBasis": "operator-attested",
+        "attestationGrantId": "grant-20261122160735-8557ea"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-22T16:08:34Z",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-22T16:08:34Z"
+      }
     },
     "acceptance": {
       "commands": [],
@@ -197,6 +243,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.6525749542",
-    "updated": "2026-11-22T14:02:13Z"
+    "updated": "2026-11-22T16:08:34Z"
   }
 }
