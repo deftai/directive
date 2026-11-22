@@ -1,7 +1,8 @@
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   corpusEnvelopeFindingFromObject,
@@ -259,6 +260,83 @@ describe("evaluateXbriefDrift", () => {
     } finally {
       rmSync(nonGitDir, { recursive: true, force: true });
     }
+  });
+});
+
+describe("legacy reference token: prose quotes pass, reference values fail (#4905)", () => {
+  let root: string | undefined;
+
+  afterEach(() => {
+    if (root !== undefined) {
+      rmSync(root, { recursive: true, force: true });
+      root = undefined;
+    }
+  });
+
+  /** A canonical brief that only quotes the legacy prefix in prose (incl. an escaped quote). */
+  const PROSE_ONLY_ARTIFACT = JSON.stringify(
+    {
+      xBRIEFInfo: { version: "0.8" },
+      plan: {
+        narratives: { Overview: "The gate read the legacy x-vbrief/ prefix in prose as a hit." },
+        metadata: {
+          issueCommentThread: [{ body: 'A critic quoted "x-vbrief/github-issue" here.' }],
+        },
+        contract: { text: "Never write x-vbrief/ reference types in new briefs." },
+        references: [{ type: "x-xbrief/github-issue" }],
+      },
+    },
+    null,
+    2,
+  );
+
+  it("exits 0 when the legacy prefix appears only in narrative, comment and contract prose", () => {
+    expect(PROSE_ONLY_ARTIFACT).toContain('\\"x-vbrief/');
+    root = initRepo();
+    writeTracked(root, "xbrief/active/2026-11-22-1-prose.xbrief.json", PROSE_ONLY_ARTIFACT);
+    writeTracked(root, "xbrief/specification.xbrief.json", PROSE_ONLY_ARTIFACT);
+    const result = evaluateXbriefDrift(root);
+    expect(result.code).toBe(0);
+    expect(result.findings).toHaveLength(0);
+  });
+
+  it("exits 1 on a reference object whose type starts with the legacy prefix", () => {
+    root = initRepo();
+    const legacyRef = JSON.stringify(
+      {
+        xBRIEFInfo: { version: "0.8" },
+        plan: {
+          narratives: { Overview: "Quoting x-vbrief/ here is fine." },
+          references: [{ uri: "https://example.test/1", type: "x-vbrief/github-issue" }],
+        },
+      },
+      null,
+      2,
+    );
+    writeTracked(root, "xbrief/active/2026-11-22-1-legacy.xbrief.json", legacyRef);
+    const result = evaluateXbriefDrift(root);
+    expect(result.code).toBe(1);
+    expect(result.findings).toHaveLength(1);
+    expect(result.findings[0]?.kind).toBe("legacy-reference-token");
+  });
+
+  it("falls back to an unescaped quoted-boundary scan on unparseable JSON", () => {
+    root = initRepo();
+    writeTracked(root, "xbrief/active/broken-ref.xbrief.json", '{ "type": "x-vbrief/x", ');
+    writeTracked(root, "xbrief/active/broken-prose.xbrief.json", '{ "a": "say \\"x-vbrief/x\\"", ');
+    const result = evaluateXbriefDrift(root);
+    expect(result.code).toBe(1);
+    expect(result.findings.map((f) => f.path)).toEqual(["xbrief/active/broken-ref.xbrief.json"]);
+  });
+
+  it("pre-commit runs verify:xbrief-drift --staged with no --allow-list", () => {
+    const hookPath = fileURLToPath(new URL("../../../../.githooks/pre-commit", import.meta.url));
+    const lines = readFileSync(hookPath, "utf8")
+      .split("\n")
+      .filter((line) => line.includes("verify:xbrief-drift"));
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toContain("--staged");
+    expect(lines[0]).not.toContain("--allow-list");
   });
 });
 
