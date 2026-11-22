@@ -1,0 +1,654 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6893",
+    "updated": "2026-11-22T22:13:29Z"
+  },
+  "plan": {
+    "title": "pre-pr: leaf ergonomics for finishing a controller run (#6888 items 2-4)",
+    "status": "running",
+    "narratives": {
+      "Description": "pre-pr: leaf ergonomics for finishing a controller run (#6888 items 2-4)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6893",
+      "Overview": "\n1. Semantic hash (P1, P2). `--observe-semantic` computes the contents hash itself and records it as both the supplied and the observed value. `--supplied-contents-hash` is optional; a given value must still match.\n2. Default file list (P1). `--reviewed-file` is optional on `--observe-semantic`. When omitted, the list is the run's present changed files: `git diff -z --name-only --diff-filter=d <baseSha>..<headSha>` at the project root, NUL-split, repo-relative, and hashed at the same root. When that list is empty (deletion-only change or no change), the call refuses and says to name the reviewed files with `--reviewed-file`. Given `--reviewed-file` paths replace the default.\n3. Phase guidance (P3). The usage text lists the required order (`branch_policy`, `plan_sequence`, `read`, `write`, `lint_iteration`, `render_export`, `diff`, `loop`) and the optional phases (`coverage_headroom`, `merge_chokepoint`). It says that a recorded failure ends the run and a new run must be started; that a phase recorded out of order is fixed by recording it and every later required phase again; and that semantic hashes cover the working-tree files at the project root, so phases are recorded on the run's head with no uncommitted changes. After each successful observe, the output names the required phases still missing, in order; when the run is failed it says to start a new run instead; when none are missing it says to run `--complete`, without claiming a pass.\n4. `merge_chokepoint` (P1). The usage text and the pre-PR skill say it is optional and is recorded only after a `deft check` run the work needed anyway (conflict resolve or behind-rebase), and that `--complete` runs `verify:ac` itself (PR #6913).\n5. No PR needed (P1). The usage text and the pre-PR skill say `--complete` does not need a PR. When master's named Merge gate is red, the refusal states the red gate first and the missing PR second.\n6. Push-gate report (P4). On success, `--complete` prints the value of `plan.policy.requireBoundPrePrPush` (true, false or not set) and what it means for the managed `pre-push` hook (`preflight-gh --pre-push-stdin`): true means the hook refuses a push of non-docs changes without a pass bound to HEAD; false or not set means the hook does not look for a pass. The pre-PR skill and the gate walkthrough say the same, and add that `pre-pr:run --push-admit` treats \"not set\" as on and that completing a run is not push admission.\n7. Tests (P1-P4). A semantic phase recorded with no hash and no file list; a wrong explicit hash still refuses; an explicit list replaces the default; the default list equals the present `base..head` changed files; deletion-only and empty diffs refuse with the recovery; the missing-phase output for a running, a failed and a fully recorded run; the red-gate message order; the push-gate line for true, false and not set; the usage text.\n\n## Acceptance Criteria\n\n- `pre-pr:run --observe-semantic --run-id <id> --phase <phase>` with no `--supplied-contents-hash` and no `--reviewed-file` records the phase, using the run's present changed files from `base..head` at the project root and the controller's own hash.\n- A given `--supplied-contents-hash` that differs from the controller's hash still refuses, and given `--reviewed-file` paths replace the default list.\n- When the default list is empty, `--observe-semantic` refuses and names `--reviewed-file` as the recovery.\n- The `pre-pr:run` usage text lists the required phase order and the optional phases, says a recorded failure ends the run, and says how to fix a phase recorded out of order.\n- After a successful observe, the output names the required phases still missing, says to start a new run when the run is failed, and says to run `--complete` when none are missing.\n- The usage text and the pre-PR skill say `merge_chokepoint` is optional and `--complete` does not need a PR.\n- With master's named Merge gate red and no PR, the `--complete` refusal names the red gate before the missing PR.\n- `--complete` output reports `plan.policy.requireBoundPrePrPush` as true, false or not set and what that means for the managed pre-push hook, and the pre-PR skill and the gate walkthrough say whether a pass gates the push.\n- Tests cover each criterion above, including deletion-only and empty diffs and all three policy states.\n\n\n",
+      "Constraint": "- A default file list that can be empty or hash nothing (comment 7052418999, finding 1).\n- Reporting \"not set\" as ungated for every caller, or \"true\" as refusing every push without a pass (comment 7052418999, finding 2).\n- Dropping the order check or clearing a recorded failure in this PR (comment 7052418999, answers 2 and 3).\n- Controller-run command phases (#5933; comment 7052418999, answer 4).",
+      "Labels": "design-critique:ingest-ready, framework-gap"
+    },
+    "items": [
+      {
+        "title": "Semantic hash (P1, P2). `--observe-semantic` computes the contents hash itself and records it as both the supplied and the observed value. `--supplied-contents-hash` is optional; a given value must still match.",
+        "status": "proposed",
+        "id": "clause.1"
+      },
+      {
+        "title": "Default file list (P1). `--reviewed-file` is optional on `--observe-semantic`. When omitted, the list is the run's present changed files: `git diff -z --name-only --diff-filter=d <baseSha>..<headSha>` at the project root, NUL-split, repo-relative, and hashed at the same root. When that list is empty (deletion-only change or no change), the call refuses and says to name the reviewed files with `--reviewed-file`. Given `--reviewed-file` paths replace the default.",
+        "status": "proposed",
+        "id": "clause.2"
+      },
+      {
+        "title": "Phase guidance (P3). The usage text lists the required order (`branch_policy`, `plan_sequence`, `read`, `write`, `lint_iteration`, `render_export`, `diff`, `loop`) and the optional phases (`coverage_headroom`, `merge_chokepoint`). It says that a recorded failure ends the run and a new run must be started; that a phase recorded out of order is fixed by recording it and every later required phase again; and that semantic hashes cover the working-tree files at the project root, so phases are recorded on the run's head with no uncommitted changes. After each successful observe, the output names the required phases still missing, in order; when the run is failed it says to start a new run instead; when none are missing it says to run `--complete`, without claiming a pass.",
+        "status": "proposed",
+        "id": "clause.3"
+      },
+      {
+        "title": "`merge_chokepoint` (P1). The usage text and the pre-PR skill say it is optional and is recorded only after a `deft check` run the work needed anyway (conflict resolve or behind-rebase), and that `--complete` runs `verify:ac` itself (PR #6913).",
+        "status": "proposed",
+        "id": "clause.4"
+      },
+      {
+        "title": "No PR needed (P1). The usage text and the pre-PR skill say `--complete` does not need a PR. When master's named Merge gate is red, the refusal states the red gate first and the missing PR second.",
+        "status": "proposed",
+        "id": "clause.5"
+      },
+      {
+        "title": "Push-gate report (P4). On success, `--complete` prints the value of `plan.policy.requireBoundPrePrPush` (true, false or not set) and what it means for the managed `pre-push` hook (`preflight-gh --pre-push-stdin`): true means the hook refuses a push of non-docs changes without a pass bound to HEAD; false or not set means the hook does not look for a pass. The pre-PR skill and the gate walkthrough say the same, and add that `pre-pr:run --push-admit` treats \"not set\" as on and that completing a run is not push admission.",
+        "status": "proposed",
+        "id": "clause.6"
+      },
+      {
+        "title": "Tests (P1-P4). A semantic phase recorded with no hash and no file list; a wrong explicit hash still refuses; an explicit list replaces the default; the default list equals the present `base..head` changed files; deletion-only and empty diffs refuse with the recovery; the missing-phase output for a running, a failed and a fully recorded run; the red-gate message order; the push-gate line for true, false and not set; the usage text.",
+        "status": "proposed",
+        "id": "clause.7"
+      },
+      {
+        "title": "`pre-pr:run --observe-semantic --run-id <id> --phase <phase>` with no `--supplied-contents-hash` and no `--reviewed-file` records the phase, using the run's present changed files from `base..head` at the project root and the controller's own hash.",
+        "status": "proposed",
+        "id": "clause.8"
+      },
+      {
+        "title": "A given `--supplied-contents-hash` that differs from the controller's hash still refuses, and given `--reviewed-file` paths replace the default list.",
+        "status": "proposed",
+        "id": "clause.9"
+      },
+      {
+        "title": "When the default list is empty, `--observe-semantic` refuses and names `--reviewed-file` as the recovery.",
+        "status": "proposed",
+        "id": "clause.10"
+      },
+      {
+        "title": "The `pre-pr:run` usage text lists the required phase order and the optional phases, says a recorded failure ends the run, and says how to fix a phase recorded out of order.",
+        "status": "proposed",
+        "id": "clause.11"
+      },
+      {
+        "title": "After a successful observe, the output names the required phases still missing, says to start a new run when the run is failed, and says to run `--complete` when none are missing.",
+        "status": "proposed",
+        "id": "clause.12"
+      },
+      {
+        "title": "The usage text and the pre-PR skill say `merge_chokepoint` is optional and `--complete` does not need a PR.",
+        "status": "proposed",
+        "id": "clause.13"
+      },
+      {
+        "title": "With master's named Merge gate red and no PR, the `--complete` refusal names the red gate before the missing PR.",
+        "status": "proposed",
+        "id": "clause.14"
+      },
+      {
+        "title": "`--complete` output reports `plan.policy.requireBoundPrePrPush` as true, false or not set and what that means for the managed pre-push hook, and the pre-PR skill and the gate walkthrough say whether a pass gates the push.",
+        "status": "proposed",
+        "id": "clause.15"
+      },
+      {
+        "title": "Tests cover each criterion above, including deletion-only and empty diffs and all three policy states.",
+        "status": "proposed",
+        "id": "clause.16"
+      }
+    ],
+    "tags": [
+      "design-critique:ingest-ready",
+      "framework-gap"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6893",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6893: pre-pr: leaf ergonomics for finishing a controller run (#6888 items 2-4)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6888",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6888"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "git diff -z --name-only --diff-filter=d <baseSha>..<headSha>",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L5"
+        },
+        {
+          "command": "deft check",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L7"
+        },
+        {
+          "command": "preflight-gh --pre-push-stdin",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L9"
+        },
+        {
+          "command": "pre-pr:run --push-admit",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L9"
+        },
+        {
+          "command": "pre-pr:run --observe-semantic --run-id <id> --phase <phase>",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L14"
+        }
+      ],
+      "swarm": {
+        "file_scope": [
+          "packages/runtime/src/pre-pr-run.ts",
+          "packages/runtime/src/pre-pr-run.test.ts",
+          "packages/core/src/pre-pr-controller/controller.ts",
+          "packages/core/src/pre-pr-controller/controller.test.ts",
+          "packages/core/src/pre-pr-controller/phases.ts",
+          "packages/core/src/pre-pr-controller/phases.test.ts",
+          "packages/core/src/pre-pr-controller/index.ts",
+          "content/skills/deft-directive-pre-pr/SKILL.md",
+          "content/docs/gate-walkthrough.md",
+          "content/commands.md",
+          "content/packs/skills/skills-pack-0.1.json",
+          "docs/RULE-MAP.md",
+          "xbrief/evaluator-surface-disposition.json",
+          "changelog.d/6893-pre-pr-leaf-ergonomics.md"
+        ],
+        "file_scope_confidence": "medium",
+        "readiness": "ready",
+        "parallel_safe": false,
+        "size": "medium",
+        "model_tier": "standard",
+        "depends_on": [],
+        "conflict_group": "pre-pr-run",
+        "verify_commands": [
+          "npx vitest run packages/runtime/src/pre-pr-run.test.ts",
+          "npx vitest run packages/core/src/pre-pr-controller/controller.test.ts packages/core/src/pre-pr-controller/phases.test.ts",
+          "task verify:changelog-unreleased"
+        ],
+        "expected_outputs": [
+          "pre-pr:run --observe-semantic records a phase with only --run-id and --phase: the controller computes the hash and defaults the reviewed files to the present base..head changed files; an empty default list refuses and names --reviewed-file",
+          "pre-pr:run usage text lists the required phase order, the optional phases, the terminal-failure rule and the out-of-order fix; each successful observe names the missing phases, or says to start a new run, or says to run --complete",
+          "the usage text and the pre-PR skill say merge_chokepoint is optional and --complete needs no PR; a red Merge gate is named before a missing PR",
+          "--complete reports plan.policy.requireBoundPrePrPush as true, false or not set and what the managed pre-push hook does; the skill and gate walkthrough say the same",
+          "one changelog fragment changelog.d/6893-pre-pr-leaf-ergonomics.md"
+        ],
+        "Traces": [
+          "#6893",
+          "#6888",
+          "#6882"
+        ],
+        "acceptance_criteria_justification": "Sixteen clauses from the accepted lean (comment 7052437809): the seven Bound remedy items and the nine Acceptance Criteria. parallel_safe is false: #6902 (pre-pr:run --project-root) touches pre-pr-run.ts, its test and controller.ts in the same wave; build #6902 first. Generated files (skills pack hash, RULE-MAP, evaluator-surface disposition) are listed because the skill and controller change. #5933 (controller-run command phases) stays out."
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/runtime/src/pre-pr-run.ts",
+          "packages/runtime/src/pre-pr-run.test.ts",
+          "packages/core/src/pre-pr-controller/controller.ts",
+          "packages/core/src/pre-pr-controller/controller.test.ts",
+          "packages/core/src/pre-pr-controller/phases.ts",
+          "packages/core/src/pre-pr-controller/phases.test.ts",
+          "packages/core/src/pre-pr-controller/index.ts",
+          "content/skills/deft-directive-pre-pr/SKILL.md",
+          "content/docs/gate-walkthrough.md",
+          "content/commands.md",
+          "content/packs/skills/skills-pack-0.1.json",
+          "docs/RULE-MAP.md",
+          "xbrief/evaluator-surface-disposition.json",
+          "changelog.d/6893-pre-pr-leaf-ergonomics.md"
+        ],
+        "module_boundary": "packages/runtime/src/pre-pr-run.ts keeps owning the pre-pr:run CLI (usage text, --observe-semantic defaults, observe output); packages/core/src/pre-pr-controller keeps owning run state, phase order and --complete messages. No new verb, phase, gate or policy flag; the push-gate line reuses resolveRequireBoundPrePrPush from preflight-gh/pre-push.ts without changing it.",
+        "cohesion_exemption": "controller.ts, controller.test.ts, pre-pr-run.ts and pre-pr-run.test.ts are the existing homes of the controller and its CLI; this story adds defaults, messages and tests there rather than splitting them."
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: triage\n```\n\nStop 1 — Gate (arc 6893; no-ingest)\n\nmechanism-shaped: true\ndesign-critique: warranted, because the fix decides which pre-PR evidence the controller computes itself instead of trusting the leaf, and the operator asked for the smallest single step that removes the most hand work from finishing a controller run.\n\nTarget-digest: sha256:01c9e7a6774f54216d55a0ef817c2c1cc879c1efcf04cb4724c555fac3434e05\ndispatch-sha: 880c91ed079578e900c1f2ef680efbfa6e6d61af\ndest: C:/Repos/deft/wt/arc-6893 (pinKind origin-default, guarded-prep, from `deft design-critique:ensure-arc-dest`)\narc-mode: no-ingest\nyolo-standing: on\ncharter: open critique\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\nspend-why: operator asked for a standard arc: one Codex critic plus a pain audit, at most three critic posts, one recut.\nmateriality-bar: open\ntarget-kind: issue\nceiling-kind: comment-id\nverification-path: pin-read git show 880c91ed079578e900c1f2ef680efbfa6e6d61af: + dest cwd-without-occupy\npain: P1\npain: P2\npain: P3\npain: P4\n\n## In plain English\nLeaves cannot finish a `deft pre-pr:run` controller run without hand work. Each semantic phase (read, write, diff, loop) needs `--supplied-contents-hash`, which no verb prints, so workers re-implement `computeControllerObservedHash`; the CLI then computes the same hash itself and refuses unless the two match. Each semantic phase also needs every reviewed file listed. The required phase order is enforced at `--complete` but written nowhere, and one recorded failure ends the run for good. Leaves also believe they need `deft check` and an open PR, and nothing says whether the pass gates `git push`.\n\nThe recommended fix keeps the controller and its phases and removes the hand work: the controller computes the semantic hash and, by default, the reviewed-file list; the usage text lists the phase order and its two rules; the docs say `merge_chokepoint` is optional and a PR is not needed; and `--complete` says whether this project's push is gated. Having the controller run the command phases itself (#5933) stays out of this arc.\n\n## Pains\n- P1 — A leaf can finish a controller run with documented commands only: no hand-computed hashes, and no `deft check` unless the run actually needs the merge chokepoint.\n- P2 — Each phase's contents hash is printed by a verb, or computed by the controller itself.\n- P3 — The `pre-pr:run` usage text lists the required phase order.\n- P4 — The docs say plainly whether a controller run gates the push.\n\n## Excluded (not pains, not in this arc)\n- The controller running command phases itself, start-argument defaults, and a one-command pre-PR: #5933 (assigned to another maintainer).\n- A push-gate recovery that runs as printed: #6779.\n- `--project-root` store resolution: #6902.\n- `verify:ac` at `--complete`: #6888, in review as PR #6913. This arc builds on top of it and leaves its `completeRun` changes alone.\n- The host auto-mode classifier refusing a leaf that writes its own phase results: host behaviour. R1 and R2 remove two self-supplied values; full relief needs controller-run phases (#5933).\n\n## Constraints (not pains)\n- No new gate, phase, policy flag or verb. Explicit `--supplied-contents-hash` and `--reviewed-file` keep working.\n- The pass predicate (`runObservablesComplete`) and the push gate's checks do not get weaker.\n\n## Anchors at the dispatch SHA\n- `packages/runtime/src/pre-pr-run.ts` 530-556: `--observe-semantic` requires `--supplied-contents-hash` and `--reviewed-file`, computes `computeControllerObservedHash` itself (538) and refuses unless the supplied hash equals it (551-556). 557-566 submit both values.\n- `packages/core/src/pre-pr-controller/controller.ts` 436-443: `finalNoChange` and the write-phase reset depend only on supplied == observed. 731-741 `semanticSatisfied` requires the two equal and non-empty.\n- `controller.ts` 750-807 `runObservablesComplete`: 757-759 any `failedAt` refuses; 794-799 required phases must be timestamped in `PRE_PR_PHASES` order. 374 and 393: a failed observation sets `failedAt`, and a later pass does not clear it.\n- `packages/core/src/pre-pr-controller/phases.ts` 23-34 and 48-95: required order `branch_policy`, `plan_sequence`, `read`, `write`, `lint_iteration`, `render_export`, `diff`, `loop`; `coverage_headroom` and `merge_chokepoint` are `required: false`.\n- `pre-pr-run.ts` 34-85: the usage text names no phase order.\n- `controller.ts` 967-1010 and 1074-1078: with no PR, `--complete` still publishes and appends \"No pull request exists for head …\"; when master's named Merge gate is red, the refusal leads with that no-PR sentence (1006).\n- `controller.ts` 1013-1064: `--complete` re-hashes the last reviewed manifest and stamps `reviewedDeletedPaths` from `base..head`.\n- `packages/core/src/preflight-gh/pre-push.ts` 170-189 and 533-537: the bound push gate is on only when `plan.policy.requireBoundPrePrPush` is true, or absent with the enrolled flag. `.githooks/pre-push` 5 and `packages/runtime/src/preflight-gh.ts` 145 call it without that flag. This repo sets it false (`xbrief/PROJECT-DEFINITION.xbrief.json` 1156). 386-419 and 498-505: when on, outgoing paths must be in the reviewed manifest and committed content must match its hash.\n- `content/skills/deft-directive-pre-pr/SKILL.md` 94-111 and `content/docs/gate-walkthrough.md` 43-47: \"On enrolled tip OVPR … fails closed\"; nothing says when the push is not gated, that `merge_chokepoint` is optional, or that no PR is needed.\n\n## Recommended mechanism (the thing to critique)\n- R1 (P1, P2). `--observe-semantic` computes the contents hash itself and records it as both values. `--supplied-contents-hash` becomes optional; when given, it must still match.\n- R2 (P1). `--reviewed-file` becomes optional on `--observe-semantic`. When omitted, the manifest is the run's changed files, `git diff --name-only --diff-filter=d <baseSha>..<headSha>` at the project root. Explicit `--reviewed-file` still wins.\n- R3 (P3). The usage text lists the required phase order and the two optional phases, and states two rules: record a phase only after it passes, because a recorded failure ends the run; a phase recorded out of order is fixed by recording it and every later required phase again. Each successful observe prints the required phases still missing, in order.\n- R4 (P1). The usage text and the pre-PR skill say `merge_chokepoint` is optional and is recorded only after a `deft check` run the work needed anyway (conflict resolve or behind-rebase); `--complete` runs `verify:ac` itself (PR #6913).\n- R5 (P1). The usage text and the skill say `--complete` does not need a PR. When master's named Merge gate is red, the refusal names the red gate first and the missing PR second.\n- R6 (P4). On success, `--complete` prints one line on whether this project's push is gated: `plan.policy.requireBoundPrePrPush` true means `git push` is refused without this pass; false or absent means it is not. The pre-PR skill and the gate walkthrough say the same.\n- R7 (P1-P4). Tests: a semantic phase recorded with no hash and no file list; a wrong explicit hash still refuses; the default manifest equals the `base..head` changed files; the missing-phase hint; the red-gate message order; the push-gate line for true, false and absent policy; the usage text.\n\nQuestions for the critic:\n1. Is R2 safe? The push gate checks that outgoing paths are in the manifest and that committed content matches its hash. What happens with uncommitted changes, a head that is not checked out, or an empty diff?\n2. Should the order check stay (documented, with the missing-phase hint), or go? It orders caller-timed calls, and the operator direction is fewer gates.\n3. Should one failed observation still end the run, or should a later pass of the same phase on the same head clear it?\n4. Is anything here not needed, or is the controller running command phases (#5933) needed in this PR to relieve P1? Does it fit one PR on top of PR #6913?\n\n",
+          "id": 7052381268,
+          "html_url": "https://github.com/deftai/directive/issues/6893#issuecomment-7052381268",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:41:20Z",
+          "updated_at": "2026-11-20T22:41:20Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 1\ninput-ceiling: 7052386120\nseat: codex launcher: codex (exec --ephemeral --skip-git-repo-check --sandbox read-only -C dest -o outfile)\n\ncharter: open critique\nspend: N=1\narc-mode: no-ingest\nmateriality-bar: open\ndispatch-sha: 880c91ed079578e900c1f2ef680efbfa6e6d61af\ndest: C:/Repos/deft/wt/arc-6893\nverification-path: pin-read git show 880c91ed079578e900c1f2ef680efbfa6e6d61af: + dest cwd-without-occupy\naudit-targets: none\nStop 1 cite: comment 7052381268\ncritic-post-cap: 3 (operator-set for this arc: one round-1 critic, one pain audit, one recut audit)\n\n## Launch posture (disclosed)\n- The parent is Claude Code (claude-opus-5-5). The one critic seat is Codex, a different model family, run with a read-only launcher against the dest. The launch probe for that argv returned `pong` rc 0 in this session; that proves launchability only.\n- The Codex seat has no GitHub access. It reads a parent-written thread snapshot (issue body, thread up to the ceiling, this deposit, linked issue bodies) and reads code with `git show <dispatch-sha>:<path>`. The parent posts the critic's final message verbatim.\n- This deposit was created and then edited once, only to record its own comment id as the input ceiling.\n\n",
+          "id": 7052386120,
+          "html_url": "https://github.com/deftai/directive/issues/6893#issuecomment-7052386120",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:41:36Z",
+          "updated_at": "2026-11-20T22:41:37Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\n\nLeaves must currently reproduce a hash the controller already computes and supply repetitive file lists. The proposed simplification is useful, but it cannot bind as written: the default file list fails for deletion-only changes, and the proposed push-status line promises more than the policy establishes.\n\nMy answers to the four questions:\n\n1. R2 preserves the existing enabled push gate’s content checks, but needs an empty-list recovery. Uncommitted changes and a different checked-out head can produce a completed run whose bytes do not match the pushed commit; the enabled push gate rejects that mismatch. Completion alone does not establish push admission.\n2. Keep the order check in this PR. Removing it changes the expressly preserved pass predicate. Documenting it is sufficient for this scope.\n3. Keep recorded failure terminal here, with explicit restart guidance. Clearing a run-wide failure on one later phase pass needs a separate design.\n4. Controller-run command phases are unnecessary for this bounded improvement. The host classifier problem remains outside its relief. This fits one PR above #6913 if its verification, revocation and publication behavior stays intact.\n\nEvidence below is from pinned reads at `880c91ed079578e900c1f2ef680efbfa6e6d61af`. The four supplied #6913 diffs were read as proposed changes, not merged code. No tests or network operations were run.\n\n### 1. blocks-the-design — R2 has no usable default for deletion-only changes\n\n**Evidence:** `packages/core/src/pre-pr-controller/controller.ts:192–210` returns null for an empty manifest and hashes filesystem contents. `packages/runtime/src/pre-pr-run.ts:538–543` refuses a null hash. `controller.ts:1022–1054` records deleted paths separately but requires a nonempty present-file manifest to construct a push binding.\n\n**Failure mode:** A change containing only deletions produces an empty list under R2’s `--diff-filter=d`. Every default semantic observation then fails, despite this being a legitimate change needing review. A genuinely empty diff has the same immediate failure. Automatically substituting an empty digest would not solve the unchanged binding requirement.\n\n**Disposition consequence:** R2 needs an explicit empty-manifest outcome before binding. Within the constraint of unchanged completion behavior, a narrow option is a specific diagnostic and documented `--reviewed-file` recovery using an existing file actually reviewed. If automatic completion of deletion-only changes is required, that exceeds this default-only mechanism. R7 needs deletion-only and empty-diff cases.\n\n### 2. blocks-the-design — R6 confuses policy configuration with actual push admission\n\n**Evidence:** `packages/core/src/preflight-gh/pre-push.ts:170–187,535–537` makes absent policy inherit the invocation’s enrollment default. `packages/runtime/src/pre-pr-run.ts:460` supplies `enrolledBoundPrePr: true`. `pre-push.ts:356–361` admits docs-only/inert outgoing paths before requiring a pass.\n\n**Failure mode:** “Absent means not gated” is false for `--push-admit`. Conversely, “true means git push is refused without this pass” is false for the existing docs-only exemption. Policy also does not demonstrate that a Git hook actually executes.\n\n**Disposition consequence:** Replace the binary operational promise with an accurate configuration report: enabled, disabled, or inherited from the invoking hook/command. Explain the existing exemption and that completion is not push admission. Reuse the existing resolver wherever an invocation default is known. R7 needs absent-policy coverage with both enrollment defaults.\n\n### 3. sharpens-framing — Automatic hashes identify bytes, not independent review\n\n**Evidence:** `controller.ts:436–442,731–740` uses supplied/observed equality for semantic satisfaction and final-no-change. `controller.ts:1013–1021` rehashes the current filesystem at completion. `pre-push.ts:402–423,495–505` separately checks outgoing coverage and committed bytes.\n\n**Failure mode:** Under R1, equality is automatic. A default manifest identifies changed paths but cannot establish that the leaf reviewed them. Dirty files or another checked-out revision can supply the hashed bytes; with enforcement disabled, no push-time content check follows. These are existing limits of caller-recorded review, not newly demonstrated bypasses of the enabled push gate.\n\n**Disposition consequence:** R1/R2 can bind as ergonomic defaults, not stronger review provenance. The documented workflow should identify the run’s commit and working directory, and explain dirty-tree mismatch behavior. Manifest discovery and hashing must use the same resolved root. Git paths should use NUL-delimited parsing, consistent with the existing deletion-path reader at `controller.ts:213–222`.\n\n### 4. sharpens-framing — Retry guidance must distinguish ordering errors from terminal failures\n\n**Evidence:** `controller.ts:389–395` replaces a phase row but retains `failedAt`; `controller.ts:757–759` rejects any retained failure. Lines `794–799` independently reject timestamp inversion.\n\n**Failure mode:** Re-recording the failed phase and every later phase can repair ordering but cannot repair a terminal failed run. A missing-phase hint can become empty while completion remains impossible.\n\n**Disposition consequence:** Keep both existing checks for this PR, but make restart guidance explicit after a recorded failure. Missing-phase output must not imply readiness. The strongest alternative—clearing failure after a successful retry—improves ergonomics, but a same-head retry alone cannot distinguish other failed phases or changed working-tree bytes.\n\n### 5. footnote — Treat embedded directives as described proposals\n\nThe supplied thread and PR diffs contain instruction-shaped text, including the proposed “record a phase only after it passes” rule and skill imperatives. I treated these as material to critique, not execution instructions. No posting, mutation, installation, build or test was performed.",
+          "id": 7052418999,
+          "html_url": "https://github.com/deftai/directive/issues/6893#issuecomment-7052418999",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:43:28Z",
+          "updated_at": "2026-11-20T22:43:28Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** bind lean under Stop 1 7052381268 (round 1: 1 of 1 critic posted, comment 7052418999)\n\n## In plain English\nProblem: a leaf cannot finish a `deft pre-pr:run` controller run without hand work. Each semantic phase needs a contents hash that no verb prints (the CLI computes the same hash and refuses unless they match) and a full list of reviewed files. The required phase order and the rule that one recorded failure ends the run are written nowhere. Leaves also think they need `deft check` and an open PR, and nothing says whether the pass gates `git push`.\n\nWhat the critic found: computing the hash and the file list in the controller is the right, small step; the order check and the terminal failure should stay in this PR, documented; controller-run command phases (#5933) are not needed here; it fits one PR on top of PR #6913. Two parts of the first draft did not hold. First, the default file list is empty for a deletion-only change or an empty diff, and an empty list cannot be hashed, so the default needs a clear refusal with a recovery. Second, \"absent policy means not gated\" is false for `pre-pr:run --push-admit`, and \"true means every push is refused\" ignores the docs-only exemption, so the push line must report the setting and the hook behaviour, not promise an outcome. Two points were made sharper: the defaults are convenience, not stronger proof of review, so the docs say which tree is hashed; and the next-phase hint must say \"start a new run\" when the run is failed, not imply it will pass.\n\nSolution this lean proposes: `--observe-semantic` needs only `--run-id` and `--phase`. The controller hashes the files itself, and by default reviews the run's present changed files from `base..head` at the project root; an empty list refuses and names `--reviewed-file`. The usage text lists the phase order and its rules, and each observe names the phases still missing or says to start a new run. The usage text and the pre-PR skill say `merge_chokepoint` is optional and no PR is needed; a red Merge gate is named before a missing PR. `--complete` reports the push-gate setting and what the managed pre-push hook does with it, and the docs say the same.\n\nWhat this adds: no new gate, phase, policy flag or verb. It removes two values a leaf supplies today. The pass predicate and the push gate checks are unchanged.\n\nWhat it does not do:\n- The controller does not run the command phases itself (#5933), and start arguments get no defaults.\n- It does not change the order check or make a recorded failure recoverable.\n- It does not fix the push-gate recovery text (#6779) or `--project-root` store resolution (#6902).\n- It does not change what `--complete` does with `verify:ac` (PR #6913); it builds on that PR.\nIf confirmed, the synthesis would assert this design. There is no leftover next-build inside this arc.\n\nTarget-digest: sha256:01c9e7a6774f54216d55a0ef817c2c1cc879c1efcf04cb4724c555fac3434e05\n**Spec-path:** Bound remedy on this lean\nSibling count: 1 (comment 7052418999). Panel deposit: comment 7052386120.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\nrelieves: P4\n\n## Bound remedy\n1. Semantic hash (P1, P2). `--observe-semantic` computes the contents hash itself and records it as both the supplied and the observed value. `--supplied-contents-hash` is optional; a given value must still match.\n2. Default file list (P1). `--reviewed-file` is optional on `--observe-semantic`. When omitted, the list is the run's present changed files: `git diff -z --name-only --diff-filter=d <baseSha>..<headSha>` at the project root, NUL-split, repo-relative, and hashed at the same root. When that list is empty (deletion-only change or no change), the call refuses and says to name the reviewed files with `--reviewed-file`. Given `--reviewed-file` paths replace the default.\n3. Phase guidance (P3). The usage text lists the required order (`branch_policy`, `plan_sequence`, `read`, `write`, `lint_iteration`, `render_export`, `diff`, `loop`) and the optional phases (`coverage_headroom`, `merge_chokepoint`). It says that a recorded failure ends the run and a new run must be started; that a phase recorded out of order is fixed by recording it and every later required phase again; and that semantic hashes cover the working-tree files at the project root, so phases are recorded on the run's head with no uncommitted changes. After each successful observe, the output names the required phases still missing, in order; when the run is failed it says to start a new run instead; when none are missing it says to run `--complete`, without claiming a pass.\n4. `merge_chokepoint` (P1). The usage text and the pre-PR skill say it is optional and is recorded only after a `deft check` run the work needed anyway (conflict resolve or behind-rebase), and that `--complete` runs `verify:ac` itself (PR #6913).\n5. No PR needed (P1). The usage text and the pre-PR skill say `--complete` does not need a PR. When master's named Merge gate is red, the refusal states the red gate first and the missing PR second.\n6. Push-gate report (P4). On success, `--complete` prints the value of `plan.policy.requireBoundPrePrPush` (true, false or not set) and what it means for the managed `pre-push` hook (`preflight-gh --pre-push-stdin`): true means the hook refuses a push of non-docs changes without a pass bound to HEAD; false or not set means the hook does not look for a pass. The pre-PR skill and the gate walkthrough say the same, and add that `pre-pr:run --push-admit` treats \"not set\" as on and that completing a run is not push admission.\n7. Tests (P1-P4). A semantic phase recorded with no hash and no file list; a wrong explicit hash still refuses; an explicit list replaces the default; the default list equals the present `base..head` changed files; deletion-only and empty diffs refuse with the recovery; the missing-phase output for a running, a failed and a fully recorded run; the red-gate message order; the push-gate line for true, false and not set; the usage text.\n\n## Acceptance Criteria\n- `pre-pr:run --observe-semantic --run-id <id> --phase <phase>` with no `--supplied-contents-hash` and no `--reviewed-file` records the phase, using the run's present changed files from `base..head` at the project root and the controller's own hash.\n- A given `--supplied-contents-hash` that differs from the controller's hash still refuses, and given `--reviewed-file` paths replace the default list.\n- When the default list is empty, `--observe-semantic` refuses and names `--reviewed-file` as the recovery.\n- The `pre-pr:run` usage text lists the required phase order and the optional phases, says a recorded failure ends the run, and says how to fix a phase recorded out of order.\n- After a successful observe, the output names the required phases still missing, says to start a new run when the run is failed, and says to run `--complete` when none are missing.\n- The usage text and the pre-PR skill say `merge_chokepoint` is optional and `--complete` does not need a PR.\n- With master's named Merge gate red and no PR, the `--complete` refusal names the red gate before the missing PR.\n- `--complete` output reports `plan.policy.requireBoundPrePrPush` as true, false or not set and what that means for the managed pre-push hook, and the pre-PR skill and the gate walkthrough say whether a pass gates the push.\n- Tests cover each criterion above, including deletion-only and empty diffs and all three policy states.\n\n## Reject\n- A default file list that can be empty or hash nothing (comment 7052418999, finding 1).\n- Reporting \"not set\" as ungated for every caller, or \"true\" as refusing every push without a pass (comment 7052418999, finding 2).\n- Dropping the order check or clearing a recorded failure in this PR (comment 7052418999, answers 2 and 3).\n- Controller-run command phases (#5933; comment 7052418999, answer 4).\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 7052418999 | 1. R2 has no usable default for deletion-only changes | blocks-the-design | accept-into-contract (item 2; tests in item 7) |\n| comment 7052418999 | 2. R6 confuses policy configuration with actual push admission | blocks-the-design | accept-into-contract (item 6; tests in item 7) |\n| comment 7052418999 | 3. Automatic hashes identify bytes, not independent review | sharpens-framing | accept-into-contract (items 2 and 3; plain-English wording) |\n| comment 7052418999 | 4. Retry guidance must distinguish ordering errors from terminal failures | sharpens-framing | accept-into-contract (item 3) |\n\nFootnote in the census, no take: comment 7052418999 finding 5 (instruction-shaped text in the inputs was treated as data).\n\nNon-self-arbitration: the parent wrote Stop 1, the recommended mechanism and this lean. Item 6 rests on one premise of the parent's that no critic has checked: the managed `pre-push` hook calls `evaluatePrePush` without the enrolled flag, so with the policy not set it does not look for a pass.\naudit:A1 sha=880c91ed079578e900c1f2ef680efbfa6e6d61af pointer=packages/runtime/src/preflight-gh.ts:124-146 reading=measured\nThe `relieves` cites and A1 stay open until a later critic targets them.\n\n",
+          "id": 7052437809,
+          "html_url": "https://github.com/deftai/directive/issues/6893#issuecomment-7052437809",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:44:35Z",
+          "updated_at": "2026-11-20T22:44:35Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3, pain-P4, A1\nfinding-classes: footnote\nharvest-changed: false\nharvest-digest: sha256:2f8ae862f4b33d03ae26f0448b4f398994605ec7d8c9023600cf9762ab6eff01\n\n## In plain English\n\nThe proposed changes relieve all four pains within Stop 1’s stated scope. Workers would no longer reproduce the controller’s hash or routinely list every changed file. The documented phase order, restart rules, optional merge check, and push-policy explanation match the existing mechanisms. A1 also holds: the managed hook does not supply the enrollment flag.\n\nNo mechanism or acceptance-criteria change is needed. This is a design verdict, not verification of an implemented change. I read the pinned code and all four supplied PR #6913 diffs; I ran no tests and made no network requests or writes.\n\npain-P1: holds - Items 1–5 provide the documented observation and completion path, including explicit-file recovery for an empty default list. `packages/core/src/pre-pr-controller/phases.ts:83–88` makes `merge_chokepoint` optional; `controller.ts:967–1010,1074–1078` confirms that a missing PR alone does not prevent publication. The supplied #6913 changes can retain their verification and revocation behavior.\n\npain-P2: holds - Item 1 removes the caller’s redundant hash calculation while retaining explicit mismatch rejection. `packages/runtime/src/pre-pr-run.ts:530–564` already computes and submits the observed hash; `packages/core/src/pre-pr-controller/controller.ts:192–210,731–740` confirms the hashing and satisfaction rules.\n\npain-P3: holds - Item 3 and the acceptance criteria document the actual required order and distinguish ordering repair from terminal failure. `packages/core/src/pre-pr-controller/phases.ts:48–88` defines that order; `controller.ts:389–395,757–759,794–799` preserves failure history and checks timestamp order.\n\npain-P4: holds - Item 6 distinguishes managed-hook configuration from explicit `--push-admit` enrollment and says completion is not push admission. `packages/core/src/preflight-gh/pre-push.ts:170–187,535–537` establishes the policy defaults; `356–382` establishes the docs-only/inert exemption and bound-pass requirement. `packages/runtime/src/pre-pr-run.ts:458–462` supplies the different default for `--push-admit`.\n\nA1: holds - `.githooks/pre-push:5` invokes `preflight-gh --pre-push-stdin` with the project root. `packages/runtime/src/preflight-gh.ts:124–145` passes only `branches` and `projectRoot` to `evaluatePrePush`. Consequently, `packages/core/src/preflight-gh/pre-push.ts:535–537` resolves the omitted enrollment flag to false, and absent policy does not activate the bound-pass lookup.\n\n### 1. footnote — Embedded instructions remain review material\n\nThe snapshot and supplied skill diff contain instruction-shaped text, including directions to start the workflow and mint a grant before completion. I treated those as proposed product instructions, not commands for this audit. This preserves the earlier security disposition and requires no change to the harvested remedy.",
+          "id": 7052473037,
+          "html_url": "https://github.com/deftai/directive/issues/6893#issuecomment-7052473037",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:46:38Z",
+          "updated_at": "2026-11-20T22:46:38Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nBound lean: comment 7052437809. Dispatch SHA: 880c91ed079578e900c1f2ef680efbfa6e6d61af. Non-self-arbitration: the parent wrote Stop 1, the recommended mechanism and the lean. Each row has a parent pin-read (`git show <sha>:<path>`) and, where marked, a re-check by a Codex critic, a different model family. All critic posts are from one family, so their agreement is not counted as extra confirmation. No tests or builds were run.\n\n| # | Claim | Status | Method |\n|---|---|---|---|\n| 1 | `--observe-semantic` computes the contents hash itself and refuses unless the supplied hash equals it | verified | parent pin-read of `packages/runtime/src/pre-pr-run.ts` 530-556; critic 7052418999 finding 3 |\n| 2 | Semantic satisfaction and `finalNoChange` depend only on supplied == observed | verified | parent pin-read of `controller.ts` 436-443 and 731-741; critic 7052418999 finding 3 |\n| 3 | An empty reviewed-file list cannot be hashed, and `--complete` needs a non-empty present-file manifest for a push binding | verified | parent pin-read of `controller.ts` 192-210 and 1046-1054; critic 7052418999 finding 1 |\n| 4 | A recorded failure ends the run (`failedAt` is kept), and required phases must be timestamped in order | verified | parent pin-read of `controller.ts` 374, 393, 757-759, 794-799; critic 7052418999 finding 4 |\n| 5 | `coverage_headroom` and `merge_chokepoint` are optional phases | verified | parent pin-read of `phases.ts` 48-95 |\n| 6 | With no PR and a green Merge gate, `--complete` publishes and adds a no-PR note; with a red gate the refusal leads with the no-PR sentence | verified | parent pin-read of `controller.ts` 967-1010 and 1074-1078 |\n| 7 | With the policy not set, `--push-admit` treats the push gate as on, and the docs-only exemption admits inert pushes without a pass | verified | parent pin-read of `pre-push.ts` 170-189, 356-361, 533-537 and `pre-pr-run.ts` 460; critic 7052418999 finding 2 |\n| 8 | The managed `pre-push` hook calls `evaluatePrePush` without the enrolled flag, so with the policy not set it does not look for a pass (A1) | verified | parent pin-read of `packages/runtime/src/preflight-gh.ts` 124-146 and `.githooks/pre-push` 5; audit 7052473037 A1 holds |\n| 9 | The Bound remedy relieves P1-P4 | verified as design coverage | audit 7052473037 on the bound lean (all four hold; `finding-classes: footnote`; `harvest-changed: false`; digest equal to the lean's) |\n| 10 | Leaves can finish a run without hand-computed hashes once built | endorsed, not verified | design reading of lean items 1-3; to be observed when the fix is built |\n\n",
+          "id": 7052477579,
+          "html_url": "https://github.com/deftai/directive/issues/6893#issuecomment-7052477579",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:46:55Z",
+          "updated_at": "2026-11-20T22:46:55Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nProblem: a leaf could not finish a `deft pre-pr:run` controller run without hand work. Each semantic phase needed a contents hash that no verb printed (the CLI computed the same hash and refused unless they matched) and a full list of reviewed files. The phase order and the rule that one recorded failure ends the run were written nowhere. Leaves also believed they needed `deft check` and an open PR, and nothing said whether the pass gates `git push`.\n\nAccepted solution: `--observe-semantic` needs only `--run-id` and `--phase`. The controller computes the hash itself and, by default, uses the run's present changed files from `base..head` at the project root; an empty list (deletion-only or no change) refuses and names `--reviewed-file`. The usage text lists the required phase order, the optional phases and the restart rules, and each observe names the phases still missing, or says to start a new run when the run has failed. The usage text and the pre-PR skill say `merge_chokepoint` is optional and no PR is needed, and a red Merge gate is named before a missing PR. `--complete` reports whether `plan.policy.requireBoundPrePrPush` is true, false or not set and what that means for the managed pre-push hook; the docs say the same and add that `--push-admit` treats \"not set\" as on.\n\nLimits accepted: the defaults remove hand work but do not prove a review happened. The order check and the terminal failure stay. The controller does not run command phases itself (#5933). It builds on PR #6913 and fits one PR. It was checked by reading the source at the pinned commit; nothing was installed or run.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 7052437809.\nverified-claims table 7052477579\n\nConfirm conjunct: yolo standing (Stop 1 7052381268, `yolo-standing: on`). Round-1 critic: comment 7052418999, posted by the parent verbatim as disclosed on panel-deposit 7052386120; its four classified findings are accepted on the lean. Clean audit of the bound lean and of marker A1: comment 7052473037 (`finding-classes: footnote`, `harvest-changed: false`, harvest digest equal to the lean's); its one footnote restates that instruction-shaped input text was treated as data and changes nothing. No recut was needed. Critic posts used: 2 of 3.\n\n",
+          "id": 7052477902,
+          "html_url": "https://github.com/deftai/directive/issues/6893#issuecomment-7052477902",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:46:56Z",
+          "updated_at": "2026-11-20T22:46:56Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "Seen again on 2026-11-21: workers found by trial that `pre-pr:run` phases must be recorded in order (`lint_iteration` after `write`, `render_export` after `lint_iteration`). The usage text still does not say so. Either the help lists the order, or the controller accepts any order.\n\n",
+          "id": 7072455654,
+          "html_url": "https://github.com/deftai/directive/issues/6893#issuecomment-7072455654",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T01:48:15Z",
+          "updated_at": "2026-11-22T01:48:15Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "Recurred 2026-11-22 (worker handbacks): the pre-pr semantic phases still need the reviewed-files hash computed by hand. No helper prints it. This is the \"each phase's contents hash is printed by a verb\" criterion above.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\n",
+          "id": 7086587780,
+          "html_url": "https://github.com/deftai/directive/issues/6893#issuecomment-7086587780",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T22:08:40Z",
+          "updated_at": "2026-11-22T22:08:40Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Problem\n\n#6888's arc bound only the false-pass fix (`pre-pr:run --complete` now runs `verify:ac` itself). The leaf-ergonomics half of #6888, from consumer report #6882 item 5, is out of that scope and needs its own home:\n\n- A leaf cannot finish its own `pre-pr:run` controller run without an open PR (`--complete` requires one).\n- Semantic phases need a `--supplied-contents-hash` that no verb prints; workers compute it by mirroring `computeControllerObservedHash`.\n- `merge_chokepoint` needs `deft check`, which a leaf is not expected to run.\n- The phase order is enforced (\"lint_iteration is timestamped before write\") but is not documented in the usage text.\n- The push is not gated by the controller run, and nothing says so.\n- The host auto-mode classifier refused a leaf writing its own phase results.\n\n## Acceptance Criteria\n\n- [ ] A leaf can finish a controller run with documented commands only: no hand-computed hashes, and no `deft check` unless the run actually needs the merge chokepoint.\n- [ ] Each phase's contents hash is printed by a verb, or computed by the controller itself.\n- [ ] The `pre-pr:run` usage text lists the required phase order.\n- [ ] The docs say plainly whether a controller run gates the push.\n\nRefs #6888, #6882, #5933, #4976\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6518740360,
+        "origin": "deftai/directive#6893",
+        "id": "github.issue.6518740360"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "01c9e7a6774f54216d55a0ef817c2c1cc879c1efcf04cb4724c555fac3434e05"
+      },
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 6893,
+        "leanCommentId": 7052437809,
+        "harvestDigest": "2f8ae862f4b33d03ae26f0448b4f398994605ec7d8c9023600cf9762ab6eff01",
+        "slice": null
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per harvested lean item (16), in list order (#6333)",
+      "sentences": [
+        "Semantic hash (P1, P2). `--observe-semantic` computes the contents hash itself and records it as both the supplied and the observed value. `--supplied-contents-hash` is optional; a given value must still match.",
+        "Default file list (P1). `--reviewed-file` is optional on `--observe-semantic`. When omitted, the list is the run's present changed files: `git diff -z --name-only --diff-filter=d <baseSha>..<headSha>` at the project root, NUL-split, repo-relative, and hashed at the same root. When that list is empty (deletion-only change or no change), the call refuses and says to name the reviewed files with `--reviewed-file`. Given `--reviewed-file` paths replace the default.",
+        "Phase guidance (P3). The usage text lists the required order (`branch_policy`, `plan_sequence`, `read`, `write`, `lint_iteration`, `render_export`, `diff`, `loop`) and the optional phases (`coverage_headroom`, `merge_chokepoint`). It says that a recorded failure ends the run and a new run must be started; that a phase recorded out of order is fixed by recording it and every later required phase again; and that semantic hashes cover the working-tree files at the project root, so phases are recorded on the run's head with no uncommitted changes. After each successful observe, the output names the required phases still missing, in order; when the run is failed it says to start a new run instead; when none are missing it says to run `--complete`, without claiming a pass.",
+        "`merge_chokepoint` (P1). The usage text and the pre-PR skill say it is optional and is recorded only after a `deft check` run the work needed anyway (conflict resolve or behind-rebase), and that `--complete` runs `verify:ac` itself (PR #6913).",
+        "No PR needed (P1). The usage text and the pre-PR skill say `--complete` does not need a PR. When master's named Merge gate is red, the refusal states the red gate first and the missing PR second.",
+        "Push-gate report (P4). On success, `--complete` prints the value of `plan.policy.requireBoundPrePrPush` (true, false or not set) and what it means for the managed `pre-push` hook (`preflight-gh --pre-push-stdin`): true means the hook refuses a push of non-docs changes without a pass bound to HEAD; false or not set means the hook does not look for a pass. The pre-PR skill and the gate walkthrough say the same, and add that `pre-pr:run --push-admit` treats \"not set\" as on and that completing a run is not push admission.",
+        "Tests (P1-P4). A semantic phase recorded with no hash and no file list; a wrong explicit hash still refuses; an explicit list replaces the default; the default list equals the present `base..head` changed files; deletion-only and empty diffs refuse with the recovery; the missing-phase output for a running, a failed and a fully recorded run; the red-gate message order; the push-gate line for true, false and not set; the usage text.",
+        "`pre-pr:run --observe-semantic --run-id <id> --phase <phase>` with no `--supplied-contents-hash` and no `--reviewed-file` records the phase, using the run's present changed files from `base..head` at the project root and the controller's own hash.",
+        "A given `--supplied-contents-hash` that differs from the controller's hash still refuses, and given `--reviewed-file` paths replace the default list.",
+        "When the default list is empty, `--observe-semantic` refuses and names `--reviewed-file` as the recovery.",
+        "The `pre-pr:run` usage text lists the required phase order and the optional phases, says a recorded failure ends the run, and says how to fix a phase recorded out of order.",
+        "After a successful observe, the output names the required phases still missing, says to start a new run when the run is failed, and says to run `--complete` when none are missing.",
+        "The usage text and the pre-PR skill say `merge_chokepoint` is optional and `--complete` does not need a PR.",
+        "With master's named Merge gate red and no PR, the `--complete` refusal names the red gate before the missing PR.",
+        "`--complete` output reports `plan.policy.requireBoundPrePrPush` as true, false or not set and what that means for the managed pre-push hook, and the pre-PR skill and the gate walkthrough say whether a pass gates the push.",
+        "Tests cover each criterion above, including deletion-only and empty diffs and all three policy states."
+      ],
+      "admitted_source_sentences": [
+        "Semantic hash (P1, P2). `--observe-semantic` computes the contents hash itself and records it as both the supplied and the observed value. `--supplied-contents-hash` is optional; a given value must still match.",
+        "Default file list (P1). `--reviewed-file` is optional on `--observe-semantic`. When omitted, the list is the run's present changed files: `git diff -z --name-only --diff-filter=d <baseSha>..<headSha>` at the project root, NUL-split, repo-relative, and hashed at the same root. When that list is empty (deletion-only change or no change), the call refuses and says to name the reviewed files with `--reviewed-file`. Given `--reviewed-file` paths replace the default.",
+        "Phase guidance (P3). The usage text lists the required order (`branch_policy`, `plan_sequence`, `read`, `write`, `lint_iteration`, `render_export`, `diff`, `loop`) and the optional phases (`coverage_headroom`, `merge_chokepoint`). It says that a recorded failure ends the run and a new run must be started; that a phase recorded out of order is fixed by recording it and every later required phase again; and that semantic hashes cover the working-tree files at the project root, so phases are recorded on the run's head with no uncommitted changes. After each successful observe, the output names the required phases still missing, in order; when the run is failed it says to start a new run instead; when none are missing it says to run `--complete`, without claiming a pass.",
+        "`merge_chokepoint` (P1). The usage text and the pre-PR skill say it is optional and is recorded only after a `deft check` run the work needed anyway (conflict resolve or behind-rebase), and that `--complete` runs `verify:ac` itself (PR #6913).",
+        "No PR needed (P1). The usage text and the pre-PR skill say `--complete` does not need a PR. When master's named Merge gate is red, the refusal states the red gate first and the missing PR second.",
+        "Push-gate report (P4). On success, `--complete` prints the value of `plan.policy.requireBoundPrePrPush` (true, false or not set) and what it means for the managed `pre-push` hook (`preflight-gh --pre-push-stdin`): true means the hook refuses a push of non-docs changes without a pass bound to HEAD; false or not set means the hook does not look for a pass. The pre-PR skill and the gate walkthrough say the same, and add that `pre-pr:run --push-admit` treats \"not set\" as on and that completing a run is not push admission.",
+        "Tests (P1-P4). A semantic phase recorded with no hash and no file list; a wrong explicit hash still refuses; an explicit list replaces the default; the default list equals the present `base..head` changed files; deletion-only and empty diffs refuse with the recovery; the missing-phase output for a running, a failed and a fully recorded run; the red-gate message order; the push-gate line for true, false and not set; the usage text.",
+        "`pre-pr:run --observe-semantic --run-id <id> --phase <phase>` with no `--supplied-contents-hash` and no `--reviewed-file` records the phase, using the run's present changed files from `base..head` at the project root and the controller's own hash.",
+        "A given `--supplied-contents-hash` that differs from the controller's hash still refuses, and given `--reviewed-file` paths replace the default list.",
+        "When the default list is empty, `--observe-semantic` refuses and names `--reviewed-file` as the recovery.",
+        "The `pre-pr:run` usage text lists the required phase order and the optional phases, says a recorded failure ends the run, and says how to fix a phase recorded out of order.",
+        "After a successful observe, the output names the required phases still missing, says to start a new run when the run is failed, and says to run `--complete` when none are missing.",
+        "The usage text and the pre-PR skill say `merge_chokepoint` is optional and `--complete` does not need a PR.",
+        "With master's named Merge gate red and no PR, the `--complete` refusal names the red gate before the missing PR.",
+        "`--complete` output reports `plan.policy.requireBoundPrePrPush` as true, false or not set and what that means for the managed pre-push hook, and the pre-PR skill and the gate walkthrough say whether a pass gates the push.",
+        "Tests cover each criterion above, including deletion-only and empty diffs and all three policy states."
+      ],
+      "admitted_source_digest": "5cd7c6dd411097615ee9ccb8f748d83c9278a550a4d76f6404ae1b8d2007daa6",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Semantic hash (P1, P2). `--observe-semantic` computes the contents hash itself and records it as both the supplied and the observed value. `--supplied-contents-hash` is optional; a given value must still match.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Default file list (P1). `--reviewed-file` is optional on `--observe-semantic`. When omitted, the list is the run's present changed files: `git diff -z --name-only --diff-filter=d <baseSha>..<headSha>` at the project root, NUL-split, repo-relative, and hashed at the same root. When that list is empty (deletion-only change or no change), the call refuses and says to name the reviewed files with `--reviewed-file`. Given `--reviewed-file` paths replace the default.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Phase guidance (P3). The usage text lists the required order (`branch_policy`, `plan_sequence`, `read`, `write`, `lint_iteration`, `render_export`, `diff`, `loop`) and the optional phases (`coverage_headroom`, `merge_chokepoint`). It says that a recorded failure ends the run and a new run must be started; that a phase recorded out of order is fixed by recording it and every later required phase again; and that semantic hashes cover the working-tree files at the project root, so phases are recorded on the run's head with no uncommitted changes. After each successful observe, the output names the required phases still missing, in order; when the run is failed it says to start a new run instead; when none are missing it says to run `--complete`, without claiming a pass.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "`merge_chokepoint` (P1). The usage text and the pre-PR skill say it is optional and is recorded only after a `deft check` run the work needed anyway (conflict resolve or behind-rebase), and that `--complete` runs `verify:ac` itself (PR #6913).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "No PR needed (P1). The usage text and the pre-PR skill say `--complete` does not need a PR. When master's named Merge gate is red, the refusal states the red gate first and the missing PR second.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Push-gate report (P4). On success, `--complete` prints the value of `plan.policy.requireBoundPrePrPush` (true, false or not set) and what it means for the managed `pre-push` hook (`preflight-gh --pre-push-stdin`): true means the hook refuses a push of non-docs changes without a pass bound to HEAD; false or not set means the hook does not look for a pass. The pre-PR skill and the gate walkthrough say the same, and add that `pre-pr:run --push-admit` treats \"not set\" as on and that completing a run is not push admission.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Tests (P1-P4). A semantic phase recorded with no hash and no file list; a wrong explicit hash still refuses; an explicit list replaces the default; the default list equals the present `base..head` changed files; deletion-only and empty diffs refuse with the recovery; the missing-phase output for a running, a failed and a fully recorded run; the red-gate message order; the push-gate line for true, false and not set; the usage text.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "`pre-pr:run --observe-semantic --run-id <id> --phase <phase>` with no `--supplied-contents-hash` and no `--reviewed-file` records the phase, using the run's present changed files from `base..head` at the project root and the controller's own hash.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "A given `--supplied-contents-hash` that differs from the controller's hash still refuses, and given `--reviewed-file` paths replace the default list.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "When the default list is empty, `--observe-semantic` refuses and names `--reviewed-file` as the recovery.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "The `pre-pr:run` usage text lists the required phase order and the optional phases, says a recorded failure ends the run, and says how to fix a phase recorded out of order.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "After a successful observe, the output names the required phases still missing, says to start a new run when the run is failed, and says to run `--complete` when none are missing.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "The usage text and the pre-PR skill say `merge_chokepoint` is optional and `--complete` does not need a PR.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "With master's named Merge gate red and no PR, the `--complete` refusal names the red gate before the missing PR.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "`--complete` output reports `plan.policy.requireBoundPrePrPush` as true, false or not set and what that means for the managed pre-push hook, and the pre-PR skill and the gate walkthrough say whether a pass gates the push.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "Tests cover each criterion above, including deletion-only and empty diffs and all three policy states.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.6518740360",
+    "updated": "2026-11-22T22:13:29Z"
+  }
+}
