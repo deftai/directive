@@ -5,7 +5,7 @@
 
 import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, realpathSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { dirname, isAbsolute, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { isFrameworkSourceCheckoutAt } from "@deftai/directive-core/dist/doctor/paths.js";
 import {
@@ -1342,13 +1342,19 @@ export type HooksPathScope = "local" | "worktree" | "global" | "system" | "comma
 /**
  * Effective `core.hooksPath` for a checkout (#4960 / #5846, ledger Problem 20).
  * - `unset`: Git uses its default hooks folder.
- * - `ours`: points at this project's `.githooks` (relative or absolute).
+ * - `ours`: points at this project's `.githooks`, or at the `.githooks` of another
+ *   checkout (linked worktree) of the same repository (#7029).
  * - `foreign`: points anywhere else (another tool, a global hooks folder, a cloud host).
+ *
+ * `needsRelative` (#7029): set (true) on `ours` when the value is not the relative
+ * `.githooks`. Git resolves a relative value against each worktree's own root; an
+ * absolute value makes every linked worktree run one checkout's hooks.
  */
 export interface HooksPathState {
   readonly kind: "unset" | "ours" | "foreign";
   readonly value: string | null;
   readonly scope: HooksPathScope | null;
+  readonly needsRelative?: true;
 }
 
 const HOOKS_PATH_SCOPES: ReadonlySet<string> = new Set([
@@ -1361,6 +1367,8 @@ const HOOKS_PATH_SCOPES: ReadonlySet<string> = new Set([
 
 function samePath(a: string, b: string): boolean {
   if (a === b) return true;
+  // Windows paths are case-insensitive; Git may print another drive-letter case.
+  if (process.platform === "win32" && a.toLowerCase() === b.toLowerCase()) return true;
   try {
     return realpathSync(a) === realpathSync(b);
   } catch {
@@ -1368,12 +1376,66 @@ function samePath(a: string, b: string): boolean {
   }
 }
 
+function isRelativeGithooksValue(value: string): boolean {
+  const trimmed = value.trim();
+  return trimmed === ".githooks" || trimmed === ".githooks/";
+}
+
 /** True when a `core.hooksPath` value names `<projectRoot>/.githooks`. */
 export function isOurHooksPathValue(projectRoot: string, value: string): boolean {
   const trimmed = value.trim();
-  if (trimmed === ".githooks" || trimmed === ".githooks/") return true;
+  if (isRelativeGithooksValue(trimmed)) return true;
   if (trimmed === "") return false;
   return samePath(resolve(projectRoot, trimmed), resolve(projectRoot, ".githooks"));
+}
+
+/**
+ * Working-tree roots of every checkout of this repository (`git worktree list
+ * --porcelain`), main checkout first. Empty when Git cannot list them. Read-only.
+ */
+export function listCheckoutRoots(projectRoot: string): string[] {
+  let raw: string;
+  try {
+    raw = execFileSync("git", ["-C", projectRoot, "worktree", "list", "--porcelain"], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+  } catch {
+    return [];
+  }
+  const roots: string[] = [];
+  for (const line of raw.split(/\r?\n/)) {
+    if (line.startsWith("worktree ")) roots.push(line.slice("worktree ".length).trim());
+  }
+  return roots;
+}
+
+/**
+ * True when a `core.hooksPath` value names the `.githooks` of any checkout of
+ * this repository: this one, or another linked worktree (#7029).
+ */
+export function isCheckoutHooksPathValue(projectRoot: string, value: string): boolean {
+  if (isOurHooksPathValue(projectRoot, value)) return true;
+  const trimmed = value.trim();
+  if (trimmed === "") return false;
+  const target = resolve(projectRoot, trimmed);
+  return listCheckoutRoots(projectRoot).some((root) =>
+    samePath(target, resolve(root, ".githooks")),
+  );
+}
+
+/** True when a `core.hooksPath` value is an absolute path (POSIX or Windows form). */
+export function isAbsoluteHooksPathValue(value: string): boolean {
+  const trimmed = value.trim();
+  return isAbsolute(trimmed) || trimmed.startsWith("/") || /^[A-Za-z]:[\\/]/.test(trimmed);
+}
+
+/**
+ * #7029: disclosure line when setup replaced a `core.hooksPath` that named a
+ * checkout's `.githooks` by another form (an absolute path) with the relative value.
+ */
+export function formatHooksPathMadeRelative(previous: string): string {
+  return `Set core.hooksPath to .githooks (was '${previous}'), so each worktree runs its own hooks.`;
 }
 
 /** Read-only: the effective `core.hooksPath` and its config scope. Never writes Git config. */
@@ -1396,7 +1458,10 @@ export function readHooksPathState(projectRoot: string): HooksPathState {
   const scope: HooksPathScope = HOOKS_PATH_SCOPES.has(scopeText)
     ? (scopeText as HooksPathScope)
     : "unknown";
-  return { kind: isOurHooksPathValue(projectRoot, value) ? "ours" : "foreign", value, scope };
+  if (!isCheckoutHooksPathValue(projectRoot, value)) return { kind: "foreign", value, scope };
+  return isRelativeGithooksValue(value)
+    ? { kind: "ours", value, scope }
+    : { kind: "ours", value, scope, needsRelative: true };
 }
 
 /** Plain-English name for a config scope, for messages. */
@@ -1566,7 +1631,39 @@ export function ensureGitHooks(
     inactiveDisclosure = GIT_HOOKS_INACTIVE_NO_GIT;
   } else {
     const state = readHooksPathState(projectRoot);
-    if (state.kind === "ours") {
+    if (state.kind === "ours" && state.needsRelative === true && state.value !== null) {
+      // #7029: an absolute value naming a checkout's .githooks makes every linked
+      // worktree run that checkout's hooks. It is already Directive's folder, so
+      // rewrite it to the relative value without the takeover approval. Repository
+      // config only (P20): a worktree-scoped value is replaced where it lives.
+      const where = state.scope === "worktree" ? "--worktree" : "--local";
+      let wrote = false;
+      try {
+        execFileSync(
+          "git",
+          ["-C", projectRoot, "config", where, "--replace-all", "core.hooksPath", ".githooks"],
+          { stdio: ["ignore", "ignore", "ignore"] },
+        );
+        wrote = true;
+      } catch {
+        /* verified below */
+      }
+      const after = readHooksPathState(projectRoot);
+      if (after.kind === "ours" && after.needsRelative !== true) {
+        hooksPathActive = true;
+        updated.push(formatHooksPathMadeRelative(state.value));
+      } else if (isOurHooksPathValue(projectRoot, state.value)) {
+        // Not rewritten, but it still names this checkout's own .githooks.
+        hooksPathActive = true;
+      } else if (!wrote) {
+        inactiveDisclosure =
+          "Git hooks inactive: could not set core.hooksPath=.githooks (the repository's Git config is locked or not writable). Try directive install --repair again.";
+      } else {
+        // The write landed but another source (an included config file or the
+        // command line) still wins. Repeating repair cannot fix that; name it.
+        inactiveDisclosure = formatHooksPathStillForeign(projectRoot, after);
+      }
+    } else if (state.kind === "ours") {
       hooksPathActive = true;
     } else if (state.kind === "unset" || options.takeOverHooksPath === true) {
       // Repository config only; never global or system (P20). A worktree-scoped
