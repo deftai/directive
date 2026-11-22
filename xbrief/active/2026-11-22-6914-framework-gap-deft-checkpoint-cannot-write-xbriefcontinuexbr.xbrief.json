@@ -1,0 +1,534 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6914",
+    "updated": "2026-11-22T22:14:07Z"
+  },
+  "plan": {
+    "title": "[framework-gap] deft-checkpoint cannot write xbrief/continue.xbrief.json while a story is active: the host write hook refuses it as outside file_scope",
+    "status": "running",
+    "narratives": {
+      "Description": "[framework-gap] deft-checkpoint cannot write xbrief/continue.xbrief.json while a story is active: the host write hook refuses it as outside file_scope",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6914",
+      "Overview": "\n\n1. Checkpoint path predicate (P1). One function, `isContinueCheckpointPath(rel)`, true for exactly `xbrief/continue.xbrief.json` and `vbrief/continue.vbrief.json`, case-sensitive. No glob and no other name. The dispatcher and the write-fence refusal both call it.\n2. Checkpoint exemption (P1). In the dispatcher's lifecycle-exempt block, a third branch through `allowExemptLifecycleWrite` with allow code `write-checkpoint-ready`, taken only when every harvested mutation target (patch move ends included) is a checkpoint path. Authz, project runtime authority and occupancy run as for the other two branches, after the existing ritual and occupancy gates. No story is selected and no extra-path allowance is read or spent.\n3. Path eligibility (P1). The branch is taken only when, for every target: the harvested path, after URI decoding and before lexical normalization, has no `..` component; `assertWriteTargetSafe` passes (no link on any existing component, containment); and an existing checkpoint is a regular file with exactly one hard link. An inspection error declines the branch. A declined target falls through to today's checks.\n4. Commit scope fence (P2). No code change: the commit scope-cover already drops `xbrief/` and `vbrief/` paths from the product set. Tests pin it.\n5. Refusal text (P3). At the write fence only: when a refused target is a checkpoint path, the refusal names it as the continue checkpoint, says that a write naming only that path is eligible when its path safety and the project checks pass, and that a mixed write should write the checkpoint separately. It gives no split or widen remedy for that path. Other refused paths keep the shared remedy, and the shared remedy that membership prints is unchanged.\n6. Docs (P1). `resilience/continue-here.md` says the write hook admits the checkpoint as a process-owned path for storage only, and that its narratives authorize no product change.\n\n## Acceptance Criteria\n\n\n- A Write, Edit or patch whose every mutation target is `xbrief/continue.xbrief.json` or `vbrief/continue.vbrief.json` is allowed with code `write-checkpoint-ready`, both with an active story whose `file_scope` does not name the checkpoint and with no active story, and the story's extra-path allowance is unchanged.\n- A checkpoint write that authz, project runtime-authority deny paths, ritual or occupancy refuse today is still refused.\n- The exemption does not admit: a case variant of the checkpoint name, any other file under `xbrief/` or `vbrief/`, a target whose harvested path has a `..` component, a target through a link on any component (leaf, parent or dangling), an existing checkpoint with more than one hard link, a patch that moves a product path into or out of the checkpoint, or a write with any non-checkpoint target.\n- A commit that stages the checkpoint alone, or the checkpoint with a covered product path, passes the commit scope-cover and spends no extra-path allowance.\n- When the write fence refuses a checkpoint path, the refusal names the continue checkpoint and contains no split or widen remedy for that path; the remedy for other refused paths and the remedy membership prints are unchanged.\n- `resilience/continue-here.md` states that the checkpoint admission is for storage only and that checkpoint narratives authorize no product change.\n- Tests cover each item above.\n\n\n",
+      "Constraint": "- A free-path entry for the checkpoint in the shared extra-path rule instead of the exemption (comment 7052387635, In plain English: it leaves the no-active-story refusal).\n- Relying on `assertWriteTargetSafe` and a realpath re-check alone (comment 7052387635, findings 1 and 2: hard links and a collapsed `..` component are not seen).\n- Widening the shared `assertWriteTargetSafe` guard for its other callers in this PR (comment 7052387635, finding 1).\n- A content-shape check on the checkpoint (comment 7052387635, finding 5).\n- Freeing the checkpoint in `verify:scope-provenance` membership (Stop 1 exclusion; comment 7052387635, finding 6).",
+      "Labels": "design-critique:ingest-ready"
+    },
+    "items": [
+      {
+        "title": "Checkpoint path predicate (P1). One function, `isContinueCheckpointPath(rel)`, true for exactly `xbrief/continue.xbrief.json` and `vbrief/continue.vbrief.json`, case-sensitive. No glob and no other name. The dispatcher and the write-fence refusal both call it.",
+        "status": "proposed",
+        "id": "clause.1"
+      },
+      {
+        "title": "Checkpoint exemption (P1). In the dispatcher's lifecycle-exempt block, a third branch through `allowExemptLifecycleWrite` with allow code `write-checkpoint-ready`, taken only when every harvested mutation target (patch move ends included) is a checkpoint path. Authz, project runtime authority and occupancy run as for the other two branches, after the existing ritual and occupancy gates. No story is selected and no extra-path allowance is read or spent.",
+        "status": "proposed",
+        "id": "clause.2"
+      },
+      {
+        "title": "Path eligibility (P1). The branch is taken only when, for every target: the harvested path, after URI decoding and before lexical normalization, has no `..` component; `assertWriteTargetSafe` passes (no link on any existing component, containment); and an existing checkpoint is a regular file with exactly one hard link. An inspection error declines the branch. A declined target falls through to today's checks.",
+        "status": "proposed",
+        "id": "clause.3"
+      },
+      {
+        "title": "Commit scope fence (P2). No code change: the commit scope-cover already drops `xbrief/` and `vbrief/` paths from the product set. Tests pin it.",
+        "status": "proposed",
+        "id": "clause.4"
+      },
+      {
+        "title": "Refusal text (P3). At the write fence only: when a refused target is a checkpoint path, the refusal names it as the continue checkpoint, says that a write naming only that path is eligible when its path safety and the project checks pass, and that a mixed write should write the checkpoint separately. It gives no split or widen remedy for that path. Other refused paths keep the shared remedy, and the shared remedy that membership prints is unchanged.",
+        "status": "proposed",
+        "id": "clause.5"
+      },
+      {
+        "title": "Docs (P1). `resilience/continue-here.md` says the write hook admits the checkpoint as a process-owned path for storage only, and that its narratives authorize no product change.",
+        "status": "proposed",
+        "id": "clause.6"
+      },
+      {
+        "title": "A Write, Edit or patch whose every mutation target is `xbrief/continue.xbrief.json` or `vbrief/continue.vbrief.json` is allowed with code `write-checkpoint-ready`, both with an active story whose `file_scope` does not name the checkpoint and with no active story, and the story's extra-path allowance is unchanged.",
+        "status": "proposed",
+        "id": "clause.7"
+      },
+      {
+        "title": "A checkpoint write that authz, project runtime-authority deny paths, ritual or occupancy refuse today is still refused.",
+        "status": "proposed",
+        "id": "clause.8"
+      },
+      {
+        "title": "The exemption does not admit: a case variant of the checkpoint name, any other file under `xbrief/` or `vbrief/`, a target whose harvested path has a `..` component, a target through a link on any component (leaf, parent or dangling), an existing checkpoint with more than one hard link, a patch that moves a product path into or out of the checkpoint, or a write with any non-checkpoint target.",
+        "status": "proposed",
+        "id": "clause.9"
+      },
+      {
+        "title": "A commit that stages the checkpoint alone, or the checkpoint with a covered product path, passes the commit scope-cover and spends no extra-path allowance.",
+        "status": "proposed",
+        "id": "clause.10"
+      },
+      {
+        "title": "When the write fence refuses a checkpoint path, the refusal names the continue checkpoint and contains no split or widen remedy for that path; the remedy for other refused paths and the remedy membership prints are unchanged.",
+        "status": "proposed",
+        "id": "clause.11"
+      },
+      {
+        "title": "`resilience/continue-here.md` states that the checkpoint admission is for storage only and that checkpoint narratives authorize no product change.",
+        "status": "proposed",
+        "id": "clause.12"
+      },
+      {
+        "title": "Tests cover each item above.",
+        "status": "proposed",
+        "id": "clause.13"
+      }
+    ],
+    "tags": [
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6914",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6914: [framework-gap] deft-checkpoint cannot write xbrief/continue.xbrief.json while a story is active: the host write hook refuses it as outside file_scope"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1709",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1709"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per harvested lean item (13), in list order (#6333)",
+      "sentences": [
+        "Checkpoint path predicate (P1). One function, `isContinueCheckpointPath(rel)`, true for exactly `xbrief/continue.xbrief.json` and `vbrief/continue.vbrief.json`, case-sensitive. No glob and no other name. The dispatcher and the write-fence refusal both call it.",
+        "Checkpoint exemption (P1). In the dispatcher's lifecycle-exempt block, a third branch through `allowExemptLifecycleWrite` with allow code `write-checkpoint-ready`, taken only when every harvested mutation target (patch move ends included) is a checkpoint path. Authz, project runtime authority and occupancy run as for the other two branches, after the existing ritual and occupancy gates. No story is selected and no extra-path allowance is read or spent.",
+        "Path eligibility (P1). The branch is taken only when, for every target: the harvested path, after URI decoding and before lexical normalization, has no `..` component; `assertWriteTargetSafe` passes (no link on any existing component, containment); and an existing checkpoint is a regular file with exactly one hard link. An inspection error declines the branch. A declined target falls through to today's checks.",
+        "Commit scope fence (P2). No code change: the commit scope-cover already drops `xbrief/` and `vbrief/` paths from the product set. Tests pin it.",
+        "Refusal text (P3). At the write fence only: when a refused target is a checkpoint path, the refusal names it as the continue checkpoint, says that a write naming only that path is eligible when its path safety and the project checks pass, and that a mixed write should write the checkpoint separately. It gives no split or widen remedy for that path. Other refused paths keep the shared remedy, and the shared remedy that membership prints is unchanged.",
+        "Docs (P1). `resilience/continue-here.md` says the write hook admits the checkpoint as a process-owned path for storage only, and that its narratives authorize no product change.",
+        "A Write, Edit or patch whose every mutation target is `xbrief/continue.xbrief.json` or `vbrief/continue.vbrief.json` is allowed with code `write-checkpoint-ready`, both with an active story whose `file_scope` does not name the checkpoint and with no active story, and the story's extra-path allowance is unchanged.",
+        "A checkpoint write that authz, project runtime-authority deny paths, ritual or occupancy refuse today is still refused.",
+        "The exemption does not admit: a case variant of the checkpoint name, any other file under `xbrief/` or `vbrief/`, a target whose harvested path has a `..` component, a target through a link on any component (leaf, parent or dangling), an existing checkpoint with more than one hard link, a patch that moves a product path into or out of the checkpoint, or a write with any non-checkpoint target.",
+        "A commit that stages the checkpoint alone, or the checkpoint with a covered product path, passes the commit scope-cover and spends no extra-path allowance.",
+        "When the write fence refuses a checkpoint path, the refusal names the continue checkpoint and contains no split or widen remedy for that path; the remedy for other refused paths and the remedy membership prints are unchanged.",
+        "`resilience/continue-here.md` states that the checkpoint admission is for storage only and that checkpoint narratives authorize no product change.",
+        "Tests cover each item above."
+      ],
+      "admitted_source_sentences": [
+        "Checkpoint path predicate (P1). One function, `isContinueCheckpointPath(rel)`, true for exactly `xbrief/continue.xbrief.json` and `vbrief/continue.vbrief.json`, case-sensitive. No glob and no other name. The dispatcher and the write-fence refusal both call it.",
+        "Checkpoint exemption (P1). In the dispatcher's lifecycle-exempt block, a third branch through `allowExemptLifecycleWrite` with allow code `write-checkpoint-ready`, taken only when every harvested mutation target (patch move ends included) is a checkpoint path. Authz, project runtime authority and occupancy run as for the other two branches, after the existing ritual and occupancy gates. No story is selected and no extra-path allowance is read or spent.",
+        "Path eligibility (P1). The branch is taken only when, for every target: the harvested path, after URI decoding and before lexical normalization, has no `..` component; `assertWriteTargetSafe` passes (no link on any existing component, containment); and an existing checkpoint is a regular file with exactly one hard link. An inspection error declines the branch. A declined target falls through to today's checks.",
+        "Commit scope fence (P2). No code change: the commit scope-cover already drops `xbrief/` and `vbrief/` paths from the product set. Tests pin it.",
+        "Refusal text (P3). At the write fence only: when a refused target is a checkpoint path, the refusal names it as the continue checkpoint, says that a write naming only that path is eligible when its path safety and the project checks pass, and that a mixed write should write the checkpoint separately. It gives no split or widen remedy for that path. Other refused paths keep the shared remedy, and the shared remedy that membership prints is unchanged.",
+        "Docs (P1). `resilience/continue-here.md` says the write hook admits the checkpoint as a process-owned path for storage only, and that its narratives authorize no product change.",
+        "A Write, Edit or patch whose every mutation target is `xbrief/continue.xbrief.json` or `vbrief/continue.vbrief.json` is allowed with code `write-checkpoint-ready`, both with an active story whose `file_scope` does not name the checkpoint and with no active story, and the story's extra-path allowance is unchanged.",
+        "A checkpoint write that authz, project runtime-authority deny paths, ritual or occupancy refuse today is still refused.",
+        "The exemption does not admit: a case variant of the checkpoint name, any other file under `xbrief/` or `vbrief/`, a target whose harvested path has a `..` component, a target through a link on any component (leaf, parent or dangling), an existing checkpoint with more than one hard link, a patch that moves a product path into or out of the checkpoint, or a write with any non-checkpoint target.",
+        "A commit that stages the checkpoint alone, or the checkpoint with a covered product path, passes the commit scope-cover and spends no extra-path allowance.",
+        "When the write fence refuses a checkpoint path, the refusal names the continue checkpoint and contains no split or widen remedy for that path; the remedy for other refused paths and the remedy membership prints are unchanged.",
+        "`resilience/continue-here.md` states that the checkpoint admission is for storage only and that checkpoint narratives authorize no product change.",
+        "Tests cover each item above."
+      ],
+      "admitted_source_digest": "985ac83cc192d047019f952a3fbdf50ccd7eea20d600d5b6ae7986422df22449",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Checkpoint path predicate (P1). One function, `isContinueCheckpointPath(rel)`, true for exactly `xbrief/continue.xbrief.json` and `vbrief/continue.vbrief.json`, case-sensitive. No glob and no other name. The dispatcher and the write-fence refusal both call it.",
+          "artifact_path": "packages/core/src/policy/continue-checkpoint-path.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Checkpoint exemption (P1). In the dispatcher's lifecycle-exempt block, a third branch through `allowExemptLifecycleWrite` with allow code `write-checkpoint-ready`, taken only when every harvested mutation target (patch move ends included) is a checkpoint path. Authz, project runtime authority and occupancy run as for the other two branches, after the existing ritual and occupancy gates. No story is selected and no extra-path allowance is read or spent.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Path eligibility (P1). The branch is taken only when, for every target: the harvested path, after URI decoding and before lexical normalization, has no `..` component; `assertWriteTargetSafe` passes (no link on any existing component, containment); and an existing checkpoint is a regular file with exactly one hard link. An inspection error declines the branch. A declined target falls through to today's checks.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Commit scope fence (P2). No code change: the commit scope-cover already drops `xbrief/` and `vbrief/` paths from the product set. Tests pin it.",
+          "artifact_path": "packages/core/src/hooks/dispatcher-continue-checkpoint.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Refusal text (P3). At the write fence only: when a refused target is a checkpoint path, the refusal names it as the continue checkpoint, says that a write naming only that path is eligible when its path safety and the project checks pass, and that a mixed write should write the checkpoint separately. It gives no split or widen remedy for that path. Other refused paths keep the shared remedy, and the shared remedy that membership prints is unchanged.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Docs (P1). `resilience/continue-here.md` says the write hook admits the checkpoint as a process-owned path for storage only, and that its narratives authorize no product change.",
+          "artifact_path": "content/resilience/continue-here.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "A Write, Edit or patch whose every mutation target is `xbrief/continue.xbrief.json` or `vbrief/continue.vbrief.json` is allowed with code `write-checkpoint-ready`, both with an active story whose `file_scope` does not name the checkpoint and with no active story, and the story's extra-path allowance is unchanged.",
+          "artifact_path": "packages/core/src/hooks/dispatcher.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "A checkpoint write that authz, project runtime-authority deny paths, ritual or occupancy refuse today is still refused.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "The exemption does not admit: a case variant of the checkpoint name, any other file under `xbrief/` or `vbrief/`, a target whose harvested path has a `..` component, a target through a link on any component (leaf, parent or dangling), an existing checkpoint with more than one hard link, a patch that moves a product path into or out of the checkpoint, or a write with any non-checkpoint target.",
+          "artifact_path": "packages/core/src/hooks/dispatcher.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "A commit that stages the checkpoint alone, or the checkpoint with a covered product path, passes the commit scope-cover and spends no extra-path allowance.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "When the write fence refuses a checkpoint path, the refusal names the continue checkpoint and contains no split or widen remedy for that path; the remedy for other refused paths and the remedy membership prints are unchanged.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "`resilience/continue-here.md` states that the checkpoint admission is for storage only and that checkpoint narratives authorize no product change.",
+          "artifact_path": "content/resilience/continue-here.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "Tests cover each item above.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/policy/continue-checkpoint-path.ts",
+          "packages/core/src/policy/continue-checkpoint-path.test.ts",
+          "packages/core/src/hooks/dispatcher.ts",
+          "packages/core/src/hooks/dispatcher.test.ts",
+          "packages/core/src/hooks/dispatcher-continue-checkpoint.test.ts",
+          "packages/core/src/hooks/fixtures/README.md",
+          "packages/core/src/policy/write-fence-budget.ts",
+          "packages/core/src/policy/write-fence-budget.test.ts",
+          "packages/core/src/scope-provenance/extra-path-admission.ts",
+          "packages/core/src/scope-provenance/extra-path-admission.test.ts",
+          "content/resilience/continue-here.md",
+          "changelog.d/6914-continue-checkpoint-write.md",
+          "docs/RULE-MAP.md",
+          "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "xbrief/evaluator-surface-disposition.json",
+          "xbrief/.audit/spec-drift/github.issue.6520669074.json"
+        ],
+        "verify_commands": [
+          "npx vitest run packages/core/src/policy/continue-checkpoint-path.test.ts packages/core/src/policy/write-fence-budget.test.ts packages/core/src/scope-provenance/extra-path-admission.test.ts",
+          "npx vitest run packages/core/src/hooks/dispatcher-continue-checkpoint.test.ts packages/core/src/hooks/dispatcher.test.ts"
+        ],
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "depends_on": [],
+        "expected_outputs": [
+          "a write whose every target is xbrief/continue.xbrief.json or vbrief/continue.vbrief.json is allowed with code write-checkpoint-ready, with or without an active story, spending no extra-path allowance",
+          "the exemption declines case variants, other xbrief/vbrief files, .. components, links on any component, multi-hard-link checkpoints, moves in or out, and mixed targets",
+          "the write-fence refusal for a checkpoint path names the continue checkpoint with no split or widen remedy",
+          "content/resilience/continue-here.md says the admission is storage only and authorizes no product change",
+          "one changelog fragment changelog.d/6914-continue-checkpoint-write.md"
+        ],
+        "conflict_group": "write-fence-dispatcher",
+        "model_tier": "high",
+        "acceptance_criteria_justification": "The 13 clauses are the bound lean items and checks of the #6914 accepted arc (lean 7052398730), harvested and digest-pinned by issue ingest. The .gitignore deposit decision (issue item 4) is out of scope: deferred to the installer owner."
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: triage\n```\n\nStop 1 — Gate (arc 6914; no-ingest)\n\nmechanism-shaped: true\ndesign-critique: warranted, because the fix adds a process-owned path to the story write fence, and that admission must not become a route for product changes (exact path only, no alias through a link).\nTarget-digest: sha256:fb0582c2c2a31e75e0c3656b1386e73f4c7a372919cb5090ce8e74896f36af45\ndispatch-sha: 880c91ed079578e900c1f2ef680efbfa6e6d61af\ndest: C:/Repos/deft/wt/arc-6914 (pinKind origin-default, guarded-prep, from `deft design-critique:ensure-arc-dest`)\narc-mode: no-ingest\nyolo-standing: on\ncharter: open critique\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\nspend-why: operator asked for a thin arc with one Codex critic; a narrow write-fence fix for the next build.\nmateriality-bar: open\ntarget-kind: issue\nceiling-kind: comment-id\nverification-path: pin-read git show 880c91ed079578e900c1f2ef680efbfa6e6d61af: + dest cwd-without-occupy\npain: P1\npain: P2\npain: P3\n\n## In plain English\n\nThe `deft-checkpoint` skill follows `resilience/continue-here.md` and saves session state to `xbrief/continue.xbrief.json` with a host Write. While a story is active, the story write fence treats that file as an extra path outside `file_scope`. It is neither source, test nor fixture, so the extra-path rule refuses it outright, and the remedy tells the agent to split the story or land a widened brief. No checkpoint is saved. With no active story, the write is refused earlier, as scope-not-ready. Yet continue-here says the checkpoint MUST be written at session end and is ephemeral, not story work.\n\nThe recommended fix: treat the two exact checkpoint paths as process-owned. The write hook already lets a write whose every target is a `proposed/` or `completed/` lifecycle record skip story selection, while authz, project runtime authority and occupancy still run. A third branch of that same exemption would admit a write whose every target is the checkpoint, with or without an active story, and without touching the extra-path allowance. A link check stops the path from pointing anywhere else. The commit scope fence already admits staged `xbrief/` paths, so it needs a test, not a change. When the checkpoint does reach the story fence (mixed with other targets), the refusal names the checkpoint case instead of telling the agent to split the story.\n\nProven cause (parent reading at the dispatch SHA):\n\n- `packages/core/src/policy/write-fence-budget.ts` 219-224: only changelog entry paths are free of the story allowlist; 296-305: `isFree` is `isChangelogEntryPath` only; 320-338: an other-class extra refuses with `extra-path-not-admitted` and the split-or-widen remedy.\n- `packages/core/src/scope-provenance/extra-path-admission.ts` 210-226: an undeclared path outside source, test and fixture roots is `hard-refused` (\"not source, test or fixture\") at the write fence; 267-276: the remedy text.\n- `packages/core/src/hooks/dispatcher.ts` 1739-1769: the story allow layer comes from `resolveStoryWriteAllow`, and a refusal there denies the write.\n- `dispatcher.ts` 3071-3188: with no ready scope, an in-repo write is denied `scope-not-ready` unless an earlier exemption returned.\n- `dispatcher.ts` 2965-3018: `allowExemptLifecycleWrite` admits a write whose every mutation target is a `proposed/` or `completed/` lifecycle record. It still runs `authzForMutationTargets`, `runtimeAuthorityForDirectWrite` with no story scope (project layer only), and the occupancy recheck. It runs after the ritual and occupancy gates.\n- `dispatcher.ts` 5679-5736: the commit scope-cover drops every `xbrief/` and `vbrief/` path from the product set before any story check (`isLifecycleOrInstallerRelPath`), so a staged checkpoint is already admitted at commit and spends nothing.\n- `packages/core/src/scope-provenance/base-fence.ts` 207-208: the Path-independent check already frees `xbrief/` and `vbrief/`; 437-451: membership does not, so a committed checkpoint is refused there as other-class.\n- `content/resilience/continue-here.md` 21, 28, 42, 48, 52: write on session end; the exact path; consumed on resume; ephemeral; clean up after resume.\n- The deposited `.gitignore` has no entry for the checkpoint, so a written checkpoint shows up untracked (issue text; not re-checked against a consumer).\n\nOperator decisions (Scott, 2026-11-20, relayed by the coordinator):\n\n- Goal: ready for the next build, one small PR, fewer gates.\n- The `.gitignore` deposit half (whether the checkpoint is ignored or committable, issue item 4) is polfer's installer area and stays out of this arc. It is a deferred dependency for polfer.\n- The in-scope half: admit the two checkpoint paths as process-owned in the host write hook and the commit scope fence, without spending the extra-path allowance, and give the refusal text a checkpoint case.\n- The critic must test that the admission cannot be used to smuggle product changes: the exact path only, and the content shape if feasible.\n\n## Pains\n\n- P1 — A host Write, Edit or patch whose only target is `xbrief/continue.xbrief.json` (or legacy `vbrief/continue.vbrief.json`) is admitted, with or without an active story, and spends none of the story's extra-path allowance.\n- P2 — A commit that stages the checkpoint is not refused by the commit scope-cover and spends none of the extra-path allowance.\n- P3 — When the story fence refuses the checkpoint path, the refusal names the checkpoint case and does not tell the agent to split the story or widen the brief.\n\n## Excluded (not pains, not in this arc)\n\n- Whether the checkpoint is gitignored or committable, and the deposited `.gitignore` entry (issue item 4): polfer's installer area, deferred dependency.\n- `verify:scope-provenance` membership on a committed checkpoint (`base-fence.ts` 437-451): whether a checkpoint is ever committed follows from that deposit decision.\n- A `deft` verb that writes the checkpoint (issue item 2): not needed if the path is admitted.\n- Ritual, occupancy and stale-session refusals at session end; shell (Bash) writes to the checkpoint.\n- #2849 (recoverable dirty-worktree checkpoints of source bytes, a different artifact) and #6803 (PROJECT-DEFINITION and runtime files at `verify:scope-provenance`). #6803 names lifecycle edits Directive makes itself but defines no process-owned path rule in code to reuse; the code precedent is the lifecycle exemption above.\n\n## Constraints (not pains)\n\n- One PR. Production changes in `dispatcher.ts`, one small path predicate, and the refusal text in `write-fence-budget.ts` (or `extra-path-admission.ts`), plus tests. No new policy flag, verb, gate, CI job or deposit change.\n- Authz, project runtime authority (allow and deny paths), ritual and occupancy still apply to the checkpoint write.\n\n## Anchors at the dispatch SHA\n\n- `packages/core/src/hooks/dispatcher.ts` 866-894 (`isLifecycleFolderWrite`), 931-959 (`allMutationTargetsMatch`: every mutated path), 1084-1110 (`requirementsPathAllowed`: lexical match, then `assertWriteTargetSafe`, then a realpath re-check), 1639-1797 (`runtimeAuthorityForDirectWrite`), 2965-3018, 3071-3188, 5679-5736.\n- `packages/core/src/fs/projection-containment.ts` 158-200 (`assertWriteTargetSafe`: refuses a link on any existing component).\n- `packages/core/src/policy/write-fence-budget.ts` 195-360; `packages/core/src/policy/write-fence.ts` 770-776 (no scope path gives an empty story fence).\n- `packages/core/src/scope-provenance/extra-path-admission.ts` 149-276; `base-fence.ts` 188-213, 437-451.\n- `packages/core/src/changelog/entry-path.ts` (the shape of a one-function path predicate shared by every check).\n- `packages/core/src/slash/product-set.ts` 131-140 (`/deft:checkpoint` loads `resilience/continue-here.md`).\n\n## Recommended mechanism (the thing to critique)\n\n- R1 (P1). One predicate, `isContinueCheckpointPath(rel)`: true for exactly `xbrief/continue.xbrief.json` and `vbrief/continue.vbrief.json`, case-sensitive, after the normalization the lifecycle predicates use. No glob and no other name.\n- R2 (P1). In the dispatcher's lifecycle-exempt block, a third branch through `allowExemptLifecycleWrite` with a new allow code `write-checkpoint-ready`: admitted when every mutation target is a checkpoint path (`allMutationTargetsMatch`). Authz, project runtime authority, occupancy and the earlier ritual gate run as for the other two branches. No story is selected, so no extra-path allowance is read or spent.\n- R3 (P1, abuse). Each target must also pass `assertWriteTargetSafe` (no link on any existing component, the containment check) and, when the file exists, a realpath re-check to the same project-relative path, as `requirementsPathAllowed` does. A target that fails falls through to today's checks. No content-shape check (see question 2).\n- R4 (P2). No commit-fence code change. Tests: a staged checkpoint alone, and a staged checkpoint with a covered product path, pass the commit scope-cover and spend nothing.\n- R5 (P3). When the write fence refuses a checkpoint path (it reaches the fence only when mixed with other targets or when R3 fails), the refusal says that the path is the continue checkpoint and that a write naming only that path is admitted without a story. The split-or-widen remedy stays for the other paths.\n\nQuestions for the critic:\n\n1. Is the refusal proven from code, and is the lifecycle-exempt block the right place, or should the checkpoint be a free path in the shared extra-path rule (`isFree`) instead? The free-path route admits mixed writes but leaves the no-active-story refusal in place.\n2. Abuse: can the admission write anything other than the exact checkpoint file? Check `..`, case variants on Windows, links (leaf, parent, dangling), hard links, and patch move or rename forms (a move from a product path into the checkpoint, or out of it): does `hookMutationTargetPaths` harvest both ends? Is a content-shape check feasible and worth it (Write carries full content; Edit and patch updates carry a diff, and a Codex host writes only by patch)? The parent leans no: the exact path in a non-source, non-executed folder cannot carry a product change, and a check that only some tools can satisfy would either block Codex hosts or be bypassed by Edit.\n3. Should membership (`base-fence.ts` 437-451) also free the checkpoint, or stay as is until the deposit decides whether the checkpoint is committed?\n4. Does the refusal-text case belong at the write fence only, or in the shared remedy that membership also prints?\n5. Is it backward compatible, and does it fit one PR for the next build?\r\n\n",
+          "id": 7052343151,
+          "html_url": "https://github.com/deftai/directive/issues/6914#issuecomment-7052343151",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:39:09Z",
+          "updated_at": "2026-11-20T22:39:09Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 1\ninput-ceiling: 7052343454\nseat: codex launcher: codex (exec --ephemeral --skip-git-repo-check --sandbox read-only -C dest -o outfile)\n\ncharter: open critique\nspend: N=1\narc-mode: no-ingest\nmateriality-bar: open\ndispatch-sha: 880c91ed079578e900c1f2ef680efbfa6e6d61af\ndest: C:/Repos/deft/wt/arc-6914\nverification-path: pin-read git show 880c91ed079578e900c1f2ef680efbfa6e6d61af: + dest cwd-without-occupy\naudit-targets: none\nStop 1 cite: comment 7052343151\ncritic-post-cap: 2 (operator-set for this arc: one round-1 critic and one pain audit)\n\n## Launch posture (disclosed)\n- The parent is Claude Code (claude-opus-5-5). The one critic seat is Codex, a different model family, run with a read-only launcher against the dest. The launch probe for that argv returned `pong` rc 0 in this session; that proves launchability only.\n- The Codex seat has no GitHub access. It reads a parent-written thread snapshot (issue body, thread up to the ceiling, this deposit, linked issue bodies) and reads code with `git show <dispatch-sha>:<path>`. The parent posts the critic's final message verbatim.\n- This deposit was created and then edited once, only to record its own comment id as the input ceiling.\n\n",
+          "id": 7052343454,
+          "html_url": "https://github.com/deftai/directive/issues/6914#issuecomment-7052343454",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:39:10Z",
+          "updated_at": "2026-11-20T22:39:11Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\n\nThe checkpoint is required at session end, but the story fence treats it as unrelated work. The refusal is supported by the pinned code. The lifecycle exemption is the right place to fix this because it also works without an active story; changing only the shared free-path rule would not.\n\nI would not accept R3’s safety claim as written. The existing guard rejects ordinary symlinks, including dangling links, but does not detect hard links. Normalization can also erase a symlink-bearing component before the guard checks it. Those gaps matter when the host writes through the original path.\n\nKeep this a small PR: narrow eligibility for the new exception, retain the existing authorization checks, leave commit scope-cover unchanged, and keep membership deferred. Do not add content validation: it is technically possible by reconstructing the resulting file for each host, but adds substantial machinery without proving that another file cannot be changed. Keep the checkpoint-specific remedy at the write fence and qualify it for unsafe paths.\n\nVerification was source inspection at `880c91ed079578e900c1f2ef680efbfa6e6d61af`, not execution. No files, tests, installs, or posts were performed.\n\n### 1. blocks-the-design — Hard links defeat the proposed exact-file guarantee\n\n**Evidence:** `packages/core/src/fs/projection-containment.ts:158–159,179–204` delegates to a component walk that checks `isSymbolicLink()` but never checks link count. `packages/core/src/hooks/dispatcher.ts:1097–1109` checks the resolved pathname, not whether another pathname names the same file.\n\n**Failure:** An existing checkpoint hard-linked to a product file passes both checks. A host that truncates or edits the checkpoint in place changes the product file’s bytes too. A host that replaces the file atomically might avoid this, but the proposed admission covers Write and Edit without establishing that behavior.\n\n**Disposition:** R3 needs a checkpoint-local eligibility condition that rejects an existing leaf with multiple hard links, with unexpected inspection errors declining the exception. This adds a check to the proposed exception, not a separate workflow gate. Do not widen the shared guard for every existing caller in this PR. A realpath re-check does not replace this condition.\n\n### 2. blocks-the-design — Normalization can hide a traversed symlink\n\n**Evidence:** `dispatcher.ts:858–861` uses `resolve()` before matching. `dispatcher.ts:1097–1099` then checks the reconstructed normalized target. The containment guard itself also calls `resolve()` before walking components (`projection-containment.ts:70–79,182–185`).\n\n**Failure:** On a host that passes the original pathname to POSIX filesystem operations, suppose `xbrief/hop` points to `../src/nested`. The target `xbrief/hop/../continue.xbrief.json` normalizes lexically to the admitted checkpoint, but filesystem traversal reaches `src/continue.xbrief.json`. The guard inspects the normalized checkpoint path and never sees `hop`.\n\nThis is a source-supported gap in the proposed guarantee, not a reproduced host exploit.\n\n**Disposition:** Narrow the checkpoint exception to reject parent-traversal components before lexical collapse, after URI decoding. That is one additional eligibility check; it avoids building another path resolver. Do not claim arbitrary normalized aliases are safe without establishing that every supported host writes the same normalized path the hook checked.\n\nOrdinary leaf, parent, and dangling symlinks on the surviving path are already covered by the existing guard.\n\n### 3. sharpens-framing — Retain the existing all-target harvest, but bound its claim to supported syntax\n\n**Evidence:** `hooks/classify/paths.ts:123–137,160–173` unions declared and patch targets and rejects unsupported URI normalization. `hooks/classify/stdin.ts:20–29,39–50` harvests mutation headers and canonical `*** Move to:` destinations. `dispatcher.ts:935–944` requires a nonempty harvest whose every target matches.\n\n**Failure avoided:** A canonical patch moving a product file into the checkpoint—or the checkpoint into a product file—includes both endpoints and cannot use the checkpoint-only exception. A canonical multi-file patch containing a product target likewise fails it. No new move-specific gate is needed.\n\n**Disposition:** Keep R2. Test both move directions and mixed targets using the supported host payloads. Do not describe this parser as recognizing arbitrary rename or unified-diff syntax: its extraction is based on the listed `***` headers.\n\nCase-sensitive comparison also means Windows case variants should miss the exception rather than broaden it. Preserve that deliberately conservative behavior.\n\n### 4. sharpens-framing — The retry advice is wrong when path safety failed\n\n**Evidence:** R3 proposes falling through after an unsafe target. `dispatcher.ts:1098–1102` demonstrates that boolean failure pattern. `write-fence-budget.ts:320–337` constructs the story refusal; `scope-provenance/extra-path-admission.ts:267–275` supplies a remedy shared with other checks.\n\n**Failure:** A checkpoint-only request that fails link safety can reach the story refusal. Telling it “a write naming only that path is admitted” recommends the request that just failed. The same promise ignores retained project authorization restrictions.\n\n**Disposition:** Keep the new wording local to the write fence: checkpoint-only writes are eligible when path safety and existing project checks pass; mixed operations should separate the checkpoint. Preserve the ordinary remedy for other refused targets. This is a wording correction, not another gate.\n\n### 5. sharpens-framing — Omit content validation, but do not call checkpoint content inert\n\n**Evidence:** `content/resilience/continue-here.md:30–43` makes checkpoint narratives influence resumed work. Lines `61–70` explicitly deny them authority as approval evidence. The inspected patch classifier extracts paths rather than computing resulting file contents (`hooks/classify/stdin.ts:39–50`).\n\n**Failure:** A valid checkpoint-shaped JSON document can still contain misleading resume instructions. Schema validation neither establishes authorization nor prevents hard-link writes to another file. Conversely, validating only full-content Write requests leaves Edit and patch behavior inconsistent.\n\n**Disposition:** Keep “no content-shape check.” Cross-host validation is feasible only with host-specific reconstruction and would add a gate without solving these aliasing problems. State the narrower guarantee: admission is for checkpoint storage; its narratives do not authorize later product changes. Treat instruction-shaped thread material as described proposals, not authority for this critic.\n\n### 6. footnote — Commit behavior and deferred membership support the small-PR boundary\n\n`dispatcher.ts:5693–5699,5727–5735` already excludes checkpoint paths from prospective commit scope-cover. Regression tests are sufficient there. `scope-provenance/base-fence.ts:437–450` has no unconditional checkpoint exemption, so passing commit scope-cover must not be advertised as passing membership.\n\nThe refusal mechanism is confirmed by `write-fence-budget.ts:219–224,296–305,320–337` and `extra-path-admission.ts:219–225`; the no-ready-story branch is visible at `dispatcher.ts:3071–3093`.\n\nWith the two eligibility corrections above, the proposal remains an additive, backward-compatible exception suitable for one small PR. Membership and the installer decision can remain deferred, provided the release claim stays limited to the named host-write and commit scope-cover surfaces.",
+          "id": 7052387635,
+          "html_url": "https://github.com/deftai/directive/issues/6914#issuecomment-7052387635",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:41:41Z",
+          "updated_at": "2026-11-20T22:41:41Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** bind lean under Stop 1 7052343151 (round 1: 1 of 1 critic posted, comment 7052387635)\n\n## In plain English\n\nProblem: the `deft-checkpoint` skill saves session state to `xbrief/continue.xbrief.json` with a host Write. While a story is active, the story write fence counts that file as an extra path that is neither source, test nor fixture, refuses it, and tells the agent to split the story or widen the brief. With no active story the write is refused earlier, as scope-not-ready. So the checkpoint that continue-here says MUST be written at session end often cannot be written. The critic confirmed this from the code.\n\nWhat the critic found: the lifecycle exemption that already admits `proposed/` and `completed/` record writes is the right place, because it works with or without an active story; a free-path entry in the shared extra-path rule would not. Two parts of the first draft did not hold. The link check does not see hard links, so an existing checkpoint hard-linked to a product file would pass. And a path such as `xbrief/hop/../continue.xbrief.json` collapses to the checkpoint before the link check runs, so a link under `hop` is never inspected. Three points were made sharper: the patch target harvest already names both ends of a move, so a move into or out of the checkpoint is not admitted; the new refusal text must not promise that a write which just failed the link check would pass; and a content-shape check is not worth it, but the checkpoint's text is not inert either: it is storage, and it authorizes nothing.\n\nSolution this lean proposes: a third branch of the existing lifecycle exemption admits a write whose every target is exactly `xbrief/continue.xbrief.json` or `vbrief/continue.vbrief.json`. Authz, project runtime authority, ritual and occupancy still run. No story is selected, so no extra-path allowance is read or spent. A target is eligible only when its harvested path has no `..` part, no part of the path is a link, and an existing checkpoint has exactly one hard link; anything else falls through to today's checks. The commit scope-cover already admits a staged checkpoint, so it gets tests only. When the write fence does refuse the checkpoint path, the refusal says it is the continue checkpoint and how to write it on its own, instead of the split-or-widen remedy.\n\nWhat this adds: two narrow eligibility checks inside the new exemption, nothing else. No new policy flag, verb, gate, CI job or deposit change. It removes a refusal for a file Directive itself requires.\n\nWhat it does not do:\n- It does not decide whether the checkpoint is gitignored or committable, or change the deposited `.gitignore` (issue item 4). That is polfer's installer area, a deferred dependency.\n- It does not change `verify:scope-provenance` membership, which still refuses a committed checkpoint; passing the commit scope-cover is not passing membership.\n- It does not check the checkpoint's content, and it does not cover shell (Bash) writes or session-end ritual and occupancy refusals.\n\nIf confirmed, the synthesis would assert this design. There is no leftover next-build inside this arc.\n\nTarget-digest: sha256:fb0582c2c2a31e75e0c3656b1386e73f4c7a372919cb5090ce8e74896f36af45\n**Spec-path:** Bound remedy on this lean\nSibling count: 1 (comment 7052387635). Panel deposit: comment 7052343454.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\n## Bound remedy\n\n1. Checkpoint path predicate (P1). One function, `isContinueCheckpointPath(rel)`, true for exactly `xbrief/continue.xbrief.json` and `vbrief/continue.vbrief.json`, case-sensitive. No glob and no other name. The dispatcher and the write-fence refusal both call it.\n2. Checkpoint exemption (P1). In the dispatcher's lifecycle-exempt block, a third branch through `allowExemptLifecycleWrite` with allow code `write-checkpoint-ready`, taken only when every harvested mutation target (patch move ends included) is a checkpoint path. Authz, project runtime authority and occupancy run as for the other two branches, after the existing ritual and occupancy gates. No story is selected and no extra-path allowance is read or spent.\n3. Path eligibility (P1). The branch is taken only when, for every target: the harvested path, after URI decoding and before lexical normalization, has no `..` component; `assertWriteTargetSafe` passes (no link on any existing component, containment); and an existing checkpoint is a regular file with exactly one hard link. An inspection error declines the branch. A declined target falls through to today's checks.\n4. Commit scope fence (P2). No code change: the commit scope-cover already drops `xbrief/` and `vbrief/` paths from the product set. Tests pin it.\n5. Refusal text (P3). At the write fence only: when a refused target is a checkpoint path, the refusal names it as the continue checkpoint, says that a write naming only that path is eligible when its path safety and the project checks pass, and that a mixed write should write the checkpoint separately. It gives no split or widen remedy for that path. Other refused paths keep the shared remedy, and the shared remedy that membership prints is unchanged.\n6. Docs (P1). `resilience/continue-here.md` says the write hook admits the checkpoint as a process-owned path for storage only, and that its narratives authorize no product change.\n\n## Acceptance Criteria\n\n- A Write, Edit or patch whose every mutation target is `xbrief/continue.xbrief.json` or `vbrief/continue.vbrief.json` is allowed with code `write-checkpoint-ready`, both with an active story whose `file_scope` does not name the checkpoint and with no active story, and the story's extra-path allowance is unchanged.\n- A checkpoint write that authz, project runtime-authority deny paths, ritual or occupancy refuse today is still refused.\n- The exemption does not admit: a case variant of the checkpoint name, any other file under `xbrief/` or `vbrief/`, a target whose harvested path has a `..` component, a target through a link on any component (leaf, parent or dangling), an existing checkpoint with more than one hard link, a patch that moves a product path into or out of the checkpoint, or a write with any non-checkpoint target.\n- A commit that stages the checkpoint alone, or the checkpoint with a covered product path, passes the commit scope-cover and spends no extra-path allowance.\n- When the write fence refuses a checkpoint path, the refusal names the continue checkpoint and contains no split or widen remedy for that path; the remedy for other refused paths and the remedy membership prints are unchanged.\n- `resilience/continue-here.md` states that the checkpoint admission is for storage only and that checkpoint narratives authorize no product change.\n- Tests cover each item above.\n\n## Reject\n\n- A free-path entry for the checkpoint in the shared extra-path rule instead of the exemption (comment 7052387635, In plain English: it leaves the no-active-story refusal).\n- Relying on `assertWriteTargetSafe` and a realpath re-check alone (comment 7052387635, findings 1 and 2: hard links and a collapsed `..` component are not seen).\n- Widening the shared `assertWriteTargetSafe` guard for its other callers in this PR (comment 7052387635, finding 1).\n- A content-shape check on the checkpoint (comment 7052387635, finding 5).\n- Freeing the checkpoint in `verify:scope-provenance` membership (Stop 1 exclusion; comment 7052387635, finding 6).\n\n## Takes\n\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 7052387635 | 1. Hard links defeat the proposed exact-file guarantee | blocks-the-design | accept-into-contract (item 3) |\n| comment 7052387635 | 2. Normalization can hide a traversed symlink | blocks-the-design | accept-into-contract (item 3) |\n| comment 7052387635 | 3. Retain the existing all-target harvest, but bound its claim to supported syntax | sharpens-framing | accept-into-contract (item 2; test list) |\n| comment 7052387635 | 4. The retry advice is wrong when path safety failed | sharpens-framing | accept-into-contract (item 5) |\n| comment 7052387635 | 5. Omit content validation, but do not call checkpoint content inert | sharpens-framing | accept-into-contract (item 6; Reject) |\n| comment 7052387635 | 6. Commit behavior and deferred membership support the small-PR boundary | footnote | accept-into-contract (item 4; limits above) |\n\nNon-self-arbitration: the parent wrote Stop 1, the recommended mechanism and this lean. The lean adds no load-bearing premise beyond the critic's findings; the `relieves` cites stay open until a later critic targets them.\r\n\n",
+          "id": 7052398730,
+          "html_url": "https://github.com/deftai/directive/issues/6914#issuecomment-7052398730",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:42:17Z",
+          "updated_at": "2026-11-20T22:42:17Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3\nfinding-classes: footnote\nharvest-changed: false\nharvest-digest: sha256:206cffda9cd354e40f92f70b2e83ff67a31c5b2a2ca09a977fe090f65f04479a\n\n## In plain English\n\nThe revised remedy covers all three named pains. It admits checkpoint-only writes before story selection, preserves project authorization and session checks, and replaces the misleading story-widening advice. The existing commit scope-cover already excludes both checkpoint paths.\n\nFor the supported harvested targets and filesystem state inspected by the hook, I found no remaining route through this new exemption to a product file. Exact matching excludes other names; checking every target excludes mixed writes and product/checkpoint moves; the pre-normalization traversal rejection, component-link check and single-hard-link requirement address the previously identified diversions. This is a hook-time eligibility check, not an atomic guarantee against another process changing the filesystem after inspection.\n\nVerification was source inspection at `880c91ed079578e900c1f2ef680efbfa6e6d61af`. No tests, installs, file changes or posts were performed.\n\npain-P1: holds - Items 1–3 place the exception before active-scope selection. `packages/core/src/hooks/dispatcher.ts:2965–3020` retains authz, project runtime authority and occupancy with a null story scope; `packages/core/src/policy/write-fence.ts:770–775` supplies an empty story fence, and `write-fence-budget.ts:195–201` returns before reading the extra-path inventory or allowance.\n\npain-P2: holds - `packages/core/src/hooks/dispatcher.ts:5693–5699,5716–5735` removes both lifecycle trees from prospective product scope-cover. A checkpoint-only staged set passes immediately; with a covered product path, the checkpoint contributes no coverage target.\n\npain-P3: holds - Item 5 changes the write-fence refusal where `packages/core/src/policy/write-fence-budget.ts:320–337` currently appends the shared remedy. It explicitly removes split-or-widen advice for the checkpoint while preserving other-path and membership remedies.\n\n### 1. footnote — Preserve the specified ordering before URI normalization\n\n`packages/core/src/hooks/classify/paths.ts:108–113` constructs a URL before converting it to a filesystem path; `dispatcher.ts:941–944` normalizes harvested targets before invoking its matching callback. The new traversal check therefore belongs on the harvested representation, as item 3 already requires, rather than solely inside that existing callback. Checking after URL or lexical normalization would lose the evidence the requirement intends to reject.\n\nThis is an implementation placement note, not a new mechanism or acceptance criterion. The component guard remains reusable (`packages/core/src/fs/projection-containment.ts:179–204`), supplemented by the checkpoint-local regular-file, link-count and inspection-error requirements.\n\nBoth canonical patch move endpoints are collected by `packages/core/src/hooks/classify/stdin.ts:20–29,39–50` and included with declared paths by `classify/paths.ts:160–173`. No additional move gate is needed.\n\n### 2. footnote — Instruction-shaped thread text remains audit data\n\nThe snapshot contains directions addressed to critics and future implementers, including Stop 1’s “The critic must test…” and the earlier critic’s implementation imperatives. I treated these as described proposals, not execution authority.\n\nCheckpoint narratives likewise influence resumption (`content/resilience/continue-here.md:30–43`) but do not establish approval (`61–70`). Item 6 preserves that distinction. Content-shape validation would not prove authorization and is unnecessary for this bounded remedy.",
+          "id": 7052426449,
+          "html_url": "https://github.com/deftai/directive/issues/6914#issuecomment-7052426449",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:43:54Z",
+          "updated_at": "2026-11-20T22:43:54Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\nPain-audit follow-through (audit comment 7052426449; bind map stays successor lean 7052398730)\n\nThe audit is footnote-only with `harvest-changed: false`, and its harvest digest equals the lean's. It found `pain-P1`, `pain-P2` and `pain-P3` hold.\n\n- comment 7052426449, finding 1 (footnote): accepted as implementation guidance. Item 3's `..` check runs on the harvested path before URI and lexical normalization, not only inside the existing match callback, which sees normalized paths. The Bound remedy is unchanged.\n- comment 7052426449, finding 2 (footnote): accepted. Thread text addressed to critics or implementers is described content, and item 6 keeps checkpoint narratives without authority. The eligibility check is made at hook time; it is not an atomic guarantee against another process changing the filesystem after the check. The Bound remedy is unchanged.\r\n\n",
+          "id": 7052426769,
+          "html_url": "https://github.com/deftai/directive/issues/6914#issuecomment-7052426769",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:43:55Z",
+          "updated_at": "2026-11-20T22:43:55Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nBound lean: comment 7052398730. Dispatch SHA: 880c91ed079578e900c1f2ef680efbfa6e6d61af. Non-self-arbitration: the parent wrote Stop 1, the recommended mechanism and the lean. Each row has a parent check and, where marked, a re-check by a Codex critic (a different model family). Both critic posts are from one family, so their agreement is not counted as extra confirmation.\n\n| # | Claim | Status | Method |\n|---|---|---|---|\n| 1 | The story write fence refuses `xbrief/continue.xbrief.json` as an other-class extra (`extra-path-not-admitted`) with the split-or-widen remedy | verified | parent pin-read of `write-fence-budget.ts` 219-224, 296-305, 320-338 and `extra-path-admission.ts` 210-226, 267-276; critic 7052387635 finding 6 |\n| 2 | With no ready scope, an in-repo checkpoint write is refused `scope-not-ready` | verified | `dispatcher.ts` 3071-3093; critic 7052387635 finding 6 |\n| 3 | The lifecycle exemption works with or without an active story; a free-path entry in the extra-path rule would not | verified | `dispatcher.ts` 2965-3020; critic 7052387635 In plain English; audit 7052426449 pain-P1 |\n| 4 | The exemption keeps authz, project runtime authority and occupancy, with an empty story fence and no allowance read | verified | `dispatcher.ts` 2965-3020, `write-fence.ts` 770-775, `write-fence-budget.ts` 195-201; audit 7052426449 pain-P1 |\n| 5 | `assertWriteTargetSafe` refuses leaf, parent and dangling symlinks but not hard links | verified | `projection-containment.ts` 158-204; critic 7052387635 finding 1 |\n| 6 | Lexical normalization can hide a symlinked component before the guard runs | verified as a source reading | critic 7052387635 finding 2 (not a reproduced host exploit); lean item 3 |\n| 7 | The patch harvest names both ends of a canonical move, so a move into or out of the checkpoint is not admitted | verified | `classify/stdin.ts` 20-29, 39-50; `classify/paths.ts` 160-173; critic 7052387635 finding 3; audit 7052426449 finding 1 |\n| 8 | The commit scope-cover already drops `xbrief/` and `vbrief/` paths, so a staged checkpoint spends nothing | verified | `dispatcher.ts` 5693-5699, 5716-5735; critic 7052387635 finding 6; audit 7052426449 pain-P2 |\n| 9 | `verify:scope-provenance` membership still refuses a committed checkpoint | verified | `base-fence.ts` 437-451; critic 7052387635 finding 6 |\n| 10 | A content-shape check would prove authorization or stop link diversion | not claimed | critic 7052387635 finding 5 |\n| 11 | The eligibility check is atomic against a concurrent filesystem change | not claimed | audit 7052426449 In plain English |\n| 12 | The Bound remedy relieves P1-P3 | verified as design coverage | audit 7052426449 on the bound lean (all hold; `finding-classes: footnote`; `harvest-changed: false`; digest equal to the lean's); follow-through 7052426769 |\r\n\n",
+          "id": 7052435955,
+          "html_url": "https://github.com/deftai/directive/issues/6914#issuecomment-7052435955",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:44:28Z",
+          "updated_at": "2026-11-20T22:44:28Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nProblem: the `deft-checkpoint` skill saves session state to `xbrief/continue.xbrief.json` with a host Write. While a story is active, the story write fence counted that file as an extra path that is neither source, test nor fixture, refused it, and told the agent to split the story or widen the brief. With no active story the write was refused as scope-not-ready. So the checkpoint that continue-here requires at session end often could not be saved.\n\nAccepted solution: a third branch of the existing lifecycle exemption admits a write whose every target is exactly `xbrief/continue.xbrief.json` or `vbrief/continue.vbrief.json`, with or without an active story and without touching the extra-path allowance. Authz, project runtime authority, ritual and occupancy still apply. A target is eligible only when its path as sent has no `..` part, no part of the path is a link, and an existing checkpoint has exactly one hard link; otherwise today's checks apply. The commit scope-cover already admits a staged checkpoint and gets tests. When the write fence does refuse the checkpoint path, the refusal names the checkpoint case instead of split-or-widen. Continue-here says the admission is for storage only.\n\nLimits accepted: no content-shape check; the check is made when the hook runs, not atomically. Not in this arc: whether the checkpoint is gitignored or committable and the `.gitignore` deposit (polfer's installer area, deferred), and `verify:scope-provenance` membership, which still refuses a committed checkpoint. It was checked by reading the source at the pinned commit; no code was run.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 7052398730.\nverified-claims table 7052435955\n\nConfirm conjunct: yolo standing (Stop 1 7052343151, `yolo-standing: on`). Round-1 critic: comment 7052387635, posted by the parent verbatim as disclosed on panel-deposit 7052343454; its six classified findings are accepted on the lean. Clean audit of the bound lean: comment 7052426449 (`finding-classes: footnote`, `harvest-changed: false`, harvest digest equal to the lean's); follow-through: comment 7052426769. Not part of this contract: #6914 issue items 2 and 4 (a checkpoint-writing verb; the `.gitignore` deposit decision, deferred to the installer owner). Critic posts used: 2 of 2.\n\n",
+          "id": 7052436275,
+          "html_url": "https://github.com/deftai/directive/issues/6914#issuecomment-7052436275",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:44:29Z",
+          "updated_at": "2026-11-20T22:44:29Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n\ndeft-checkpoint cannot write xbrief/continue.xbrief.json while a story is active: the host write hook refuses it as outside file_scope\n\n## Context\n\nDirective 0.130.2 consumer, Claude Code host hooks, one active story (results log, file_scope = RESULTS.md and its mint/audit records), gated ritual fresh. Operator announced a break; agent ran the deft-checkpoint skill, which follows resilience/continue-here.md and persists to ./xbrief/continue.xbrief.json. Source: internal benchmark evidence (private).\n\n## Expected behavior\n\nThe continue checkpoint is writable at session end regardless of the active story scope: continue-here.md says the checkpoint MUST be written on session end and is ephemeral, not product work, so the scope fence should admit it (as a process-owned path) or the skill should write to an admitted location.\n\n## Actual behavior / gap\n\nPreToolUse Write refused: Directive denied this direct write: extra-path-not-admitted: xbrief/continue.xbrief.json (other: not source, test or fixture) is outside the story file_scope and the extra-path budget does not admit it. Split the extra paths to a follow-up story, or land a widened concrete brief on the base (#6221 / #5192). No checkpoint was saved. The only routes offered (split story, widened brief) are product-scope ceremony for an ephemeral process file. xbrief/continue.xbrief.json is also not in the deposited .gitignore, so even when written it shows up as an untracked file.\n\n## Session notes\n\nAcceptance: (1) xbrief/continue.xbrief.json (and legacy vbrief/continue.vbrief.json) is admitted by the host write hook and the commit scope fence as a process-owned path, without spending the extra-path budget; (2) or deft-checkpoint writes through a deft verb that the hooks admit; (3) the refusal text for this path names the checkpoint case instead of suggesting a story split; (4) the deposit decides whether the checkpoint is ignored or committable and says so. Related: #6803 (process-made edits refused by scope fences), #2849 (transactional checkpoints).\n\n---\n_Filed via `deft feedback:file` from a directive consumer project (Refs #1709 value-feedback gap escalation)._\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6520669074,
+        "origin": "deftai/directive#6914",
+        "id": "github.issue.6520669074"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "fb0582c2c2a31e75e0c3656b1386e73f4c7a372919cb5090ce8e74896f36af45"
+      },
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 6914,
+        "leanCommentId": 7052398730,
+        "harvestDigest": "206cffda9cd354e40f92f70b2e83ff67a31c5b2a2ca09a977fe090f65f04479a",
+        "slice": null
+      }
+    },
+    "id": "github.issue.6520669074",
+    "updated": "2026-11-22T22:14:07Z"
+  }
+}
