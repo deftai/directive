@@ -1,2 +1,0 @@
-section: Fixed
-- A direct Write or Edit to a plain folder beside the main checkout (for example the folder that holds a repository's linked worktrees) is no longer judged against the primary checkout's session ritual. The outside-every-checkout class (#6376) now also takes the checkout folder, found from the repository's own common directory, not from worktree registrations; inside it the `deft`/`directive` name rule skips only that folder's own path, and every other rule still applies (#6871).

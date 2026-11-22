@@ -1,2 +1,0 @@
-section: Added
-- `deft release:run <version>` runs a stable cut as one command: readiness before any write, setup, the local cut, one up-front approval (a `release-publish` grant for `<version>@<tree>` with the operator's `--expires`, plus an optional `release-promote-latest` grant), then push, merge, finish, npm watch, draft flip and promote with no further prompt. Without a TTY it prints the mint commands and stops; `--resume` continues from the run record in `.deft-scratch/release-run/` (#6876).

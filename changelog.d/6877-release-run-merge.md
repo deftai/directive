@@ -1,2 +1,0 @@
-section: Added
-- `deft release:run` now runs the merge phase itself: it waits on the release PR with `pr:watch` until CLEAN, enqueues it with `pr:wait-mergeable-and-merge --wait` only while the origin tip is still the cut base and the merge queue is empty, and re-runs a failed required check (or re-enqueues after a failed-check ejection) once per run, keeping the count in the run record across `--resume`. Under the run, finish pushes a tag a crash left only local and stops on a tag on any other commit (#6877).

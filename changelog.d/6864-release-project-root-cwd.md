@@ -1,2 +1,0 @@
-section: Fixed
-- Release verbs (`release`, `release-publish`, `release-rollback`, `release-e2e`) without `--project-root` or `DEFT_PROJECT_ROOT` now use the current working directory as the project root, where `authz:grant` mints grants, instead of the runtime package; a verb started outside the repository root uses that directory, and `--project-root` or `DEFT_PROJECT_ROOT` selects another root. The `[release]` tag-push deny line names the root it searched (#6864).

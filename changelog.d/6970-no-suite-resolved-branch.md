@@ -1,2 +1,0 @@
-section: Fixed
-- `deft check --no-suite` now fetches the project's branch instead of a hardcoded `origin master`: the PR's base (else `plan.policy.baseBranch`) and the delivery branch, through the safe fetch helper. When nothing local names a default it asks origin for its HEAD branch, fetches it, then sets `origin/HEAD`. A malformed branch policy stops the run naming the key, and a missing branch is reported with its source and fix instead of a network message (#6970).
