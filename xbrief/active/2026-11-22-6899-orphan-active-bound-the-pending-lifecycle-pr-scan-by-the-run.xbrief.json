@@ -1,0 +1,518 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6899",
+    "updated": "2026-11-22T22:09:53Z"
+  },
+  "plan": {
+    "title": "orphan-active: bound the pending lifecycle-PR scan by the run deadline (#6896 follow-up)",
+    "status": "running",
+    "narratives": {
+      "Description": "Bound the pending lifecycle-PR scan in verify:orphan-active by the run deadline it already has (startedMs + budgetMs on the existing clock), with no new constant. Once the deadline is reached the scan starts no new forge request, keeps every shipped verdict (exit 1) and prints one line saying the scan was cut short.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6899",
+      "Overview": "\n1. Inputs. `findPendingLifecyclePrs` (`packages/core/src/orphan-active/evaluate.ts`) takes `deadlineMs` and `nowMs`. `evaluate()` passes `startedMs + budgetMs` and the `clock` it already uses. No new constant.\n2. Admission check. Before each forge request in the scan (each open-PR list page and each changed-files page), the scan reads `nowMs()`. When `nowMs() >= deadlineMs`, it starts no further request and returns a failed result whose error says the scan was cut short at the run deadline, names the budget, and says how many same-repository open PRs it had read in full.\n3. Fail closed, all or nothing. The caller handles that result as it handles any failed scan today: every shipped verdict is kept (exit 1), including a brief whose lifecycle PR was already found before the cut. The `pendingNote` line reads `pending lifecycle check cut short at the run deadline, shipped verdicts kept: …`.\n4. Scope of the guarantee. The guarantee is: once the deadline is reached, the pending scan starts no new request. A request already running may end after the deadline, and the reads before and after the scan are not changed. The doc comment of `findPendingLifecyclePrs` says so.\n5. A scan that completes before the deadline behaves exactly as today.\n\n## Acceptance Criteria\n\n- Given an already expired deadline when the pending scan starts, then the scan makes no forge request, the run exits 1 with the shipped verdict, and the output carries the cut-short line.\n- Given a clock equal to the deadline before a request, then that request is not started.\n- Given many open same-repository PRs and a clock that passes the deadline during one request, then no further request starts after that request, the run exits 1 with the shipped verdict, and the output carries the cut-short line.\n- Given two shipped briefs, when the first brief's lifecycle PR is read in full and the deadline passes before the second is found, then both briefs keep the shipped verdict.\n- Given a scan that finishes before the deadline, then pending results and output are the same as today.\n- No new constant is added for the bound.\n\n\n",
+      "Constraint": "- Keeping matches found before the cut as pending (comment 7052252590, answer 1 and finding 2: a change to the result contract, not needed for the bound).\n- A whole-run time guarantee that passes the remaining budget into each `gh` call or bounds the other evaluation steps (comment 7052252590, finding 1: larger than this story).\n- Ending changed-files paging at the first short page in the shared reader (comment 7052252590, answer 3 and finding 3: a separate change).\n- Reading PRs whose body names the issue first (comment 7052252590, answer 4 and finding 3).",
+      "Labels": "design-critique:ingest-ready, framework-gap",
+      "UserStory": "As an operator running verify:orphan-active, I want the pending lifecycle-PR scan to stop starting forge requests once the run's existing deadline is reached, so that many open PRs cannot drag the scan far past its budget, and every shipped verdict is kept when the scan is cut short.",
+      "ImplementationPlan": "1. packages/core/src/orphan-active/evaluate.ts: findPendingLifecyclePrs takes deadlineMs and nowMs; evaluate() passes startedMs + budgetMs and its existing clock; no new constant (clauses 1, 11).\n2. Same file: before each forge request (each open-PR list page and each changed-files page) the scan reads nowMs(); when nowMs() >= deadlineMs it starts no further request and returns a failed result that says the scan was cut short at the run deadline, names the budget and the number of same-repository open PRs read in full; the doc comment states the guarantee and its limits (clauses 2, 4).\n3. Same file: the caller keeps every shipped verdict on that result and prints the cut-short pendingNote line; a scan that finishes in time is unchanged (clauses 3, 5).\n4. packages/core/src/orphan-active/evaluate.test.ts: expired, equal, crossing, two-brief and completes-in-time cases with fake forge callbacks and a shared fake clock (clauses 6-10).\n5. content/docs/orphan-active-verdict-basis.md if it describes the pending scan; changelog.d/6899-pending-scan-deadline.md: one fragment.",
+      "Traces": "#6899 accepted design-critique lean 7052259737 (record comment after verified-claims table 7052294202). Related: #6645 (pending lifecycle-PR scan), #6896 (Greptile finding)."
+    },
+    "items": [
+      {
+        "title": "Inputs. `findPendingLifecyclePrs` (`packages/core/src/orphan-active/evaluate.ts`) takes `deadlineMs` and `nowMs`. `evaluate()` passes `startedMs + budgetMs` and the `clock` it already uses. No new constant.",
+        "status": "proposed",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "Given evaluate() runs the pending scan, then findPendingLifecyclePrs receives deadlineMs = startedMs + budgetMs and the run's clock as nowMs, and no new constant is added."
+        }
+      },
+      {
+        "title": "Admission check. Before each forge request in the scan (each open-PR list page and each changed-files page), the scan reads `nowMs()`. When `nowMs() >= deadlineMs`, it starts no further request and returns a failed result whose error says the scan was cut short at the run deadline, names the budget, and says how many same-repository open PRs it had read in full.",
+        "status": "proposed",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "Given nowMs() >= deadlineMs before a forge request in the scan, then that request is not started and the scan returns a failed result naming the cut at the run deadline, the budget and the count of same-repository open PRs read in full."
+        }
+      },
+      {
+        "title": "Fail closed, all or nothing. The caller handles that result as it handles any failed scan today: every shipped verdict is kept (exit 1), including a brief whose lifecycle PR was already found before the cut. The `pendingNote` line reads `pending lifecycle check cut short at the run deadline, shipped verdicts kept: …`.",
+        "status": "proposed",
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "Given the scan is cut short, then every shipped verdict is kept (exit 1), including a brief whose lifecycle PR was already found, and the output carries the line 'pending lifecycle check cut short at the run deadline, shipped verdicts kept: ...'."
+        }
+      },
+      {
+        "title": "Scope of the guarantee. The guarantee is: once the deadline is reached, the pending scan starts no new request. A request already running may end after the deadline, and the reads before and after the scan are not changed. The doc comment of `findPendingLifecyclePrs` says so.",
+        "status": "proposed",
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "Given the findPendingLifecyclePrs doc comment, then it says the scan starts no new request once the deadline is reached, that a running request may end after the deadline, and that reads before and after the scan are unchanged."
+        }
+      },
+      {
+        "title": "A scan that completes before the deadline behaves exactly as today.",
+        "status": "proposed",
+        "id": "clause.5",
+        "narrative": {
+          "Acceptance": "Given a scan that finishes before the deadline, then its result is the same as before this change."
+        }
+      },
+      {
+        "title": "Given an already expired deadline when the pending scan starts, then the scan makes no forge request, the run exits 1 with the shipped verdict, and the output carries the cut-short line.",
+        "status": "proposed",
+        "id": "clause.6",
+        "narrative": {
+          "Acceptance": "Given an expired deadline when the scan starts, then no forge request is made, the run exits 1 with the shipped verdict and the output has the cut-short line."
+        }
+      },
+      {
+        "title": "Given a clock equal to the deadline before a request, then that request is not started.",
+        "status": "proposed",
+        "id": "clause.7",
+        "narrative": {
+          "Acceptance": "Given a clock equal to the deadline before a request, then that request is not started."
+        }
+      },
+      {
+        "title": "Given many open same-repository PRs and a clock that passes the deadline during one request, then no further request starts after that request, the run exits 1 with the shipped verdict, and the output carries the cut-short line.",
+        "status": "proposed",
+        "id": "clause.8",
+        "narrative": {
+          "Acceptance": "Given many open same-repository PRs and a clock that passes the deadline during one request, then no further request starts, the run exits 1 with the shipped verdict and the output has the cut-short line."
+        }
+      },
+      {
+        "title": "Given two shipped briefs, when the first brief's lifecycle PR is read in full and the deadline passes before the second is found, then both briefs keep the shipped verdict.",
+        "status": "proposed",
+        "id": "clause.9",
+        "narrative": {
+          "Acceptance": "Given two shipped briefs where the first brief's lifecycle PR is read in full and the deadline passes before the second is found, then both briefs keep the shipped verdict."
+        }
+      },
+      {
+        "title": "Given a scan that finishes before the deadline, then pending results and output are the same as today.",
+        "status": "proposed",
+        "id": "clause.10",
+        "narrative": {
+          "Acceptance": "Given a scan that finishes before the deadline, then pending results and output match the behavior before this change."
+        }
+      },
+      {
+        "title": "No new constant is added for the bound.",
+        "status": "proposed",
+        "id": "clause.11",
+        "narrative": {
+          "Acceptance": "Given the diff, then no new constant is added for the bound; the deadline comes from the existing budgetMs and clock."
+        }
+      }
+    ],
+    "tags": [
+      "design-critique:ingest-ready",
+      "framework-gap"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6899",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6899: orphan-active: bound the pending lifecycle-PR scan by the run deadline (#6896 follow-up)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6645",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6645"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "nowMs() >= deadlineMs",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L5"
+        },
+        {
+          "command": "pending lifecycle check cut short at the run deadline, shipped verdicts kept: …",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L6"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/orphan-active/evaluate.ts",
+          "packages/core/src/orphan-active/evaluate.test.ts",
+          "content/docs/orphan-active-verdict-basis.md",
+          "changelog.d/6899-pending-scan-deadline.md",
+          "docs/RULE-MAP.md",
+          "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "xbrief/evaluator-surface-disposition.json",
+          "xbrief/.audit/spec-drift/github.issue.6519484545.json"
+        ],
+        "verify_commands": [
+          "npx vitest run packages/core/src/orphan-active/evaluate.test.ts packages/core/src/orphan-active/evaluate-changed-only.test.ts"
+        ],
+        "size": "small",
+        "file_scope_confidence": "high",
+        "depends_on": [],
+        "expected_outputs": [
+          "findPendingLifecyclePrs takes deadlineMs and nowMs; evaluate() passes startedMs + budgetMs and its clock; no new constant",
+          "once nowMs() >= deadlineMs the pending scan starts no new forge request, keeps every shipped verdict (exit 1) and prints a cut-short line",
+          "evaluate.test.ts covers expired, equal, crossing, two-brief and completes-before-deadline cases",
+          "one changelog fragment changelog.d/6899-pending-scan-deadline.md"
+        ],
+        "conflict_group": "orphan-active",
+        "model_tier": "high",
+        "acceptance_criteria_justification": "The 11 clauses are the Bound-remedy items and Acceptance Criteria of the accepted design-critique lean 7052259737, harvested and digest-pinned by triage:accept (Spec-path); they cannot be merged or dropped without breaking the admitted-source pin."
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: triage\n```\n\nStop 1 — Gate (arc 6899; no-ingest)\n\nmechanism-shaped: true\ndesign-critique: warranted, because bounding a fail-closed forge scan by a wall-clock deadline decides when `verify:orphan-active` keeps a shipped verdict (exit 1) against a brief whose lifecycle PR is open, and the cut-short rule, its message and which reads count against the deadline must be one clear rule, not a second budget.\n\nTarget-digest: sha256:79cb9c39cf2cd162fb192306384749e34deaa5042685faa8d22338a9d9ce17d5\ndispatch-sha: 880c91ed079578e900c1f2ef680efbfa6e6d61af\ndest: C:/Repos/deft/wt/arc-6899 (pinKind origin-default, process-only-no-install)\narc-mode: no-ingest\nyolo-standing: on\ncharter: open critique\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\nspend-why: one function, one caller and one test file; a thin arc with one critic of a different model family, then one pain audit.\ncritic-post cap: 2 (set by the operator for this arc: one round-1 critic and one pain audit; no recut audit)\nmateriality-bar: open\ntarget-kind: issue\nceiling-kind: comment-id\nverification-path: pin-read git show 880c91ed079578e900c1f2ef680efbfa6e6d61af: + dest cwd-without-occupy\npain: P1\n\n## In plain English\nWhen `verify:orphan-active` finds a brief whose issue shipped, it now looks for an open lifecycle PR that moves that brief to `completed/` (#6645). To do that it lists every open PR and reads the changed files of each one, one request at a time, and each file listing costs one extra request for an empty last page. With about 20 open PRs that is about 40 requests in a row, and nothing stops the scan when the run's time budget (5 seconds for `--issue N`, 15 seconds for the sweep) is spent. The budget today is only reported after the fact.\n\nThe recommended fix passes the run's own deadline (the start time plus `budgetMs`, on the clock `evaluate()` already has) into the scan. The scan checks the deadline before each request. When the deadline has passed, it stops, keeps every shipped verdict (fail closed, as a failed read does today), and prints one line that says the pending scan was cut short. No new constant.\n\n## Pains\n- P1 — The pending lifecycle-PR scan in `verify:orphan-active` has no bound: it reads the changed files of every open same-repository PR, sequentially, and can run far past the run's latency budget (`budgetMs`) with no stop.\n\n## Constraints (not pains)\n- No new constant: the bound is the existing `budgetMs` and the existing clock seam `nowMs` (issue AC 1).\n- Fail closed: a cut-short scan keeps the shipped verdicts, as any failed or incomplete read does today (issue AC 2; `findPendingLifecyclePrs` doc comment).\n- A test with many open PRs shows the run ends within budget and keeps the shipped verdict (issue AC 3).\n\n## Anchors at the dispatch SHA\n- `packages/core/src/orphan-active/evaluate.ts` 591-632: `findPendingLifecyclePrs` lists all open PRs, then one paged changed-files read per same-repo PR; any failed page returns `ok: false`.\n- `packages/core/src/orphan-active/evaluate.ts` 532-559: `collectLifecyclePages` pages until `hasNextPage` is false; no deadline.\n- `packages/core/src/orphan-active/evaluate.ts` 652-659: `budgetMs` (scoped vs aggregate) and `clock` / `startedMs` exist in `evaluate()`.\n- `packages/core/src/orphan-active/evaluate.ts` 780-815: the caller keeps every shipped verdict and writes `pendingNote` on `ok: false`.\n- `packages/core/src/orphan-active/evaluate.ts` 359-386 and 855-862: the budget is only reported (`Budget: took … against a … budget`).\n- `packages/core/src/orphan-active/issue-state.ts` 41 and 50: `SCOPED_LATENCY_BUDGET_MS` 5000, `AGGREGATE_LATENCY_BUDGET_MS` 15000.\n- `packages/core/src/scope/delivery-evidence.ts` 1724-1760: `fetchPrFilesPageLive` ends paging at the first empty page (`hasNextPage = nodes.length > 0`), so a non-empty listing costs one extra request; the open-PR list (1781-1815) ends at the first short page.\n- `packages/core/src/orphan-active/evaluate.test.ts`: the `lifecycleForge` test seam drives the pending check.\n\n## Recommended mechanism (the thing to critique)\n- D1. `findPendingLifecyclePrs` takes two more inputs: `deadlineMs` (the run's `startedMs + budgetMs`) and `nowMs` (the clock `evaluate()` already uses). `evaluate()` passes both. No new constant.\n- D2. Before each forge request in the scan (each open-PR list page and each changed-files page), the scan checks `nowMs() >= deadlineMs`. When true, it makes no further request and returns a failed result whose error says the scan was cut short at the run deadline, with the budget and how many of the same-repo open PRs it read.\n- D3. The caller handles that result as it handles any failed scan today: every shipped verdict is kept (exit 1), and the `pendingNote` line reads `pending lifecycle check cut short at the run deadline, shipped verdicts kept: …`. Matches found before the cut are not reported as pending.\n- D4. Tests: a fake forge with many open PRs and a fake clock that advances per request shows the scan stops at the deadline, the run returns exit 1 with the shipped verdict, and the cut-short line; a scan that finishes before the deadline behaves as today.\n\nQuestions for the critic:\n1. D3 drops matches found before the cut. A fully read PR whose files move the brief is complete proof for that brief. Should those matches stay pending, with only the unproven briefs keeping the shipped verdict, or is the all-or-nothing rule of today the right one to keep?\n2. A check before each request leaves one request running past the deadline (a `gh api` call has no timeout here). Is that overrun acceptable, given that the budget is a reporting budget today?\n3. In the scoped form (`--issue N`, 5 seconds) the issue reads already spend part of the budget, so on a repository with about 20 open PRs the scan will often be cut short and the pending feature of #6645 will rarely help. Should this story also end the changed-files paging at the first short page (fewer than 100 entries) in `fetchPrFilesPageLive`, which halves the requests, or is that a separate change to a shared reader?\n4. Should the scan read first the open PRs whose body names a shipped brief's issue or file name (ordering only; the file-move proof still decides), so the usual lifecycle PR is found before the deadline?\n\n",
+          "id": 7052198899,
+          "html_url": "https://github.com/deftai/directive/issues/6899#issuecomment-7052198899",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:30:58Z",
+          "updated_at": "2026-11-20T22:30:58Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 1\ninput-ceiling: 7052199258\nseat: codex launcher: codex (exec --ephemeral --sandbox read-only -C dest)\n\ncharter: open critique\nspend: N=1\narc-mode: no-ingest\nmateriality-bar: open\ndispatch-sha: 880c91ed079578e900c1f2ef680efbfa6e6d61af\ndest: C:/Repos/deft/wt/arc-6899\nverification-path: pin-read git show 880c91ed079578e900c1f2ef680efbfa6e6d61af: + dest cwd-without-occupy\naudit-targets: none\nStop 1 cite: comment 7052198899\n\n## Launch posture (disclosed)\n- The parent is Claude Code (claude-opus-5-5). The one critic seat is Codex, a different model family, run with a read-only launcher against the dest. The launch probe for that argv returned `pong` rc 0 in this session; that proves launchability only.\n- The Codex seat has no GitHub access. It reads a parent-written thread snapshot (issue body, thread up to the ceiling, this deposit, linked issue bodies) and reads code with `git show <dispatch-sha>:<path>`. The parent posts the critic's final message verbatim.\n- This deposit was created and then edited once, only to record its own comment id as the input ceiling.\n\n",
+          "id": 7052199258,
+          "html_url": "https://github.com/deftai/directive/issues/6899#issuecomment-7052199258",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:30:59Z",
+          "updated_at": "2026-11-20T22:31:00Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\n\nThe pending lifecycle check can spend too long reading unrelated pull requests. Reusing the run’s deadline is a useful, small improvement, but checking before requests cannot guarantee that the run finishes within budget. The recommended mechanism cannot bind with that guarantee unchanged.\n\nMy answers to the four questions:\n\n1. Keep the existing all-or-nothing result for this narrow change. Preserving independently proven matches is defensible, but changes the existing failure contract and deserves separate treatment.\n2. One request overrunning is acceptable only as an explicitly limited improvement: no further pending-scan requests start after the deadline. It does not satisfy “the run finishes within budget.” The production runner already has a 30-second subprocess timeout.\n3. Ending changed-files pagination on a short page is a useful separate change to the shared reader. It reduces requests but does not establish a deadline guarantee.\n4. Defer body-based ordering. The current scan already stops when every wanted brief has a match. Ordering may help discovery, but adds a heuristic and cannot establish either proof or a time bound.\n\nAll code evidence below was read at `880c91ed079578e900c1f2ef680efbfa6e6d61af`. No files were changed, tests run, or posts made.\n\n### 1. blocks-the-design — Request admission is not a run-time bound\n\n**Evidence:** `packages/core/src/orphan-active/evaluate.ts:532–550` calls each page reader synchronously. `packages/core/src/orphan-active/issue-state.ts:71–82` routes production reads through `defaultRunGh`; `packages/core/src/pr-protected-issues/gh.ts:20–29` supplies a subprocess timeout, and `packages/core/src/pr-protected-issues/constants.ts:7` sets it to 30 seconds. Also, `evaluate.ts:822–850` performs scoped delivery-proof work after the pending scan.\n\n**Failure mode:** A request admitted just before the five-second deadline can run well beyond it. Earlier issue reads can already exhaust the budget, and later delivery-proof work can add more time. A fake clock advancing in convenient increments can make D4 pass without demonstrating the stated whole-run guarantee. The Stop 1 premise that the call has “no timeout here” is incorrect; it has no timeout derived from the remaining run budget.\n\n**Disposition consequence:** D1–D4 cannot bind against AC3 as written. The thin option is to state the guarantee precisely: the pending scan starts no new request once the existing deadline is reached, while in-flight requests and other evaluation stages can overrun. Tests should cover an already-expired deadline, exact equality, and a request that crosses it—not merely increments that land exactly on it. If whole-run completion within budget remains required, deadline propagation into blocking operations and other evaluation stages is necessary.\n\n### 2. sharpens-framing — Keeping all shipped verdicts is a compatibility choice, not a proof requirement\n\n**Evidence:** `evaluate.ts:583–589` explicitly declares whole-check failure on any incomplete read; `616–627` discards the accumulated map on a later failure, despite matching each brief independently. `797–807` applies matches only on overall success. Existing tests at `evaluate.test.ts:1222–1249` exercise failed reads with one brief, not a successful match followed by failure for another.\n\n**Failure mode:** In a sweep with two shipped briefs, a fully read PR can prove the first pending, then the deadline can expire while searching for the second. D3 restores the first brief’s shipped verdict too. This is conservative and compatible, but loses valid relief because another brief remains unresolved.\n\n**Disposition consequence:** D3 can bind for this narrow latency change, with that consequence stated explicitly and a two-brief regression case. The strongest alternative is preserving complete per-brief proofs while keeping unresolved briefs shipped; that would improve usefulness, but requires a deliberate result-contract change. It is not necessary to add deadline admission checks.\n\n### 3. footnote — Pagination and ordering are optional improvements\n\n`scope/delivery-evidence.ts:1750–1758` confirms the extra empty-page request; `1813–1815` already uses short-page termination for open PRs. A shared-reader pagination change could reduce scan cost, but remains separate from bounding request admission.\n\n`evaluate.ts:608` already stops once all wanted paths match. The tests at `evaluate.test.ts:1188–1203` intentionally accept a lifecycle PR whose body references another issue. Body text therefore cannot become an eligibility filter. If ordering is added later, untrusted body text may influence priority only; exact file-move evidence must remain decisive.\n\n### 4. footnote — The single-seat ceiling differs from the contract’s default\n\nThe envelope and deposit agree on ceiling `7052199258`. However, `content/contracts/design-critique.md`, under “Envelope and ceiling,” specifies the triage write-back as the round-one ceiling for a single critic when one exists; here that is `7052198899`. I honored the explicit envelope ceiling. The additional comment is the launch deposit, so this does not change the technical verdict.",
+          "id": 7052252590,
+          "html_url": "https://github.com/deftai/directive/issues/6899#issuecomment-7052252590",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:33:57Z",
+          "updated_at": "2026-11-20T22:33:57Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** first successor lean under Stop 1 7052198899 (round 1: 1 of 1 critic posted, comment 7052252590)\n\n## In plain English\nProblem: when `verify:orphan-active` finds a shipped brief, it looks for an open lifecycle PR that moves the brief to `completed/`. It reads the changed files of every open same-repository PR, one request at a time, and nothing stops it when the run's time budget is spent.\n\nWhat the critic found: passing the run's deadline into the scan is the right small fix, but a check before each request is not a promise that the whole run ends within budget. A request that starts just before the deadline can run for up to the 30-second `gh` timeout, the issue reads before the scan can already use the budget, and the delivery-proof step after it can add more. The guarantee must be stated as what it is: once the deadline is reached, the scan starts no new request. The critic also asked that the all-or-nothing rule be kept on purpose, with its cost stated and a two-brief test.\n\nSolution this lean proposes: the scan takes the run's existing deadline (start time plus `budgetMs`, on the clock `evaluate()` already has) and checks it before each forge request. Once the deadline is reached it starts no new request, the run keeps every shipped verdict, and the output says the pending scan was cut short. No new constant.\n\nWhat this adds: two inputs on one function and one output line. No new gate, refusal, constant or stored state.\n\nWhat it does not do:\n- It does not promise that the whole run ends within budget. A request already running can finish late, and the reads before and after the scan are not bounded by this change.\n- It does not keep matches found before the cut. When the scan is cut short, every shipped brief keeps its shipped verdict, including one whose lifecycle PR was already found.\n- It does not change the changed-files paging (the extra empty last page) or the order in which PRs are read.\nIf confirmed, the synthesis would assert this design. There is no leftover next-build.\n\nTarget-digest: sha256:79cb9c39cf2cd162fb192306384749e34deaa5042685faa8d22338a9d9ce17d5\n**Spec-path:** Bound remedy on this lean\nSupersedes: Stop 1 write-back, comment 7052198899. Sibling count: 1 (comment 7052252590). Panel deposit: comment 7052199258.\n\nrelieves: P1\n\n## Bound remedy\n1. Inputs. `findPendingLifecyclePrs` (`packages/core/src/orphan-active/evaluate.ts`) takes `deadlineMs` and `nowMs`. `evaluate()` passes `startedMs + budgetMs` and the `clock` it already uses. No new constant.\n2. Admission check. Before each forge request in the scan (each open-PR list page and each changed-files page), the scan reads `nowMs()`. When `nowMs() >= deadlineMs`, it starts no further request and returns a failed result whose error says the scan was cut short at the run deadline, names the budget, and says how many same-repository open PRs it had read in full.\n3. Fail closed, all or nothing. The caller handles that result as it handles any failed scan today: every shipped verdict is kept (exit 1), including a brief whose lifecycle PR was already found before the cut. The `pendingNote` line reads `pending lifecycle check cut short at the run deadline, shipped verdicts kept: …`.\n4. Scope of the guarantee. The guarantee is: once the deadline is reached, the pending scan starts no new request. A request already running may end after the deadline, and the reads before and after the scan are not changed. The doc comment of `findPendingLifecyclePrs` says so.\n5. A scan that completes before the deadline behaves exactly as today.\n\n## Acceptance Criteria\n- Given an already expired deadline when the pending scan starts, then the scan makes no forge request, the run exits 1 with the shipped verdict, and the output carries the cut-short line.\n- Given a clock equal to the deadline before a request, then that request is not started.\n- Given many open same-repository PRs and a clock that passes the deadline during one request, then no further request starts after that request, the run exits 1 with the shipped verdict, and the output carries the cut-short line.\n- Given two shipped briefs, when the first brief's lifecycle PR is read in full and the deadline passes before the second is found, then both briefs keep the shipped verdict.\n- Given a scan that finishes before the deadline, then pending results and output are the same as today.\n- No new constant is added for the bound.\n\n## Reject\n- Keeping matches found before the cut as pending (comment 7052252590, answer 1 and finding 2: a change to the result contract, not needed for the bound).\n- A whole-run time guarantee that passes the remaining budget into each `gh` call or bounds the other evaluation steps (comment 7052252590, finding 1: larger than this story).\n- Ending changed-files paging at the first short page in the shared reader (comment 7052252590, answer 3 and finding 3: a separate change).\n- Reading PRs whose body names the issue first (comment 7052252590, answer 4 and finding 3).\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 7052252590 | 1. Request admission is not a run-time bound | blocks-the-design | accept-into-contract (item 4 states the guarantee as request admission only; Acceptance Criteria cover an expired deadline, the exact deadline and a request that crosses it) |\n| comment 7052252590 | 2. Keeping all shipped verdicts is a compatibility choice, not a proof requirement | sharpens-framing | accept-into-contract (item 3 keeps all or nothing on purpose and states the cost; two-brief Acceptance Criterion) |\n\nFootnotes in the census, no take: comment 7052252590 findings 3 and 4.\n\nNon-self-arbitration: the parent wrote the Stop 1 write-back, the recommended mechanism and this lean. The `relieves` cite stays open until a later critic targets it. This lean introduces no premise beyond the accepted findings, so it records no audit marker.\n\n",
+          "id": 7052259737,
+          "html_url": "https://github.com/deftai/directive/issues/6899#issuecomment-7052259737",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:34:22Z",
+          "updated_at": "2026-11-20T22:34:22Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1\nfinding-classes: none\nharvest-changed: false\nharvest-digest: sha256:2af4f2f4ced135c146d5620b80c0a1e3293b1d71ba91297c20389d24259a7022\n\n## In plain English\n\nThe proposed change relieves the uncontrolled sequence of requests: once the run’s deadline is reached, the pending scan cannot keep starting more reads. It does not guarantee that the command finishes within budget. The lean now states that limit explicitly and tests the narrower guarantee.\n\npain-P1: holds - Stop 1 identifies a sequential scan that continues beyond the budget with no stop. Checking the existing deadline before every page request supplies that stop, while preserving shipped verdicts when the scan is incomplete.\n\nI re-read the code at `880c91ed079578e900c1f2ef680efbfa6e6d61af`:\n\n- **Coverage:** `evaluate.ts:532–559` contains the paging loop; `591–632` routes both open-PR and changed-files listings through it. Checking each page request covers both sources of continued scanning.\n- **Failure behavior:** `evaluate.ts:797–810` applies pending matches only after overall success. Returning failure on cutoff therefore preserves every shipped verdict, including a previously matched brief.\n- **Testability:** `evaluate.test.ts:1156–1180` supplies replaceable forge callbacks, and `evaluate.ts:117,658–659` supplies the clock seam. Callbacks can record request starts and advance a shared fake clock. These seams support expired, equal, crossing, two-brief, and successful-completion cases without sleeping. Pagination cases should exercise both listing methods.\n- **No new bound constant:** `evaluate.ts:657–659` already selects the budget and captures the start time. The deadline uses those values. The caller also retains `budgetMs` for the diagnostic; an absolute deadline alone must not be mistaken for the budget duration.\n\nThe whole-run limitation and all-or-nothing tradeoff are already accepted and explicitly incorporated. I found no new evidence requiring either decision to reopen. No files were changed, tests run, or posts made.",
+          "id": 7052284371,
+          "html_url": "https://github.com/deftai/directive/issues/6899#issuecomment-7052284371",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:35:47Z",
+          "updated_at": "2026-11-20T22:35:47Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nBound lean: comment 7052259737. Dispatch SHA: 880c91ed079578e900c1f2ef680efbfa6e6d61af. Non-self-arbitration: the parent wrote the Stop 1 write-back, the recommended mechanism and the lean. Each row names who read the source at the pin (`git show <sha>:<path>`). No tests were run. Both critic posts are from one family (Codex), so agreement between them is not counted as extra confirmation; rows that only critics read are marked so.\n\n| # | Claim | Status | Method |\n|---|---|---|---|\n| 1 | `findPendingLifecyclePrs` lists all open PRs, then pages the changed files of each same-repository PR through `collectLifecyclePages`, with no deadline | verified | parent read of `packages/core/src/orphan-active/evaluate.ts` 532-559 and 591-632; audit 7052284371 (same lines) |\n| 2 | `evaluate()` already has `budgetMs` (5000 scoped, 15000 sweep), `clock` and `startedMs`; the budget is only reported | verified | parent read of `evaluate.ts` 652-659, 359-386, 855-862 and `issue-state.ts` 41, 50 |\n| 3 | The caller keeps every shipped verdict and writes `pendingNote` when the scan returns `ok: false`; matches apply only on overall success | verified | parent read of `evaluate.ts` 780-815; critic 7052252590 finding 2 and audit 7052284371 (797-810) |\n| 4 | Each `gh` read runs synchronously with a fixed 30-second subprocess timeout, so a request started before the deadline can end after it | verified | parent read of `pr-protected-issues/gh.ts` 15-32 and `constants.ts` 7; critic 7052252590 finding 1 |\n| 5 | The changed-files reader ends paging at the first empty page; the open-PR list ends at the first short page | verified | parent read of `scope/delivery-evidence.ts` 1724-1760 and 1781-1815; critic 7052252590 finding 3 |\n| 6 | The `lifecycleForge` seam and the `nowMs` clock seam let tests record request starts and advance a fake clock | verified | parent read of `evaluate.ts` 116-133 and `evaluate.test.ts` 1180-1250; audit 7052284371 |\n| 7 | The Bound remedy relieves pain P1 | verified as design coverage | audit 7052284371 (`pain-P1: holds`, `finding-classes: none`, `harvest-changed: false`, digest equal to the lean's) |\n| 8 | The whole `verify:orphan-active` run ends within budget | not claimed | the lean states the guarantee as request admission only (item 4); nothing was executed |\n\n",
+          "id": 7052294202,
+          "html_url": "https://github.com/deftai/directive/issues/6899#issuecomment-7052294202",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:36:19Z",
+          "updated_at": "2026-11-20T22:36:19Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nProblem: when `verify:orphan-active` finds a shipped brief, it looks for an open lifecycle PR that moves the brief to `completed/`. It read the changed files of every open same-repository PR, one request at a time, and nothing stopped it when the run's time budget was spent.\n\nAccepted solution: the scan takes the run's existing deadline (start time plus `budgetMs`, on the clock `evaluate()` already has) and checks it before each forge request. Once the deadline is reached it starts no new request, every shipped verdict is kept (exit 1), and the output says the pending scan was cut short. No new constant.\n\nLimits accepted: this bounds when the scan starts requests, not how long the whole run takes; a request already running can end late, and the reads before and after the scan are not changed. When the scan is cut short, a brief whose lifecycle PR was already found also keeps its shipped verdict. The changed-files paging and the order of PRs are not changed. The design was checked by reading the source at the pinned commit; no code was run. No leftover next-build.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 7052259737.\nverified-claims table 7052294202\n\nConfirm conjunct: yolo standing (Stop 1 7052198899, `yolo-standing: on`). Round-1 critic: comment 7052252590, posted by the parent verbatim as disclosed on panel-deposit 7052199258; both classified findings are accepted on the lean. Clean audit: comment 7052284371 (`finding-classes: none`, `harvest-changed: false`, harvest digest equal to the lean's). Critic posts used: 2 of 2.\n\n",
+          "id": 7052294525,
+          "html_url": "https://github.com/deftai/directive/issues/6899#issuecomment-7052294525",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T22:36:20Z",
+          "updated_at": "2026-11-20T22:36:20Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Problem\n\nFrom Greptile on #6896 (#6645 P3): when no lifecycle PR matches, `findPendingLifecyclePrs` (`packages/core/src/orphan-active/evaluate.ts`, around lines 612-615) reads the changed files of every open PR in the repository, plus one extra request per non-empty listing for the empty last page. With 20 small open PRs that is about 40 sequential requests, which can exceed the 5-second scoped budget of `verify:orphan-active`.\n\n## Acceptance Criteria\n\n- [ ] The pending check takes the run's existing deadline (`budgetMs` and the clock `evaluate()` already has), with no new constant.\n- [ ] When the deadline passes, the check stops and keeps the shipped verdict (fail closed), with a line saying the pending scan was cut short.\n- [ ] A test with many open PRs shows the run finishes within budget and keeps the shipped verdict.\n\nRefs #6645, #6896\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6519484545,
+        "origin": "deftai/directive#6899",
+        "id": "github.issue.6519484545"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "79cb9c39cf2cd162fb192306384749e34deaa5042685faa8d22338a9d9ce17d5"
+      },
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 6899,
+        "leanCommentId": 7052259737,
+        "harvestDigest": "2af4f2f4ced135c146d5620b80c0a1e3293b1d71ba91297c20389d24259a7022",
+        "slice": null
+      },
+      "kind": "story"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per harvested lean item (11), in list order (#6333)",
+      "sentences": [
+        "Inputs. `findPendingLifecyclePrs` (`packages/core/src/orphan-active/evaluate.ts`) takes `deadlineMs` and `nowMs`. `evaluate()` passes `startedMs + budgetMs` and the `clock` it already uses. No new constant.",
+        "Admission check. Before each forge request in the scan (each open-PR list page and each changed-files page), the scan reads `nowMs()`. When `nowMs() >= deadlineMs`, it starts no further request and returns a failed result whose error says the scan was cut short at the run deadline, names the budget, and says how many same-repository open PRs it had read in full.",
+        "Fail closed, all or nothing. The caller handles that result as it handles any failed scan today: every shipped verdict is kept (exit 1), including a brief whose lifecycle PR was already found before the cut. The `pendingNote` line reads `pending lifecycle check cut short at the run deadline, shipped verdicts kept: …`.",
+        "Scope of the guarantee. The guarantee is: once the deadline is reached, the pending scan starts no new request. A request already running may end after the deadline, and the reads before and after the scan are not changed. The doc comment of `findPendingLifecyclePrs` says so.",
+        "A scan that completes before the deadline behaves exactly as today.",
+        "Given an already expired deadline when the pending scan starts, then the scan makes no forge request, the run exits 1 with the shipped verdict, and the output carries the cut-short line.",
+        "Given a clock equal to the deadline before a request, then that request is not started.",
+        "Given many open same-repository PRs and a clock that passes the deadline during one request, then no further request starts after that request, the run exits 1 with the shipped verdict, and the output carries the cut-short line.",
+        "Given two shipped briefs, when the first brief's lifecycle PR is read in full and the deadline passes before the second is found, then both briefs keep the shipped verdict.",
+        "Given a scan that finishes before the deadline, then pending results and output are the same as today.",
+        "No new constant is added for the bound."
+      ],
+      "admitted_source_sentences": [
+        "Inputs. `findPendingLifecyclePrs` (`packages/core/src/orphan-active/evaluate.ts`) takes `deadlineMs` and `nowMs`. `evaluate()` passes `startedMs + budgetMs` and the `clock` it already uses. No new constant.",
+        "Admission check. Before each forge request in the scan (each open-PR list page and each changed-files page), the scan reads `nowMs()`. When `nowMs() >= deadlineMs`, it starts no further request and returns a failed result whose error says the scan was cut short at the run deadline, names the budget, and says how many same-repository open PRs it had read in full.",
+        "Fail closed, all or nothing. The caller handles that result as it handles any failed scan today: every shipped verdict is kept (exit 1), including a brief whose lifecycle PR was already found before the cut. The `pendingNote` line reads `pending lifecycle check cut short at the run deadline, shipped verdicts kept: …`.",
+        "Scope of the guarantee. The guarantee is: once the deadline is reached, the pending scan starts no new request. A request already running may end after the deadline, and the reads before and after the scan are not changed. The doc comment of `findPendingLifecyclePrs` says so.",
+        "A scan that completes before the deadline behaves exactly as today.",
+        "Given an already expired deadline when the pending scan starts, then the scan makes no forge request, the run exits 1 with the shipped verdict, and the output carries the cut-short line.",
+        "Given a clock equal to the deadline before a request, then that request is not started.",
+        "Given many open same-repository PRs and a clock that passes the deadline during one request, then no further request starts after that request, the run exits 1 with the shipped verdict, and the output carries the cut-short line.",
+        "Given two shipped briefs, when the first brief's lifecycle PR is read in full and the deadline passes before the second is found, then both briefs keep the shipped verdict.",
+        "Given a scan that finishes before the deadline, then pending results and output are the same as today.",
+        "No new constant is added for the bound."
+      ],
+      "admitted_source_digest": "29429665d3007b025ad750d3a34a1316c201e6e9b9475e967dd71ed4dd27e0bc",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Inputs. `findPendingLifecyclePrs` (`packages/core/src/orphan-active/evaluate.ts`) takes `deadlineMs` and `nowMs`. `evaluate()` passes `startedMs + budgetMs` and the `clock` it already uses. No new constant.",
+          "artifact_path": "packages/core/src/orphan-active/evaluate.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Admission check. Before each forge request in the scan (each open-PR list page and each changed-files page), the scan reads `nowMs()`. When `nowMs() >= deadlineMs`, it starts no further request and returns a failed result whose error says the scan was cut short at the run deadline, names the budget, and says how many same-repository open PRs it had read in full.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Fail closed, all or nothing. The caller handles that result as it handles any failed scan today: every shipped verdict is kept (exit 1), including a brief whose lifecycle PR was already found before the cut. The `pendingNote` line reads `pending lifecycle check cut short at the run deadline, shipped verdicts kept: …`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Scope of the guarantee. The guarantee is: once the deadline is reached, the pending scan starts no new request. A request already running may end after the deadline, and the reads before and after the scan are not changed. The doc comment of `findPendingLifecyclePrs` says so.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "A scan that completes before the deadline behaves exactly as today.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Given an already expired deadline when the pending scan starts, then the scan makes no forge request, the run exits 1 with the shipped verdict, and the output carries the cut-short line.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Given a clock equal to the deadline before a request, then that request is not started.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Given many open same-repository PRs and a clock that passes the deadline during one request, then no further request starts after that request, the run exits 1 with the shipped verdict, and the output carries the cut-short line.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Given two shipped briefs, when the first brief's lifecycle PR is read in full and the deadline passes before the second is found, then both briefs keep the shipped verdict.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Given a scan that finishes before the deadline, then pending results and output are the same as today.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "No new constant is added for the bound.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.6519484545",
+    "updated": "2026-11-22T22:09:53Z"
+  }
+}
