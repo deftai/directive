@@ -20,11 +20,16 @@ import {
   MIGRATED_ARTIFACT_DIR,
   resolveLifecycleRoot,
 } from "../layout/resolve.js";
+import { isConcreteScopePath } from "../orchestration/pathspec.js";
 import { resolveRepo } from "../triage/queue/repo.js";
 import { referenceWithDefaultTrust, slugify } from "../vbrief-build/build.js";
 import { EMITTED_VBRIEF_VERSION } from "../vbrief-build/constants.js";
 import { d7Basename, validateFilename } from "../vbrief-validate/filename.js";
-import { READY_REQUIRES_PARALLEL_SAFE } from "../vbrief-validation/story-quality.js";
+import {
+  isPlaceholderText,
+  READY_REQUIRES_PARALLEL_SAFE,
+  VERIFY_EVIDENCE_TERMS,
+} from "../vbrief-validation/story-quality.js";
 import { formatCoverageReportLine, validateCoverageMap } from "./coverage-map.js";
 import { buildParentLineageArtifact } from "./parent-lineage.js";
 import { formatBriefJson } from "./vbrief-json.js";
@@ -122,17 +127,6 @@ const CODE_PATH_TERMS = [
   "src/",
 ];
 
-const VERIFY_EVIDENCE_TERMS = [
-  "assert",
-  "evidence",
-  "fixture",
-  "report",
-  "spec",
-  "test",
-  "tests/",
-  "verify",
-];
-
 const GENERIC_VERIFY_COMMANDS = new Set([
   "cargo test",
   "go test ./...",
@@ -141,19 +135,6 @@ const GENERIC_VERIFY_COMMANDS = new Set([
   "pytest",
   "task check",
 ]);
-
-const PLACEHOLDER_ACCEPTANCE_PATTERNS = [
-  "acceptance criteria for",
-  "copy from parent",
-  "copy from specification",
-  "placeholder",
-  "refine from parent",
-  "tbd",
-  "to be defined",
-  "to refine",
-  "to refine from parent scope",
-  "todo",
-];
 
 const DOCS_ONLY_ACCEPTANCE_PATTERNS = [
   "docs updated",
@@ -370,7 +351,7 @@ function implementationPlanIssues(implementationPlan: string): string[] {
     issues.push("plan.narratives.ImplementationPlan must contain at least two concrete steps");
   }
   const lower = implementationPlan.toLowerCase();
-  if (PLACEHOLDER_ACCEPTANCE_PATTERNS.some((p) => lower.includes(p))) {
+  if (isPlaceholderText(implementationPlan)) {
     issues.push("plan.narratives.ImplementationPlan must not be placeholder text");
   }
   if (
@@ -393,7 +374,7 @@ function fileScopeIssues(swarm: JsonObj): string[] {
     const normalized = filePath.trim().replace(/^\/+|\/+$/g, "");
     const root = normalized.split("/")[0] ?? "";
     if (
-      /[*?[]/.test(normalized) ||
+      !isConcreteScopePath(normalized) ||
       BROAD_FILE_SCOPE_ROOTS.has(normalized) ||
       filePath.replace(/\/$/, "") in BROAD_FILE_SCOPE_ROOTS ||
       (BROAD_FILE_SCOPE_ROOTS.has(root) && (normalized === root || normalized === `${root}/*`))
@@ -454,7 +435,7 @@ export function storyQualityIssues(opts: {
   for (const criterion of acceptanceTexts) {
     const lower = criterion.toLowerCase();
     const normalized = normalizeStr(criterion);
-    if (PLACEHOLDER_ACCEPTANCE_PATTERNS.some((p) => lower.includes(p))) {
+    if (isPlaceholderText(criterion)) {
       issues.push("placeholder acceptance criterion");
     }
     if (normalized && (normalized === normalizedTitle || normalized === normalizedDescription)) {

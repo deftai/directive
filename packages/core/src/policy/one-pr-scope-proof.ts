@@ -20,6 +20,7 @@
  * (#3597, #3595) also reaches local scope admission.
  */
 
+import { hasGlobMagic } from "../orchestration/pathspec.js";
 import {
   compareExtractedIntent,
   type IntentCompareFinding,
@@ -271,10 +272,6 @@ function normalizeRel(raw: string): string {
   return raw.replace(/\\/g, "/").replace(/^\.\//, "");
 }
 
-function hasGlob(entry: string): boolean {
-  return entry.includes("*") || entry.includes("?") || entry.includes("[");
-}
-
 function describeIntentFinding(f: IntentCompareFinding): string {
   return `${f.path}: ${f.detail}`;
 }
@@ -309,7 +306,7 @@ function evaluateMintLevelRecordUnsafe(input: MintLevelRecordInput): MintLevelRe
   }
 
   const headScope = normalizeFileScope(extractFileScope(input.headPayload));
-  if (headScope.some(hasGlob)) return deny("head brief file_scope has a glob entry");
+  if (headScope.some(hasGlobMagic)) return deny("head brief file_scope has a glob entry");
   const recordScope = normalizeFileScope(Array.isArray(record.fileScope) ? record.fileScope : []);
   if (
     recordScope.length !== headScope.length ||
