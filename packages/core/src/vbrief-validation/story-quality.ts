@@ -71,6 +71,7 @@ const LIST_MARKER_RE = /^\s*(?:[-*+]|\d+[.)])\s+/;
 const EDGE_PUNCTUATION_RE = /^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu;
 const PATH_LIKE_RE = /\/|[\p{L}\p{N}][._-][\p{L}\p{N}]/u;
 const TEMPLATE_TOKEN_RE = /^(?:<|\{\{?|\[)\s*(?:placeholder|tbd|todo)\s*(?:>|\}\}?|\])[.,;:!?]*$/i;
+const MARKDOWN_WRAPPER_RE = /^[*_`~]+|[*_`~]+$/g;
 const DASH_TOKENS: ReadonlySet<string> = new Set(["-", "--", "\u2013", "\u2014"]);
 
 function isMarkerWord(word: string): boolean {
@@ -101,7 +102,7 @@ function isPlaceholderLine(line: string): boolean {
   if (wordTokens.every((w) => !w.pathLike && isMarkerWord(w.word))) return true;
   const [first, second] = words;
   if (first !== undefined && !first.pathLike && isMarkerWord(first.word)) {
-    if (first.raw.endsWith(":")) return true;
+    if (first.raw.replace(MARKDOWN_WRAPPER_RE, "").endsWith(":")) return true;
     if (second !== undefined && second.word.length === 0 && DASH_TOKENS.has(second.raw)) {
       return true;
     }

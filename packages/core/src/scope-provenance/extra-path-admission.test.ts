@@ -138,8 +138,9 @@ describe("assessExtraPaths (#6221)", () => {
   });
 
   it("refuses a production path with glob characters", () => {
-    const a = assessExtraPaths({ ...base, changedPaths: ["packages/core/src/[x].ts"] });
-    expect(a.refused).toEqual(["packages/core/src/[x].ts"]);
+    // Brackets are literal (#6936); only * and ? make a path glob-shaped.
+    const a = assessExtraPaths({ ...base, changedPaths: ["packages/core/src/*.ts"] });
+    expect(a.refused).toEqual(["packages/core/src/*.ts"]);
   });
 
   it("counts the allowance from allowanceScope when given", () => {

@@ -97,4 +97,27 @@ describe("placeholder text (#6929)", () => {
     });
     expect(flagged).toContain("placeholder acceptance criterion");
   });
+
+  it("flags a Markdown-bold TODO label in readiness and scope:decompose", () => {
+    const bold =
+      "**TODO:** define when the API returns an error and add assertions for each response field.";
+    expect(isPlaceholderText(bold)).toBe(true);
+    expect(isPlaceholderText("_TBD_: pick the limit")).toBe(true);
+    expect(isPlaceholderText("`TODO`: fill in")).toBe(true);
+    const texts = [bold, BASE.acceptanceTexts[1] ?? ""];
+    expect(storyQualityIssues({ ...BASE, acceptanceTexts: texts })).toContain(
+      "placeholder acceptance criterion",
+    );
+    expect(
+      decomposeStoryQualityIssues({
+        title: BASE.title,
+        description: BASE.description,
+        implementationPlan: BASE.implementationPlan,
+        userStory: BASE.userStory,
+        acceptanceTexts: texts,
+        acceptanceCountJustification: "",
+        swarm: BASE.swarm,
+      }),
+    ).toContain("placeholder acceptance criterion");
+  });
 });
