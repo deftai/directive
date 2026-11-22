@@ -6,8 +6,9 @@
  * recorded and the phases already completed. The publish gates never read T
  * from this record (#6875); it is the run's memory between `--resume` calls.
  */
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import { containedWrite } from "../fs/contained-write.js";
 import type { CiReuseKind } from "./ci-reuse.js";
 
 export const RELEASE_RUN_RECORD_SCHEMA = "deft.release-run.v1" as const;
@@ -198,8 +199,10 @@ export function readReleaseRunRecord(projectRoot: string, version: string): Read
 }
 
 export function writeReleaseRunRecord(projectRoot: string, record: ReleaseRunRecord): string {
-  const path = releaseRunRecordPath(projectRoot, record.version);
-  mkdirSync(dirname(path), { recursive: true });
-  writeFileSync(path, `${JSON.stringify(record, null, 2)}\n`, "utf8");
-  return path;
+  return containedWrite({
+    root: projectRoot,
+    target: join(RELEASE_RUN_RECORD_DIR, `${record.version}.json`),
+    data: `${JSON.stringify(record, null, 2)}\n`,
+    mode: "replace",
+  }).path;
 }
