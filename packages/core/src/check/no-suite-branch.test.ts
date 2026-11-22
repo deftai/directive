@@ -47,6 +47,8 @@ interface RepoOptions {
   readonly failFetch?: readonly string[];
   /** Exit status of the exact `ls-remote --exit-code` probe, overriding the model. */
   readonly probeStatus?: number;
+  /** `git remote set-head` fails even when the tracking ref exists. */
+  readonly failSetHead?: boolean;
 }
 
 function fakeRepo(options: RepoOptions): { git: NoSuiteGitFn; calls: string[] } {
@@ -91,6 +93,7 @@ function fakeRepo(options: RepoOptions): { git: NoSuiteGitFn; calls: string[] } 
     }
     if (cmd === "remote" && args[1] === "set-head") {
       const branch = args[3] ?? "";
+      if (options.failSetHead === true) return fail(1, "error: could not set origin/HEAD");
       if (!tracking.has(branch))
         return fail(128, `error: Not a valid ref: refs/remotes/origin/${branch}`);
       originHead = branch;
@@ -183,6 +186,36 @@ describe("check --no-suite branch resolution (#6970)", () => {
     if (prep.ok) {
       expect(prep.header[0]).toBe("check --no-suite: fetched origin/trunk (origin's HEAD branch)");
     }
+  });
+
+  it("stops on a failed fetch of origin's HEAD branch instead of falling back to master", () => {
+    const { git, calls } = fakeRepo({
+      remoteHead: "trunk",
+      remoteBranches: ["trunk", "master"],
+      failFetch: ["trunk"],
+    });
+    const prep = prepareNoSuiteRun({ projectRoot: makeProject(), env: {}, git, ghGet: gh() });
+    expect(prep.ok).toBe(false);
+    if (prep.ok) return;
+    expect(prep.exitCode).toBe(2);
+    expect(prep.message).toContain("git fetch of trunk (from origin's HEAD branch) failed");
+    expect(fetchesOf(calls)).toEqual([fetchOf("trunk")]);
+    expect(calls.some((c) => c.startsWith("remote set-head"))).toBe(false);
+  });
+
+  it("stops when set-head fails after origin's HEAD branch is fetched", () => {
+    const { git, calls } = fakeRepo({
+      remoteHead: "trunk",
+      remoteBranches: ["trunk", "master"],
+      failSetHead: true,
+    });
+    const prep = prepareNoSuiteRun({ projectRoot: makeProject(), env: {}, git, ghGet: gh() });
+    expect(prep.ok).toBe(false);
+    if (prep.ok) return;
+    expect(prep.exitCode).toBe(2);
+    expect(prep.message).toContain("git remote set-head origin trunk failed (exit 1)");
+    expect(prep.message).toContain("set plan.policy.deliveryBranch to trunk, then run again.");
+    expect(fetchesOf(calls)).toEqual([fetchOf("trunk")]);
   });
 
   it("does not query origin when a local default exists", () => {

@@ -21,6 +21,12 @@
  *
  * Every git, gh and temp-file call goes through a seam so the module is
  * testable without a network or a real repository.
+ *
+ * Non-goal (#6970, accepted lean 7073440422): prep makes sure the refs the
+ * gates read are fetched (and `origin/HEAD` is set when origin names the
+ * default); it does not tell gates which base to use. In the no-PR form no
+ * base override is passed (`DEFT_BASE_REF` stays cleared, #6469 item 4), and
+ * each gate keeps its own base resolution.
  */
 
 import { spawnSync } from "node:child_process";
@@ -320,6 +326,9 @@ function malformedPolicy(projectRoot: string, runGit: GitRunner): NoSuitePrep | 
  * Resolve the delivery and base branches (#6970 items 1-2). When nothing local
  * names a default, ask origin for its HEAD branch, fetch it, and only then
  * point `origin/HEAD` at it so the gates' own resolvers see the same branch.
+ * A failed query keeps the fallback (origin named no default). Once origin
+ * has named its HEAD branch, a failed fetch or `set-head` stops the run: going
+ * on would compare against the fallback, not origin's default.
  */
 function resolveBranches(
   projectRoot: string,
@@ -337,11 +346,23 @@ function resolveBranches(
     const name = query.status === 0 ? remoteHeadBranchFromLsRemote(query.stdout) : null;
     if (name !== null) {
       const candidate: NoSuiteBranch = { branch: name, source: { kind: "remote-head" } };
-      if (fetchBranch(candidate) === null) {
-        fetched.push(candidate);
-        const setHead = git(["remote", "set-head", "origin", name], projectRoot);
-        if (setHead.status === 0) remoteHead = name;
+      const fetchFailure = fetchBranch(candidate);
+      if (fetchFailure !== null) return { ok: false, prep: fetchFailure };
+      fetched.push(candidate);
+      const setHead = git(["remote", "set-head", "origin", name], projectRoot);
+      if (setHead.status !== 0) {
+        const detail = setHead.stderr.trim();
+        return {
+          ok: false,
+          prep: prepFailure(
+            `check --no-suite: git remote set-head origin ${name} failed ` +
+              `(exit ${setHead.status ?? "none"})${detail.length > 0 ? `: ${detail}` : ""}; ` +
+              "no gate ran. The gates find the default branch through origin/HEAD; " +
+              `set ${FIELD_DELIVERY_BRANCH} to ${name}, then run again.`,
+          ),
+        };
       }
+      remoteHead = name;
     }
   }
 
