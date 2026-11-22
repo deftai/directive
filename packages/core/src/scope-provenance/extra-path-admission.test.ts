@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   assessExtraPaths,
   classifyExtraPath,
+  declaredExtraPathRefusal,
   EXTRA_PATH_NOT_ADMITTED_TOKEN,
   EXTRA_PATHS_OVER_BUDGET_TOKEN,
   extraPathRemedy,
@@ -20,6 +21,27 @@ describe("classifyExtraPath (#6221)", () => {
     expect(classifyExtraPath("packages/core/src/a.ts")).toBe("production");
     expect(classifyExtraPath("docs/a.md")).toBe("other");
     expect(classifyExtraPath("app/a.ts", { sourceRoots: ["app/**"] })).toBe("production");
+  });
+});
+
+describe("declaredExtraPathRefusal remedy (#6914)", () => {
+  const assessment = assessExtraPaths({
+    allowlist: ["packages/core/src/a.ts"],
+    authority: "concrete",
+    otherClass: "refuse",
+    changedPaths: ["docs/a.md"],
+    changeKind: modify,
+  });
+
+  it("keeps the shared remedy by default (membership is unchanged)", () => {
+    const line = declaredExtraPathRefusal(assessment, "not-admitted", "detail.");
+    expect(line.line).toContain(extraPathRemedy(assessment));
+  });
+
+  it("uses the write-fence remedy when one is given", () => {
+    const line = declaredExtraPathRefusal(assessment, "not-admitted", "detail.", undefined, "R.");
+    expect(line.line).toContain("detail. R.");
+    expect(line.line).not.toContain(extraPathRemedy(assessment));
   });
 });
 

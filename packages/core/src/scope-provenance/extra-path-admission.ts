@@ -287,13 +287,15 @@ export function declaredExtraPathRefusal(
   kind: "not-admitted" | "over-budget",
   detail: string,
   rows?: readonly RefusalDeclaration[],
+  /** Write-fence override (#6914); membership and the Path-independent check keep the shared remedy. */
+  remedy: string = extraPathRemedy(assessment),
 ): DeclaredRefusalLine {
   return formatDeclaredRefusal({
     id:
       kind === "not-admitted"
         ? EXTRA_PATH_NOT_ADMITTED_REFUSAL_ID
         : EXTRA_PATHS_OVER_BUDGET_REFUSAL_ID,
-    detail: `${detail} ${extraPathRemedy(assessment)}`,
+    detail: `${detail} ${remedy}`,
     ...(rows !== undefined ? { rows } : {}),
   });
 }

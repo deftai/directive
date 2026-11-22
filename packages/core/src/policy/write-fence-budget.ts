@@ -43,6 +43,10 @@ import {
   matchesExtraPathAllowlist,
 } from "../scope-provenance/extra-path-admission.js";
 import { loadTestBoundaryPolicy } from "../test-boundary/policy.js";
+import {
+  continueCheckpointRefusalNote,
+  isContinueCheckpointPath,
+} from "./continue-checkpoint-path.js";
 import type { StoryWriteFenceView } from "./write-fence.js";
 
 /** Git seam: run `git <args>` in `root`; a spawn failure is `code !== 0`. */
@@ -326,13 +330,14 @@ export function resolveStoryWriteAllow(
         `${EXTRA_PATH_NOT_ADMITTED_TOKEN}: ${detail} is outside the story file_scope and ` +
         "the extra-path budget does not admit it.";
       const isNew = refusedTargets.every(globAdmittedBefore);
+      const remedy = notAdmittedRemedy(assessment, refusedTargets);
       const declared = isNew
-        ? declaredExtraPathRefusal(assessment, "not-admitted", reason, input.refusalRows)
+        ? declaredExtraPathRefusal(assessment, "not-admitted", reason, input.refusalRows, remedy)
         : null;
       if (declared === null || !declared.proceed) {
         return {
           kind: "refuse",
-          reason: declared?.line ?? `${reason} ${extraPathRemedy(assessment)}`,
+          reason: declared?.line ?? `${reason} ${remedy}`,
           storyAllow: [...storyAllow, ...spentTargets],
           scopeOnly: true,
         };
@@ -377,6 +382,22 @@ export function resolveStoryWriteAllow(
       storyAllow: [],
     };
   }
+}
+
+/**
+ * Not-admitted remedy at the write fence (#6914). A refused continue checkpoint
+ * is named as the checkpoint with no split or widen remedy; other refused paths
+ * keep the shared remedy.
+ */
+function notAdmittedRemedy(
+  assessment: ExtraPathAssessment,
+  refusedTargets: readonly string[],
+): string {
+  const checkpoints = refusedTargets.filter((t) => isContinueCheckpointPath(t));
+  if (checkpoints.length === 0) return extraPathRemedy(assessment);
+  const note = continueCheckpointRefusalNote(checkpoints);
+  if (checkpoints.length === refusedTargets.length) return note;
+  return `${note} For the other paths: ${extraPathRemedy(assessment)}`;
 }
 
 function loadRoots(root: string): NonNullable<ResolveStoryWriteAllowInput["roots"]> {
