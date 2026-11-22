@@ -1,0 +1,533 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6936",
+    "updated": "2026-11-22T03:59:25Z"
+  },
+  "plan": {
+    "title": "[framework-gap] swarm:readiness treats Next.js dynamic-route paths ([id]) in file_scope as globs",
+    "status": "running",
+    "narratives": {
+      "Description": "`swarm:readiness` reported real Next.js route files such as `web/src/app/crm/pipeline/[id]/page.tsx` as broad globs because any `[` counted as a glob character, and the scope-provenance fence used the same rule outside the mint exact match (#6936). Readiness also flagged `placeholder`, `todo` and `tbd` anywhere, so file names and domain terms read as placeholder text (#6929). This story adds one shared concrete-path rule (no `*` or `?`; brackets literal) used by readiness, decompose, the fence, the one-PR scope proof and the verify-ac pointer checks, and one shared per-line placeholder predicate.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6936",
+      "Overview": "\n1. Concrete path. `orchestration/pathspec.ts`: `hasGlobMagic` is true only for `*` or `?`, and a new exported `isConcreteScopePath(entry)` is true for a non-empty trimmed entry with no glob magic; `[` and `]` are literal. `isConcreteFileScopeEntry` in `scope-provenance/base-fence.ts` delegates to it.\n2. Readiness. `fileScopeIssues` in `vbrief-validation/story-quality.ts` and its copy in `scope/decompose.ts` use `isConcreteScopePath` in place of `/[*?[]/`; the broad-root checks are unchanged.\n3. Other consumers. `policy/one-pr-scope-proof.ts` replaces its private `hasGlob` with `hasGlobMagic`; `verify-ac/clauses.ts` keeps calling `hasGlobMagic` and so treats bracket pointers as literal.\n4. Placeholder. One exported `isPlaceholderText(text)` in `story-quality.ts`, used for acceptance criteria and the ImplementationPlan, and imported by `decompose.ts` in place of its pattern copy. Multi-word phrases stay substring matches. For the markers `placeholder`, `tbd` and `todo`, the text is split into lines and a leading list marker (`-`, `*`, `+`, `1.`, `1)`) is removed. Tokens are split on whitespace and leading and trailing punctuation is removed first; a token that still contains `/`, or `.`, `-` or `_` between word characters, is path-like and never counts. A line is placeholder text when it holds a template token (`<m>`, `{m}`, `{{m}}`, `[m]`), when every word token on it is a marker, when its first token is a marker followed by `:` or a standalone dash, or when `tbd` appears as a word token.\n\n## Acceptance Criteria\n\n- Given `file_scope` entries `web/src/app/crm/pipeline/[id]/page.tsx`, `web/src/pages/[slug].tsx` and `web/src/app/[...slug]/page.tsx`, when readiness runs, then it reports no broad-file_scope issue for them, and `src/*.ts` and `src/?.ts` are still reported.\n- Given a base brief whose `file_scope` lists `web/src/app/crm/pipeline/[id]/page.tsx`, when the fence evaluates a change to that file, then the entry counts toward the production allowance, is kept in precommitment and forge-approval membership, and the changed file is admitted, while a change to `web/src/app/crm/pipeline/i/page.tsx` is not admitted by that entry.\n- Given a brief with no bracket entries, when the forge-approval hash preimage is built, then it is unchanged; given one with a bracket entry, then the entry is now in the preimage.\n- Given a head brief with a bracket entry, when the one-PR scope proof runs, then it does not deny with \"head brief file_scope has a glob entry\", and `isDeclaredArtifactPath` accepts a bracket artifact pointer inside the declared scope.\n- Given the #6929 texts (`web/src/components/desk/section-placeholder-widget.tsx`, \"placeholder widgets\", \"repo chip placeholder\"), when readiness checks acceptance criteria and the ImplementationPlan, then it reports no placeholder issue.\n- Given `TBD`, `TODO.`, `TODO: write criteria`, `<placeholder>`, `- TODO placeholder\\n- TBD again here now`, or the speckit default acceptance text, when readiness checks them, then each still reports a placeholder issue.\n\n\n",
+      "Constraint": "- A route-name grammar for brackets (comment 7073789982 finding 1).\n- Leaving the one-PR scope proof or the `verify-ac` pointer checks on the old rule (finding 2).\n- A placeholder rule that checks only the whole text or its first line (finding 3).\n- Compatibility claims based on guessed ingest or decompose stub strings (finding 4).\n- \"The path exists on disk\" or an escape form as the concrete-path test.",
+      "Labels": "design-critique:ingest-ready",
+      "UserStory": "As a consumer whose real file paths contain brackets or the word placeholder, I want swarm:readiness and the scope fence to treat them as concrete paths and real text, so that stories that edit Next.js route files can be swarm-ready and pass the fence.",
+      "ImplementationPlan": "1. packages/core/src/orchestration/pathspec.ts: hasGlobMagic true only for * or ?; new exported isConcreteScopePath; scope-provenance/base-fence.ts isConcreteFileScopeEntry delegates to it (Bound item 1).\n2. vbrief-validation/story-quality.ts and scope/decompose.ts fileScopeIssues use isConcreteScopePath in place of /[*?[]/ (item 2).\n3. policy/one-pr-scope-proof.ts uses hasGlobMagic in place of its private hasGlob; verify-ac/clauses.ts keeps hasGlobMagic (item 3).\n4. story-quality.ts exports the shared marker-text predicate named in Bound item 4 (multi-word phrases substring; per-line marker rules; path-like tokens never count); decompose.ts imports it and drops its pattern copy.\n5. Tests for each Acceptance Criterion in orchestration/concrete-scope-path.test.ts, scope-provenance/bracket-paths.test.ts and vbrief-validation/marker-text.test.ts; verify with the vitest commands; one changelog.d fragment.",
+      "Traces": "#6936, #6929"
+    },
+    "items": [
+      {
+        "title": "Concrete path. `orchestration/pathspec.ts`: `hasGlobMagic` is true only for `*` or `?`, and a new exported `isConcreteScopePath(entry)` is true for a non-empty trimmed entry with no glob magic; `[` and `]` are literal. `isConcreteFileScopeEntry` in `scope-provenance/base-fence.ts` delegates to it.",
+        "status": "proposed",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "When an entry has no * or ?, then isConcreteScopePath is true and brackets are literal; hasGlobMagic matches only * and ?."
+        }
+      },
+      {
+        "title": "Readiness. `fileScopeIssues` in `vbrief-validation/story-quality.ts` and its copy in `scope/decompose.ts` use `isConcreteScopePath` in place of `/[*?[]/`; the broad-root checks are unchanged.",
+        "status": "proposed",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "When readiness or decompose checks file_scope, then they use isConcreteScopePath and the broad-root checks are unchanged."
+        }
+      },
+      {
+        "title": "Other consumers. `policy/one-pr-scope-proof.ts` replaces its private `hasGlob` with `hasGlobMagic`; `verify-ac/clauses.ts` keeps calling `hasGlobMagic` and so treats bracket pointers as literal.",
+        "status": "proposed",
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "When the one-PR scope proof or verify-ac pointer checks see a bracket entry, then it is literal, not a glob."
+        }
+      },
+      {
+        "title": "Placeholder. One exported `isPlaceholderText(text)` in `story-quality.ts`, used for acceptance criteria and the ImplementationPlan, and imported by `decompose.ts` in place of its pattern copy. Multi-word phrases stay substring matches. For the markers `placeholder`, `tbd` and `todo`, the text is split into lines and a leading list marker (`-`, `*`, `+`, `1.`, `1)`) is removed. Tokens are split on whitespace and leading and trailing punctuation is removed first; a token that still contains `/`, or `.`, `-` or `_` between word characters, is path-like and never counts. A line is placeholder text when it holds a template token (`<m>`, `{m}`, `{{m}}`, `[m]`), when every word token on it is a marker, when its first token is a marker followed by `:` or a standalone dash, or when `tbd` appears as a word token.",
+        "status": "proposed",
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "When readiness or decompose checks stub text, then they use the shared marker-text predicate with per-line rules and path-like tokens never count."
+        }
+      },
+      {
+        "title": "Given `file_scope` entries `web/src/app/crm/pipeline/[id]/page.tsx`, `web/src/pages/[slug].tsx` and `web/src/app/[...slug]/page.tsx`, when readiness runs, then it reports no broad-file_scope issue for them, and `src/*.ts` and `src/?.ts` are still reported.",
+        "status": "proposed",
+        "id": "clause.5",
+        "narrative": {
+          "Acceptance": "When file_scope lists bracket route paths, then readiness reports no broad issue for them, and * or ? entries are still reported."
+        }
+      },
+      {
+        "title": "Given a base brief whose `file_scope` lists `web/src/app/crm/pipeline/[id]/page.tsx`, when the fence evaluates a change to that file, then the entry counts toward the production allowance, is kept in precommitment and forge-approval membership, and the changed file is admitted, while a change to `web/src/app/crm/pipeline/i/page.tsx` is not admitted by that entry.",
+        "status": "proposed",
+        "id": "clause.6",
+        "narrative": {
+          "Acceptance": "When the fence sees a bracket base entry, then it counts in the allowance and membership and admits that file but not a sibling i path."
+        }
+      },
+      {
+        "title": "Given a brief with no bracket entries, when the forge-approval hash preimage is built, then it is unchanged; given one with a bracket entry, then the entry is now in the preimage.",
+        "status": "proposed",
+        "id": "clause.7",
+        "narrative": {
+          "Acceptance": "When a brief has no bracket entries, then the forge hash preimage is unchanged; a bracket entry now appears in it."
+        }
+      },
+      {
+        "title": "Given a head brief with a bracket entry, when the one-PR scope proof runs, then it does not deny with \"head brief file_scope has a glob entry\", and `isDeclaredArtifactPath` accepts a bracket artifact pointer inside the declared scope.",
+        "status": "proposed",
+        "id": "clause.8",
+        "narrative": {
+          "Acceptance": "When a head brief has a bracket entry, then the one-PR proof does not deny it as a glob and isDeclaredArtifactPath accepts the pointer."
+        }
+      },
+      {
+        "title": "Given the #6929 texts (`web/src/components/desk/section-placeholder-widget.tsx`, \"placeholder widgets\", \"repo chip placeholder\"), when readiness checks acceptance criteria and the ImplementationPlan, then it reports no placeholder issue.",
+        "status": "proposed",
+        "id": "clause.9",
+        "narrative": {
+          "Acceptance": "When readiness checks the #6929 file name and domain terms, then it reports no stub-text issue."
+        }
+      },
+      {
+        "title": "Given `TBD`, `TODO.`, `TODO: write criteria`, `<placeholder>`, `- TODO placeholder\\n- TBD again here now`, or the speckit default acceptance text, when readiness checks them, then each still reports a placeholder issue.",
+        "status": "proposed",
+        "id": "clause.10",
+        "narrative": {
+          "Acceptance": "When readiness checks TBD, TODO., a TODO: label, a template token, the multi-line TODO/TBD plan or the speckit default, then each is flagged."
+        }
+      }
+    ],
+    "tags": [
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6936",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6936: [framework-gap] swarm:readiness treats Next.js dynamic-route paths ([id]) in file_scope as globs"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "TODO: write criteria",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L16"
+        },
+        {
+          "command": "- TODO placeholder\\n- TBD again here now",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L16"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/orchestration/pathspec.ts",
+          "packages/core/src/scope-provenance/base-fence.ts",
+          "packages/core/src/vbrief-validation/story-quality.ts",
+          "packages/core/src/scope/decompose.ts",
+          "packages/core/src/policy/one-pr-scope-proof.ts",
+          "packages/core/src/orchestration/concrete-scope-path.test.ts",
+          "packages/core/src/scope-provenance/bracket-paths.test.ts",
+          "packages/core/src/vbrief-validation/marker-text.test.ts",
+          "packages/core/src/scope-provenance/base-fence.test.ts",
+          "packages/core/src/vbrief-validation/story-quality.test.ts",
+          "packages/core/src/vbrief-validation/story-quality-branches.test.ts",
+          "packages/core/src/scope/decompose.test.ts",
+          "packages/core/src/policy/one-pr-scope-proof.test.ts",
+          "changelog.d/6936-bracket-paths-placeholder-text.md",
+          "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "xbrief/.audit/spec-drift/github.issue.6528658687.json"
+        ],
+        "verify_commands": [
+          "npx vitest run packages/core/src/orchestration/concrete-scope-path.test.ts packages/core/src/scope-provenance/bracket-paths.test.ts packages/core/src/vbrief-validation/marker-text.test.ts",
+          "npx vitest run packages/core/src/vbrief-validation/story-quality.test.ts packages/core/src/vbrief-validation/story-quality-branches.test.ts packages/core/src/scope/decompose.test.ts packages/core/src/scope-provenance/base-fence.test.ts packages/core/src/policy/one-pr-scope-proof.test.ts"
+        ],
+        "size": "small",
+        "file_scope_confidence": "high",
+        "depends_on": [],
+        "expected_outputs": [
+          "isConcreteScopePath in orchestration/pathspec.ts (no * or ?; brackets literal); hasGlobMagic matches only * and ?",
+          "readiness, decompose, the fence, the one-PR scope proof and verify-ac pointer checks use the shared rule",
+          "shared marker-text predicate in story-quality.ts with per-line rules, used by readiness and decompose",
+          "one changelog fragment changelog.d/6936-bracket-paths-placeholder-text.md"
+        ],
+        "conflict_group": "readiness-path-text",
+        "model_tier": "high",
+        "acceptance_criteria_justification": "The 10 clauses are the 4 Bound-remedy items and 6 Acceptance Criteria of the accepted design-critique lean 7073799597 (synthesis 7073885133), harvested and digest-pinned by issue:ingest (Spec-path); they cannot be merged or dropped without breaking the admitted-source pin."
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: triage\n```\n\nStop 1 — Gate (arc 6936; no-ingest)\n\nmechanism-shaped: true\ndesign-critique: warranted, because the fix decides what counts as a concrete `file_scope` path for both `swarm:readiness` and the scope-provenance fence (allowance count, concrete-only membership, extra-path admission and the forge-approval hash), so a wrong line either keeps blocking real Next.js route files or lets a glob-shaped entry pass a fail-closed fence as concrete; it also decides what counts as placeholder text in readiness.\n\nTarget-digest: sha256:42a13afe2e5c2d7352438a6cab09004353c912ea3616d786eb108e947728dac4\ndispatch-sha: 9b46bdba43e9a05797abd67d530f7bb49a6db1cc\ndest: C:/Repos/deft/wt/arc-6936 (pinKind origin-default, guarded-prep)\narc-mode: no-ingest\nyolo-standing: on\ncharter: open critique\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\nspend-why: resolved by `deft design-critique:spend-resolve` with the parent recommend N=1 on the operator's own standing arc-spend direction (Scott, 2026-11-21: \"do normal it requires\"). Disclosed: the coordinator's relay of that direction contained the bare word \"panel\", which `spend-resolve` returns as ambiguous; the operator's words carry no spend token. Stop 2 panel permission does not apply: the change is one path predicate and one text predicate over existing callers; `matchPath` already treats `[` literally, so the fence-side change only stops discarding entries that the matcher would match literally anyway. One critic of a different model family, plus one pain audit.\ncritic-post cap: 6 (contract default for spend N=1)\nmateriality-bar: open\ntarget-kind: issue\ntarget-shape: single issue; the same story also takes the readiness placeholder false positive #6929 (pain P3), so this story has one origin issue (#6936)\nceiling-kind: comment-id\nverification-path: pin-read git show 9b46bdba43e9a05797abd67d530f7bb49a6db1cc: + dest cwd-without-occupy\npain: P1, P2, P3\n\n## In plain English\nA consumer on Next.js App Router has real files such as `web/src/app/crm/pipeline/[id]/page.tsx`. `swarm:readiness` reports every such `file_scope` entry as \"broad file_scope is not swarm-ready\", because its check treats any `[` as a glob character. Three stories in one cohort were blocked only by this (#6936).\n\nThe issue says the scope-provenance fence accepts these paths. At the dispatch SHA that holds only for the exact-match step under a mint. Elsewhere the fence uses the same \"any `[` is a glob\" rule: such entries do not count toward the production allowance, are dropped from the concrete-only membership allowlists (precommitment, forge approval) and from the forge-approval hash, and a changed production path that contains `[` is hard-refused as \"glob characters in path\". So a story that edits a dynamic-route page cannot pass the fence without a mint either.\n\nReadiness also flags the words \"placeholder\", \"todo\" and \"tbd\" anywhere as a substring, so a real file name (`section-placeholder-widget.tsx`) or a domain term (\"placeholder widgets\", \"repo chip placeholder\") reads as placeholder text (#6929). `scope:decompose` carries a copy of the same lists and checks.\n\nThe recommended fix: one shared \"is this a concrete path\" predicate that accepts whole dynamic-route segments (`[id]`, `[...slug]`, `[[...slug]]`) and still treats `*`, `?` and any other bracket as a glob; readiness, decompose and the fence all use it. And one shared placeholder predicate that keeps the multi-word stub phrases as substrings but counts the single words only when they are the whole text, a leading label, or a template token, never inside a path-like word. One PR.\n\n## Operator direction (Scott, 2026-11-21; relayed by the coordinator; recorded as constraints)\n- Approved the readiness trio (#6929, #6936, #6925) with one shared path helper where the code is actually shared.\n- Arc, then build through merge. Keep the stories small; one origin issue per story (#6934 warns on shared origins). #6925 (preflight `file://` planRef) is a separate story and out of this arc.\n\n## Pains\n- P1 — `swarm:readiness` reports a concrete `file_scope` path with a bracketed dynamic-route segment (`web/src/app/crm/pipeline/[id]/page.tsx`) as \"broad file_scope is not swarm-ready\", so stories that edit Next.js route files cannot be swarm-ready (#6936).\n- P2 — The scope-provenance fence treats the same path as a glob outside the mint exact match: it is not counted in the production allowance, is dropped from precommitment and forge-approval allowlists and the forge-approval hash, and a changed production path containing `[` is hard-refused as \"glob characters in path\" (#6936; readiness and fence disagree about what a concrete path is).\n- P3 — Readiness (and `scope:decompose`'s copy) flags `placeholder`, `todo` and `tbd` as substrings, so file names and domain terms read as placeholder acceptance criteria or a placeholder ImplementationPlan (#6929).\n\n## Out of scope (named, not pains)\n- #6925 (`xbrief:preflight` and a `file://` planRef): separate story, no shared code with this one.\n- Other glob detectors that do not read `file_scope` for readiness or the fence: `codebase/default-extractor.ts` 133, `forward-coverage/correspondence.ts` 269, `init-deposit/gitignore.ts` 390, `verify-source/code-structure-validate.ts` 674, `swarm/readiness.ts` 176 (that one parses the brief-path patterns given to the command, not `file_scope`).\n- Changing `matchPath` / `matchAny` semantics (character classes stay unsupported).\n- Other story-quality heuristics (word counts, observable terms, docs-only and vague patterns).\n\n## Evidence\n- #6936 (consumer deftai/evolution, runtime 0.129.13): `broad file_scope is not swarm-ready: web/src/app/crm/pipeline/[id]/page.tsx`; three stories blocked by this check alone.\n- #6929 (same consumer): `plan.narratives.ImplementationPlan must not be placeholder text` and `placeholder acceptance criterion` for a story naming `web/src/components/desk/section-placeholder-widget.tsx` and \"placeholder widgets\"; also \"repo chip placeholder\".\n\n## Anchors at the dispatch SHA\n- `packages/core/src/vbrief-validation/story-quality.ts` 46-57 `PLACEHOLDER_ACCEPTANCE_PATTERNS` (single words `placeholder`, `tbd`, `todo` next to multi-word phrases); 340-389 `storyQualityIssues` (359 substring test per criterion); 391-406 `fileScopeIssues` (397 `/[*?[]/`); 426-450 `implementationPlanIssues` (435 substring test).\n- `packages/core/src/scope/decompose.ts` 145-156 a private copy of the pattern list; 366-388 and 415-480 copies of the ImplementationPlan, acceptance and `fileScopeIssues` checks (396 `/[*?[]/`, 457 substring test).\n- `packages/core/src/swarm/readiness.ts` 456 calls `storyQualityIssues`.\n- `packages/core/src/scope-provenance/base-fence.ts` 64-68 `isConcreteFileScopeEntry` (any `*`, `?` or `[` is not concrete); 108-113 `pathMatchesFileScope` (exact match, then `matchAny`); 115-133 `concreteProductionScopeEntries` (allowance input); 286-288 concrete-only authorities; 454-456 concrete-only filter on the own allowlist.\n- `packages/core/src/scope-provenance/extra-path-admission.ts` 121-128 `matchesOne` (non-mint authorities match concrete entries only); 174-185 a changed production path that fails `isConcreteFileScopeEntry` is `hard-refused` with note \"glob characters in path\".\n- `packages/core/src/scope-provenance/evaluate.ts` 1630-1632 and 1754-1756 concrete filters for precommitment and forge-approval membership.\n- `packages/core/src/scope-provenance/forge-approval.ts` 100-115 `buildAuthHashV1Preimage` hashes only concrete `file_scope` entries.\n- `packages/core/src/orchestration/pathspec.ts` 11-46 `matchSegmentPattern` handles `*` and `?` only, so `[` and `]` match literally; 82-93 `matchPath`; 108-110 `hasGlobMagic` (same three-character rule).\n\n## Recommended mechanism (the thing to critique)\n- D1. One predicate. `isConcreteScopePath(entry)` in `orchestration/pathspec.ts`: false when empty or when it contains `*` or `?`; a `[` or `]` is allowed only as part of a whole dynamic-route token inside one path segment — `[name]`, `[...name]` or `[[...name]]`, where `name` matches `[A-Za-z_][A-Za-z0-9_-]*` (so `[id]`, `[slug].tsx`, `[...rest]`, `[[...slug]]`); any other `[` or `]` (`[abc]x`, `[a-z]`, `[!x]`, `a[b`) keeps the entry non-concrete. `isConcreteFileScopeEntry` delegates to it.\n- D2. Readiness. `fileScopeIssues` in `story-quality.ts` and its copy in `decompose.ts` use `isConcreteScopePath` in place of `/[*?[]/`; the broad-root checks are unchanged.\n- D3. Fence. Through `isConcreteFileScopeEntry`, a dynamic-route entry counts toward the production allowance, stays in precommitment and forge-approval allowlists, and a changed production path with such a segment is spent as an extra rather than hard-refused. Matching stays literal (`matchPath` never expanded `[`). The forge-approval hash preimage changes only for briefs that contain such entries; an approval recorded before the change no longer matches and fails closed until re-approved.\n- D4. Placeholder. One exported `isPlaceholderText(text)` in `story-quality.ts`, used for acceptance criteria and the ImplementationPlan, and imported by `decompose.ts` in place of its copy. Multi-word phrases (`acceptance criteria for`, `copy from parent`, `copy from specification`, `refine from parent`, `to be defined`, `to refine`, `to refine from parent scope`) stay substring matches. The single words `placeholder`, `tbd` and `todo` count only when the whole text is that word (ignoring surrounding punctuation, brackets and angle brackets), when the text opens with it as a label (`TODO:`, `TBD -`), or as a template token anywhere (`<placeholder>`, `{tbd}`, `[todo]`). A word inside a path-like token (one containing `/`, `.`, `-` or `_`) never counts.\n- D5. Rejected: \"the path exists on disk\" — readiness runs before new route files exist, and the fence reads merge-base briefs, so the answer would depend on the checkout. Rejected: an escape form — consumers would have to rewrite real paths, and changed-file lists carry the literal path.\n- D6. Tests: readiness passes `web/src/app/crm/pipeline/[id]/page.tsx`, `[...slug]` and `[[...slug]]` entries and still flags `src/*.ts`, `src/?.ts`, `src/[a-z].ts` and `src/[abc]x.ts`; the fence counts a dynamic-route entry in the allowance and admits a changed `[id]` production path; the #6929 texts pass; `TBD`, `TODO: write criteria`, `<placeholder>` and the multi-word stubs still flag.\n- D7. Scope. One PR: `orchestration/pathspec.ts`, `scope-provenance/base-fence.ts`, `vbrief-validation/story-quality.ts`, `scope/decompose.ts`, their tests, one `changelog.d/` fragment. No new verb, flag or policy field.\n\nQuestions for the critic:\n1. Is the dynamic-route token rule the right line, or should `[` stop being glob magic for `file_scope` altogether, since the matcher never expanded it?\n2. Does making these entries concrete open a way for a broad entry to pass the fence as concrete (allowance, concrete-only membership, extra-path spend, forge-approval hash)? Is the forge-hash change acceptable as fail-closed?\n3. Does any `file_scope` consumer hand entries to git as pathspecs, where `[id]` would be a character class and not match the literal file?\n4. Should `hasGlobMagic` and `one-pr-scope-proof.ts` 274-276 use the same predicate in this PR, or stay out?\n5. Is the placeholder rule (whole text, leading label, template token; never inside a path-like word) right, and does it still catch the stubs that `scope:decompose` and `issue:ingest` write?\n6. Does this fit one PR?\n\n",
+          "id": 7073738048,
+          "html_url": "https://github.com/deftai/directive/issues/6936#issuecomment-7073738048",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T03:43:46Z",
+          "updated_at": "2026-11-22T03:43:46Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 1\ninput-ceiling: 7073740122\nseat: codex launcher: codex (exec --ephemeral --sandbox read-only -C dest)\n\ncharter: open critique\nspend: N=1\narc-mode: no-ingest\nmateriality-bar: open\ndispatch-sha: 9b46bdba43e9a05797abd67d530f7bb49a6db1cc\ndest: C:/Repos/deft/wt/arc-6936\nverification-path: pin-read git show 9b46bdba43e9a05797abd67d530f7bb49a6db1cc: + dest cwd-without-occupy\naudit-targets: none\nStop 1 cite: comment 7073738048\n\n## Launch posture (disclosed)\n- The parent is Claude Code (claude-opus-5-5). The one critic seat is Codex, a different model family, run with a read-only launcher against the dest. The parent posts the critic's final message verbatim.\n- The Codex seat has no GitHub access. It reads a parent-written thread snapshot (issue body, thread up to the ceiling, the #6929 body, and the titles of linked issues) and reads code with `git show <dispatch-sha>:<path>`.\n- This deposit was created and then edited once, only to record its own comment id as the input ceiling.\n\n",
+          "id": 7073740122,
+          "html_url": "https://github.com/deftai/directive/issues/6936#issuecomment-7073740122",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T03:43:57Z",
+          "updated_at": "2026-11-22T03:43:58Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\n\nReal bracketed filenames and ordinary descriptions of placeholder UI components are being mistaken for unfinished or overly broad work. Sharing the checks is sensible, but D1–D7 cannot bind as written: the proposed path grammar contradicts its examples, leaves two relevant consumers rejecting the same paths, and weakens an existing placeholder test.\n\nAnswers to the six questions:\n\n1. **Prefer treating brackets literally in `file_scope`**, consistent with the existing matcher. A framework-specific route-name grammar adds restrictions without making that matcher safer.\n2. **Bracket acceptance does not broaden the existing matcher.** It does change allowance counts and approval membership. Invalidating affected old forge hashes is an acceptable fail-closed transition, with regression coverage.\n3. **I found no raw `file_scope` → Git pathspec handoff in the inspected dispatcher and scope-provenance runners.** They enumerate changed files and compare them in application code. Git’s separate pathspec language still matters at any future handoff.\n4. **Include `one-pr-scope-proof` and the `hasGlobMagic` consumers in `verify-ac`.** Otherwise readiness succeeds while mint admission or evidence verification still rejects the same filename.\n5. **The placeholder direction is useful, but the proposed rule misses existing multiline stubs.** The inspected decomposition code copies supplied acceptance and plan text; ingest derives items from admitted source text. A promise about fixed stubs generated by those two commands is not supported by those paths.\n6. **One PR is reasonable**, with the two additional consumers and focused cross-consumer tests. There is no need for a new policy or command.\n\nAll repository references below are relative to `packages/core/src/` at `9b46bdba43e9a05797abd67d530f7bb49a6db1cc`, unless otherwise stated. Verification used pinned source reads only; no tests, builds, writes, posts, or network reads were performed.\n\n### 1. blocks-the-design — D1 defines incompatible accepted and rejected sets\n\n**Evidence:** Stop 1 D1 permits only a whole dynamic-route segment, but lists `[slug].tsx` as accepted. That filename contains a suffix outside the bracketed token. Its name grammar permits hyphens, so `[a-z]` satisfies `[A-Za-z_][A-Za-z0-9_-]*`, although D1 explicitly rejects `[a-z]`. The repository matcher handles `*` and `?` specially and otherwise compares characters literally (`orchestration/pathspec.ts:11–43`).\n\n**Failure mode:** An implementation cannot satisfy both the prose grammar and the examples. Choosing either silently changes which real filenames can count toward allowances and approvals. Calling `[a-z]` a glob here also imports semantics the application matcher does not implement.\n\n**Disposition consequence:** D1 needs one coherent accepted set before binding. My preference is a shared predicate that preserves normalization and empty-input refusal and treats only the matcher’s supported wildcard operators as non-concrete. Existing broad-root checks remain separate.\n\nThe strongest case for the route-only exception is minimizing the newly accepted set. That would change my preference if a relevant consumer actually expanded bracket classes or a documented scope contract required them. The inspected matcher provides neither justification. Next.js App Router bracketed directories and Pages Router `[slug].tsx` filenames are background knowledge, not repository-verified facts.\n\n### 2. blocks-the-design — D7 omits consumers that still block the repaired paths\n\n**Evidence:**\n\n- `policy/one-pr-scope-proof.ts:274–276` defines another detector that rejects `[`. At lines 311–312, any such entry rejects the entire head scope before same-PR mint admission.\n- `verify-ac/clauses.ts:874–894` rejects an artifact pointer through `hasGlobMagic` before checking `matchAny(declaredScope, candidate)`.\n- `verify-ac/clauses.ts:902–905` applies the same detector to file-shaped pointers.\n- `orchestration/pathspec.ts:108–110` currently includes `[` in that detector.\n\n**Failure mode:** A story declaring `web/src/app/crm/pipeline/[id]/page.tsx` passes revised readiness but still fails same-PR scope proof. Evidence naming that file can also fail before the otherwise literal scope match runs. The disagreement moves downstream rather than disappearing.\n\n**Disposition consequence:** Include the same-PR detector and the relevant evidence-pointer checks in this PR. Either align `hasGlobMagic` with the matcher or use the shared concrete-path predicate at those callers; the contract should choose explicitly. The unrelated extractor and code-structure detectors need not join this change.\n\n### 3. blocks-the-design — D4 loses an existing multiline placeholder rejection\n\n**Evidence:** `vbrief-validation/story-quality-branches.test.ts:84–85` expects an ImplementationPlan containing `- TODO placeholder\\n- TBD again here now` to produce a placeholder-text issue. The current implementation checks the complete plan by substring (`vbrief-validation/story-quality.ts:426–436`). D4 recognizes a whole-text word, an opening label, or a delimited template token.\n\n**Failure mode:** That existing test text is neither a whole-word value nor a `TODO:`/`TBD -` opening label nor a template token. A similarly unfinished later step in an otherwise detailed plan also escapes a beginning-of-document check. Other quality heuristics do not establish that the placeholder check remains effective.\n\nD4 additionally gives competing precedence to “ignore surrounding punctuation” and “never inside a token containing `.` or `-`”: `TODO.` and `TBD -` need deterministic treatment.\n\n**Disposition consequence:** Specify recognition at logical step or line boundaries, including supported Markdown list prefixes, and explicitly settle punctuation versus path-token precedence. Preserve the existing multiline regression while adding the #6929 filename and domain-language cases. This remains a small text predicate, not a semantic classifier of all unfinished prose.\n\n### 4. sharpens-framing — The generator-stub premise needs correction\n\n**Evidence:** `scope/decompose.ts:684–694` copies supplied acceptance strings into child items; lines 854–878 copy supplied narratives and implementation-plan values. `intake/issue-ingest.ts:1742–1758` constructs description/origin and scanned overview narratives; lines 1787–1798 derive items from admitted source units. A concrete fixed stub exists elsewhere: `vbrief-build/speckit.ts:109` emits `Acceptance criteria for IP-… (copy from specification.vbrief.json).`\n\n**Failure mode:** Testing guessed `issue:ingest` or `scope:decompose` template strings would give false assurance about the actual writers. Conversely, reducing the multi-word checks without testing the real speckit default could admit a known generated stub.\n\n**Disposition consequence:** State that the shared predicate checks supplied/copied text in these paths. Use actual writer output and existing fixtures for compatibility claims. D4’s retained multi-word phrases cover the cited speckit default; this supports retaining them without claiming comprehensive detection of arbitrary unfinished prose.\n\n### 5. sharpens-framing — The safety case is literal membership, not route-name recognition\n\n**Evidence:** `scope-provenance/base-fence.ts:108–112` performs exact matching followed by the application matcher. `scope-provenance/extra-path-admission.ts:121–128` uses normalized equality for non-mint authorities. The concrete predicate affects production counts at `base-fence.ts:115–132`, precommitment and forge membership at `evaluate.ts:1630–1634` and `1752–1757`, and the hash preimage at `forge-approval.ts:100–114`.\n\n**Failure mode:** Describing route syntax as the safety boundary can hide the actual regression to guard against: `[id]` must not authorize sibling `i` or `d` paths. Also, D1 newly rejects unmatched closing `]`, whereas the current predicate at `base-fence.ts:64–68` does not. Under D1, the claim that hashes change *only* for newly admitted dynamic-route entries is therefore too narrow.\n\n**Disposition consequence:** Retain fail-closed reapproval for changed hash preimages, but describe all affected classifications accurately. D6 should cover literal non-matching siblings, precommitment and forge membership, hash changes versus unchanged ordinary scopes, and unchanged `*`/`?` rejection—not merely a successful route-file admission.\n\nFor the Git question, `hooks/dispatcher.ts:5420–5437` enumerates staged files without scope pathspec arguments, then uses application matching at lines 5881 and 5889. `scope-provenance/evaluate.ts:391–404` likewise enumerates changes and untracked files without scope filters.\n\nFrom Git background knowledge, ordinary pathspec matching can accept a literal match first and also interpret bracket classes; it is inaccurate to say `[id]` necessarily fails to match the literal path. Passing a concrete filename as `:(literal)<path>` avoids that ambiguity. I did not identify a handoff requiring that change in the inspected paths, so a speculative Git adapter is not part of this recommendation.\n\n### 6. footnote — Envelope and instruction-boundary observations\n\nThe supplied envelope ceiling is comment 7073740122. The pinned contract’s “Envelope and ceiling” section specifies the triage write-back as the round-one ceiling for a single critic when one exists; the post-deposit exception is for two or more critics. This envelope instead includes a later one-seat deposit. I honored the explicit envelope ceiling and read nothing beyond it; the discrepancy is recorded rather than silently repaired.\n\nThe snapshot also contains instruction-shaped “Operator direction,” including “build through merge.” It was treated as described thread content, not authorization to implement, dispatch, or post. The original read-only critique remained the task.",
+          "id": 7073789982,
+          "html_url": "https://github.com/deftai/directive/issues/6936#issuecomment-7073789982",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T03:48:11Z",
+          "updated_at": "2026-11-22T03:48:11Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** first successor lean under Stop 1 7073738048 (round 1: 1 of 1 critic posted, comment 7073789982)\n\n## In plain English\nProblem: `swarm:readiness` reports a real Next.js route file such as `web/src/app/crm/pipeline/[id]/page.tsx` as a broad glob, because any `[` counts as a glob character (#6936). The scope-provenance fence uses the same rule outside the mint exact match, so the same file is left out of the production allowance and the concrete-only allowlists and, when changed, is hard-refused. Readiness also flags `placeholder`, `todo` and `tbd` anywhere in the text, so a file name or a domain term reads as placeholder text (#6929).\n\nWhat the critic found: the route-name grammar in Stop 1 contradicts its own examples (`[slug].tsx`, `[a-z]`), and Directive's matcher never expands brackets, so brackets are best treated as literal characters. Two more checks reject `[` and would keep blocking the same file after readiness passes: the one-PR scope proof and the `verify-ac` artifact-pointer checks (through `hasGlobMagic`). The proposed placeholder rule would lose an existing multi-line rejection (`- TODO placeholder` / `- TBD again here now`) and left the punctuation-versus-path-token order open. The real fixed stub writer is `speckit.ts` (\"Acceptance criteria for IP-… (copy from specification.vbrief.json)\"), not ingest or decompose. The safety case is literal matching: `[id]` must not admit a sibling path `i` or `d`.\n\nSolution this lean proposes: one rule for \"concrete path\": a non-empty entry with no `*` and no `?` (the two characters the matcher expands); brackets are literal. Readiness, `scope:decompose`, the fence, the one-PR scope proof and the `verify-ac` pointer checks all use it. One placeholder predicate checks each logical line: a template token (`<placeholder>`, `{tbd}`, `[todo]`), a line made only of marker words, a line that opens with a marker as a label (`TODO:`, `TBD -`), or `tbd` as a standalone word anywhere; a word inside a path-like token never counts, and the multi-word stub phrases stay substring matches.\n\nWhat this adds: two shared predicates and tests that cover each consumer.\n\nWhat it removes: five copies of the \"`*`, `?` or `[`\" rule on the readiness and fence paths, the placeholder pattern copy in `decompose.ts`, and the substring match on single marker words.\n\nWhat it does not do:\n- It does not change `matchPath` / `matchAny` (character classes stay unsupported) or the broad-root checks.\n- It does not change the other glob detectors that do not read `file_scope` (code-structure, extractor, gitignore, forward-coverage, the readiness brief-path patterns).\n- It does not hand `file_scope` to git; no pathspec adapter is added.\nIf confirmed, the synthesis would assert this design. Leftover next-build: none.\n\nTarget-digest: sha256:42a13afe2e5c2d7352438a6cab09004353c912ea3616d786eb108e947728dac4\n**Spec-path:** Bound remedy on this lean\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\n## Bound remedy\n1. Concrete path. `orchestration/pathspec.ts`: `hasGlobMagic` is true only for `*` or `?`, and a new exported `isConcreteScopePath(entry)` is true for a non-empty trimmed entry with no glob magic; `[` and `]` are literal. `isConcreteFileScopeEntry` in `scope-provenance/base-fence.ts` delegates to it.\n2. Readiness. `fileScopeIssues` in `vbrief-validation/story-quality.ts` and its copy in `scope/decompose.ts` use `isConcreteScopePath` in place of `/[*?[]/`; the broad-root checks are unchanged.\n3. Other consumers. `policy/one-pr-scope-proof.ts` replaces its private `hasGlob` with `hasGlobMagic`; `verify-ac/clauses.ts` keeps calling `hasGlobMagic` and so treats bracket pointers as literal.\n4. Placeholder. One exported `isPlaceholderText(text)` in `story-quality.ts`, used for acceptance criteria and the ImplementationPlan, and imported by `decompose.ts` in place of its pattern copy. Multi-word phrases stay substring matches. For the markers `placeholder`, `tbd` and `todo`, the text is split into lines and a leading list marker (`-`, `*`, `+`, `1.`, `1)`) is removed. Tokens are split on whitespace and leading and trailing punctuation is removed first; a token that still contains `/`, or `.`, `-` or `_` between word characters, is path-like and never counts. A line is placeholder text when it holds a template token (`<m>`, `{m}`, `{{m}}`, `[m]`), when every word token on it is a marker, when its first token is a marker followed by `:` or a standalone dash, or when `tbd` appears as a word token.\n\n## Acceptance Criteria\n- Given `file_scope` entries `web/src/app/crm/pipeline/[id]/page.tsx`, `web/src/pages/[slug].tsx` and `web/src/app/[...slug]/page.tsx`, when readiness runs, then it reports no broad-file_scope issue for them, and `src/*.ts` and `src/?.ts` are still reported.\n- Given a base brief whose `file_scope` lists `web/src/app/crm/pipeline/[id]/page.tsx`, when the fence evaluates a change to that file, then the entry counts toward the production allowance, is kept in precommitment and forge-approval membership, and the changed file is admitted, while a change to `web/src/app/crm/pipeline/i/page.tsx` is not admitted by that entry.\n- Given a brief with no bracket entries, when the forge-approval hash preimage is built, then it is unchanged; given one with a bracket entry, then the entry is now in the preimage.\n- Given a head brief with a bracket entry, when the one-PR scope proof runs, then it does not deny with \"head brief file_scope has a glob entry\", and `isDeclaredArtifactPath` accepts a bracket artifact pointer inside the declared scope.\n- Given the #6929 texts (`web/src/components/desk/section-placeholder-widget.tsx`, \"placeholder widgets\", \"repo chip placeholder\"), when readiness checks acceptance criteria and the ImplementationPlan, then it reports no placeholder issue.\n- Given `TBD`, `TODO.`, `TODO: write criteria`, `<placeholder>`, `- TODO placeholder\\n- TBD again here now`, or the speckit default acceptance text, when readiness checks them, then each still reports a placeholder issue.\n\n## Reject\n- A route-name grammar for brackets (comment 7073789982 finding 1).\n- Leaving the one-PR scope proof or the `verify-ac` pointer checks on the old rule (finding 2).\n- A placeholder rule that checks only the whole text or its first line (finding 3).\n- Compatibility claims based on guessed ingest or decompose stub strings (finding 4).\n- \"The path exists on disk\" or an escape form as the concrete-path test.\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 7073789982 | 1. D1 defines incompatible accepted and rejected sets | blocks-the-design | accept-into-contract (item 1: brackets literal) |\n| comment 7073789982 | 2. D7 omits consumers that still block the repaired paths | blocks-the-design | accept-into-contract (item 3; one-PR and pointer AC) |\n| comment 7073789982 | 3. D4 loses an existing multiline placeholder rejection | blocks-the-design | accept-into-contract (item 4: per-line check, punctuation then path-token order; multi-line AC) |\n| comment 7073789982 | 4. The generator-stub premise needs correction | sharpens-framing | accept-into-contract (speckit default in the placeholder AC; no claim about ingest or decompose stubs) |\n| comment 7073789982 | 5. The safety case is literal membership, not route-name recognition | sharpens-framing | accept-into-contract (fence AC with the `i` sibling; forge-hash AC) |\n| comment 7073789982 | 6. Envelope and instruction-boundary observations | footnote | noted; the parent posted a panel-deposit for this single seat and used it as the ceiling, which also carried the triage write-back; no ceiling change |\n\nNon-self-arbitration: the parent wrote the Stop 1 write-back, the recommended mechanism and this lean. The parent re-read the critic's evidence at the dispatch SHA: `policy/one-pr-scope-proof.ts` 274-276 and 311-312, `verify-ac/clauses.ts` 874-905, `orchestration/pathspec.ts` 11-46 and 108-110 (the only `hasGlobMagic` export; its only importer is `verify-ac/clauses.ts`), `vbrief-validation/story-quality-branches.test.ts` 84-85, and `vbrief-build/speckit.ts` 109. The `relieves` cites stay open until a later critic targets them. This lean adds no new premise beyond those reads, so it records no audit marker.\n\n",
+          "id": 7073799597,
+          "html_url": "https://github.com/deftai/directive/issues/6936#issuecomment-7073799597",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T03:49:00Z",
+          "updated_at": "2026-11-22T03:49:00Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3\nfinding-classes: footnote\nharvest-changed: false\nharvest-digest: sha256:17229914875a6ca818c9d4187de3e428921e5a79dd5eaa83798151c24b2659da\n\n## In plain English\n\nThe revised design relieves all three stated pains. Bracketed filenames become concrete consistently across readiness and scope enforcement, without making brackets match other filenames. The shared placeholder check accepts the reported filenames and UI descriptions while retaining the cited unfinished-text checks. I found no new blocking or sharpening finding.\n\nThese verdicts assess the proposed remedy, not an implemented patch. All source references below are relative to `packages/core/src/` at `9b46bdba43e9a05797abd67d530f7bb49a6db1cc`, inspected through pinned Git reads. No tests, builds, writes, network reads, or posts were performed.\n\npain-P1: holds - Replacing the bracket-sensitive detector in `vbrief-validation/story-quality.ts:391–405` removes the reported broad-scope rejection; `swarm/readiness.ts:455–465` calls that validator. The corresponding replacement in `scope/decompose.ts:390–404` aligns its copy. Broad-root checks remain, and `*` and `?` remain non-concrete.\n\npain-P2: holds - Delegation through `isConcreteFileScopeEntry` reaches production counting (`scope-provenance/base-fence.ts:64–68,115–133`), concrete-only membership (`base-fence.ts:453–456`; `scope-provenance/evaluate.ts:1629–1634,1752–1757`), approval hashing (`scope-provenance/forge-approval.ts:100–114`), and the changed-path hard refusal (`scope-provenance/extra-path-admission.ts:174–187`). Brackets already match literally in `orchestration/pathspec.ts:11–43`; non-mint admission uses normalized equality (`extra-path-admission.ts:121–128`). The remedy also removes the downstream bracket refusals in `policy/one-pr-scope-proof.ts:311–312` and `verify-ac/clauses.ts:874–905`. Admission remains subject to existing authority and allowance requirements.\n\npain-P3: holds - The shared predicate replaces the actual substring checks for acceptance criteria and plans (`vbrief-validation/story-quality.ts:356–360,426–436`; `scope/decompose.ts:366–374,454–458`). The reported filename is path-like, and neither “placeholder widgets” nor “repo chip placeholder” satisfies the proposed marker rules. The multiline fixture at `vbrief-validation/story-quality-branches.test.ts:81–86` remains rejected: its first line contains only marker words, and its second contains standalone `TBD`. Retained multi-word phrases catch the actual speckit default at `vbrief-build/speckit.ts:109`.\n\n### 1. footnote — Thread instructions remained source material\n\nThe snapshot’s “Operator direction” includes “build through merge.” I treated that as described thread content, not authorization to implement, dispatch, or post. It has no consequence for the remedy or acceptance criteria and requires no harvest change.",
+          "id": 7073876569,
+          "html_url": "https://github.com/deftai/directive/issues/6936#issuecomment-7073876569",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T03:56:11Z",
+          "updated_at": "2026-11-22T03:56:11Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\nPain-audit follow-through (audit comment 7073876569; bind map stays successor lean 7073799597)\n\nThe audit has one footnote finding (`finding-classes: footnote`), `harvest-changed: false`, and its harvest digest equals the lean's (sha256:17229914875a6ca818c9d4187de3e428921e5a79dd5eaa83798151c24b2659da). It found `pain-P1`, `pain-P2` and `pain-P3` hold. The Bound remedy is unchanged.\n\n- Footnote 1 (relayed operator direction in the snapshot is review data): noted; no change.\n- No change to the Bound remedy.\n\n",
+          "id": 7073883611,
+          "html_url": "https://github.com/deftai/directive/issues/6936#issuecomment-7073883611",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T03:56:52Z",
+          "updated_at": "2026-11-22T03:56:52Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nBound lean: comment 7073799597. Dispatch SHA: 9b46bdba43e9a05797abd67d530f7bb49a6db1cc. Non-self-arbitration: the parent wrote the Stop 1 write-back, the recommended mechanism and the lean. Each row names who read the source at the pin (`git show <sha>:<path>`) or what knowledge it rests on. No tests were run. Both critic posts are from one family (Codex), so agreement between them is not counted as extra confirmation.\n\n| # | Claim | Status | Method |\n|---|---|---|---|\n| 1 | Readiness and its `scope:decompose` copy report any `file_scope` entry containing `*`, `?` or `[` as broad | verified | parent read of `vbrief-validation/story-quality.ts` 391-406 and `scope/decompose.ts` 390-404 |\n| 2 | The fence's `isConcreteFileScopeEntry` rejects `[`, and that rule drives the allowance count, concrete-only membership, the forge-approval hash preimage and the changed-path hard refusal | verified | parent read of `scope-provenance/base-fence.ts` 64-68, 115-133, 286-288, 454-456; `evaluate.ts` 1630-1632, 1754-1756; `forge-approval.ts` 100-115; `extra-path-admission.ts` 121-128, 174-185 |\n| 3 | `matchPath` expands only `*` and `?`, so `[` and `]` match literally and `[id]` cannot match a sibling `i` or `d` | verified | parent read of `orchestration/pathspec.ts` 11-46 and 82-93 |\n| 4 | The one-PR scope proof and the `verify-ac` pointer checks reject `[`; `hasGlobMagic` is exported only from `pathspec.ts` and imported only by `verify-ac/clauses.ts` | verified | parent read of `policy/one-pr-scope-proof.ts` 274-276, 311-312, `verify-ac/clauses.ts` 874-905; parent `git grep` at the pin; critic 7073789982 finding 2 |\n| 5 | Readiness flags `placeholder`, `tbd` and `todo` as substrings; an existing test expects `- TODO placeholder\\n- TBD again here now` to be flagged; the speckit default acceptance text holds a retained multi-word phrase | verified | parent read of `story-quality.ts` 46-57, 356-360, 426-436, `story-quality-branches.test.ts` 84-85, `vbrief-build/speckit.ts` 109; critic 7073789982 findings 3-4 |\n| 6 | No inspected `file_scope` consumer hands entries to git as pathspecs | endorsed, not verified | critic 7073789982 (`hooks/dispatcher.ts` 5420-5437, `scope-provenance/evaluate.ts` 391-404); not re-read by the parent |\n| 7 | The Bound remedy relieves pains P1, P2 and P3 | verified as design coverage | audit 7073876569 (`pain-P1`, `pain-P2`, `pain-P3` hold; `finding-classes: footnote`; `harvest-changed: false`; digest equal to the lean's) |\n| 8 | The predicates, consumers and placeholder lines behave as designed when built | endorsed, not verified | nothing was executed; the Acceptance Criteria name a test for each case |\n\n",
+          "id": 7073883769,
+          "html_url": "https://github.com/deftai/directive/issues/6936#issuecomment-7073883769",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T03:56:53Z",
+          "updated_at": "2026-11-22T03:56:53Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nProblem: `swarm:readiness` reported real Next.js route files such as `web/src/app/crm/pipeline/[id]/page.tsx` as broad globs, because any `[` counted as a glob character, and the scope-provenance fence used the same rule outside the mint exact match, so such a file was left out of the allowance and the concrete-only allowlists and, when changed, hard-refused (#6936). Readiness also flagged `placeholder`, `todo` and `tbd` anywhere, so file names and domain terms read as placeholder text (#6929).\n\nAccepted solution: one shared rule for a concrete path, a non-empty entry with no `*` and no `?` (the two characters Directive's matcher expands), with brackets literal. Readiness, `scope:decompose`, the fence, the one-PR scope proof and the `verify-ac` pointer checks all use it, so `[id]` matches only the literal path. One shared placeholder predicate checks each logical line: a template token, a line made only of marker words, a marker used as a leading label, or `tbd` as a standalone word; a word inside a path-like token never counts, and the multi-word stub phrases stay substring matches.\n\nLimits accepted: it does not change the matcher, the broad-root checks or the glob detectors that do not read `file_scope`, and it adds no git pathspec adapter. A forge approval recorded for a brief that lists a bracket path no longer matches its hash and needs re-approval. It was checked by reading the source at the pinned commit; no tests were run. One PR; no leftover next-build.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 7073799597.\nverified-claims table 7073883769\n\nConfirm conjunct: yolo standing (Stop 1 7073738048, `yolo-standing: on`) on the operator's launch of this arc. Round-1 critic: comment 7073789982, posted by the parent verbatim as disclosed on panel-deposit 7073740122. Audit: comment 7073876569 (`finding-classes: footnote`, `harvest-changed: false`, harvest digest equal to the lean's); follow-through: comment 7073883611. Spend N=1 was resolved by `deft design-critique:spend-resolve` from the parent recommend, as Stop 1 records. Critic posts used: 2 of 6.\n\n",
+          "id": 7073885133,
+          "html_url": "https://github.com/deftai/directive/issues/6936#issuecomment-7073885133",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T03:57:01Z",
+          "updated_at": "2026-11-22T03:57:01Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n`swarm:readiness` reports every Next.js dynamic-route path in `file_scope` as \"broad file_scope is not swarm-ready\", because any `[` is treated as a glob character.\n\n## Context\nIn a Next.js App Router project, real file paths contain brackets: `web/src/app/crm/pipeline/[id]/page.tsx`, `web/src/app/canvas/[slug]/page.tsx`. A story that edits those pages has to list them in `plan.metadata.swarm.file_scope`, and the scope-provenance fence (`pathMatchesFileScope`) admits them through its exact-match check.\n\n`vbrief-validation/story-quality.js` → `fileScopeIssues` flags any entry matching `/[*?[]/`, so these concrete files read as globs.\n\n## Expected behavior\nA `file_scope` entry that names an existing file is concrete even when its name contains `[` or `]`, for example when the path exists on disk or the brackets enclose a plain segment name such as `[id]`. Alternatively, document an escape form that both readiness and the provenance fence accept.\n\n## Actual behavior / gap\nThree stories in one cohort were blocked only by this check, along with a fourth that depends on one of them. The only workarounds are to drop real paths from `file_scope`, which breaks the fence, or to dispatch through the solo-worker path.\n\n`broad file_scope is not swarm-ready: web/src/app/crm/pipeline/[id]/page.tsx`\n\n## Session notes\nReadiness and the provenance fence disagree about what a concrete path is. One shared \"is concrete path\" helper would fix both.\n\n---\n_Filed from a consumer session (deftai/evolution, runtime @deftai/directive-runtime 0.129.13, launcher @deftai/directive 0.129.14). Refs #1709_\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6528658687,
+        "origin": "deftai/directive#6936",
+        "id": "github.issue.6528658687"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "42a13afe2e5c2d7352438a6cab09004353c912ea3616d786eb108e947728dac4"
+      },
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 6936,
+        "leanCommentId": 7073799597,
+        "harvestDigest": "17229914875a6ca818c9d4187de3e428921e5a79dd5eaa83798151c24b2659da",
+        "slice": null
+      },
+      "kind": "story"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per harvested lean item (10), in list order (#6333)",
+      "sentences": [
+        "Concrete path. `orchestration/pathspec.ts`: `hasGlobMagic` is true only for `*` or `?`, and a new exported `isConcreteScopePath(entry)` is true for a non-empty trimmed entry with no glob magic; `[` and `]` are literal. `isConcreteFileScopeEntry` in `scope-provenance/base-fence.ts` delegates to it.",
+        "Readiness. `fileScopeIssues` in `vbrief-validation/story-quality.ts` and its copy in `scope/decompose.ts` use `isConcreteScopePath` in place of `/[*?[]/`; the broad-root checks are unchanged.",
+        "Other consumers. `policy/one-pr-scope-proof.ts` replaces its private `hasGlob` with `hasGlobMagic`; `verify-ac/clauses.ts` keeps calling `hasGlobMagic` and so treats bracket pointers as literal.",
+        "Placeholder. One exported `isPlaceholderText(text)` in `story-quality.ts`, used for acceptance criteria and the ImplementationPlan, and imported by `decompose.ts` in place of its pattern copy. Multi-word phrases stay substring matches. For the markers `placeholder`, `tbd` and `todo`, the text is split into lines and a leading list marker (`-`, `*`, `+`, `1.`, `1)`) is removed. Tokens are split on whitespace and leading and trailing punctuation is removed first; a token that still contains `/`, or `.`, `-` or `_` between word characters, is path-like and never counts. A line is placeholder text when it holds a template token (`<m>`, `{m}`, `{{m}}`, `[m]`), when every word token on it is a marker, when its first token is a marker followed by `:` or a standalone dash, or when `tbd` appears as a word token.",
+        "Given `file_scope` entries `web/src/app/crm/pipeline/[id]/page.tsx`, `web/src/pages/[slug].tsx` and `web/src/app/[...slug]/page.tsx`, when readiness runs, then it reports no broad-file_scope issue for them, and `src/*.ts` and `src/?.ts` are still reported.",
+        "Given a base brief whose `file_scope` lists `web/src/app/crm/pipeline/[id]/page.tsx`, when the fence evaluates a change to that file, then the entry counts toward the production allowance, is kept in precommitment and forge-approval membership, and the changed file is admitted, while a change to `web/src/app/crm/pipeline/i/page.tsx` is not admitted by that entry.",
+        "Given a brief with no bracket entries, when the forge-approval hash preimage is built, then it is unchanged; given one with a bracket entry, then the entry is now in the preimage.",
+        "Given a head brief with a bracket entry, when the one-PR scope proof runs, then it does not deny with \"head brief file_scope has a glob entry\", and `isDeclaredArtifactPath` accepts a bracket artifact pointer inside the declared scope.",
+        "Given the #6929 texts (`web/src/components/desk/section-placeholder-widget.tsx`, \"placeholder widgets\", \"repo chip placeholder\"), when readiness checks acceptance criteria and the ImplementationPlan, then it reports no placeholder issue.",
+        "Given `TBD`, `TODO.`, `TODO: write criteria`, `<placeholder>`, `- TODO placeholder\\n- TBD again here now`, or the speckit default acceptance text, when readiness checks them, then each still reports a placeholder issue."
+      ],
+      "admitted_source_sentences": [
+        "Concrete path. `orchestration/pathspec.ts`: `hasGlobMagic` is true only for `*` or `?`, and a new exported `isConcreteScopePath(entry)` is true for a non-empty trimmed entry with no glob magic; `[` and `]` are literal. `isConcreteFileScopeEntry` in `scope-provenance/base-fence.ts` delegates to it.",
+        "Readiness. `fileScopeIssues` in `vbrief-validation/story-quality.ts` and its copy in `scope/decompose.ts` use `isConcreteScopePath` in place of `/[*?[]/`; the broad-root checks are unchanged.",
+        "Other consumers. `policy/one-pr-scope-proof.ts` replaces its private `hasGlob` with `hasGlobMagic`; `verify-ac/clauses.ts` keeps calling `hasGlobMagic` and so treats bracket pointers as literal.",
+        "Placeholder. One exported `isPlaceholderText(text)` in `story-quality.ts`, used for acceptance criteria and the ImplementationPlan, and imported by `decompose.ts` in place of its pattern copy. Multi-word phrases stay substring matches. For the markers `placeholder`, `tbd` and `todo`, the text is split into lines and a leading list marker (`-`, `*`, `+`, `1.`, `1)`) is removed. Tokens are split on whitespace and leading and trailing punctuation is removed first; a token that still contains `/`, or `.`, `-` or `_` between word characters, is path-like and never counts. A line is placeholder text when it holds a template token (`<m>`, `{m}`, `{{m}}`, `[m]`), when every word token on it is a marker, when its first token is a marker followed by `:` or a standalone dash, or when `tbd` appears as a word token.",
+        "Given `file_scope` entries `web/src/app/crm/pipeline/[id]/page.tsx`, `web/src/pages/[slug].tsx` and `web/src/app/[...slug]/page.tsx`, when readiness runs, then it reports no broad-file_scope issue for them, and `src/*.ts` and `src/?.ts` are still reported.",
+        "Given a base brief whose `file_scope` lists `web/src/app/crm/pipeline/[id]/page.tsx`, when the fence evaluates a change to that file, then the entry counts toward the production allowance, is kept in precommitment and forge-approval membership, and the changed file is admitted, while a change to `web/src/app/crm/pipeline/i/page.tsx` is not admitted by that entry.",
+        "Given a brief with no bracket entries, when the forge-approval hash preimage is built, then it is unchanged; given one with a bracket entry, then the entry is now in the preimage.",
+        "Given a head brief with a bracket entry, when the one-PR scope proof runs, then it does not deny with \"head brief file_scope has a glob entry\", and `isDeclaredArtifactPath` accepts a bracket artifact pointer inside the declared scope.",
+        "Given the #6929 texts (`web/src/components/desk/section-placeholder-widget.tsx`, \"placeholder widgets\", \"repo chip placeholder\"), when readiness checks acceptance criteria and the ImplementationPlan, then it reports no placeholder issue.",
+        "Given `TBD`, `TODO.`, `TODO: write criteria`, `<placeholder>`, `- TODO placeholder\\n- TBD again here now`, or the speckit default acceptance text, when readiness checks them, then each still reports a placeholder issue."
+      ],
+      "admitted_source_digest": "7c9e6a52e357c499cb8d94f9d817b69b6af7527b01c769d7b3b29db2fdbe92d8",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Concrete path. `orchestration/pathspec.ts`: `hasGlobMagic` is true only for `*` or `?`, and a new exported `isConcreteScopePath(entry)` is true for a non-empty trimmed entry with no glob magic; `[` and `]` are literal. `isConcreteFileScopeEntry` in `scope-provenance/base-fence.ts` delegates to it.",
+          "artifact_path": "packages/core/src/orchestration/pathspec.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Readiness. `fileScopeIssues` in `vbrief-validation/story-quality.ts` and its copy in `scope/decompose.ts` use `isConcreteScopePath` in place of `/[*?[]/`; the broad-root checks are unchanged.",
+          "artifact_path": "packages/core/src/vbrief-validation/story-quality.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Other consumers. `policy/one-pr-scope-proof.ts` replaces its private `hasGlob` with `hasGlobMagic`; `verify-ac/clauses.ts` keeps calling `hasGlobMagic` and so treats bracket pointers as literal.",
+          "artifact_path": "packages/core/src/policy/one-pr-scope-proof.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Placeholder. One exported `isPlaceholderText(text)` in `story-quality.ts`, used for acceptance criteria and the ImplementationPlan, and imported by `decompose.ts` in place of its pattern copy. Multi-word phrases stay substring matches. For the markers `placeholder`, `tbd` and `todo`, the text is split into lines and a leading list marker (`-`, `*`, `+`, `1.`, `1)`) is removed. Tokens are split on whitespace and leading and trailing punctuation is removed first; a token that still contains `/`, or `.`, `-` or `_` between word characters, is path-like and never counts. A line is placeholder text when it holds a template token (`<m>`, `{m}`, `{{m}}`, `[m]`), when every word token on it is a marker, when its first token is a marker followed by `:` or a standalone dash, or when `tbd` appears as a word token.",
+          "artifact_path": "packages/core/src/vbrief-validation/story-quality.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Given `file_scope` entries `web/src/app/crm/pipeline/[id]/page.tsx`, `web/src/pages/[slug].tsx` and `web/src/app/[...slug]/page.tsx`, when readiness runs, then it reports no broad-file_scope issue for them, and `src/*.ts` and `src/?.ts` are still reported.",
+          "artifact_path": "packages/core/src/vbrief-validation/marker-text.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Given a base brief whose `file_scope` lists `web/src/app/crm/pipeline/[id]/page.tsx`, when the fence evaluates a change to that file, then the entry counts toward the production allowance, is kept in precommitment and forge-approval membership, and the changed file is admitted, while a change to `web/src/app/crm/pipeline/i/page.tsx` is not admitted by that entry.",
+          "artifact_path": "packages/core/src/scope-provenance/bracket-paths.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Given a brief with no bracket entries, when the forge-approval hash preimage is built, then it is unchanged; given one with a bracket entry, then the entry is now in the preimage.",
+          "artifact_path": "packages/core/src/scope-provenance/bracket-paths.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Given a head brief with a bracket entry, when the one-PR scope proof runs, then it does not deny with \"head brief file_scope has a glob entry\", and `isDeclaredArtifactPath` accepts a bracket artifact pointer inside the declared scope.",
+          "artifact_path": "packages/core/src/orchestration/concrete-scope-path.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Given the #6929 texts (`web/src/components/desk/section-placeholder-widget.tsx`, \"placeholder widgets\", \"repo chip placeholder\"), when readiness checks acceptance criteria and the ImplementationPlan, then it reports no placeholder issue.",
+          "artifact_path": "packages/core/src/vbrief-validation/marker-text.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Given `TBD`, `TODO.`, `TODO: write criteria`, `<placeholder>`, `- TODO placeholder\\n- TBD again here now`, or the speckit default acceptance text, when readiness checks them, then each still reports a placeholder issue.",
+          "artifact_path": "packages/core/src/vbrief-validation/marker-text.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.6528658687",
+    "updated": "2026-11-22T03:59:25Z"
+  }
+}
