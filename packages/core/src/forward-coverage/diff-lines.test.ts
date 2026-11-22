@@ -99,6 +99,88 @@ describe("parseUnifiedDiffAddedLines", () => {
     const map = parseUnifiedDiffAddedLines(diff);
     expect([...(map.get("src/foo.ts") ?? [])]).toEqual([2]);
   });
+
+  it("reads hunk payload that looks like a file header as added lines (#7077)", () => {
+    // Source lines `++ x`, `-- y` and `diff --git z` show as `+++ x` etc.
+    const diff = [
+      "diff --git a/src/foo.ts b/src/foo.ts",
+      "--- a/src/foo.ts",
+      "+++ b/src/foo.ts",
+      "@@ -1,0 +2,5 @@",
+      "+++ bogus.ts",
+      "+-- a/other.ts",
+      "+diff --git a/x b/x",
+      "+@@ -1 +1 @@",
+      '+const r = "tests/fixtures/a";',
+      "",
+    ].join("\n");
+    const map = parseUnifiedDiffAddedLines(diff);
+    expect([...map.keys()]).toEqual(["src/foo.ts"]);
+    expect([...(map.get("src/foo.ts") ?? [])]).toEqual([2, 3, 4, 5, 6]);
+  });
+
+  it("does not let a deleted `--- ` line end the hunk (#7077)", () => {
+    const diff = [
+      "--- a/src/foo.ts",
+      "+++ b/src/foo.ts",
+      "@@ -3,2 +3,1 @@",
+      "--- old",
+      "-+++ b/gone.ts",
+      "+new",
+      "",
+    ].join("\n");
+    const map = parseUnifiedDiffAddedLines(diff);
+    expect([...map.keys()]).toEqual(["src/foo.ts"]);
+    expect([...(map.get("src/foo.ts") ?? [])]).toEqual([3]);
+  });
+
+  it("treats a missing hunk count as 1 and skips no-newline markers (#7077)", () => {
+    const diff = [
+      "diff --git a/a.ts b/a.ts",
+      "--- a/a.ts",
+      "+++ b/a.ts",
+      "@@ -1 +1 @@",
+      "-old",
+      "\\ No newline at end of file",
+      "+new",
+      "\\ No newline at end of file",
+      "diff --git a/b.ts b/b.ts",
+      "--- a/b.ts",
+      "+++ b/b.ts",
+      "@@ -4,0 +5 @@",
+      "+added",
+      "",
+    ].join("\n");
+    const map = parseUnifiedDiffAddedLines(diff);
+    expect([...(map.get("a.ts") ?? [])]).toEqual([1]);
+    expect([...(map.get("b.ts") ?? [])]).toEqual([5]);
+  });
+
+  it("reads the next file after a multi-hunk diff (#7077)", () => {
+    const diff = [
+      "diff --git a/a.ts b/a.ts",
+      "--- a/a.ts",
+      "+++ b/a.ts",
+      "@@ -1,0 +2,1 @@",
+      "+one",
+      "@@ -9,1 +10,2 @@",
+      "-x",
+      "+y",
+      "+z",
+      "diff --git a/b.ts b/b.ts",
+      "new file mode 100644",
+      "--- /dev/null",
+      "+++ b/b.ts",
+      "@@ -0,0 +1,2 @@",
+      "+++ c",
+      "+d",
+      "",
+    ].join("\n");
+    const map = parseUnifiedDiffAddedLines(diff);
+    expect([...map.keys()].sort()).toEqual(["a.ts", "b.ts"]);
+    expect([...(map.get("a.ts") ?? [])]).toEqual([2, 10, 11]);
+    expect([...(map.get("b.ts") ?? [])]).toEqual([1, 2]);
+  });
 });
 
 describe("countFileLines / allLinesChanged", () => {

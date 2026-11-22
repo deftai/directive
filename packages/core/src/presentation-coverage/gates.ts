@@ -4,6 +4,7 @@
  * Class checks use base authority and compare candidate boundaries; the
  * independent test-boundary gate uses candidate policy, as its normal CLI does.
  */
+import { spawnSync } from "node:child_process";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -21,6 +22,7 @@ import {
   evaluate as evaluateSurface,
   isEvaluatorSurfacePath,
 } from "../evaluator-surface/evaluate.js";
+import { parseUnifiedDiffAddedLines } from "../forward-coverage/diff-lines.js";
 import { containedWrite } from "../fs/contained-write.js";
 import { evaluateIntentConstraint } from "../intent-constraint/evaluate.js";
 import { evaluateObservableScope } from "../observable-scope/evaluate.js";
@@ -42,6 +44,31 @@ export const COMPOSED_GATE_IDS: readonly string[] = [
   "verify:observable-scope",
   "verify:intent-constraint",
 ];
+/** Class 2 added lines from a diff of the two pinned snapshots (#7077). A failed
+ * diff gives no entries, so class 2 scans every line (fail closed). */
+function snapshotAddedLines(snapshot: CoverageSnapshot): ReadonlyMap<string, ReadonlySet<number>> {
+  if (snapshot.changed.length === 0) return new Map();
+  const r = spawnSync(
+    "git",
+    [
+      "-C",
+      snapshot.projectRoot,
+      "diff",
+      "-U0",
+      "--no-renames",
+      "--no-color",
+      "--no-ext-diff",
+      "--no-textconv",
+      snapshot.mergeBase,
+      snapshot.candidate,
+      "--",
+      ...snapshot.changed,
+    ],
+    { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 },
+  );
+  if (r.error !== undefined || r.status !== 0) return new Map();
+  return parseUnifiedDiffAddedLines(String(r.stdout ?? ""));
+}
 function policies(tree: SnapshotTree) {
   const dir = mkdtempSync(join(tmpdir(), "deft-ceiling-policy-"));
   try {
@@ -175,6 +202,7 @@ export function runComposedGates(
         baseRef: mergeBase,
         changedFiles: changed,
         fileContents: contents,
+        addedLines: snapshotAddedLines(snapshot),
         baseTestBoundaryPolicy: b.boundary,
         headTestBoundaryPolicy: h.boundary,
         classChecksPolicy: b.classes,

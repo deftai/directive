@@ -295,6 +295,53 @@ it.each([
   });
 });
 
+describe("class checks scan only added lines in a composed run (#7077)", () => {
+  function seeded() {
+    const r = repo();
+    r.write(
+      ".deft/test-boundary.policy.json",
+      JSON.stringify({ sourceRoots: ["public/**"], testRoots: ["tests/**"] }),
+    );
+    r.write("public/app.js", 'const roots = ["tests/**"];\nconst mode = 1;\n');
+    r.git("add", ".");
+    r.git("commit", "-qm", "base holds a test-root reference");
+    return { ...r, baseline: r.git("rev-parse", "HEAD") };
+  }
+  const classRow = (root: string, baseline: string) =>
+    evaluatePresentationCoverage({
+      projectRoot: root,
+      originRef: baseline,
+      staged: true,
+      planId: "current",
+    }).coverage.find((c) => c.gateId === "verify:class-checks");
+
+  it("passes an unrelated edit to a file whose base already holds a reference", () => {
+    const { root, git, write, baseline } = seeded();
+    write("public/app.js", 'const roots = ["tests/**"];\nconst mode = 2;\n');
+    git("add", ".");
+    expect(classRow(root, baseline)?.code).toBe(0);
+  });
+
+  it("fails an added reference line", () => {
+    const { root, git, write, baseline } = seeded();
+    write("public/app.js", 'const roots = ["tests/**"];\nconst mode = 1;\nconst f = "tests/x";\n');
+    git("add", ".");
+    expect(classRow(root, baseline)?.code).toBe(1);
+  });
+
+  it("fails a reference added after a line that starts with `++ `", () => {
+    const { root, git, write, baseline } = seeded();
+    write(
+      "public/app.js",
+      'const roots = ["tests/**"];\nconst mode = 1;\n++ mode;\nconst f = "tests/x";\n',
+    );
+    git("add", ".");
+    const row = classRow(root, baseline);
+    expect(row?.code).toBe(1);
+    expect(row?.message).toContain("public/app.js");
+  });
+});
+
 it("evaluates candidate test-boundary tightening against all pinned files", () => {
   const { root, git, write } = repo();
   write("public/test_widget.py", "assert True\n");
