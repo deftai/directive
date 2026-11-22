@@ -10,7 +10,7 @@ import { containedWrite, scopeProvenance } from "@deftai/directive-core";
 import { startUatLease } from "@deftai/directive-core/authz";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { parseArgs, run } from "./scope-record-approved-scope.js";
-import { parseCohortManifest } from "./scope-record-approved-scope-cohort.js";
+import { acceptanceLines, parseCohortManifest } from "./scope-record-approved-scope-cohort.js";
 
 const temps: string[] = [];
 afterEach(() => {
@@ -137,6 +137,37 @@ describe("scope:record-approved-scope --manifest (#7083)", () => {
     expect(readFileSync(pairOf(c.wt("story-a"), "story-a").record, "utf8")).toBe(before);
   });
 
+  it("previews acceptance clauses and command objects", () => {
+    const lines = acceptanceLines({
+      plan: {
+        items: [{ id: "clause.1", title: "item title" }],
+        acceptance: {
+          clauses: [{ id: 1, text: "When X runs, Y holds." }],
+          commands: ["npx vitest run a.test.ts", { command: "npm test", cwd: "." }],
+        },
+      },
+    });
+    expect(lines).toEqual([
+      "clause 1: When X runs, Y holds.",
+      "command: npx vitest run a.test.ts",
+      "command: npm test",
+    ]);
+  });
+
+  it("refuses an existing pair whose record lost its human stamp", () => {
+    const c = cohort([{ id: "story-a" }]);
+    capture();
+    expect(run(c.argv, seams({ n: 0 }))).toBe(0);
+    const recordPath = pairOf(c.wt("story-a"), "story-a").record;
+    const record = JSON.parse(readFileSync(recordPath, "utf8")) as Record<string, unknown>;
+    writeFileSync(recordPath, JSON.stringify({ ...record, humanApproval: {} }));
+    const prompts = { n: 0 };
+    const io = capture();
+    expect(run(c.argv, seams(prompts))).toBe(1);
+    expect(prompts.n).toBe(0);
+    expect(io.err()).toContain("exists and differs");
+  });
+
   it("refuses a differing or half pair before the prompt and writes nothing", () => {
     for (const mode of ["differing", "half"] as const) {
       const c = cohort([{ id: "story-a" }, { id: "story-b" }]);
@@ -182,9 +213,9 @@ describe("scope:record-approved-scope --manifest (#7083)", () => {
       seams({ n: 0 }),
       {},
       {
-        write: (root, target, data) => {
+        fill: (root, target, data) => {
           if (target === b.record) throw new Error("disk full");
-          containedWrite({ root, target, data, mode: "create" });
+          containedWrite({ root, target, data, mode: "replace" });
         },
       },
     );
@@ -203,13 +234,13 @@ describe("scope:record-approved-scope --manifest (#7083)", () => {
       seams({ n: 0 }),
       {},
       {
-        write: (root, target, data) => {
+        create: (root, target) => {
           if (target === b.intent) {
             // Someone else creates the file between the check and our exclusive create.
             mkdirSync(join(c.wt("story-b"), ".deft", "approved-scope"), { recursive: true });
             writeFileSync(b.intent, "foreign\n");
           }
-          containedWrite({ root, target, data, mode: "create" });
+          containedWrite({ root, target, data: "", mode: "create" });
         },
       },
     );
@@ -230,12 +261,12 @@ describe("scope:record-approved-scope --manifest (#7083)", () => {
       seams({ n: 0 }),
       {},
       {
-        write: (root, target, data) => {
+        fill: (root, target, data) => {
           if (target === b.intent) {
-            containedWrite({ root, target, data: "{", mode: "create" });
+            containedWrite({ root, target, data: "{", mode: "replace" });
             throw new Error("write interrupted");
           }
-          containedWrite({ root, target, data, mode: "create" });
+          containedWrite({ root, target, data, mode: "replace" });
         },
       },
     );

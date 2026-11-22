@@ -9,15 +9,9 @@
  * is display metadata, never authority.
  */
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync, realpathSync, rmSync } from "node:fs";
-import { resolve } from "node:path";
-import {
-  ContainedWriteError,
-  ContainedWriteErrorCode,
-  containedWrite,
-  scopeProvenance,
-  slice,
-} from "@deftai/directive-core";
+import { existsSync, lstatSync, readFileSync, realpathSync, rmSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { containedWrite, scopeProvenance, slice } from "@deftai/directive-core";
 
 const {
   approvedScopeIntentPath,
@@ -30,6 +24,7 @@ const {
   extractPlanId,
   INTENT_DIGEST_ALGO,
   isConcreteFileScopeEntry,
+  isHumanApprovalStamp,
   parseJsonRejectingDuplicateKeys,
 } = scopeProvenance;
 
@@ -97,13 +92,27 @@ export type CohortPrepare =
   | { readonly ok: true; readonly stories: CohortStory[] }
   | { readonly ok: false; readonly errors: string[] };
 
-/** Acceptance lines a record binds: each item's Acceptance (or title), then stated commands. */
+/**
+ * Acceptance lines a record binds: the `plan.acceptance.clauses` texts when
+ * present, else each item's Acceptance (or title); then every stated command,
+ * as a string or as `{ command }`.
+ */
 export function acceptanceLines(payload: unknown): string[] {
   const out: string[] = [];
   const plan = (payload as { plan?: unknown }).plan;
   if (plan === null || typeof plan !== "object" || Array.isArray(plan)) return out;
   const p = plan as Record<string, unknown>;
-  const items = Array.isArray(p.items) ? p.items : [];
+  const acceptance = (p.acceptance ?? {}) as Record<string, unknown>;
+  const clauses = Array.isArray(acceptance.clauses) ? acceptance.clauses : [];
+  for (const clause of clauses) {
+    if (clause === null || typeof clause !== "object" || Array.isArray(clause)) continue;
+    const c = clause as Record<string, unknown>;
+    if (typeof c.text !== "string" || c.text.trim().length === 0) continue;
+    const id =
+      typeof c.id === "number" || typeof c.id === "string" ? `clause ${String(c.id)}: ` : "";
+    out.push(`${id}${c.text.trim()}`);
+  }
+  const items = out.length === 0 && Array.isArray(p.items) ? p.items : [];
   for (const item of items) {
     if (item === null || typeof item !== "object" || Array.isArray(item)) continue;
     const it = item as Record<string, unknown>;
@@ -118,10 +127,15 @@ export function acceptanceLines(payload: unknown): string[] {
     const id = typeof it.id === "string" && it.id.length > 0 ? `${it.id}: ` : "";
     out.push(`${id}${text}`);
   }
-  const acceptance = (p.acceptance ?? {}) as Record<string, unknown>;
   if (Array.isArray(acceptance.commands)) {
     for (const cmd of acceptance.commands) {
-      if (typeof cmd === "string" && cmd.trim().length > 0) out.push(`command: ${cmd.trim()}`);
+      const text =
+        typeof cmd === "string"
+          ? cmd
+          : cmd !== null && typeof cmd === "object" && typeof cmd.command === "string"
+            ? cmd.command
+            : "";
+      if (text.trim().length > 0) out.push(`command: ${text.trim()}`);
     }
   }
   return out;
@@ -155,7 +169,10 @@ function relUnder(root: string, abs: string): string | null {
   return rel;
 }
 
-/** True when an existing record binds the same brief, scope, intent and auth-hash. */
+/**
+ * True when an existing record binds the same brief, scope, intent and auth-hash
+ * and carries a valid human stamp; anything else is a differing pair.
+ */
 function sameBinding(existingRaw: string, builtRaw: string): boolean {
   try {
     const a = JSON.parse(existingRaw) as Record<string, unknown>;
@@ -168,7 +185,10 @@ function sameBinding(existingRaw: string, builtRaw: string): boolean {
       "digestAlgo",
       "authHashV1",
     ];
-    if (a.humanApproval === undefined || a.humanApproval === null) return false;
+    if (!isHumanApprovalStamp(a.humanApproval as Parameters<typeof isHumanApprovalStamp>[0])) {
+      return false;
+    }
+    if (JSON.stringify(a.fileScope ?? null) !== JSON.stringify(b.fileScope ?? null)) return false;
     return keys.every((k) => JSON.stringify(a[k] ?? null) === JSON.stringify(b[k] ?? null));
   } catch {
     return false;
@@ -333,10 +353,15 @@ export function formatCohortPlan(stories: readonly CohortStory[]): string {
   return `${out.join("\n")}\n`;
 }
 
-/** Write seams for tests: a failure or a concurrent create mid-run. */
+/**
+ * Write seams for tests: a failure or a concurrent create mid-run. `create` makes
+ * the empty file by exclusive create; `fill` writes its bytes; `remove` undoes a
+ * file this run created.
+ */
 export interface CohortWriteSeams {
-  readonly write?: (root: string, target: string, data: string) => void;
-  readonly remove?: (path: string) => void;
+  readonly create?: (root: string, target: string) => void;
+  readonly fill?: (root: string, target: string, data: string) => void;
+  readonly remove?: (root: string, target: string) => void;
 }
 
 export type CohortWriteResult =
@@ -344,20 +369,41 @@ export type CohortWriteResult =
   | { readonly ok: false; readonly error: string; readonly removed: string[] };
 
 /**
- * Write each new pair by exclusive create, intent first. On any failure, remove
- * only the files this run created; a file someone else created is never touched.
+ * Remove a file this run created, inside the same containment checks as the
+ * write: a symlinked leaf, or a real parent outside the worktree, is left alone.
+ */
+function removeOwnFile(root: string, target: string): void {
+  try {
+    if (!lstatSync(target).isFile()) return;
+    if (lexicalRel(realpathSync(root), realpathSync(dirname(target))) === null) return;
+  } catch {
+    return;
+  }
+  rmSync(target, { force: true });
+}
+
+/**
+ * Write each new pair, intent first. Each file is first made empty by exclusive
+ * create, which is the only point at which this run owns it, then filled. On any
+ * failure, remove only files this run created; a file someone else created is
+ * never touched.
  */
 export function writeCohortPairs(
   stories: readonly CohortStory[],
   seams: CohortWriteSeams = {},
 ): CohortWriteResult {
-  const write =
-    seams.write ??
-    ((root: string, target: string, data: string) => {
-      containedWrite({ root, target, data, mode: "create" });
+  const create =
+    seams.create ??
+    ((root: string, target: string) => {
+      containedWrite({ root, target, data: "", mode: "create" });
     });
-  const remove = seams.remove ?? ((path: string) => rmSync(path, { force: true }));
-  const created: string[] = [];
+  const fill =
+    seams.fill ??
+    ((root: string, target: string, data: string) => {
+      containedWrite({ root, target, data, mode: "replace" });
+    });
+  const remove = seams.remove ?? removeOwnFile;
+  const created: { root: string; target: string }[] = [];
   for (const story of stories) {
     if (story.existing === "identical") continue;
     for (const [target, data] of [
@@ -365,25 +411,21 @@ export function writeCohortPairs(
       [story.recordPath, story.recordData],
     ] as const) {
       try {
-        write(story.worktree, target, data);
-        created.push(target);
+        create(story.worktree, target);
+        created.push({ root: story.worktree, target });
+        fill(story.worktree, target, data);
       } catch (err: unknown) {
-        // Exclusive create refused: someone else's file, never touched. Any other
-        // failure after the create may leave our own partial file; remove it too.
-        const foreign =
-          err instanceof ContainedWriteError && err.code === ContainedWriteErrorCode.EXISTS;
-        if (!foreign && existsSync(target)) created.push(target);
         const removed: string[] = [];
-        for (const path of created.reverse()) {
-          remove(path);
-          removed.push(path);
+        for (const own of created.reverse()) {
+          remove(own.root, own.target);
+          removed.push(own.target);
         }
         const message = err instanceof Error ? err.message : String(err);
         return { ok: false, error: `${story.planId}: ${message}`, removed };
       }
     }
   }
-  return { ok: true, written: created };
+  return { ok: true, written: created.map((own) => own.target) };
 }
 
 /** Resolve the manifest path and read it. */
