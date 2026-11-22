@@ -177,6 +177,21 @@ describe("payloadHasPaddedCheckpointPath (#6914)", () => {
     ).toBe(false);
     expect(payloadHasPaddedCheckpointPath({ content: "x ", cwd: "/repo " })).toBe(false);
   });
+
+  it("skips file-text fields: an Edit whose text names a padded checkpoint keeps the exemption", () => {
+    const padded = " xbrief/continue.xbrief.json";
+    expect(
+      payloadHasPaddedCheckpointPath({
+        tool_input: {
+          file_path: "/repo/xbrief/continue.xbrief.json",
+          old_string: padded,
+          new_string: padded,
+          edits: [{ old_string: padded, new_string: padded }],
+          content: padded,
+        },
+      }),
+    ).toBe(false);
+  });
 });
 
 describe("continueCheckpointRefusalNote (#6914)", () => {

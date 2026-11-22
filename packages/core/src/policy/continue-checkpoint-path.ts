@@ -56,13 +56,31 @@ export function isEligibleContinueCheckpointTarget(projectRoot: string, target: 
 const CHECKPOINT_NAME_RE = /continue\.[xv]brief\.json$/;
 /** Patch header path (mutation headers and `*** Move to:`). */
 const PATCH_HEADER_PATH_RE = /^\*\*\* [A-Za-z ]+?: (.*)$/;
+/**
+ * File-text fields: their values are written content, not destinations, so the
+ * padded-spelling scan skips them. Any other field is scanned, so a missed text
+ * field only declines the exemption (the safe direction).
+ */
+const FILE_TEXT_KEYS: ReadonlySet<string> = new Set([
+  "content",
+  "contents",
+  "text",
+  "old_string",
+  "new_string",
+  "oldString",
+  "newString",
+  "old_str",
+  "new_str",
+  "insert_text",
+]);
 
 /**
  * True when the payload spells a checkpoint-named path with leading or trailing
  * whitespace. The shared harvest trims paths, but a host writes the raw
  * spelling, so `xbrief/continue.xbrief.json ` is another file. The checkpoint
  * exemption declines such a payload (#6914). Single-line strings are checked
- * whole; multi-line strings (patch bodies) by their header lines.
+ * whole; multi-line strings (patch bodies) by their header lines. File-text
+ * fields are skipped.
  */
 export function payloadHasPaddedCheckpointPath(payload: unknown, depth = 0): boolean {
   if (depth > 6 || payload === null || payload === undefined) return false;
@@ -76,7 +94,11 @@ export function payloadHasPaddedCheckpointPath(payload: unknown, depth = 0): boo
     return candidates.some((c) => c !== c.trim() && CHECKPOINT_NAME_RE.test(c.trim()));
   }
   if (typeof payload !== "object") return false;
-  const values = Array.isArray(payload) ? payload : Object.values(payload);
+  const values = Array.isArray(payload)
+    ? payload
+    : Object.entries(payload)
+        .filter(([key]) => !FILE_TEXT_KEYS.has(key))
+        .map(([, value]) => value);
   return values.some((v) => payloadHasPaddedCheckpointPath(v, depth + 1));
 }
 

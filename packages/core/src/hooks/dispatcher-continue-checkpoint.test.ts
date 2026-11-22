@@ -231,6 +231,14 @@ describe("continue checkpoint write admission (#6914)", () => {
       verdict: "allow",
       code: "write-checkpoint-ready",
     });
+    // Edit text naming a padded checkpoint is content, not a destination.
+    expect(
+      hook(
+        root,
+        { ...editOf(root, CP), old_string: ` ${CP}`, new_string: ` ${LEGACY_CP} ` },
+        seams,
+      ),
+    ).toMatchObject({ verdict: "allow", code: "write-checkpoint-ready" });
     // No story is selected and the extra-path rule is never read.
     expect(spy.scopeCalls).toBe(0);
     expect(spy.fenceTargets).toEqual([]);
