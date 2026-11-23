@@ -5,7 +5,11 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { revokeGrant } from "../authz/actions.js";
 import { loadGrant, saveGrant } from "../authz/store.js";
-import { ACCEPTANCE_DISPOSITION_KEY } from "../scope/acceptance-evidence.js";
+import {
+  ACCEPTANCE_DISPOSITION_KEY,
+  ACCEPTANCE_DISPOSITION_TEMPLATE_NAME as SCOPE_ACCEPTANCE_DISPOSITION_TEMPLATE_NAME,
+  formatAcceptanceDispositionCommand as scopeFormatAcceptanceDispositionCommand,
+} from "../scope/acceptance-evidence.js";
 import {
   ACCEPTANCE_DISPOSITION_DEFAULT_EXPIRY_HOURS,
   ACCEPTANCE_DISPOSITION_TEMPLATE_NAME,
@@ -134,6 +138,13 @@ describe("acceptance-disposition template (#6318)", () => {
     expect(formatAcceptanceDispositionCommand(null, [], null)).toBe(
       `deft authz:grant -- --template ${ACCEPTANCE_DISPOSITION_TEMPLATE_NAME} --plan-ref <scopeId> ` +
         "--story-ids <itemIds> --disposition deferred --deferred-to <issue> --reason <text> --confirm",
+    );
+    // #7099: the formatter and its template name live in the scope module; this module re-exports them.
+    expect(formatAcceptanceDispositionCommand).toBe(scopeFormatAcceptanceDispositionCommand);
+    expect(ACCEPTANCE_DISPOSITION_TEMPLATE_NAME).toBe(SCOPE_ACCEPTANCE_DISPOSITION_TEMPLATE_NAME);
+    expect(formatAcceptanceDispositionCommand(PLAN_ID, ["clause.2"], null, "not_applicable")).toBe(
+      `deft authz:grant -- --template acceptance-disposition --plan-ref ${PLAN_ID} ` +
+        "--story-ids clause.2 --disposition not_applicable --reason <text> --confirm",
     );
   });
 

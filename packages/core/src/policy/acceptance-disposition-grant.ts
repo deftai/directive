@@ -27,8 +27,10 @@ import { assertNoIndependentSessionAuthMint } from "../authz/templates.js";
 import type { HumanOriginGrant } from "../authz/types.js";
 import {
   ACCEPTANCE_DISPOSITION_KEY,
+  ACCEPTANCE_DISPOSITION_TEMPLATE_NAME,
   type AcceptanceDispositionRecord,
   applyGrantedDispositions,
+  formatAcceptanceDispositionCommand,
   type GrantedDisposition,
   type GrantedDispositionOriginals,
 } from "../scope/acceptance-evidence.js";
@@ -37,7 +39,9 @@ import { mainWorktreeRoot } from "../session/main-worktree.js";
 import { readAcceptanceClauses } from "../verify-ac/clauses.js";
 import { DELIVERY_IDENTITY_ATTEST_DEFAULT_EXPIRY_HOURS } from "./delivery-identity-attest-grant.js";
 
-export const ACCEPTANCE_DISPOSITION_TEMPLATE_NAME = "acceptance-disposition" as const;
+// The template name and its command formatter live in scope/acceptance-evidence
+// so the completion gate can print the grant (#7099); re-exported here.
+export { ACCEPTANCE_DISPOSITION_TEMPLATE_NAME, formatAcceptanceDispositionCommand };
 
 /** Same default TTL as delivery-identity-attest (24 hours). */
 export const ACCEPTANCE_DISPOSITION_DEFAULT_EXPIRY_HOURS =
@@ -208,22 +212,6 @@ function findBriefPlan(root: string, planId: string): Record<string, unknown> | 
     }
   }
   return null;
-}
-
-/** Remint advice named in every refusal. */
-export function formatAcceptanceDispositionCommand(
-  planId: string | null,
-  itemIds: readonly string[],
-  deferredTo: string | null,
-  disposition: AcceptanceGrantDisposition = "deferred",
-): string {
-  const ids = itemIds.length > 0 ? itemIds.join(",") : "<itemIds>";
-  const target = disposition === "deferred" ? `--deferred-to ${deferredTo ?? "<issue>"} ` : "";
-  return (
-    `deft authz:grant -- --template ${ACCEPTANCE_DISPOSITION_TEMPLATE_NAME} ` +
-    `--plan-ref ${planId ?? "<scopeId>"} --story-ids ${ids} ` +
-    `--disposition ${disposition} ${target}--reason <text> --confirm`
-  );
 }
 
 function hasReadableExpiry(expiresAt: string): boolean {

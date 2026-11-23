@@ -347,9 +347,27 @@ describe("strict-axis advisory at preflight (#6272)", () => {
     expect(result.code, result.stderr).toBe(0);
     expect(result.stdout).toContain("  clause.1: smoke, deploy\n");
     expect(result.stdout).toContain("  clause.3: deploy (declared)\n");
-    expect(result.stdout).toContain("  Advisory only; exit code unchanged.\n");
+    expect(result.stdout).toContain("Advisory only; exit code unchanged.\n");
     expect(result.stdout).not.toContain("x-directive/requires");
     expect(result.stdout).not.toMatch(/reword the clause or declare/);
+  });
+
+  it("#7099: preflight rows keep their text, reasons follow, the last line names the grant", () => {
+    const path = briefWith({ id: "github.issue.6272", items });
+    const result = capture(["--vbrief-path", path]);
+    expect(result.code, result.stderr).toBe(0);
+    const lines = result.stdout.split("\n");
+    const row = lines.indexOf("  clause.1: smoke, deploy");
+    expect(row).toBeGreaterThan(-1);
+    expect(lines[row + 1]).toMatch(/^ {4}smoke from \S+: «untrusted:[^«»]*»$/);
+    expect(lines[row + 2]).toMatch(/^ {4}deploy from \S+: «untrusted:[^«»]*»$/);
+    const last = lines.find((line) => line.includes("Advisory only; exit code unchanged."));
+    expect(last).toContain(
+      "--template acceptance-disposition --plan-ref github.issue.6272 --story-ids clause.1 " +
+        "--disposition not_applicable --reason <text> --confirm",
+    );
+    expect(last).toContain("#7127");
+    expect(last).not.toMatch(/\bdeclare\b/);
   });
 });
 
