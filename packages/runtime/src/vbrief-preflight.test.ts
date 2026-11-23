@@ -278,6 +278,16 @@ describe("issue-less code-bearing remediation (#5710 P2)", () => {
     writeFileSync(notObject, "[]", "utf8");
     expect(issuelessCodeBearingNote(notObject)).toBeNull();
   });
+
+  it("#7025: a brief whose only issue URL is a context reference gets the advisory", () => {
+    const context = briefWith({
+      metadata: { swarm: { file_scope: ["src/a.ts"] } },
+      references: [
+        { uri: "https://github.com/deftai/directive/issues/6780", type: "x-xbrief/external" },
+      ],
+    });
+    expect(issuelessCodeBearingNote(context)).toBe(ISSUELESS_CODE_BEARING_REMEDIATION);
+  });
 });
 
 describe("strict-axis advisory at preflight (#6272)", () => {

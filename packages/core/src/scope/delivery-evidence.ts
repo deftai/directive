@@ -9,6 +9,7 @@
  * Deploy / UAT are separate axes and MUST NOT be inferred from Git alone.
  */
 
+import { referenceTypeMatches } from "@deftai/directive-types";
 import { isChangelogEntryPath } from "../changelog/entry-path.js";
 import { productPullRequestFromPlan } from "../orphan-active/running-briefs.js";
 import {
@@ -390,6 +391,16 @@ export function parseGithubIssueUri(uri: string): PlanGithubIssueRef | null {
   return null;
 }
 
+/**
+ * True when a reference type is exactly a GitHub issue type: canonical
+ * `x-xbrief/github-issue`, legacy `x-vbrief/github-issue`, or the legacy bare
+ * `github-issue` (#7025). Context types (`x-xbrief/external`, `x-xbrief/refs`)
+ * and types that only contain the words are not story anchors.
+ */
+function isGithubIssueReferenceType(type: string): boolean {
+  return referenceTypeMatches(type, "github-issue") || type === "github-issue";
+}
+
 export function resolvePlanGithubIssueRef(
   plan: Record<string, unknown>,
 ): PlanGithubIssueRef | null {
@@ -403,9 +414,8 @@ export function resolvePlanGithubIssueRef(
     const type = typeof rec.type === "string" ? rec.type : "";
     const uri = typeof rec.uri === "string" ? rec.uri.trim() : "";
     if (uri.length === 0) continue;
+    if (!isGithubIssueReferenceType(type)) continue;
     const parsed = parseGithubIssueUri(uri);
-    const fromType = type.includes("github-issue");
-    if (!fromType && parsed === null) continue;
     if (parsed !== null) {
       return parsed;
     }
@@ -2055,13 +2065,17 @@ function mergeCommitMismatch(
   mergeCommit: string,
   merged: Extract<MergedPayload, { ok: true }>,
   prNumber: number,
+  repository: string,
 ): string | null {
   if (shasEqual(mergeCommit, merged.mergeCommitSha)) {
     return null;
   }
+  // Name the repository the PR was fetched from (#7025): a same-numbered PR in
+  // another repository otherwise reads as an invented SHA.
   return (
     `Delivery identity join failed: supplied merge commit ${mergeCommit} does not ` +
-    `equal PR #${prNumber} merge_commit_sha ${merged.mergeCommitSha} (identity, not reachability) (#3675).`
+    `equal PR ${repository}#${prNumber} merge_commit_sha ${merged.mergeCommitSha} ` +
+    `(identity, not reachability) (#3675).`
   );
 }
 
@@ -2182,7 +2196,7 @@ function verifyPrOnlyIdentity(input: StoryPrMergeIdentityInput): StoryPrMergeIde
   if (!merged.ok) {
     return { ok: false, message: merged.message };
   }
-  const mismatch = mergeCommitMismatch(input.mergeCommit, merged, prNumber);
+  const mismatch = mergeCommitMismatch(input.mergeCommit, merged, prNumber, repository);
   if (mismatch !== null) {
     return { ok: false, message: mismatch };
   }
@@ -2718,7 +2732,7 @@ export function verifyStoryPrMergeIdentity(
   if (!merged.ok) {
     return { ok: false, message: merged.message };
   }
-  const mismatch = mergeCommitMismatch(input.mergeCommit, merged, prNumber);
+  const mismatch = mergeCommitMismatch(input.mergeCommit, merged, prNumber, expected.repository);
   if (mismatch !== null) {
     return { ok: false, message: mismatch };
   }
