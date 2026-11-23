@@ -326,3 +326,57 @@ describe("completion test floor (#7047)", () => {
     expect(withoutFloor.runs).toEqual([]);
   });
 });
+
+describe("a clause whose every literal is set aside (#7170)", () => {
+  function setAsidePlan(): Record<string, unknown> {
+    return {
+      id: "github.issue.7170",
+      title: "every literal negated",
+      acceptance: {
+        commands: [],
+        none_stated: true,
+        source_rung: "derived",
+        ambiguity_attestation: "none_found",
+        clauses: [
+          {
+            id: 1,
+            text: "The docs view never shows 'apikey:…' to readers.",
+            artifact_path: "src/view.tsx",
+            ambiguous: false,
+          },
+        ],
+      },
+      metadata: { swarm: { file_scope: ["src/view.tsx"] } },
+      items: [],
+    };
+  }
+
+  function withView(root: string): string {
+    mkdirSync(join(root, "src"), { recursive: true });
+    writeFileSync(join(root, "src", "view.tsx"), 'if (a.startsWith("apikey:")) a = name;\n');
+    return root;
+  }
+
+  it("refuses with the zero-verified notice when no test command is declared", () => {
+    const rec = recorder(0);
+    const walk = evaluateScopeCompleteAcceptanceWalk(
+      setAsidePlan(),
+      walkOptions(withView(tempRoot()), rec.runner),
+    );
+    expect(walk.ok).toBe(false);
+    expect(rec.commands).toEqual([]);
+    expect(walk.message).toContain(SCOPE_COMPLETE_ZERO_VERIFIED_NOTICE.trim());
+    expect(walk.message).toContain(DECLARED_TEST_FLOOR_NONE);
+  });
+
+  it("completes through the #7047 floor when a declared test command passes", () => {
+    const rec = recorder(0);
+    const walk = evaluateScopeCompleteAcceptanceWalk(
+      setAsidePlan(),
+      walkOptions(withView(rootWithScriptsTest()), rec.runner),
+    );
+    expect(walk.ok).toBe(true);
+    expect(walk.predicate).toBe("executable-pass");
+    expect(rec.commands).toEqual(["npm test"]);
+  });
+});

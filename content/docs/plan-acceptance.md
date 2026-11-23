@@ -96,6 +96,47 @@ adjudicable `unverifiable`. It keeps `ok` false and never verifies. The
 detail names the forms above; rewrite the clause into one of them. Absence
 proves only that the literal is gone, not that the surrounding text was kept.
 
+### Negated literals (#7170)
+
+When a clause has no removal wording, a quoted literal whose operator is a
+negation is set aside: it is not checked, and it is never inverted into an
+absence check. The negation is its operator when:
+
+- the cue comes right before it, or one display verb sits between
+  (`never 'X'`, `not 'X'`, `does not show 'X'`, `never contains 'X'`);
+- it comes right after it as an optional auxiliary, `not` or `never`, an
+  optional `be`/`been`, then a display verb (`'X' is never shown`,
+  `'X' must not appear`);
+- the literal is joined to an earlier set-aside literal only by a comma, `or`,
+  `and` or `nor` (`never 'X' or 'Y'`).
+
+Cues are `never`, `not`, `no`, `nor`, `cannot`, `without`, `instead of`,
+`rather than` and a word ending in `n't`. Display verbs are show, display,
+render, print, emit, log, return, contain, include, appear, output, say and
+write, in their inflected forms. Any other word, punctuation, quoted span or
+code span between ends the rule, so `not only 'X'`, `no change to 'X'`,
+`without breaking 'X'`, `never omit 'X'` and `never fails to show 'X'` keep the
+presence check. Two negations in a row (`cannot not show 'X'`,
+`'X' doesn't not appear`) also keep it. So does a contracted auxiliary with no
+`not` or `never` after the literal (`'X' isn't shown`).
+
+The other literals keep the presence check. The row names the literals it
+checked and each set-aside literal with its cue; a presence failure says that
+no removal or negation cue governs the missing literal.
+
+An absence phrase (`does not exist`, `must be absent`) is not an existence
+claim, and neither is a clause whose only literals were set aside. Such a
+clause walks as a behavioral claim (non-adjudicable `unverifiable`, #4240),
+and the #3550 sentence count treats it as behavioral. Limit: a clause that
+makes an existence claim about the bound file next to an unrelated absence
+phrase loses that existence check.
+
+Completion is unchanged. A clause left with no check is decided where it is
+today: on `scope:complete`, a walk with no `verified` row still needs a green
+executable run or the #7047 declared-test floor. A mixed clause whose checked
+literal is present is `verified`, so `verified-pass` and the AC pass bank work
+as before; that row covers only the checked literals.
+
 ## Admitted command forms (#6886)
 
 One record rule covers `plan.acceptance.commands` and
