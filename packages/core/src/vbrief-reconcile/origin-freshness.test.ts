@@ -784,6 +784,61 @@ describe("body-route content compare (#7138 items 2-3)", () => {
     expect(warnings[0]).toContain("21 ");
   });
 
+  it("passes a same-content edit of an ingest-time Acceptance Criteria comment", () => {
+    const warnings = expectWarnPass(
+      evaluateOriginFreshness(
+        bodyBrief(),
+        reads(5, {
+          comments: [
+            STORED_THREAD[0] as IssueComment,
+            row(12, `${AC_COMMENT.split("\n").join("  \r\n")}\r\n`, "owner", T_LATER),
+          ],
+        }),
+      ),
+    );
+    expect(warnings[0]).toContain("12 ");
+  });
+
+  it("does not re-refuse comments acknowledged by a later brief stamp (block/unblock)", () => {
+    const restamped = bodyBrief();
+    (restamped.xBRIEFInfo as Record<string, unknown>).updated = "2026-11-01T11:30:00Z";
+    const ackTime = "2026-11-01T11:00:00Z";
+    const warnings = expectWarnPass(
+      evaluateOriginFreshness(
+        restamped,
+        reads(5, {
+          comments: [
+            row(11, AC_COMMENT, "alice", ackTime),
+            STORED_THREAD[1] as IssueComment,
+            row(24, "model: gpt-6\nrole: critic\n\nfindings", "owner", ackTime),
+            row(25, PLAIN_TEXT, "bob", T_LATER),
+          ],
+          perm: { alice: true },
+        }),
+      ),
+    );
+    expect(warnings[0]).toContain("1 newer comment(s): 25 ");
+  });
+
+  it("ignores the Current shape section the issue cache appends to a cached body", () => {
+    const cached =
+      `${OVERVIEW}\n\n---\n\n## Canonical current shape (#1152 / #1870)\n\n` +
+      "_Authoritative planning surface._\n\nOpen children: none.\n";
+    expectWarnPass(
+      evaluateOriginFreshness(
+        bodyBrief({ overview: cached }),
+        reads(5, { comments: STORED_THREAD }),
+      ),
+    );
+    expectRefusal(
+      evaluateOriginFreshness(
+        bodyBrief({ overview: cached }),
+        reads(5, { issue: { body: "Do another thing." }, comments: STORED_THREAD }),
+      ),
+      "origin body changed",
+    );
+  });
+
   it("refuses an ingest-time Acceptance Criteria comment edited to plain text, or deleted", () => {
     const edited = expectRefusal(
       evaluateOriginFreshness(

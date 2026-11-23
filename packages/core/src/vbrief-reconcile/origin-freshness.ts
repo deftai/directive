@@ -441,6 +441,28 @@ function scannedBody(body: string): string {
   return scan(body).transformed_content;
 }
 
+/**
+ * Lead of the section the issue cache appends to `content.md` after the body
+ * (`appendCurrentShapeSection`, #1870). A brief ingested from the cache can
+ * carry it in `Overview`; it is not part of the issue body (#7138).
+ */
+const CACHE_CURRENT_SHAPE_SECTION_LEAD = "\n---\n\n## Canonical current shape";
+
+function withoutCacheCurrentShapeSection(text: string): string {
+  const at = text.lastIndexOf(CACHE_CURRENT_SHAPE_SECTION_LEAD);
+  return at >= 0 ? text.slice(0, at) : text;
+}
+
+/** Does the scanned live body equal the stored body (cache-appended section ignored)? */
+function sameBody(liveRaw: string, stored: string): boolean {
+  const live = normalizeBodyForCompare(scannedBody(liveRaw));
+  const normalizedStored = normalizeBodyForCompare(stored.replace(/\r\n/g, "\n"));
+  return (
+    live === normalizedStored ||
+    live === normalizeBodyForCompare(withoutCacheCurrentShapeSection(normalizedStored))
+  );
+}
+
 /** Is `later` newer than `earlier`? Unknown or unparseable stamps count as newer. */
 function isNewer(later: string | undefined, earlier: string | null | undefined): boolean {
   if (typeof later !== "string" || typeof earlier !== "string") {
@@ -556,10 +578,7 @@ function compareBodyRoute(
       "uncomparable",
     );
   }
-  if (
-    normalizeBodyForCompare(scannedBody(snapshot.body ?? "")) !==
-    normalizeBodyForCompare(baseline.body)
-  ) {
+  if (!sameBody(snapshot.body ?? "", baseline.body)) {
     return refuse(
       "origin body changed",
       `The body of origin GitHub issue #${origin.number} (${slugOf(origin)}) differs from the body this xBRIEF was ingested from.`,
@@ -588,7 +607,14 @@ function compareBodyRoute(
       }
       storedById.set(id, stored);
       const now = liveById.get(id);
-      if (now !== undefined && !isNewer(now.updated_at, stored.updated_at)) {
+      // Unchanged, edited before the brief stamp (already acknowledged), or a
+      // same-content edit: not a requirement change.
+      if (
+        now !== undefined &&
+        (!isNewer(now.updated_at, stored.updated_at) ||
+          !isNewer(now.updated_at, briefUpdated) ||
+          sameBody(now.body ?? "", stored.body ?? ""))
+      ) {
         continue;
       }
       const shape = classifyOriginRequirementShape({
@@ -607,16 +633,26 @@ function compareBodyRoute(
       }
     }
   }
+  // Unread: newer than the brief stamp and, with a stored thread, new or
+  // edited since ingest. A stamp after a comment acknowledges it (#3828).
   const unread = live.filter((comment) => {
-    const id = commentIdOf(comment);
-    if (baseline.thread === null) {
-      return isNewer(comment.updated_at ?? comment.created_at, briefUpdated);
+    if (!isNewer(comment.updated_at ?? comment.created_at, briefUpdated)) {
+      return false;
     }
+    if (baseline.thread === null) {
+      return true;
+    }
+    const id = commentIdOf(comment);
     const stored = id !== null ? storedById.get(id) : undefined;
     return stored === undefined || isNewer(comment.updated_at, stored.updated_at);
   });
   const liveShapeId = selectedCurrentShapeId(live);
   for (const comment of unread) {
+    const id = commentIdOf(comment);
+    const stored = id !== null ? storedById.get(id) : undefined;
+    if (stored !== undefined && sameBody(comment.body ?? "", stored.body ?? "")) {
+      continue;
+    }
     const shape = classifyOriginRequirementShape({
       comment,
       currentShapeId: liveShapeId,
@@ -695,9 +731,7 @@ function compareSpecPath(
   }
   let bodyNote = "";
   if (typeof snapshot.body === "string" && baseline.storedBody !== null) {
-    const changed =
-      normalizeBodyForCompare(scannedBody(snapshot.body)) !==
-      normalizeBodyForCompare(baseline.storedBody);
+    const changed = !sameBody(snapshot.body, baseline.storedBody);
     bodyNote = changed
       ? " (its body changed; the lean, not the body, is this brief's contract)"
       : "";
