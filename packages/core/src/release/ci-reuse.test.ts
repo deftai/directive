@@ -12,6 +12,7 @@ import type { CheckRunRecord } from "../pr-merge-readiness/gh.js";
 import { MERGE_GATE_TASK_CHECK_NAME } from "../pr-wait-mergeable/constants.js";
 import { sanitizeTsLaneEnv } from "../ts-check-lane/run-lane.js";
 import {
+  applyNightlyConjunct,
   checkRunUrl,
   decideCiReuseFromRuns,
   describeSmokeFailure,
@@ -27,6 +28,11 @@ import {
   TYPESCRIPT_BUILD_LINT_CHECK_NAME,
 } from "./ci-reuse.js";
 import { RELEASE_CHECK_TIMEOUT_MS } from "./constants.js";
+import {
+  decideNightlyReuse,
+  NIGHTLY_COVERAGE_LANE_NAME,
+  NIGHTLY_WINDOWS_LANE_NAME,
+} from "./nightly-reuse.js";
 import type { ReleaseSeams } from "./types.js";
 
 const REPO = "deftai/directive";
@@ -88,10 +94,41 @@ function gitSeams(
   };
 }
 
-function ghReturning(runs: readonly CheckRunRecord[] | null) {
+/** #6849: nightly runs on TREE; `windows` sets the Windows lane's latest conclusion. */
+function nightlyBodies(windows = "success"): { runs: string; jobs: string } {
+  return {
+    runs: JSON.stringify({
+      workflow_runs: [
+        {
+          id: 900,
+          head_sha: TIP,
+          head_commit: { tree_id: TREE },
+          run_attempt: 1,
+          html_url: `https://github.com/${REPO}/actions/runs/900`,
+        },
+      ],
+    }),
+    jobs: JSON.stringify({
+      jobs: [
+        { id: 1, name: NIGHTLY_COVERAGE_LANE_NAME, status: "completed", conclusion: "success" },
+        { id: 2, name: NIGHTLY_WINDOWS_LANE_NAME, status: "completed", conclusion: windows },
+      ],
+    }),
+  };
+}
+
+function ghReturning(runs: readonly CheckRunRecord[] | null, nightlyWindows = "success") {
   const calls: string[] = [];
+  const nightly = nightlyBodies(nightlyWindows);
   const runGh = (cmd: readonly string[]) => {
-    calls.push(cmd.join(" "));
+    const joined = cmd.join(" ");
+    calls.push(joined);
+    if (joined.includes("/actions/workflows/nightly.yml/runs")) {
+      return { returncode: 0, stdout: nightly.runs, stderr: "" };
+    }
+    if (joined.includes("/actions/runs/900/jobs")) {
+      return { returncode: 0, stdout: nightly.jobs, stderr: "" };
+    }
     if (runs === null) return { returncode: 1, stdout: "", stderr: "HTTP 502" };
     return { returncode: 0, stdout: checkRunsBody(runs), stderr: "" };
   };
@@ -206,6 +243,32 @@ describe("evaluateCiReuse (#6791)", () => {
     if (decision.kind === "full") expect(decision.reason).toMatch(reason);
   });
 
+  it("requires both nightly lanes reusable on the HEAD tree (#6849 clause 6)", () => {
+    const gh = ghReturning(GREEN, "failure");
+    const decision = evaluateCiReuse("/repo", REPO, "master", gitSeams(), {
+      runGh: gh.runGh,
+      env: {},
+    });
+    expect(decision.kind).toBe("full");
+    if (decision.kind === "full") {
+      expect(decision.reason).toMatch(
+        /a nightly lane is not reusable \(nightly full suite \(Windows\)/,
+      );
+      expect(decision.nightly?.lanes[0]?.reusable).toBe(true);
+    }
+    const trees: string[] = [];
+    const seamed = evaluateCiReuse("/repo", REPO, "master", gitSeams(), {
+      runGh: ghReturning(GREEN).runGh,
+      env: {},
+      evaluateNightly: (tree) => {
+        trees.push(tree);
+        return decideNightlyReuse([], tree, () => ({ jobs: [] }));
+      },
+    });
+    expect(trees).toEqual([TREE]);
+    expect(seamed.kind).toBe("full");
+  });
+
   it("returns a full-run decision when git rev-parse fails", () => {
     const seams: ReleaseSeams = {
       spawnText: (_c, args) =>
@@ -238,6 +301,46 @@ describe("formatting (#6791)", () => {
     ]);
     expect(formatCiReuseDecision(noId).join("\n")).toContain("(no check-run URL)");
     expect(checkRunUrl(REPO, undefined)).toBeNull();
+  });
+
+  it("prints both nightly run URLs on reuse and the lanes on a full decision (#6849 clause 17)", () => {
+    const green = decideNightlyReuse(
+      [{ id: 900, headSha: TIP, treeId: TREE, runAttempt: 1, htmlUrl: "https://x/runs/900" }],
+      TREE,
+      () => ({
+        jobs: [
+          {
+            id: 1,
+            name: NIGHTLY_COVERAGE_LANE_NAME,
+            status: "completed",
+            conclusion: "success",
+            runAttempt: 1,
+          },
+          {
+            id: 2,
+            name: NIGHTLY_WINDOWS_LANE_NAME,
+            status: "completed",
+            conclusion: "success",
+            runAttempt: 1,
+          },
+        ],
+      }),
+    );
+    const reuse = applyNightlyConjunct(decideCiReuseFromRuns(REPO, TIP, TREE, GREEN), green);
+    expect(reuse.kind).toBe("reuse");
+    const text = formatCiReuseDecision(reuse).join("\n");
+    expect(text).toContain("Nightly coverage (Linux): reusable");
+    expect(text).toContain("Nightly full suite (Windows): reusable");
+    expect(text.match(/https:\/\/x\/runs\/900/g)).toHaveLength(2);
+    expect(text).toMatch(/lanes ran on this tree instead/);
+    const red = decideNightlyReuse([], TREE, () => ({ jobs: [] }));
+    const blocked = applyNightlyConjunct(decideCiReuseFromRuns(REPO, TIP, TREE, GREEN), red);
+    expect(blocked.kind).toBe("full");
+    expect(formatCiReuseDecision(blocked).join("\n")).toContain(
+      "Nightly coverage (Linux): not reusable",
+    );
+    const alreadyFull = applyNightlyConjunct({ kind: "full", reason: "x", tipSha: null }, green);
+    expect(alreadyFull).toMatchObject({ kind: "full", reason: "x", nightly: green });
   });
 
   it("prints a changed decision only when it differs from readiness", () => {

@@ -31,6 +31,13 @@ const REUSE: CiReuseDecision = {
   ],
 };
 
+const LANE = {
+  reusable: true,
+  reason: "latest attempt in nightly run 777 succeeded",
+  runUrl: "https://github.com/deftai/directive/actions/runs/777",
+  headSha: TIP,
+};
+
 const tempRoots: string[] = [];
 
 function tempProject(): string {
@@ -180,6 +187,66 @@ describe("release Step 5 CI reuse (#6791)", () => {
       expect(calls.smoke).toBe(0);
     } finally {
       cap.restore();
+    }
+  });
+
+  it("skips the local check and prints both nightly run URLs when both lanes are reusable (#6849 clause 17)", () => {
+    const cap = captureStderr();
+    const calls: Calls = { runCi: 0, smoke: 0, evaluate: 0 };
+    const withNightly: CiReuseDecision = {
+      ...REUSE,
+      nightly: {
+        reusable: true,
+        lanes: [
+          {
+            ...LANE,
+            id: "coverage",
+            label: "coverage (Linux)",
+            jobName: "Nightly coverage (Linux)",
+          },
+          {
+            ...LANE,
+            id: "windows",
+            label: "full suite (Windows)",
+            jobName: "Nightly full suite (Windows)",
+            runUrl: "https://github.com/deftai/directive/actions/runs/778",
+          },
+        ],
+      },
+    };
+    try {
+      expect(runPipeline(config(tempProject()), seams(withNightly, calls))).toBe(0);
+      const err = cap.text();
+      expect(calls).toEqual({ runCi: 0, smoke: 1, evaluate: 1 });
+      expect(err).toContain("https://github.com/deftai/directive/actions/runs/777");
+      expect(err).toContain("https://github.com/deftai/directive/actions/runs/778");
+      expect(err).not.toMatch(/Windows suite did not run/);
+    } finally {
+      cap.restore();
+    }
+  });
+
+  it("prints that the Windows suite did not run when the fallback runs on a non-Windows host (#6849 clause 21)", () => {
+    const decision: CiReuseDecision = {
+      kind: "full",
+      reason: "a nightly lane is not reusable (nightly full suite (Windows): concluded failure)",
+      tipSha: TIP,
+    };
+    for (const [platform, expected] of [
+      ["linux", true],
+      ["win32", false],
+    ] as const) {
+      const cap = captureStderr();
+      const calls: Calls = { runCi: 0, smoke: 0, evaluate: 0 };
+      try {
+        const s = { ...seams(decision, calls), hostPlatform: platform };
+        expect(runPipeline(config(tempProject()), s)).toBe(0);
+        expect(calls.runCi).toBe(1);
+        const said = /The Windows suite did not run for this release/.test(cap.text());
+        expect(said).toBe(expected);
+      } finally {
+        cap.restore();
+      }
     }
   });
 

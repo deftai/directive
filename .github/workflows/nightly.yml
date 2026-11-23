@@ -1,0 +1,247 @@
+# Nightly coverage and Windows full-suite lanes (#6849).
+#
+# Release Step 5 reuses CI on a matching tip (#6791 / #6845), so it no longer
+# measures coverage or runs the full Windows suite on its own. These two lanes
+# run once a day on the delivery-branch tip instead, and release readiness and
+# Step 5 reuse them only when a run's head tree equals the release tree
+# (packages/core/src/release/nightly-reuse.ts).
+#
+# Never on pull_request or merge_group: PR and queue time do not change, and no
+# job here is a required check. Job names must not equal a required check name.
+
+name: Nightly
+
+on:
+  schedule:
+    # Once a day, 07:17 UTC.
+    - cron: "17 7 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nightly
+  cancel-in-progress: false
+
+jobs:
+  coverage:
+    name: Nightly coverage (Linux)
+    if: github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    outputs:
+      setup: ${{ steps.verify_setup.outputs.setup }}
+      tests: ${{ steps.record.outputs.tests }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Fetch base branch for relocation gates
+        run: git fetch origin master:refs/remotes/origin/master
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+
+      - name: Enable corepack (pnpm)
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Task
+        uses: arduino/setup-task@c0bc642852239c2689f73f4ea6459c29405f3c52 # v3.0.0
+        with:
+          version: 3.52.0
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+
+      # Same tip dogfood materialize as merge-gate-primary (#5805 / #5994).
+      - name: Tip dogfood materialize
+        run: |
+          set -eu
+          task materialize:runtime
+          DECLARED=$(node -e "const p=require('./package.json'); console.log((p.devDependencies||{})['@deftai/directive-runtime']||(p.dependencies||{})['@deftai/directive-runtime']||'')")
+          test -n "$DECLARED"
+          node -e "const fs=require('fs'); const v=process.argv[1]; const p='node_modules/@deftai/directive-runtime/package.json'; const j=JSON.parse(fs.readFileSync(p,'utf8')); j.version=v; fs.writeFileSync(p, JSON.stringify(j,null,2)+'\n');" "$DECLARED"
+          ( cd node_modules/@deftai/directive-runtime && npm install --omit=dev --ignore-scripts )
+
+      # A lane whose setup is incomplete fails here, as a setup failure, before
+      # any test runs: tests that need Task or the built CLI must not return early.
+      - name: Verify setup (Task and built CLI)
+        id: verify_setup
+        run: |
+          set -eu
+          task --version
+          test -f packages/cli/dist/bin.js
+          echo "setup=ok" >> "$GITHUB_OUTPUT"
+
+      # vitest with --coverage and the vitest.config.ts floor. Reporter flags on
+      # the command line keep the failing test files and the coverage totals.
+      - name: Test suite with coverage
+        id: tests
+        run: >-
+          pnpm run test
+          --coverage.reportOnFailure
+          --coverage.reporter=text-summary
+          --coverage.reporter=json
+          --coverage.reporter=json-summary
+          --reporter=default
+          --reporter=json
+          --outputFile.json=nightly-report/vitest.json
+
+      - name: Record test outcome
+        id: record
+        if: always() && steps.verify_setup.outcome == 'success'
+        env:
+          TESTS_OUTCOME: ${{ steps.tests.outcome }}
+        run: echo "tests=$TESTS_OUTCOME" >> "$GITHUB_OUTPUT"
+
+      - name: Upload coverage and test report
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: nightly-coverage
+          path: |
+            coverage/coverage-final.json
+            coverage/coverage-summary.json
+            nightly-report/vitest.json
+          if-no-files-found: ignore
+
+  windows:
+    name: Nightly full suite (Windows)
+    if: github.ref == 'refs/heads/master'
+    runs-on: windows-latest
+    timeout-minutes: 240
+    defaults:
+      run:
+        shell: bash
+    outputs:
+      setup: ${{ steps.verify_setup.outputs.setup }}
+      tests: ${{ steps.record.outputs.tests }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Fetch base branch for relocation gates
+        run: git fetch origin master:refs/remotes/origin/master
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+
+      # Windows: activate the pinned pnpm so a build run from another cwd uses
+      # the same version (#1922).
+      - name: Enable corepack and activate pinned pnpm
+        run: |
+          corepack enable
+          corepack prepare --activate
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Task
+        id: install_task
+        uses: arduino/setup-task@c0bc642852239c2689f73f4ea6459c29405f3c52 # v3.0.0
+        continue-on-error: true
+        with:
+          version: 3.52.0
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install Task (retry transient failure)
+        if: steps.install_task.outcome == 'failure'
+        uses: arduino/setup-task@c0bc642852239c2689f73f4ea6459c29405f3c52 # v3.0.0
+        with:
+          version: 3.52.0
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+
+      - name: Tip dogfood materialize
+        run: |
+          set -eu
+          task materialize:runtime
+          DECLARED=$(node -e "const p=require('./package.json'); console.log((p.devDependencies||{})['@deftai/directive-runtime']||(p.dependencies||{})['@deftai/directive-runtime']||'')")
+          test -n "$DECLARED"
+          node -e "const fs=require('fs'); const v=process.argv[1]; const p='node_modules/@deftai/directive-runtime/package.json'; const j=JSON.parse(fs.readFileSync(p,'utf8')); j.version=v; fs.writeFileSync(p, JSON.stringify(j,null,2)+'\n');" "$DECLARED"
+          ( cd node_modules/@deftai/directive-runtime && npm install --omit=dev --ignore-scripts )
+
+      - name: Verify setup (Task and built CLI)
+        id: verify_setup
+        run: |
+          set -eu
+          task --version
+          test -f packages/cli/dist/bin.js
+          echo "setup=ok" >> "$GITHUB_OUTPUT"
+
+      # Both vitest projects, no coverage: the coverage floor is read on Linux only.
+      - name: Full test suite
+        id: tests
+        run: >-
+          pnpm exec vitest run
+          --reporter=default
+          --reporter=json
+          --outputFile.json=nightly-report/vitest.json
+
+      - name: Record test outcome
+        id: record
+        if: always() && steps.verify_setup.outcome == 'success'
+        env:
+          TESTS_OUTCOME: ${{ steps.tests.outcome }}
+        run: echo "tests=$TESTS_OUTCOME" >> "$GITHUB_OUTPUT"
+
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: nightly-windows
+          path: nightly-report/vitest.json
+          if-no-files-found: ignore
+
+  report:
+    name: Nightly report
+    needs: [coverage, windows]
+    if: always() && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+
+      # A lane that never uploaded is reported as such, so a missing artifact
+      # must not stop the report.
+      - name: Download lane reports
+        continue-on-error: true
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          path: nightly-artifacts
+
+      # One durable tracking issue per lane. A failure here fails the run.
+      - name: Report lanes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NEEDS_JSON: ${{ toJSON(needs) }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          HEAD_SHA: ${{ github.sha }}
+          SERVER_URL: ${{ github.server_url }}
+          NIGHTLY_OWNER: ${{ vars.NIGHTLY_OWNER }}
+          ARTIFACT_DIR: nightly-artifacts
+        run: node .github/scripts/nightly-report.mjs

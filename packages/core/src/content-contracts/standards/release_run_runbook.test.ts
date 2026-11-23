@@ -64,6 +64,25 @@ describe("release run runbook (#6878 clause 4)", () => {
     expect(skill).toContain("Let Step 5 decide on CI reuse (#6791)");
   });
 
+  it("the skill and docs/RELEASING.md say where coverage and the Windows suite run (#6849 clauses 8, 22)", () => {
+    const nightly = section(releasing, "## Nightly coverage and Windows lanes (#6849)");
+    for (const text of [skill, nightly]) {
+      expect(text).toContain(".github/workflows/nightly.yml");
+      expect(text).toContain("Nightly coverage (Linux)");
+      expect(text).toContain("Nightly full suite (Windows)");
+      expect(text).toMatch(
+        /newest nightly run whose head (commit )?tree equals the clean Step 5 input tree/,
+      );
+      expect(text).toContain("gh workflow run nightly.yml --repo deftai/directive --ref master");
+      expect(text).toContain("the Windows suite did not run for this release");
+      expect(text).toContain("NIGHTLY_OWNER");
+    }
+    expect(nightly).toMatch(/never on pull requests or `merge_group`/);
+    expect(section(releasing, "## Step 5 CI reuse (#6791)")).toContain(
+      "Both nightly lanes are reusable on that tree",
+    );
+  });
+
   it("the run prints the pin lockfile steps (#6878 comment 7052455705)", () => {
     const lines = releaseRunFinalLines(V, "master", "/p").join("\n");
     expect(lines).toContain(`pnpm update -w @deftai/directive-runtime@${V}`);

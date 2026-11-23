@@ -244,7 +244,13 @@ See [`docs/RELEASING.md`](../../../docs/RELEASING.md) § Coverage debt hatch dur
 
 ~ Treat **routine cut** as the same Step 5, sped up by default-excluding `.deft-scratch/` (and legacy `swarm-worktrees/`) from content/link/path/build-dist walks, plus pre-cut hygiene (green required checks on the tip SHA; prune stale `.deft-scratch/worktrees`).
 
-! Let Step 5 decide on CI reuse (#6791): when the clean Step 5 input tree equals a fetched tip whose latest required checks succeeded, Step 5 reuses CI on its own and runs only the host smoke check (no host coverage); otherwise it runs in full. There is no routine-cut skip path, and `deft release:run` asks for no choice.
+! Let Step 5 decide on CI reuse (#6791): when the clean Step 5 input tree equals a fetched tip whose latest required checks succeeded, and both nightly lanes are reusable on that tree (#6849), Step 5 reuses CI on its own and runs only the host smoke check (no host coverage); otherwise it runs in full. There is no routine-cut skip path, and `deft release:run` asks for no choice.
+
+! Know where coverage and Windows testing run (#6849): `.github/workflows/nightly.yml` runs once a day on the `master` tip, never on pull requests or `merge_group`. `Nightly coverage (Linux)` runs the suite with `--coverage` and the `vitest.config.ts` floor; `Nightly full suite (Windows)` runs the full suite without coverage. Neither is a required check.
+- Reuse rule: per lane, the witness is the newest nightly run whose head tree equals the clean Step 5 input tree; the lane is reusable only when that lane's latest attempt in that run concluded `success`. A pending, failed or missing latest attempt, an older success, or a green run on a different tree never counts. Readiness prints each lane's status, run URL and head SHA.
+- Fallback: when a lane is not reusable, readiness says which lane and why before the mint, that the full local Step 5 check will run and about how long, and prints `gh workflow run nightly.yml --repo deftai/directive --ref master`. Step 5 evaluates the rule again and runs the full local check with host coverage, without a prompt.
+- Windows host boundary: when that fallback runs on a host that is not Windows and the Windows lane is not reusable, readiness and Step 5 print that the Windows suite did not run for this release. Nothing refuses.
+- Red lanes: the nightly reporting job keeps one tracking issue per lane (reopened or created once on red, commented and closed on green, one comment per run id and attempt, assigned to the `NIGHTLY_OWNER` repository variable). Detail: `docs/RELEASING.md` § Nightly coverage and Windows lanes (#6849).
 
 ⊗ Invent a silent lighter Step 5 that skips or soft-passes coverage without an explicit hatch (`--allow-coverage-debt=#N` for branch-only hairlines, or `--skip-ci` + `--allow-skip-ci=#N` for incidents). Silent soft-pass is forbidden in every mode.
 
