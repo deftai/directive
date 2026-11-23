@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #7147",
-    "updated": "2026-11-23T02:28:28Z"
+    "updated": "2026-11-23T05:13:12Z"
   },
   "plan": {
     "title": "bug(class-checks): merge_group runs judge a multi-PR diff, so a mint PR queued behind product fails class 4",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "On a merge_group run, verify:class-checks skips itself through the shared mergeGroupSkip helper, as the four sibling merge-queue checks already do. Today it compares the queue commit with origin/master, so its change set holds every PR queued ahead, and a pure protected landing queued behind product (or product behind a mint) fails class 4 although its own diff passed on its head (PR #7119, merge-group run 45094997775). evaluateClassChecks and everything under packages/core/src/class-checks/ stay unchanged; the contract is the accepted lean 7089735583.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/7147",
@@ -20,106 +20,204 @@
     "items": [
       {
         "title": "Skip on `merge_group`. Add `verify:class-checks` to `MERGE_GROUP_SKIPPED_CHECKS` in `packages/core/src/pr-wait-mergeable/merge-group-skip.ts`. `run(argv, env = process.env)` in `packages/runtime/src/verify-class-checks.ts` calls `mergeGroupSkip(\"verify:class-checks\", env)` before argument-driven evaluation, prints the notice and exits 0. Argument errors keep exit 2 before the skip, as in the siblings. `evaluateClassChecks` in `packages/core/src/class-checks/` is unchanged, so `pre-pr` and other direct callers keep today's behaviour.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "When the class-checks CLI runs on merge_group, then run(argv, env = process.env) in packages/runtime/src/verify-class-checks.ts calls mergeGroupSkip(\"verify:class-checks\", env) before argument-driven evaluation, prints the notice and returns exit 0; MERGE_GROUP_SKIPPED_CHECKS includes verify:class-checks, argument errors keep exit 2 before the skip, and evaluateClassChecks is unchanged."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ab21a80bd4317bb1c79f18d88302c5d9fd352bf2",
+          "recorded_at": "2026-11-23T05:13:12Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Notice reason. The two change-set checks, `verify:changelog-unreleased` and `verify:class-checks`, print their own reason: on a group commit the change set holds every PR queued ahead, so the check runs on the PR head instead. The three PR-context checks keep their text. Neither notice says the check already ran; each says where it runs. The skip key is the `GITHUB_EVENT_NAME` the caller supplies; the doc comment calls it trusted caller input, not proof of a prior run.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "When verify:changelog-unreleased or verify:class-checks skips on merge_group, then its notice shows the change-set reason (on a group commit the change set holds every PR queued ahead, so the check runs on the PR head instead); the three PR-context notices keep their text; no notice says the check already ran; the doc comment calls GITHUB_EVENT_NAME trusted caller input, not proof of a prior run."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ab21a80bd4317bb1c79f18d88302c5d9fd352bf2",
+          "recorded_at": "2026-11-23T05:13:12Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "What is given up, stated in the `merge-group-skip.ts` doc comment and in `content/scm/github.md`: on the queue commit nothing re-runs class checks, so a PR whose last CI predates newer class-check code or defaults on master is not judged against them (`strict: false`), and a file that becomes a class-1 or class-3 hit only when two queued PRs both edit it is not caught there. This matches what a direct merge of a PR that is not up to date had before the queue.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "The merge-group-skip.ts doc comment and content/scm/github.md state what is given up: on the queue commit nothing re-runs class checks, so newer class-check code or defaults on master are not applied to a PR whose last CI predates them (strict: false), and a class-1 or class-3 hit that exists only when two queued PRs both edit a file is not caught there."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ab21a80bd4317bb1c79f18d88302c5d9fd352bf2",
+          "recorded_at": "2026-11-23T05:13:12Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Re-entry trigger, recorded in the same doc comment: if a second gate that is not PR-context needs a `merge_group` carve-out, replace the skips for change-set checks with one shared per-entry base (`merge_group.base_sha`, checked as an ancestor of HEAD, passed through the existing `--base-ref`), not another skip.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "The same doc comment records the re-entry trigger: if a second gate that is not PR-context needs a merge_group carve-out, replace the change-set skips with one shared per-entry base (merge_group.base_sha, checked as an ancestor of HEAD, passed through --base-ref), not another skip."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ab21a80bd4317bb1c79f18d88302c5d9fd352bf2",
+          "recorded_at": "2026-11-23T05:13:12Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Docs and contract test. `content/scm/github.md` (Merge queue mode) names all five skipped checks, splits them into PR-context and change-set checks, and states item 3; the sentence \"All other checks run on the group commit\" stays true. `packages/core/src/content-contracts/standards/merge_queue_6295.test.ts` gains a row for `packages/runtime/src/verify-class-checks.ts` with the `mergeGroupSkip(\"verify:class-checks\", env)` literal, and asserts that the `github.md` bullet keeps the five names and the change-set reason. The `merge-group-skip.ts` header stops saying that every other `check:merge` check runs on the group commit without naming class checks.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "When content/scm/github.md (Merge queue mode) is read, then it names all five skipped checks split into PR-context and change-set checks and states item 3, and \"All other checks run on the group commit\" stays true; merge_queue_6295.test.ts gains the verify-class-checks.ts row with the mergeGroupSkip(\"verify:class-checks\", env) literal and the bullet assertion; the merge-group-skip.ts header no longer says every other check:merge check runs on the group commit without naming class checks."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ab21a80bd4317bb1c79f18d88302c5d9fd352bf2",
+          "recorded_at": "2026-11-23T05:13:12Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "One PR, in this order: the runtime CLI and its test, `merge-group-skip.ts` and its test, `content/scm/github.md`, the content-contract test, one `changelog.d/` fragment. None of these paths is under a protected glob at the pin. This PR lands before any fix that points the stale protected glob at `packages/runtime/src/verify-class-checks.ts`; after that fix, a change to the CLI with story product would fail class 4 and must split.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "narrative": {
           "Acceptance": "When the change ships, then it is one PR holding the runtime CLI and its test, merge-group-skip.ts and its test, content/scm/github.md, the content-contract test and one changelog.d fragment, with no path under a protected glob, and it lands before the stale-protected-glob fix (#7157)."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ab21a80bd4317bb1c79f18d88302c5d9fd352bf2",
+          "recorded_at": "2026-11-23T05:13:12Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Residual, named: the protected list still names `packages/cli/src/verify-class-checks.ts` and `packages/cli/src/verify-test-boundary.ts`, which do not exist, and class 4 still names the `packages/cli/src/authz.ts` companion. The parent files that as a separate issue; it decides there whether `merge-group-skip.ts` becomes a protected companion.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
         "narrative": {
           "Acceptance": "When this PR merges, then the stale protected globs (packages/cli/src/verify-class-checks.ts, packages/cli/src/verify-test-boundary.ts, the packages/cli/src/authz.ts companion) are unchanged and stay tracked in the separate issue #7157."
+        },
+        "x-directive/disposition": {
+          "disposition": "deferred",
+          "reason": "Residual note only: the stale protected globs are fixed in #7157, which lands after this story; this PR implements nothing for clause 7.",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "operator",
+            "mintedAt": "2026-11-23T04:50:47Z",
+            "mintedVia": "deft authz:grant",
+            "eventRef": "template:acceptance-disposition",
+            "grantId": "grant-20261123045047-505900"
+          },
+          "recorded_at": "2026-11-23T05:13:12Z",
+          "deferred_to": "#7157"
         }
       },
       {
         "title": "Given a git fixture with a story-product commit followed by a pure protected-landing commit (`.deft/approved-scope/**` only) and the base before both, when the class-checks CLI runs with `GITHUB_EVENT_NAME=merge_group` in its injected env, then it exits 0, prints the change-set skip notice and reports no class finding.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.8",
         "narrative": {
           "Acceptance": "With a fixture of a story-product commit then a pure .deft/approved-scope/** commit and the base before both, the class-checks CLI with GITHUB_EVENT_NAME=merge_group in its injected env exits 0, prints the change-set skip notice and reports no class finding."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ab21a80bd4317bb1c79f18d88302c5d9fd352bf2",
+          "recorded_at": "2026-11-23T05:13:12Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given the same fixture with `GITHUB_EVENT_NAME` unset and with it set to `pull_request`, when the CLI runs against the base before both commits, then it exits 1 with class 4 on the protected paths, as today; with the base at the product commit, the protected landing alone exits 0.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.9",
         "narrative": {
           "Acceptance": "Given the same fixture with GITHUB_EVENT_NAME unset or pull_request, when the CLI runs against the base before both commits, then it fails with exit 1 and class 4 on the protected paths; with the base at the product commit the protected landing alone returns exit 0."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ab21a80bd4317bb1c79f18d88302c5d9fd352bf2",
+          "recorded_at": "2026-11-23T05:13:12Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given an unrecognized argument and `GITHUB_EVENT_NAME=merge_group`, when the CLI runs, then it exits 2 as today.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.10",
         "narrative": {
           "Acceptance": "Given an unrecognized argument and GITHUB_EVENT_NAME=merge_group, when the class-checks CLI runs, then it exits 2."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ab21a80bd4317bb1c79f18d88302c5d9fd352bf2",
+          "recorded_at": "2026-11-23T05:13:12Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "`MERGE_GROUP_SKIPPED_CHECKS` contains `verify:class-checks`; the notices for `verify:changelog-unreleased` and `verify:class-checks` give the change-set reason and do not say the check already ran; the three PR-context notices are unchanged.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.11",
         "narrative": {
           "Acceptance": "When the merge-group-skip notices are read, then MERGE_GROUP_SKIPPED_CHECKS contains verify:class-checks; the verify:changelog-unreleased and verify:class-checks notices give the change-set reason and do not say the check already ran; the three PR-context notices are unchanged."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ab21a80bd4317bb1c79f18d88302c5d9fd352bf2",
+          "recorded_at": "2026-11-23T05:13:12Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "`merge_queue_6295.test.ts` has a row for the class-checks CLI and passes; `content/scm/github.md` names all five skipped checks and states what the queue no longer re-checks, and a content-contract assertion locks the five names and the change-set reason in that bullet.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.12",
         "narrative": {
           "Acceptance": "When merge_queue_6295.test.ts runs, then it has a row for the class-checks CLI and passes; content/scm/github.md names all five skipped checks and states what the queue no longer re-checks, and a content-contract assertion locks the five names and the change-set reason in that bullet."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ab21a80bd4317bb1c79f18d88302c5d9fd352bf2",
+          "recorded_at": "2026-11-23T05:13:12Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "`evaluateClassChecks` and every file under `packages/core/src/class-checks/` are unchanged, and the existing class-checks tests pass.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.13",
         "narrative": {
           "Acceptance": "When the PR diff is compared with its base, then evaluateClassChecks and every file under packages/core/src/class-checks/ are unchanged, and the existing class-checks tests pass."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ab21a80bd4317bb1c79f18d88302c5d9fd352bf2",
+          "recorded_at": "2026-11-23T05:13:12Z",
+          "recorded_by": "scope:complete"
         }
       }
     ],
@@ -506,7 +604,36 @@
         "harvestDigest": "3b770278457641476455d6e1b5cfd498ddc9d7d70621cf42be4c26be0e6aa4e0",
         "slice": null
       },
-      "kind": "story"
+      "kind": "story",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "75b679bb5c806ae6c7a1731480427bfb7c137f7d",
+        "prNumber": 7177,
+        "prBase": "master",
+        "mergeCommit": "ab21a80bd4317bb1c79f18d88302c5d9fd352bf2",
+        "deliveryBranch": "master",
+        "deliveryCommit": "ab21a80bd4317bb1c79f18d88302c5d9fd352bf2",
+        "verifiedAt": "2026-11-23T05:13:12Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:OWEwZDY5MDktOTZkNS00NjFiLWIzMTUtODg5ZjNlZjFkNTI0",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          7160
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-23T05:13:12Z",
+      "completedSessionId": "host:claude:v1:OWEwZDY5MDktOTZkNS00NjFiLWIzMTUtODg5ZjNlZjFkNTI0",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-23T05:13:12Z"
+      }
     },
     "acceptance": {
       "commands": [],
@@ -640,6 +767,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.6550555199",
-    "updated": "2026-11-23T02:28:28Z"
+    "updated": "2026-11-23T05:13:12Z"
   }
 }
