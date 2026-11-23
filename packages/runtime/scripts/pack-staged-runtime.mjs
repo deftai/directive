@@ -11,6 +11,7 @@
  * Prints the absolute path of the written .tgz.
  */
 import { spawnSync } from "node:child_process";
+import { createRequire } from "node:module";
 import {
   copyFileSync,
   existsSync,
@@ -22,7 +23,10 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { isAbsolute, join, resolve } from "node:path";
+import { basename, dirname, isAbsolute, join, resolve } from "node:path";
+
+// Same tar choice as tip materialize (#6703): System32 bsdtar on win32.
+const { tarCommand } = createRequire(import.meta.url)("../../../tasks/materialize.cjs");
 
 const PRIVATE_FOLDERS = ["directive-types", "directive-core", "directive-content"];
 
@@ -49,6 +53,21 @@ function replaceFile(src, dest) {
       /* ignore */
     }
   }
+}
+
+/**
+ * Run tar on `tgz`. tar runs in the tarball's folder and gets the archive by file
+ * name only: under Git Bash, GNU tar reads `C:` in an archive path as a remote host
+ * (#7172, same fix as #6703).
+ */
+export function runTar(flag, tgz, rest = [], opts = {}, deps = {}) {
+  const spawn = deps.spawnSync || spawnSync;
+  const cmd = tarCommand(deps.platform, deps.env, deps.existsSync);
+  return spawn(cmd, [flag, basename(tgz), ...rest], {
+    ...opts,
+    cwd: dirname(tgz),
+    encoding: "utf8",
+  });
 }
 
 function readJson(path) {
@@ -111,26 +130,18 @@ function main() {
   const work = mkdtempSync(join(tmpdir(), "pack-staged-runtime-"));
   try {
     const tarEnv = { ...process.env, COPYFILE_DISABLE: "1" };
-    const extracted = spawnSync("tar", ["-xzf", tgzPath, "-C", work], {
-      encoding: "utf8",
-      env: tarEnv,
-    });
+    const extracted = runTar("-xzf", tgzPath, ["-C", work], { env: tarEnv });
     if (extracted.status !== 0) fail(`tar extract failed: ${extracted.stderr}`);
     writeJson(join(work, "package", "package.json"), cleanPkg);
     const tmpOut = join(packDest, `.pack-staged-runtime-${process.pid}.tgz`);
-    const repacked = spawnSync("tar", ["-czf", tmpOut, "-C", work, "package"], {
-      encoding: "utf8",
-      env: tarEnv,
-    });
+    const repacked = runTar("-czf", tmpOut, ["-C", work, "package"], { env: tarEnv });
     if (repacked.status !== 0) fail(`tar repack failed: ${repacked.stderr}`);
     replaceFile(tmpOut, tgzPath);
   } finally {
     rmSync(work, { recursive: true, force: true });
   }
 
-  const verify = spawnSync("tar", ["-xOf", tgzPath, "package/package.json"], {
-    encoding: "utf8",
-  });
+  const verify = runTar("-xOf", tgzPath, ["package/package.json"]);
   if (verify.status !== 0) fail("could not read packed package.json");
   const published = JSON.parse(verify.stdout);
   const bad = Object.keys(published.dependencies || {}).filter((k) =>
@@ -141,9 +152,9 @@ function main() {
     fail("packed package.json must not declare bundledDependencies");
   }
 
-  const listing = spawnSync("tar", ["-tzf", tgzPath], { encoding: "utf8" });
+  const listing = runTar("-tzf", tgzPath);
   if (listing.status !== 0) fail("tar -tzf failed");
-  const names = listing.stdout.split("\n");
+  const names = listing.stdout.split(/\r?\n/);
   const nameSet = new Set(names);
   for (const name of PRIVATE_FOLDERS) {
     // vendor tree present (dist or content files); no package.json
@@ -165,9 +176,15 @@ function main() {
   process.stdout.write(`${tgzPath}\n`);
 }
 
-try {
-  main();
-} catch (err) {
-  process.stderr.write(`${err?.message || err}\n`);
-  process.exit(1);
+const invokedDirectly =
+  Boolean(process.argv[1]) &&
+  process.argv[1].replaceAll("\\", "/").endsWith("pack-staged-runtime.mjs");
+
+if (invokedDirectly) {
+  try {
+    main();
+  } catch (err) {
+    process.stderr.write(`${err?.message || err}\n`);
+    process.exit(1);
+  }
 }
