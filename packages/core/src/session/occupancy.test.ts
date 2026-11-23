@@ -1292,31 +1292,127 @@ describe("worktree occupancy lease (#3433)", () => {
     expect(readOccupancy(root)?.sessionId).toBe("owner");
   });
 
-  it("names the host owner when DEFT_SESSION_ID disagrees with it (#3954)", () => {
+  it("a bare release ignores DEFT_SESSION_ID and acts as the Grok owner when Grok alone is declared (#6679)", () => {
     const root = tempRoot();
     const now = new Date("2026-08-17T12:00:00Z");
     const hostOwner = canonicalHostSessionId("grok", "grok-session-a");
     applyWorktreeOccupancy(root, { sessionId: hostOwner, now, env: {} });
 
-    const denied = releaseOccupancy(root, {
+    const released = releaseOccupancy(root, {
       now,
       env: { DEFT_SESSION_ID: "host:claude:v1:c2Vzc2lvbi1h", GROK_SESSION_ID: "grok-session-a" },
     });
 
-    expect(denied.code).toBe(1);
-    expect(denied.message).toContain("This process presented session host:claude:v1:c2Vzc2lvbi1h");
-    expect(denied.message).toContain(`this host published ${hostOwner}`);
-    expect(readOccupancy(root)?.sessionId).toBe(hostOwner);
-  });
-
-  it("clears expired residue without ownership (#3604)", () => {
-    const root = tempRoot();
-    const claimedAt = new Date("2026-08-17T12:00:00Z");
-    applyWorktreeOccupancy(root, { sessionId: "stale", now: claimedAt });
-    const expiredAt = new Date(claimedAt.getTime() + OCCUPANCY_TTL_MS + 1);
-    const released = releaseOccupancy(root, { sessionId: "hygiene", now: expiredAt });
     expect(released.code).toBe(0);
     expect(released.action).toBe("released");
+    expect(readOccupancy(root)).toBeNull();
+  });
+
+  it("refuses a non-owner on a heartbeat-stale or age-capped lease and leaves it (#6679)", () => {
+    const claimedAt = new Date("2026-08-17T12:00:00Z");
+    const staleAt = new Date(claimedAt.getTime() + OCCUPANCY_TTL_MS + 1);
+    const cappedAt = new Date(claimedAt.getTime() + OCCUPANCY_MAX_LEASE_MS + 1);
+    for (const [at, liveness] of [
+      [staleAt, "heartbeat-stale"],
+      [cappedAt, "age-capped"],
+    ] as const) {
+      const root = tempRoot();
+      applyWorktreeOccupancy(root, { sessionId: "owner-a", now: claimedAt });
+      const before = readFileSync(occupancyPath(root), "utf8");
+
+      const denied = releaseOccupancy(root, { sessionId: "session-b", now: at, env: {} });
+
+      expect(denied.code).toBe(1);
+      expect(denied.action).toBe("denied");
+      expect(readFileSync(occupancyPath(root), "utf8")).toBe(before);
+      expect(denied.message).toContain("belongs to session owner-a");
+      expect(denied.message).toContain(`liveness=${liveness}`);
+      expect(denied.message).toContain("blocks no write");
+      expect(denied.message).not.toContain("occupancy:steal");
+      expect(denied.message).not.toContain("--session-id=owner-a");
+      expect(denied.message).toContain("deft occupancy:release --session-id=session-b");
+      rmSync(occupancyPath(root), { force: true });
+    }
+  });
+
+  it("releases the owner's own heartbeat-stale or age-capped lease (#6679)", () => {
+    const claimedAt = new Date("2026-08-17T12:00:00Z");
+    for (const at of [
+      new Date(claimedAt.getTime() + OCCUPANCY_TTL_MS + 1),
+      new Date(claimedAt.getTime() + OCCUPANCY_MAX_LEASE_MS + 1),
+    ]) {
+      const root = tempRoot();
+      applyWorktreeOccupancy(root, { sessionId: "owner-a", now: claimedAt });
+      const released = releaseOccupancy(root, { sessionId: "owner-a", now: at, env: {} });
+      expect(released.code).toBe(0);
+      expect(released.action).toBe("released");
+      expect(readOccupancy(root)).toBeNull();
+    }
+  });
+
+  it("refuses a bare release that only DEFT_SESSION_ID would identify (#6679)", () => {
+    const root = tempRoot();
+    const now = new Date("2026-08-17T12:00:00Z");
+    const free = releaseOccupancy(root, { now, env: { DEFT_SESSION_ID: "owner-a" } });
+    expect(free.code).toBe(0);
+    expect(free.message).toContain("already free");
+    applyWorktreeOccupancy(root, { sessionId: "owner-a", now, env: {} });
+
+    const denied = releaseOccupancy(root, { now, env: { DEFT_SESSION_ID: "owner-a" } });
+
+    expect(denied.code).toBe(1);
+    expect(readOccupancy(root)?.sessionId).toBe("owner-a");
+    expect(denied.message).toContain("A bare release does not use DEFT_SESSION_ID");
+    expect(denied.message).toContain("deft occupancy:release --session-id=<your-session-id>");
+    expect(denied.message).not.toContain("--session-id=owner-a");
+  });
+
+  it("refuses a bare Grok release when another host is declared too (#6679)", () => {
+    const root = tempRoot();
+    const now = new Date("2026-08-17T12:00:00Z");
+    const grokOwner = canonicalHostSessionId("grok", "grok-session-a");
+    applyWorktreeOccupancy(root, { now, env: { GROK_SESSION_ID: "grok-session-a" } });
+    expect(readOccupancy(root)?.sessionId).toBe(grokOwner);
+
+    for (const marker of ["CLAUDECODE", "CODEX_SANDBOX"]) {
+      const env = { GROK_SESSION_ID: "grok-session-a", [marker]: "1" };
+      const denied = releaseOccupancy(root, { now, env });
+      expect(denied.code).toBe(1);
+      expect(readOccupancy(root)?.sessionId).toBe(grokOwner);
+      expect(denied.message).toContain("More than one identity host is declared");
+      expect(denied.message).toContain(`(${marker === "CLAUDECODE" ? "claude" : "codex"}, grok)`);
+      expect(denied.message).toContain(`GROK_SESSION_ID in this environment maps to ${grokOwner}`);
+    }
+
+    const env = { GROK_SESSION_ID: "grok-session-a", CLAUDECODE: "1" };
+    const released = releaseOccupancy(root, { sessionId: grokOwner, now, env });
+    expect(released.code).toBe(0);
+    expect(readOccupancy(root)).toBeNull();
+  });
+
+  it("clears a record that names a different checkout for any caller (#3926 / #6679)", () => {
+    const root = tempRoot();
+    mkdirSync(join(root, ".deft"), { recursive: true });
+    writeFileSync(
+      occupancyPath(root),
+      `${JSON.stringify({
+        schemaVersion: 1,
+        session_id: "image-owner",
+        worktree_path: join(tmpdir(), "occupancy-foreign-release"),
+        intent: "mutation",
+        claimed_at: "2026-08-17T12:00:00Z",
+        heartbeat_at: "2026-08-17T12:00:00Z",
+      })}\n`,
+      "utf8",
+    );
+
+    const released = releaseOccupancy(root, {
+      sessionId: "hygiene",
+      now: new Date("2026-08-17T12:00:01Z"),
+      env: {},
+    });
+
+    expect(released.code).toBe(0);
     expect(readOccupancy(root)).toBeNull();
   });
 

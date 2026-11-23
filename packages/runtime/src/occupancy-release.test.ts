@@ -12,7 +12,8 @@ import {
   readOccupancy,
   resolveOccupancyLeaseRoot,
 } from "@deftai/directive-core/session";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { VERB_ALIASES } from "./dispatch.js";
 import {
   ABANDONED_OCCUPANCY_LEASE_RECOVERY,
   formatOccupancyReleaseHelp,
@@ -46,9 +47,38 @@ beforeAll(() => {
   fixtureRoot();
 });
 
+// #6679: a bare release uses the Grok owner only when Grok is the only declared
+// host, so the host markers a developer's own agent sets are scrubbed too.
+const DECLARED_HOST_MARKERS = [
+  "GROK_AGENT",
+  "CLAUDECODE",
+  "CLAUDE_CODE",
+  "CLAUDE_CODE_ENTRYPOINT",
+  "CLAUDE_CODE_SESSION_ID",
+  "CURSOR_AGENT",
+  "CURSOR_TRACE_ID",
+  "CURSOR_SESSION_ID",
+  "CODEX_SANDBOX",
+  "CODEX_CI",
+  "OPENAI_CODEX",
+] as const;
+
+function captureStderr(fn: () => number): { code: number; stderr: string } {
+  const chunks: string[] = [];
+  const spy = vi.spyOn(process.stderr, "write").mockImplementation((chunk) => {
+    chunks.push(String(chunk));
+    return true;
+  });
+  try {
+    return { code: fn(), stderr: chunks.join("") };
+  } finally {
+    spy.mockRestore();
+  }
+}
+
 beforeEach(() => {
   previousSession = process.env.DEFT_SESSION_ID;
-  for (const variable of HOST_ENV_IDENTITY_VARIABLES) {
+  for (const variable of [...HOST_ENV_IDENTITY_VARIABLES, ...DECLARED_HOST_MARKERS]) {
     previousHostEnv.set(variable, process.env[variable]);
     delete process.env[variable];
   }
@@ -112,31 +142,69 @@ describe("occupancy-release CLI (#3604)", () => {
     expect(readOccupancy(root)).toBeNull();
   });
 
-  it("names the host owner when DEFT_SESSION_ID disagrees with it (#3954)", () => {
+  it("a bare release ignores an inherited DEFT_SESSION_ID and acts as the Grok owner (#6679)", () => {
     const root = fixtureRoot();
     const hostOwner = canonicalHostSessionId("grok", "grok-session-a");
     applyWorktreeOccupancy(root, { sessionId: hostOwner });
-    // The deployed shape: a stale inherited id from another host's session sits
-    // ahead of the owner this host actually published.
+    // An inherited id from another host's session no longer sits ahead of the
+    // owner this host published: a bare release does not read DEFT_SESSION_ID.
     process.env.DEFT_SESSION_ID = "host:claude:v1:c2Vzc2lvbi1h";
     process.env.GROK_SESSION_ID = "grok-session-a";
 
-    expect(run(["--project-root", root])).toBe(1);
-    expect(readOccupancy(root)?.sessionId).toBe(hostOwner);
+    expect(run(["--project-root", root])).toBe(0);
+    expect(readOccupancy(root)).toBeNull();
   });
 
-  it("owner live release exits 0", () => {
+  it("bare session:end runs this module and releases the Grok-only owner (#6679)", () => {
+    expect(VERB_ALIASES["session:end"]).toBe("occupancy-release");
+    expect(VERB_ALIASES["occupancy:release"]).toBe("occupancy-release");
+    const root = fixtureRoot();
+    process.env.GROK_SESSION_ID = "grok-session-a";
+    applyWorktreeOccupancy(root, {});
+    expect(run(["--project-root", root])).toBe(0);
+    expect(readOccupancy(root)).toBeNull();
+  });
+
+  it("refuses a bare Grok release when a Claude Code marker is also declared (#6679)", () => {
+    const root = fixtureRoot();
+    const hostOwner = canonicalHostSessionId("grok", "grok-session-a");
+    process.env.GROK_SESSION_ID = "grok-session-a";
+    applyWorktreeOccupancy(root, {});
+    process.env.CLAUDECODE = "1";
+
+    const denied = captureStderr(() => run(["--project-root", root]));
+    expect(denied.code).toBe(1);
+    expect(denied.stderr).toContain("(claude, grok)");
+    expect(readOccupancy(root)?.sessionId).toBe(hostOwner);
+
+    expect(run(["--project-root", root, `--session-id=${hostOwner}`])).toBe(0);
+    expect(readOccupancy(root)).toBeNull();
+  });
+
+  it("owner live release with its own --session-id exits 0", () => {
+    const root = fixtureRoot();
+    applyWorktreeOccupancy(root, { sessionId: "owner" });
+    expect(run(["--project-root", root, "--session-id=owner"])).toBe(0);
+    expect(readOccupancy(root)).toBeNull();
+  });
+
+  it("refuses a bare release that only DEFT_SESSION_ID identifies (#6679)", () => {
     const root = fixtureRoot();
     applyWorktreeOccupancy(root, { sessionId: "owner" });
     process.env.DEFT_SESSION_ID = "owner";
-    expect(run(["--project-root", root])).toBe(0);
+
+    const denied = captureStderr(() => run(["--project-root", root]));
+    expect(denied.code).toBe(1);
+    expect(denied.stderr).toContain("A bare release does not use DEFT_SESSION_ID");
+    expect(denied.stderr).toContain("deft occupancy:release --session-id=<your-session-id>");
+    expect(readOccupancy(root)?.sessionId).toBe("owner");
   });
 
   it("non-owner live release exits 1", () => {
     const root = fixtureRoot();
     applyWorktreeOccupancy(root, { sessionId: "owner" });
-    process.env.DEFT_SESSION_ID = "other";
-    expect(run(["--project-root", root])).toBe(1);
+    expect(run(["--project-root", root, "--session-id=other"])).toBe(1);
+    expect(readOccupancy(root)?.sessionId).toBe("owner");
   });
 
   it("requires --project-root value", () => {
@@ -163,26 +231,34 @@ describe("occupancy-release CLI (#3604)", () => {
     expect(run(["--nope"])).toBe(2);
   });
 
-  it("names abandoned-lease recovery on --help (#4667)", () => {
+  it("names owner-only abandoned-lease recovery on --help (#4667 / #6679)", () => {
     expect(parseArgs(["--help"])).toEqual({ projectRoot: ".", help: true });
     expect(parseArgs(["-h"]).help).toBe(true);
     const help = formatOccupancyReleaseHelp();
-    expect(help).toContain("occupancy:release --session-id=<id from .deft/occupancy.json>");
+    for (const text of [help, ABANDONED_OCCUPANCY_LEASE_RECOVERY]) {
+      expect(text).not.toContain("<id from .deft/occupancy.json>");
+      expect(text).not.toContain("occupancy:steal");
+      expect(text).toContain("only the session that owns a lease releases it");
+      expect(text).toContain("blocks no write");
+      expect(text).toContain("subject to the existing claim rules");
+      expect(text).toContain("Never copy a lease's session_id into a release command");
+    }
+    expect(help).toContain("A lease owned by another session is refused");
     expect(help).toContain("presented");
     expect(help).toContain("TTL");
     expect(help).toContain("host:none");
-    expect(ABANDONED_OCCUPANCY_LEASE_RECOVERY).toContain(
-      "occupancy:release --session-id=<id from .deft/occupancy.json>",
-    );
     expect(run(["--help"])).toBe(0);
   });
 
-  it("locks README cold-start abandoned-lease recovery (#4667)", () => {
+  it("locks README cold-start abandoned-lease recovery (#4667 / #6679)", () => {
     const readmePath = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "README.md");
     const readme = readFileSync(readmePath, "utf8");
-    expect(readme).toContain("Abandoned occupancy lease");
-    expect(readme).toContain("occupancy:release --session-id=<id from .deft/occupancy.json>");
-    expect(readme).toContain("TTL claim-over");
+    const line = readme.split("\n").find((l) => l.includes("Abandoned occupancy lease")) ?? "";
+    expect(line).toContain("Only the session that owns a lease releases it");
+    expect(line).toContain("blocks no write");
+    expect(line).toContain("subject to the existing claim rules");
+    expect(line).not.toContain("<id from .deft/occupancy.json>");
+    expect(line).not.toContain("occupancy:steal");
   });
 
   it("preserves supplied project-root for consumer header check (#5544 P1)", () => {
@@ -198,14 +274,18 @@ describe("occupancy-release CLI (#3604)", () => {
     expect(leaseRoot).toBe(resolve(root));
     expect(leaseRoot).not.toBe(resolve(nested));
     applyWorktreeOccupancy(nested, { sessionId: "owner-subdir" });
-    process.env.DEFT_SESSION_ID = "owner-subdir";
     writeFileSync(
       join(nested, "AGENTS.md"),
       `# App\n\n${CONSUMER_HEADER_PLACEHOLDER_ONELINER}\n`,
       "utf8",
     );
     expect(recordProductMutationCompletion(nested).ok).toBe(true);
-    expect(run(["--project-root", nested])).toBe(1);
+    // The owner presents its own id, so the refusal is the header gate (#6679).
+    const denied = captureStderr(() =>
+      run(["--project-root", nested, "--session-id=owner-subdir"]),
+    );
+    expect(denied.code).toBe(1);
+    expect(denied.stderr).not.toContain("occupancy:release refused");
     expect(readOccupancy(leaseRoot)?.sessionId).toBe("owner-subdir");
   });
 });

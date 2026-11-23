@@ -138,7 +138,7 @@ Emergency bypass: set `DEFT_ALLOW_DEFAULT_BRANCH_COMMIT=1` for the current shell
 > 6. **Not sure:** `directive doctor` (read-only). CI / swarm: `directive install --repair --yes` with a valid pin.
 > 7. **Corporate mirror / offline:** see [UPGRADING.md](./content/UPGRADING.md#corporate-or-mirrored-npm-registry).
 > 8. **Codex ritual git:** approve outside-sandbox / `Environment: local` ritual `git` once per session (or via `/approvals` workspace trust — not repeated per-verb). Do not invent an in-process git substitute. Symptom: `spawnSync git EPERM`.
-> 9. **Abandoned occupancy lease.** Only when the lease is abandoned (stale/expired owner, not a live peer session): `occupancy:release --session-id=<id from .deft/occupancy.json>` or wait for TTL claim-over. Do not release another session's live lease. Do not invent a new unlock verb (#3954 / #4667).
+> 9. **Abandoned occupancy lease.** Only the session that owns a lease releases it, live or quiet (`occupancy:release` / `session:end` with its own session id). A release by another session is refused and leaves the lease in place. Never copy a lease's `session_id` into a release command. A quiet (heartbeat-stale or age-capped) lease blocks no write, and the next `session:start` may claim over it after the TTL, subject to the existing claim rules. Do not invent a new unlock verb (#3954 / #4667 / #6679).
 >
 > Never use `npx` / `pnpm exec` as day-to-day identity. There is no copied `.deft/core/` content — pointers resolve under `node_modules/@deftai/directive-runtime/`. Once `directive` runs, continue with `AGENTS.md`.
 <!-- /deft:cold-start-bootstrap v2 -->
