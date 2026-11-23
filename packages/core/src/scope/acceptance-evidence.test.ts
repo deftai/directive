@@ -31,8 +31,10 @@ import {
   evaluateScopeCompleteAcceptanceWalk,
   evaluateScopeStatus,
   evidencePointerShapeError,
+  explainTextStrictAxes,
   fenceUntrustedAcceptanceText,
   formatAcceptanceCompletionListing,
+  formatAcceptanceDispositionCommand,
   formatScopeStatus,
   formatStrictAxisAdvisory,
   HISTORICAL_SHIP_CLOSEOUT_ADMIT_MESSAGE,
@@ -48,6 +50,7 @@ import {
   readNamespacedAcceptanceFields,
   restoreGrantedDispositionOriginals,
   SCOPE_COMPLETE_ACCEPTANCE_REMEDIATION,
+  STRICT_AXIS_EXCERPT_MAX_CHARS,
   type StrictAcceptanceAxis,
   stampDeclaredMergeEvidence,
   stampDeclaredTestEvidence,
@@ -56,6 +59,7 @@ import {
   stampNamespacedDisposition,
   stampNamespacedEvidence,
   strictAxisAdvisoryLines,
+  strictAxisReasonLines,
   TEST_POINTER_SHAPE_REMEDIATION,
   UAT_POINTER_SHAPE_REMEDIATION,
 } from "./acceptance-evidence.js";
@@ -4218,7 +4222,7 @@ describe("hidden strict axes and declared rows (#6591)", () => {
       "  2 declared clause(s): the item's declaration hides these text axes, so scope:complete does not require them (#6591):",
       "  a: deploy (declared)",
       "  c: smoke (declared)",
-      `  To change this, reword the clause or declare ${ACCEPTANCE_REQUIRES_KEY} (merge or one axis) on the item. Advisory only; exit code unchanged.`,
+      `  To change this, reword the clause or declare ${ACCEPTANCE_REQUIRES_KEY} (merge or one axis) on the item. A merge declaration means no strict axis, so test, review or merge evidence then passes. Advisory only; exit code unchanged.`,
     ]);
   });
 
@@ -4234,7 +4238,17 @@ describe("hidden strict axes and declared rows (#6591)", () => {
     expect(preflight.join("\n")).not.toMatch(/\bdeclare\b/);
     expect(preflight).toContain("  clause.1: deploy");
     expect(preflight).toContain("  d: smoke, deploy (declared)");
-    expect(preflight.at(-1)).toBe("  Advisory only; exit code unchanged.");
+    expect(preflight.at(-1)).toContain("--disposition not_applicable");
+    expect(preflight.at(-1)).toMatch(/Advisory only; exit code unchanged\.$/);
+  });
+
+  it("#7099: with two rows the preflight grant names one row, never both", () => {
+    const plan = { items: [item(DEPLOY), item(SMOKE, { id: "clause.2" })] };
+    const last = strictAxisAdvisoryLines(plan, "xbrief:preflight").at(-1) ?? "";
+    expect(last).toContain("--story-ids <itemId> --disposition not_applicable");
+    expect(last).toContain("Name the one row to clear (clause.1, clause.2).");
+    expect(last).not.toContain("clause.1,clause.2");
+    expect(last).toMatch(/Advisory only; exit code unchanged\.$/);
   });
 
   it("item 7: a plan with only declared rows prints a zero count and the rows", () => {
@@ -4251,5 +4265,321 @@ describe("hidden strict axes and declared rows (#6591)", () => {
         "xbrief:preflight",
       ),
     ).toContain("  plan.items[4]: uat (declared)");
+  });
+});
+
+describe("strict-axis explainer (#7099)", () => {
+  const CRITERION =
+    "When a deployment moves failed then rolled_back with both callbacks delayed until after " +
+    "the second write, the bridge sends exactly one deploy.done frame with status failed and one " +
+    "with status rolled_back (in either order, since bus callbacks run concurrently), and the " +
+    "notification subscriber announces each status once.";
+  const PLAN_ID = "github.issue.7099";
+  const FENCED = /«untrusted:([^«»]*)»/g;
+
+  /** The body of every fence in `text`. */
+  const fencedBodies = (text: string): string[] =>
+    [...text.matchAll(FENCED)].map((match) => match[1] as string);
+
+  it("clause 9: the #7099 criterion explains deploy from the title in its original case", () => {
+    const [row, ...rest] = explainTextStrictAxes({ title: CRITERION });
+    expect(rest).toEqual([]);
+    expect(row?.axis).toBe("deploy");
+    expect(row?.more).toBe(0);
+    expect(row?.matches).toHaveLength(1);
+    const match = row?.matches[0];
+    expect(match?.field).toBe("title");
+    expect(match?.crossField).toBe(false);
+    expect(match?.excerpt).toContain("deployment");
+    expect(match?.excerpt).toBe("When a deployment moves failed then rolled_back");
+    expect(
+      explainTextStrictAxes({ title: CRITERION.replace("deployment", "Deployment") })[0]?.matches[0]
+        ?.excerpt,
+    ).toContain("Deployment");
+  });
+
+  it("clause 10: explainer axes equal the classifier on the existing axis strings", () => {
+    const FENCE = "```";
+    const titles = [
+      "Runtime smoke passes",
+      "UAT sign-off",
+      "Unit tests green",
+      "smoke after deploy",
+      "the deploy-dev job runs on merge",
+      "deploy.yml",
+      "deploy-trust.ts",
+      "the deploy-prod workflow",
+      "deploy_prod step",
+      ".github/workflows/deploy",
+      "pre-deploy hook",
+      "smoke-test.ts",
+      "scripts/smoke.sh",
+      "uat-evidence/x.md",
+      "user-acceptance.md",
+      "The `deploy-dev` job is green; smoke test passes",
+      "> ```sh\n> echo example\n\nSmoke tests pass\n\n```sh\necho example\n```",
+      "Smoke/UAT must pass",
+      "deploy/smoke/uat green",
+      "scripts/smoke/run.sh",
+      "smoke/uat-evidence",
+      "Verify `observed_behavior` in production",
+      "deploys to prod after merge",
+      "after deployment",
+      "Works after deployment.",
+      "smoke test passes",
+      "User acceptance done",
+      "Run the smoke, then deploy.",
+      "The deploy-dev job and deploy.yml run on merge",
+      "The service deploys to prod",
+      "`npm run deploy` succeeds",
+      "`vercel deploy --prod` succeeds",
+      "`Deploy to staging` and confirm the site serves the new build",
+      "the `deploy` job ran against staging and the site serves the new build",
+      "`pnpm smoke` passes on staging",
+      "`playwright test --grep smoke` passes against staging",
+      "requires `smoke` evidence; the lint job is green",
+      "record `uat` evidence from the staging walkthrough; update the workflow",
+      `${FENCE}\nnpm run deploy -- --env staging\n${FENCE}`,
+      `> ${FENCE}\n> flyctl deploy --app api-staging\n> ${FENCE}`,
+      `${FENCE}\necho example\nsmoke test passes`,
+      "Escape the ` character in titles; smoke tests pass on staging.",
+      "Deploy to staging and run the smoke test",
+      "`Deploy to staging` and `run the smoke test`",
+      `${FENCE}\ncheck observed_behavior after deploy\n${FENCE}`,
+      "Deploy to staging and confirm the site serves the new build",
+      "observed behaviour on the box",
+      "running behavior holds",
+      CRITERION,
+    ];
+    const items: Record<string, unknown>[] = [
+      ...titles.map((title) => ({ title })),
+      { title: "Runtime smoke passes", narrative: { Acceptance: "Smoke after deploy" } },
+      {
+        title: "Add the workflow",
+        narrative: { Acceptance: "The deploy-prod job is green on master" },
+      },
+      { title: "Add the workflow", narrative: { Acceptance: "The service deploys to prod" } },
+      {
+        title: "Fix the ` escaping bug",
+        narrative: { Acceptance: "Deploy to prod; then run `x` again" },
+      },
+      {
+        title: "Document the example",
+        narrative: { Description: `Example:\n${FENCE}\nok`, Test: "Smoke tests pass on staging" },
+      },
+      { title: "observed", id: "behavior" },
+      { title: "user", id: "acceptance" },
+    ];
+    for (const item of items) {
+      expect(
+        explainTextStrictAxes(item).map((row) => row.axis),
+        JSON.stringify(item),
+      ).toEqual(inferRequiredStrictAxes(item));
+    }
+    const observed = explainTextStrictAxes({ title: "observed", id: "behavior" });
+    expect(observed.map((row) => row.axis)).toEqual(["observed_behavior"]);
+    expect(observed[0]?.matches[0]).toMatchObject({
+      field: "title",
+      endField: "id",
+      crossField: true,
+    });
+    const user = explainTextStrictAxes({ title: "user", id: "acceptance" });
+    expect(user.map((row) => row.axis)).toEqual(["uat"]);
+    expect(user[0]?.matches[0]).toMatchObject({ field: "title", endField: "id", crossField: true });
+    expect(strictAxisReasonLines({ title: "user", id: "acceptance" }, ["uat"])).toEqual([
+      "    uat from title (crosses into id): «untrusted:user acceptance»",
+    ]);
+    // A narrative match names its narrative field.
+    expect(
+      explainTextStrictAxes({
+        title: "Add the workflow",
+        narrative: { Acceptance: "It deploys" },
+      })[0]?.matches[0]?.field,
+    ).toBe("narrative.Acceptance");
+    // A slash list maps each axis word back to the original text.
+    expect(
+      explainTextStrictAxes({ title: "Smoke/UAT must pass" }).map((row) => [
+        row.axis,
+        row.matches[0]?.excerpt,
+      ]),
+    ).toEqual([
+      ["uat", "Smoke/UAT must pass"],
+      ["smoke", "Smoke/UAT must pass"],
+    ]);
+  });
+
+  it("clause 11: a declared axis names the field and value that decided it", () => {
+    const item = withEvidence({
+      id: "clause.11",
+      title: "Parser handles the payload",
+      status: "pending",
+      [ACCEPTANCE_REQUIRES_KEY]: "merge",
+      "x-directive/acceptanceAxis": "deploy",
+    });
+    const gate = evaluateAcceptanceEvidenceGate({ id: PLAN_ID, items: [item] });
+    expect(gate.ok).toBe(false);
+    expect(gate.message).toContain("    deploy from x-directive/acceptanceAxis=deploy\n");
+    expect(gate.reports[0]?.axisMismatch?.reasons).toEqual([
+      "    deploy from x-directive/acceptanceAxis=deploy",
+    ]);
+  });
+
+  it("clause 12: the refusal prints the excerpt and the not_applicable grant, not the write sentence", () => {
+    const gate = evaluateAcceptanceEvidenceGate({
+      id: PLAN_ID,
+      items: [withEvidence({ id: "clause.2", title: CRITERION, status: "pending" })],
+    });
+    expect(gate.ok).toBe(false);
+    expect(gate.message).toContain(
+      "    deploy from title: «untrusted:When a deployment moves failed then rolled_back»",
+    );
+    expect(gate.message).toContain(
+      `  - plan.items[0]: ${formatAcceptanceDispositionCommand(PLAN_ID, ["clause.2"], null, "not_applicable")}`,
+    );
+    expect(gate.message).toContain("--story-ids clause.2 --disposition not_applicable");
+    expect(gate.message).toContain(
+      "The grant disposes of the whole criterion and replaces its evidence.",
+    );
+    expect(gate.message).toContain(
+      "It is bound to the clause text (clause.N ids) or the item title only.",
+    );
+    expect(gate.message).toContain("#7127");
+    expect(gate.message).not.toMatch(/write evidence\/disposition/i);
+    expect(gate.message).not.toMatch(/\breword\b/);
+  });
+
+  it("clause 12: a mixed refusal keeps the write sentence for the other items only", () => {
+    const gate = evaluateAcceptanceEvidenceGate({
+      id: PLAN_ID,
+      items: [
+        withEvidence({ id: "clause.2", title: CRITERION, status: "pending" }),
+        { id: "clause.3", title: "Parser handles the payload", status: "pending" },
+      ],
+    });
+    expect(gate.message).toContain(
+      "For each item without an axis mismatch, write evidence/disposition on the plan item",
+    );
+    expect(gate.message).toContain("--story-ids clause.2 --disposition not_applicable");
+    // Without an axis mismatch the closing sentence is unchanged.
+    const plain = evaluateAcceptanceEvidenceGate({
+      items: [{ id: "clause.3", title: "Parser handles the payload", status: "pending" }],
+    });
+    expect(plain.message).toMatch(
+      /criteria\. Write evidence\/disposition on the plan item at the reported path; this gate does not read evidence\/disposition from plan\.acceptance\.clauses\[\]\.$/,
+    );
+    expect(plain.message).not.toContain("not_applicable grant:");
+  });
+
+  it("clause 13: an item without an id is reported as one no grant can target", () => {
+    const gate = evaluateAcceptanceEvidenceGate({
+      id: PLAN_ID,
+      items: [withEvidence({ title: CRITERION, status: "pending" })],
+    });
+    expect(gate.ok).toBe(false);
+    expect(gate.message).toContain(
+      "  - plan.items[0]: the item has no id, so no grant can target it.",
+    );
+    expect(gate.message).not.toContain("--story-ids");
+    expect(gate.reports[0]?.axisMismatch?.itemId).toBeNull();
+  });
+
+  it("clause 14: a two-axis clause says no single evidence kind satisfies it", () => {
+    const gate = evaluateAcceptanceEvidenceGate({
+      id: PLAN_ID,
+      items: [
+        withEvidence(
+          { id: "clause.14", title: "Smoke must pass after deployment", status: "pending" },
+          { ...testEvidence, kind: "smoke", pointer: "https://ci.example/run/1" },
+        ),
+      ],
+    });
+    expect(gate.ok).toBe(false);
+    expect(gate.message).toContain(
+      "    No single evidence kind satisfies this clause: it needs smoke and deploy evidence at once.",
+    );
+    // A one-axis mismatch does not print it.
+    const single = evaluateAcceptanceEvidenceGate({
+      items: [withEvidence({ id: "clause.2", title: CRITERION, status: "pending" })],
+    });
+    expect(single.message).not.toContain("No single evidence kind");
+  });
+
+  it("clause 15: an excerpt with a backtick, » and a newline prints inside one fence, at most 80 chars", () => {
+    const long = "abcdefghijklmnopqrstuvwxyz0123456789";
+    const title = `${long} ${long} run \`deploy\` »now«\nthen ${long} ${long} ${long}`;
+    const item = withEvidence({ id: "clause.15", title, status: "pending" });
+    const [row] = explainTextStrictAxes(item);
+    const excerpt = row?.matches[0]?.excerpt ?? "";
+    expect(excerpt.length).toBeLessThanOrEqual(STRICT_AXIS_EXCERPT_MAX_CHARS);
+    expect(excerpt).toContain("deploy");
+    const gate = evaluateAcceptanceEvidenceGate({ id: PLAN_ID, items: [item] });
+    const advisory = strictAxisAdvisoryLines({ items: [item] }, "xbrief:preflight");
+    const reasonLines = [
+      ...strictAxisReasonLines(item, ["deploy"]),
+      ...gate.message.split("\n").filter((line) => line.startsWith("    deploy from")),
+      ...advisory.filter((line) => line.startsWith("    deploy from")),
+    ];
+    expect(reasonLines).toHaveLength(3);
+    for (const line of reasonLines) {
+      const bodies = fencedBodies(line);
+      expect(bodies, line).toHaveLength(1);
+      expect((bodies[0] ?? "").length).toBeLessThanOrEqual(STRICT_AXIS_EXCERPT_MAX_CHARS);
+      expect(bodies[0]).toContain("`deploy`");
+      expect(line.endsWith("»")).toBe(true);
+    }
+  });
+
+  it("clause 16: five matches for one axis print three excerpts and (+2 more)", () => {
+    const item = {
+      id: "clause.16",
+      title: "Deploy one. Deploy two. Deploys three. Deployed four. Deployment five.",
+      status: "pending",
+    };
+    const [row] = explainTextStrictAxes(item);
+    expect(row?.matches).toHaveLength(3);
+    expect(row?.more).toBe(2);
+    const reasons = strictAxisReasonLines(item, ["deploy"]);
+    expect(reasons).toHaveLength(4);
+    for (const line of reasons.slice(0, 3)) {
+      expect(line.startsWith("    deploy from title: «untrusted:")).toBe(true);
+    }
+    expect(reasons[3]).toBe("    (+2 more)");
+  });
+
+  it("clause 17: advisory rows keep their text; reasons follow; last line per verb", () => {
+    const plan = {
+      id: PLAN_ID,
+      items: [
+        { id: "clause.1", title: "Smoke check passes after deploy.", status: "pending" },
+        { id: "clause.2", title: CRITERION, status: "pending", [ACCEPTANCE_REQUIRES_KEY]: "merge" },
+      ],
+    };
+    for (const verb of ["scope:promote", "scope:activate", "xbrief:preflight"] as const) {
+      const lines = strictAxisAdvisoryLines(plan, verb);
+      const row = lines.indexOf("  clause.1: smoke, deploy");
+      expect(row, verb).toBeGreaterThan(0);
+      expect(lines[row + 1]).toBe(
+        "    smoke from title: «untrusted:Smoke check passes after deploy.»",
+      );
+      expect(lines[row + 2]).toBe(
+        "    deploy from title: «untrusted:Smoke check passes after deploy.»",
+      );
+      const declared = lines.indexOf("  clause.2: deploy (declared)");
+      expect(declared, verb).toBeGreaterThan(row);
+      expect(lines[declared + 1]).toBe(
+        "    deploy from title: «untrusted:When a deployment moves failed then rolled_back»",
+      );
+      const last = lines.at(-1) ?? "";
+      if (verb === "xbrief:preflight") {
+        expect(last).toContain(
+          formatAcceptanceDispositionCommand(PLAN_ID, ["clause.1"], null, "not_applicable"),
+        );
+        expect(last).not.toMatch(/\bdeclare\b|declaration/);
+      } else {
+        expect(last).toContain(
+          "A merge declaration means no strict axis, so test, review or merge evidence then passes.",
+        );
+      }
+    }
   });
 });

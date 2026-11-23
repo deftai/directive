@@ -579,4 +579,32 @@ describe("strict-axis advisory at promote and activate (#6272)", () => {
     expect(activated.stdout).toContain("  clause.4: deploy (declared)\n");
     expect(activated.stdout).toContain("declare x-directive/requires (merge or one axis)");
   });
+
+  it("#7099: promote and activate keep row text, print reasons, and say what merge admits", () => {
+    for (const [verb, folder] of [
+      ["promote", "proposed"],
+      ["activate", "pending"],
+    ] as const) {
+      const { code, stdout } = capture([
+        verb,
+        writeBrief(folder, folder, strictItems()),
+        "--project-root",
+        root,
+      ]);
+      expect(code).toBe(0);
+      expect(stdout).toContain(
+        "  clause.1: deploy\n" +
+          "    deploy from title: «untrusted:The app answers after deployment to staging.»\n",
+      );
+      expect(stdout).toContain(
+        "  clause.2: smoke, deploy\n" +
+          "    smoke from title: «untrusted:Smoke check passes after deploy.»\n" +
+          "    deploy from title: «untrusted:Smoke check passes after deploy.»\n",
+      );
+      expect(stdout).toContain(
+        "A merge declaration means no strict axis, so test, review or merge evidence then passes.",
+      );
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
 });

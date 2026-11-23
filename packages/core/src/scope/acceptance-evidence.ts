@@ -216,6 +216,15 @@ export interface CriterionAcceptanceReport {
   readonly detail: string;
   readonly evidence?: AcceptanceEvidenceRecord;
   readonly disposition?: AcceptanceDispositionRecord;
+  /**
+   * Set when evidence.kind does not cover a required strict axis (#7099): the
+   * lines that say why the item needs each axis, and the item id the
+   * operator grant targets (null when the item has none).
+   */
+  readonly axisMismatch?: {
+    readonly reasons: readonly string[];
+    readonly itemId: string | null;
+  };
 }
 
 export interface AcceptanceEvidenceGateResult {
@@ -318,25 +327,28 @@ export function evidencePointerShapeError(
 }
 
 /**
- * The values of the eight declaration fields, in this fixed order (#5105).
- * This is the one field list; other modules compare these values instead of
- * naming the fields again (#6591).
+ * The eight declaration fields, in this fixed order (#5105). This is the one
+ * field list; other modules compare the values instead of naming the fields
+ * again (#6591). A refusal names the field that decided the axes (#7099).
  */
+const ACCEPTANCE_REQUIREMENT_FIELDS = [
+  // Namespaced first — conformant declaration path (#5105 / #1620).
+  ACCEPTANCE_REQUIRES_KEY,
+  "x-directive/requiredEvidenceKind",
+  "x-directive/acceptanceAxis",
+  // Bare dual-read (fails vbrief-conformance; keep for migration / tests).
+  "requires",
+  "requiredEvidenceKind",
+  "required_evidence_kind",
+  "acceptanceAxis",
+  "acceptance_axis",
+] as const;
+
+/** The values of the eight declaration fields, in this fixed order (#5105). */
 export function readExplicitAcceptanceRequirementFields(
   item: Record<string, unknown>,
 ): readonly unknown[] {
-  return [
-    // Namespaced first — conformant declaration path (#5105 / #1620).
-    item[ACCEPTANCE_REQUIRES_KEY],
-    item["x-directive/requiredEvidenceKind"],
-    item["x-directive/acceptanceAxis"],
-    // Bare dual-read (fails vbrief-conformance; keep for migration / tests).
-    item.requires,
-    item.requiredEvidenceKind,
-    item.required_evidence_kind,
-    item.acceptanceAxis,
-    item.acceptance_axis,
-  ];
+  return ACCEPTANCE_REQUIREMENT_FIELDS.map((field) => item[field]);
 }
 
 function normalizeRequirementToken(raw: string): string {
@@ -381,26 +393,42 @@ export function isAcceptanceDispositionKind(value: unknown): value is Acceptance
  * one axis the clause does need).
  */
 export function inferRequiredStrictAxes(item: Record<string, unknown>): StrictAcceptanceAxis[] {
-  let sawMerge = false;
-  let explicitStrict: StrictAcceptanceAxis | null = null;
-  for (const raw of readExplicitAcceptanceRequirementFields(item)) {
-    if (typeof raw !== "string") continue;
-    const norm = normalizeRequirementToken(raw);
-    if (norm === MERGE_ACCEPTANCE_REQUIREMENT) {
-      sawMerge = true;
-      continue;
-    }
-    if (STRICT_AXIS_SET.has(norm) && explicitStrict === null) {
-      explicitStrict = norm as StrictAcceptanceAxis;
-    }
+  const declared = explainDeclaredStrictAxis(item);
+  if (declared !== null) {
+    return [declared.axis];
   }
-  if (explicitStrict !== null) {
-    return [explicitStrict];
-  }
-  if (sawMerge) {
+  if (itemDeclaresMergeRequirement(item)) {
     return [];
   }
   return inferTextStrictAxes(item);
+}
+
+/** The declaration field whose token decided a strict axis (#7099). */
+export interface DeclaredStrictAxis {
+  readonly axis: StrictAcceptanceAxis;
+  /** One of the eight declaration fields, e.g. `x-directive/acceptanceAxis`. */
+  readonly field: string;
+  /** The field's value, trimmed. */
+  readonly value: string;
+}
+
+/**
+ * The first declaration field, in the fixed order of the eight, that holds a
+ * strict-axis token (#7099). That token decides the item's axes; null when no
+ * field holds one. A merge token never decides a strict axis.
+ */
+export function explainDeclaredStrictAxis(
+  item: Record<string, unknown>,
+): DeclaredStrictAxis | null {
+  for (const field of ACCEPTANCE_REQUIREMENT_FIELDS) {
+    const raw = item[field];
+    if (typeof raw !== "string") continue;
+    const norm = normalizeRequirementToken(raw);
+    if (STRICT_AXIS_SET.has(norm)) {
+      return { axis: norm as StrictAcceptanceAxis, field, value: raw.trim() };
+    }
+  }
+  return null;
 }
 
 /**
@@ -419,38 +447,258 @@ export function inferHiddenStrictAxes(item: Record<string, unknown>): StrictAcce
 
 /** Axes from title, id and narrative text alone; no declaration field is read. */
 function inferTextStrictAxes(item: Record<string, unknown>): StrictAcceptanceAxis[] {
+  // The explainer runs the one computation, so decision and explanation agree (#7099).
+  return explainTextStrictAxes(item).map((row) => row.axis);
+}
+
+/** Narrative keys the axis text reads, in join order. */
+const STRICT_AXIS_NARRATIVE_KEYS = [
+  "Acceptance",
+  "acceptance",
+  "Description",
+  "description",
+  "Test",
+  "test",
+] as const;
+
+/** Most matches an explanation reports per axis; the rest are counted (#7099). */
+export const STRICT_AXIS_EXPLAIN_MAX_MATCHES = 3;
+/** Words of context an excerpt keeps on each side of a match (#7099). */
+export const STRICT_AXIS_EXCERPT_CONTEXT_WORDS = 4;
+/** Longest excerpt before it is fenced (#7099). */
+export const STRICT_AXIS_EXCERPT_MAX_CHARS = 80;
+
+/** One field of the text the axis patterns read. */
+interface AxisTextPart {
+  /** `title`, `id` or `narrative.<key>`. */
+  readonly field: string;
+  readonly text: string;
+}
+
+/** Joined, lowercased axis text, with the part and original index of each code unit. */
+interface MappedAxisText {
+  readonly text: string;
+  readonly part: readonly number[];
+  readonly index: readonly number[];
+}
+
+function axisTextParts(item: Record<string, unknown>): AxisTextPart[] {
+  const parts: AxisTextPart[] = [];
+  if (typeof item.title === "string") parts.push({ field: "title", text: item.title });
+  if (typeof item.id === "string") parts.push({ field: "id", text: item.id });
   const narrative = asRecord(item.narrative);
-  const parts: string[] = [];
-  if (typeof item.title === "string") parts.push(item.title);
-  if (typeof item.id === "string") parts.push(item.id);
   if (narrative !== null) {
-    for (const key of ["Acceptance", "acceptance", "Description", "description", "Test", "test"]) {
-      if (typeof narrative[key] === "string") parts.push(narrative[key] as string);
+    for (const key of STRICT_AXIS_NARRATIVE_KEYS) {
+      const value = narrative[key];
+      if (typeof value === "string") parts.push({ field: `narrative.${key}`, text: value });
     }
   }
-  const raw = parts.join("\n").toLowerCase();
-  // deploy / smoke / UAT match prose only (#6270); observed_behavior keeps `raw`.
-  const text = splitAxisAlternations(raw);
-  const found: StrictAcceptanceAxis[] = [];
-  // Order: longer / more specific phrases first so "observed behavior" wins over generic.
-  if (
-    /\bobserved[_\s-]?behavior\b/.test(raw) ||
-    /\bobserved behaviour\b/.test(raw) ||
-    /\brunning behaviour\b/.test(raw) ||
-    /\brunning behavior\b/.test(raw)
-  ) {
-    found.push("observed_behavior");
+  return parts;
+}
+
+/**
+ * The parts joined with "\n" and lowercased, as the axis patterns read them,
+ * with a map back to the original text. Lowercasing runs per code point; the
+ * one context-dependent mapping (final sigma) only picks between two
+ * non-ASCII letters, which the ASCII patterns treat alike. A separator maps to
+ * the end of the part before it.
+ */
+function mapAxisText(parts: readonly AxisTextPart[]): MappedAxisText {
+  let text = "";
+  const part: number[] = [];
+  const index: number[] = [];
+  parts.forEach((entry, p) => {
+    if (p > 0) {
+      text += "\n";
+      part.push(p - 1);
+      index.push((parts[p - 1] as AxisTextPart).text.length);
+    }
+    let at = 0;
+    for (const ch of entry.text) {
+      const lower = ch.toLowerCase();
+      text += lower;
+      for (let k = 0; k < lower.length; k += 1) {
+        part.push(p);
+        index.push(at);
+      }
+      at += ch.length;
+    }
+  });
+  return { text, part, index };
+}
+
+/**
+ * Split a slash list made only of axis words ("smoke/uat", "deploy/smoke")
+ * into prose, so each word keeps its axis. Paths such as `scripts/smoke.sh`
+ * or `.github/workflows/deploy` do not match and stay names (#6270). Each
+ * inserted space maps to its slash (#7099).
+ */
+function splitMappedAxisAlternations(mapped: MappedAxisText): MappedAxisText {
+  let text = "";
+  const part: number[] = [];
+  const index: number[] = [];
+  const copy = (from: number, to: number): void => {
+    for (let i = from; i < to; i += 1) {
+      const ch = mapped.text[i] as string;
+      const spread = ch === "/" ? " / " : ch;
+      text += spread;
+      for (let k = 0; k < spread.length; k += 1) {
+        part.push(mapped.part[i] as number);
+        index.push(mapped.index[i] as number);
+      }
+    }
+  };
+  let last = 0;
+  for (const run of mapped.text.matchAll(AXIS_ALTERNATION)) {
+    const start = run.index ?? 0;
+    text += mapped.text.slice(last, start);
+    for (let i = last; i < start; i += 1) {
+      part.push(mapped.part[i] as number);
+      index.push(mapped.index[i] as number);
+    }
+    copy(start, start + run[0].length);
+    last = start + run[0].length;
   }
-  if (PROSE_UAT.test(text) || PROSE_USER_ACCEPTANCE.test(text)) {
-    found.push("uat");
+  text += mapped.text.slice(last);
+  for (let i = last; i < mapped.text.length; i += 1) {
+    part.push(mapped.part[i] as number);
+    index.push(mapped.index[i] as number);
   }
-  if (PROSE_SMOKE.test(text)) {
-    found.push("smoke");
+  return { text, part, index };
+}
+
+/** One place where an axis pattern matched (#7099). */
+export interface StrictAxisMatch {
+  /** Field that holds the start of the match: `title`, `id` or `narrative.<key>`. */
+  readonly field: string;
+  /** Field that holds the end of the match; equal to `field` unless `crossField`. */
+  readonly endField: string;
+  /** True when the match starts in one field and ends in another. */
+  readonly crossField: boolean;
+  /**
+   * The matched words plus up to four words either side, in the original case,
+   * whitespace collapsed, at most 80 characters. Not fenced: print it through
+   * fenceUntrustedAcceptanceText.
+   */
+  readonly excerpt: string;
+}
+
+/** Why the text gives one strict axis (#7099). */
+export interface StrictAxisExplanation {
+  readonly axis: StrictAcceptanceAxis;
+  /** The first matches, in text order, at most STRICT_AXIS_EXPLAIN_MAX_MATCHES. */
+  readonly matches: readonly StrictAxisMatch[];
+  /** Matches not listed in `matches`. */
+  readonly more: number;
+}
+
+/**
+ * Explain the text axes of an item (#7099): the same joined, lowercased,
+ * slash-split text and the same patterns as the classifier, with every match
+ * mapped back to its field and original words. inferTextStrictAxes takes its
+ * axes from this function, so the axis list here is the classifier's.
+ */
+export function explainTextStrictAxes(item: Record<string, unknown>): StrictAxisExplanation[] {
+  const parts = axisTextParts(item);
+  const raw = mapAxisText(parts);
+  const sources: Record<AxisPatternSource, MappedAxisText> = {
+    raw,
+    prose: splitMappedAxisAlternations(raw),
+  };
+  const offsets: number[] = [];
+  let offset = 0;
+  for (const entry of parts) {
+    offsets.push(offset);
+    offset += entry.text.length + 1;
   }
-  if (PROSE_DEPLOY.test(text)) {
-    found.push("deploy");
+  const original = parts.map((entry) => entry.text).join("\n");
+  const byAxis = new Map<
+    StrictAcceptanceAxis,
+    { start: number; end: number; s: number; e: number }[]
+  >();
+  // Start positions already listed per axis; two patterns can match at one place.
+  const seenStarts = new Map<StrictAcceptanceAxis, Set<number>>();
+  for (const { axis, source, pattern } of STRICT_AXIS_PATTERNS) {
+    const mapped = sources[source];
+    for (const hit of mapped.text.matchAll(new RegExp(pattern.source, `${pattern.flags}g`))) {
+      const at = hit.index ?? 0;
+      const last = at + hit[0].length - 1;
+      const s = mapped.part[at] as number;
+      const e = mapped.part[last] as number;
+      const start = (offsets[s] as number) + (mapped.index[at] as number);
+      let end = (offsets[e] as number) + (mapped.index[last] as number) + 1;
+      if (/[\uD800-\uDBFF]/.test(original[end - 1] ?? "")) end += 1;
+      const seen = seenStarts.get(axis) ?? new Set<number>();
+      if (seen.has(start)) continue;
+      seen.add(start);
+      seenStarts.set(axis, seen);
+      const rows = byAxis.get(axis) ?? [];
+      rows.push({ start, end, s, e });
+      byAxis.set(axis, rows);
+    }
   }
-  return found;
+  const explanations: StrictAxisExplanation[] = [];
+  for (const [axis, rows] of byAxis) {
+    rows.sort((a, b) => a.start - b.start);
+    const listed = rows.slice(0, STRICT_AXIS_EXPLAIN_MAX_MATCHES);
+    explanations.push({
+      axis,
+      matches: listed.map((row) => {
+        const lo = offsets[row.s] as number;
+        const hi = (offsets[row.e] as number) + (parts[row.e] as AxisTextPart).text.length;
+        return {
+          field: (parts[row.s] as AxisTextPart).field,
+          endField: (parts[row.e] as AxisTextPart).field,
+          crossField: row.s !== row.e,
+          excerpt: axisExcerpt(original, row.start, row.end, lo, hi),
+        };
+      }),
+      more: rows.length - listed.length,
+    });
+  }
+  return explanations;
+}
+
+const isSpace = (ch: string | undefined): boolean => ch !== undefined && /\s/.test(ch);
+
+/** Collapse whitespace runs to one space. */
+const collapse = (text: string): string => text.replace(/\s+/g, " ");
+
+/**
+ * The match at [start, end) of `text` with up to STRICT_AXIS_EXCERPT_CONTEXT_WORDS
+ * words either side, kept inside [lo, hi), whitespace collapsed, and cut to
+ * STRICT_AXIS_EXCERPT_MAX_CHARS around the match.
+ */
+function axisExcerpt(text: string, start: number, end: number, lo: number, hi: number): string {
+  let left = start;
+  while (left > lo && !isSpace(text[left - 1])) left -= 1;
+  for (let word = 0; word < STRICT_AXIS_EXCERPT_CONTEXT_WORDS && left > lo; word += 1) {
+    while (left > lo && isSpace(text[left - 1])) left -= 1;
+    while (left > lo && !isSpace(text[left - 1])) left -= 1;
+  }
+  let right = end;
+  while (right < hi && !isSpace(text[right])) right += 1;
+  for (let word = 0; word < STRICT_AXIS_EXCERPT_CONTEXT_WORDS && right < hi; word += 1) {
+    while (right < hi && isSpace(text[right])) right += 1;
+    while (right < hi && !isSpace(text[right])) right += 1;
+  }
+  const before = collapse(text.slice(left, start)).trimStart();
+  const match = collapse(text.slice(start, end));
+  const after = collapse(text.slice(end, right)).trimEnd();
+  const whole = `${before}${match}${after}`;
+  if (whole.length <= STRICT_AXIS_EXCERPT_MAX_CHARS) {
+    return whole;
+  }
+  const room = Math.max(0, STRICT_AXIS_EXCERPT_MAX_CHARS - match.length);
+  const from = Math.min(
+    Math.max(0, before.length - Math.floor(room / 2)),
+    whole.length - STRICT_AXIS_EXCERPT_MAX_CHARS,
+  );
+  let cut = whole.slice(from, from + STRICT_AXIS_EXCERPT_MAX_CHARS);
+  // Drop a surrogate half the cut left at either end.
+  if (/^[\uDC00-\uDFFF]/.test(cut)) cut = cut.slice(1);
+  if (/[\uD800-\uDBFF]$/.test(cut)) cut = cut.slice(0, -1);
+  return cut.trim();
 }
 
 /**
@@ -478,14 +726,26 @@ const AXIS_ALTERNATION = new RegExp(
   "g",
 );
 
-/**
- * Split a slash list made only of axis words ("smoke/uat", "deploy/smoke")
- * into prose, so each word keeps its axis. Paths such as `scripts/smoke.sh`
- * or `.github/workflows/deploy` do not match and stay names (#6270).
- */
-function splitAxisAlternations(text: string): string {
-  return text.replace(AXIS_ALTERNATION, (run) => run.replaceAll("/", " / "));
-}
+/** Which text a pattern reads: observed_behavior keeps the raw text (#6270). */
+type AxisPatternSource = "raw" | "prose";
+
+/** Every axis pattern, in the order the axes are reported. */
+const STRICT_AXIS_PATTERNS: ReadonlyArray<{
+  readonly axis: StrictAcceptanceAxis;
+  readonly source: AxisPatternSource;
+  readonly pattern: RegExp;
+}> = [
+  // Longer / more specific phrases first so "observed behavior" wins over generic.
+  { axis: "observed_behavior", source: "raw", pattern: /\bobserved[_\s-]?behavior\b/ },
+  { axis: "observed_behavior", source: "raw", pattern: /\bobserved behaviour\b/ },
+  { axis: "observed_behavior", source: "raw", pattern: /\brunning behaviour\b/ },
+  { axis: "observed_behavior", source: "raw", pattern: /\brunning behavior\b/ },
+  // deploy / smoke / UAT match prose only (#6270).
+  { axis: "uat", source: "prose", pattern: PROSE_UAT },
+  { axis: "uat", source: "prose", pattern: PROSE_USER_ACCEPTANCE },
+  { axis: "smoke", source: "prose", pattern: PROSE_SMOKE },
+  { axis: "deploy", source: "prose", pattern: PROSE_DEPLOY },
+];
 
 /** One plan item that scope:complete will hold to strict-axis evidence (#6272). */
 export interface StrictAxisRequirement {
@@ -559,6 +819,49 @@ export function listStrictAxisRequirements(plan: unknown): StrictAxisRequirement
   return found;
 }
 
+/** Indent of the reason lines under a row or a refusal line (#7099). */
+const STRICT_AXIS_REASON_INDENT = "    ";
+
+/**
+ * Lines that say why an item needs each of `axes` (#7099). An axis a
+ * declaration decided names that field and its value; a text axis prints up
+ * to three matches, `<axis> from <field>: <fenced excerpt>`, then `(+N more)`.
+ * Each excerpt is cut to 80 characters and then fenced.
+ */
+export function strictAxisReasonLines(
+  item: Record<string, unknown>,
+  axes: readonly StrictAcceptanceAxis[],
+  indent: string = STRICT_AXIS_REASON_INDENT,
+): string[] {
+  const declared = explainDeclaredStrictAxis(item);
+  const text = explainTextStrictAxes(item);
+  const lines: string[] = [];
+  for (const axis of axes) {
+    if (declared !== null && declared.axis === axis) {
+      lines.push(`${indent}${axis} from ${declared.field}=${declared.value}`);
+      continue;
+    }
+    const row = text.find((entry) => entry.axis === axis);
+    if (row === undefined) continue;
+    for (const match of row.matches) {
+      const where = match.crossField
+        ? `${match.field} (crosses into ${match.endField})`
+        : match.field;
+      lines.push(`${indent}${axis} from ${where}: ${fenceUntrustedAcceptanceText(match.excerpt)}`);
+    }
+    if (row.more > 0) lines.push(`${indent}(+${row.more} more)`);
+  }
+  return lines;
+}
+
+/** Optional input to formatStrictAxisAdvisory (#7099). */
+export interface StrictAxisAdvisoryContext {
+  /** Plan id for the grant command at xbrief:preflight. */
+  readonly planId?: string | null;
+  /** Reason lines printed under a row; strictAxisAdvisoryLines passes them. */
+  readonly reasons?: (req: StrictAxisRequirement) => readonly string[];
+}
+
 /** The verb that prints the strict-axis advisory (#6591 item 6). */
 export type StrictAxisAdvisoryVerb = "scope:promote" | "scope:activate" | "xbrief:preflight";
 
@@ -569,12 +872,14 @@ export type StrictAxisAdvisoryVerb = "scope:promote" | "scope:activate" | "xbrie
  * The count in the first line covers only rows that are not declared, the
  * items the completion gate holds. Declared rows follow, marked (#6591). At
  * promote and activate the last line says how to change the list, including
- * a declaration; at xbrief:preflight (an active brief) it does not suggest
- * a declaration.
+ * a declaration, and what a merge declaration admits; at xbrief:preflight
+ * (an active brief) it names the operator grant and does not suggest a
+ * declaration. Reason lines from `context.reasons` follow each row (#7099).
  */
 export function formatStrictAxisAdvisory(
   requirements: readonly StrictAxisRequirement[],
   verb: StrictAxisAdvisoryVerb,
+  context: StrictAxisAdvisoryContext = {},
 ): string[] {
   if (requirements.length === 0) {
     return [];
@@ -587,6 +892,7 @@ export function formatStrictAxisAdvisory(
   ];
   for (const req of required) {
     lines.push(`  ${req.id ?? req.path}: ${req.axes.join(", ")}`);
+    lines.push(...(context.reasons?.(req) ?? []));
   }
   if (declared.length > 0) {
     lines.push(
@@ -595,15 +901,40 @@ export function formatStrictAxisAdvisory(
     );
     for (const req of declared) {
       lines.push(`  ${req.id ?? req.path}: ${req.axes.join(", ")} (declared)`);
+      lines.push(...(context.reasons?.(req) ?? []));
     }
   }
-  lines.push(
-    verb === "xbrief:preflight"
-      ? "  Advisory only; exit code unchanged."
-      : `  To change this, reword the clause or declare ${ACCEPTANCE_REQUIRES_KEY} ` +
-          `(${MERGE_ACCEPTANCE_REQUIREMENT} or one axis) on the item. Advisory only; exit code unchanged.`,
-  );
+  lines.push(strictAxisAdvisoryLastLine(required, verb, context.planId ?? null));
   return lines;
+}
+
+function strictAxisAdvisoryLastLine(
+  required: readonly StrictAxisRequirement[],
+  verb: StrictAxisAdvisoryVerb,
+  planId: string | null,
+): string {
+  const tail = "Advisory only; exit code unchanged.";
+  if (verb !== "xbrief:preflight") {
+    return (
+      `  To change this, reword the clause or declare ${ACCEPTANCE_REQUIRES_KEY} ` +
+      `(${MERGE_ACCEPTANCE_REQUIREMENT} or one axis) on the item. A ` +
+      `${MERGE_ACCEPTANCE_REQUIREMENT} declaration means no strict axis, so test, review or ` +
+      `merge evidence then passes. ${tail}`
+    );
+  }
+  if (required.length === 0) {
+    return `  ${tail}`;
+  }
+  const ids = [...new Set(required.flatMap((req) => (req.id === null ? [] : [req.id])))];
+  // One row per grant: a command naming every row would clear them all.
+  const target = ids.length === 1 ? ids : ["<itemId>"];
+  const choose = ids.length > 1 ? ` Name the one row to clear (${ids.join(", ")}).` : "";
+  return (
+    "  After activation an operator can clear a row with a not_applicable grant, which " +
+    "disposes of the whole criterion and replaces its evidence (#7127 tracks a correction " +
+    `that keeps test evidence): ${formatAcceptanceDispositionCommand(planId, target, null, "not_applicable")}.` +
+    `${choose} ${tail}`
+  );
 }
 
 /** Advisory lines for a parsed brief (`{ plan }`) or a bare plan object (#6272). */
@@ -616,7 +947,22 @@ export function strictAxisAdvisoryLines(
     return [];
   }
   const plan = "plan" in record ? record.plan : record;
-  return formatStrictAxisAdvisory(listStrictAxisRequirements(plan), verb);
+  const items = new Map<string, Record<string, unknown>>();
+  forEachStrictAxisItem(plan, (item, path) => {
+    items.set(path, item);
+  });
+  const planRecord = asRecord(plan);
+  const planId =
+    typeof planRecord?.id === "string" && planRecord.id.trim().length > 0
+      ? planRecord.id.trim()
+      : null;
+  return formatStrictAxisAdvisory(listStrictAxisRequirements(plan), verb, {
+    planId,
+    reasons: (req) => {
+      const item = items.get(req.path);
+      return item === undefined ? [] : strictAxisReasonLines(item, req.axes);
+    },
+  });
 }
 
 /**
@@ -1917,6 +2263,13 @@ function evaluateOneItem(
       parsed.record.kind === "merge" && !mergeDeclared
         ? ` kind:merge requires explicit ${ACCEPTANCE_REQUIRES_KEY}=merge (#5105);`
         : "";
+    const reasons = strictAxisReasonLines(item, requiredAxes, STRICT_AXIS_REASON_INDENT);
+    if (requiredAxes.length > 1) {
+      reasons.push(
+        `${STRICT_AXIS_REASON_INDENT}No single evidence kind satisfies this clause: ` +
+          `it needs ${requiredAxes.join(" and ")} evidence at once.`,
+      );
+    }
     return {
       path,
       title,
@@ -1926,6 +2279,9 @@ function evaluateOneItem(
         `${mergeHint} ` +
         `merge/review alone cannot satisfy smoke|uat|deploy|observed_behavior (#3240)`,
       evidence: parsed.record,
+      ...(requiredAxes.length > 0
+        ? { axisMismatch: { reasons, itemId: strictAxisItemId(item) } }
+        : {}),
     };
   }
   return {
@@ -2044,7 +2400,7 @@ function scopeCompleteRemediation(
     `${SCOPE_COMPLETE_ACCEPTANCE_REMEDIATION_LEAD}(#3357/#3497)\n` +
     `${unresolved.length} clause(s) neither verified nor granted:\n${lines.join("\n")}\n` +
     `Fix each one of two ways: (1) a verify command that covers the clause; or (2) an operator ` +
-    `grant: deft authz:grant -- --template ${ACCEPTANCE_DISPOSITION_TEMPLATE} ` +
+    `grant: deft authz:grant -- --template ${ACCEPTANCE_DISPOSITION_TEMPLATE_NAME} ` +
     `--plan-ref ${planId ?? "<scopeId>"} --story-ids ${ids} ` +
     `--disposition <deferred|not_applicable|waived> --reason <text> ` +
     `[--deferred-to <issue>, for deferred only] --confirm (#6644)`
@@ -2058,7 +2414,28 @@ function unresolvedClauseRows(
   return rows.filter((row) => row.outcome !== "verified").map(({ id, text }) => ({ id, text }));
 }
 
-const ACCEPTANCE_DISPOSITION_TEMPLATE = "acceptance-disposition";
+/**
+ * authz template of the operator acceptance-disposition grant (#6318). Lives
+ * here with its command formatter so the completion gate can print the grant
+ * (#7099); policy/acceptance-disposition-grant re-exports both.
+ */
+export const ACCEPTANCE_DISPOSITION_TEMPLATE_NAME = "acceptance-disposition" as const;
+
+/** Remint advice named in every refusal. */
+export function formatAcceptanceDispositionCommand(
+  planId: string | null,
+  itemIds: readonly string[],
+  deferredTo: string | null,
+  disposition: AcceptanceDispositionKind = "deferred",
+): string {
+  const ids = itemIds.length > 0 ? itemIds.join(",") : "<itemIds>";
+  const target = disposition === "deferred" ? `--deferred-to ${deferredTo ?? "<issue>"} ` : "";
+  return (
+    `deft authz:grant -- --template ${ACCEPTANCE_DISPOSITION_TEMPLATE_NAME} ` +
+    `--plan-ref ${planId ?? "<scopeId>"} --story-ids ${ids} ` +
+    `--disposition ${disposition} ${target}--reason <text> --confirm`
+  );
+}
 
 /**
  * True when a walk verified no clause and no green executable oracle ran
@@ -2426,9 +2803,21 @@ export function evaluateAcceptanceEvidenceGate(
     return { ok: true, message: summary, reports };
   }
 
-  const lines = blockers.map(
-    (r) => `  - ${r.path} ${fenceUntrustedAcceptanceText(r.title)}: ${r.detail}`,
+  const lines = blockers.map((r) =>
+    [
+      `  - ${r.path} ${fenceUntrustedAcceptanceText(r.title)}: ${r.detail}`,
+      ...(r.axisMismatch?.reasons ?? []),
+    ].join("\n"),
   );
+  const axisBlockers = blockers.filter((r) => r.axisMismatch !== undefined);
+  const otherCount = blockers.length - axisBlockers.length;
+  const writeSentence =
+    otherCount === 0
+      ? ""
+      : `${axisBlockers.length > 0 ? "For each item without an axis mismatch, write" : "Write"} ` +
+        `evidence/disposition on the plan item at the reported path; ` +
+        `this gate does not read evidence/disposition from plan.acceptance.clauses[].`;
+  const remedy = axisMismatchRemedy(plan, axisBlockers);
   return {
     ok: false,
     message:
@@ -2439,11 +2828,41 @@ export function evaluateAcceptanceEvidenceGate(
       `{kind: test|review|merge|deploy|smoke|uat|observed_behavior, pointer, recorded_at, recorded_by} ` +
       `or ${ACCEPTANCE_DISPOSITION_KEY} {disposition: waived|deferred|not_applicable, reason, provenance ${DISPOSITION_PROVENANCE_SHAPE}, recorded_at}. ` +
       `Bare evidence/disposition keys are not valid (#1620 / #3305). ` +
-      `merge/review alone cannot satisfy smoke|uat|deploy|observed_behavior criteria. ` +
-      `Write evidence/disposition on the plan item at the reported path; ` +
-      `this gate does not read evidence/disposition from plan.acceptance.clauses[].`,
+      `merge/review alone cannot satisfy smoke|uat|deploy|observed_behavior criteria.` +
+      (writeSentence === "" ? "" : ` ${writeSentence}`) +
+      (remedy === "" ? "" : `\n${remedy}`),
     reports,
   };
+}
+
+/**
+ * Closing text for axis-mismatch blockers (#7099). It replaces the
+ * write-onto-the-brief sentence for those items: record evidence of the
+ * required kind, or an operator records a not_applicable grant. It says what
+ * the grant does and what it is bound to, and reports an item with no id as
+ * one no grant can target. Empty when no blocker is an axis mismatch.
+ */
+function axisMismatchRemedy(
+  plan: Record<string, unknown>,
+  axisBlockers: readonly CriterionAcceptanceReport[],
+): string {
+  if (axisBlockers.length === 0) {
+    return "";
+  }
+  const planId = typeof plan.id === "string" && plan.id.trim().length > 0 ? plan.id.trim() : null;
+  const rows = axisBlockers.map((r) => {
+    const itemId = r.axisMismatch?.itemId ?? null;
+    return itemId === null
+      ? `  - ${r.path}: the item has no id, so no grant can target it.`
+      : `  - ${r.path}: ${formatAcceptanceDispositionCommand(planId, [itemId], null, "not_applicable")}`;
+  });
+  return (
+    `For each axis mismatch, record evidence of the required kind, or an operator ` +
+    `records a not_applicable grant:\n${rows.join("\n")}\n` +
+    `The grant disposes of the whole criterion and replaces its evidence. It is bound to ` +
+    `the clause text (clause.N ids) or the item title only. ` +
+    `#7127 tracks a correction that keeps test evidence.`
+  );
 }
 
 /**
