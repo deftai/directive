@@ -4,7 +4,7 @@
  * Every helper is total: any error maps to the refuse value (`null`).
  */
 
-import { constants, lstatSync, realpathSync } from "node:fs";
+import { lstatSync, realpathSync } from "node:fs";
 import { join } from "node:path";
 import { readRegularFileNoFollow } from "../fs/contained-write.js";
 
@@ -38,13 +38,13 @@ export function resolveObservedRoot(projectRoot: string): string | null {
 /**
  * Read the report through one fd opened with O_NOFOLLOW, only if that fd is a
  * regular file ({@link readRegularFileNoFollow}). A symlinked final component
- * (ELOOP), a non-regular file, or any error returns null. win32 has no
- * O_NOFOLLOW: lstat presence plus the fstat check on the opened fd.
+ * (ELOOP), a non-regular file, or any error returns null.
+ *
+ * Windows decision (#7203): win32 refuses a symlink swap at this read too. It
+ * has no O_NOFOLLOW, so the read lstats the path, opens it, and refuses unless
+ * the opened fd is the same regular file the lstat saw (same dev and ino). A
+ * symlink swapped in after the lstat opens another file and is refused.
  */
 export function readCoverageReportNoFollow(path: string): string | null {
-  const noFollow = (constants as { O_NOFOLLOW?: number }).O_NOFOLLOW;
-  if (noFollow === undefined && coverageReportPresence(path) !== "present") {
-    return null;
-  }
   return readRegularFileNoFollow(path);
 }
