@@ -2362,6 +2362,25 @@ describe("negated quoted literals are set aside (#7170)", () => {
     });
   }
 
+  it("keeps the presence check when the cue is inside code or a command-shaped word", () => {
+    for (const text of [
+      "The CLI documents `--not 'archived'` and prints 'DEFT Team'.",
+      "The CLI documents --not 'archived' and prints 'DEFT Team'.",
+      "The task scope:never 'archived' prints 'DEFT Team'.",
+      "The help shows `never` 'archived' and 'DEFT Team'.",
+    ]) {
+      expect(classifyQuotedTokenPolarity(clause(text))).toEqual({
+        kind: "presence",
+        present: ["archived", "DEFT Team"],
+      });
+      expect(walkText(text, SOURCE).outcome).toBe("failed");
+    }
+    // A cue after an opening parenthesis is still a prose cue.
+    expect(classifyQuotedTokenPolarity(clause("Shows the name (never 'apikey:').")).kind).toBe(
+      "none",
+    );
+  });
+
   it("keeps the presence check after a contracted auxiliary with no not or never", () => {
     const text = "The label 'DEFT Team' isn't shown.";
     expect(walkText(text, "nothing\n").outcome).toBe("failed");

@@ -1360,14 +1360,19 @@ const DISPLAY_VERB =
   "include(?:s|d|ing)?|appear(?:s|ed|ing)?|output(?:s|ted|ting)?|say(?:s|ing)?|said|" +
   "write(?:s)?|writing|wrote|written)";
 const NEGATION_AUX = "(?:is|are|was|were|must|should|does|do|did|will|can|may|[a-z]+n['’]t)";
+/**
+ * A cue is a prose word: it starts the clause or follows whitespace or an
+ * opening parenthesis. `--not`, `scope:never` or a backtick-led word is not one.
+ */
+const NEGATION_CUE_START = "(?:^|[\\s(])";
 /** Text before a span ends in a cue, with at most one display verb between. */
 const NEGATION_BEFORE = new RegExp(
-  `(?:^|[^\\w'’])(${NEGATION_CUE}(?:\\s+${DISPLAY_VERB})?)\\s+$`,
+  `${NEGATION_CUE_START}(${NEGATION_CUE}(?:\\s+${DISPLAY_VERB})?)\\s+$`,
   "i",
 );
 /** Two negations before a span (`cannot not show`) keep the presence check. */
 const DOUBLE_NEGATION_BEFORE = new RegExp(
-  `(?:^|[^\\w'’])${NEGATION_CUE}\\s+(?:${NEGATION_AUX}\\s+)?${NEGATION_CUE}(?:\\s+${DISPLAY_VERB})?\\s+$`,
+  `${NEGATION_CUE_START}${NEGATION_CUE}\\s+(?:${NEGATION_AUX}\\s+)?${NEGATION_CUE}(?:\\s+${DISPLAY_VERB})?\\s+$`,
   "i",
 );
 /** Text after a span: optional auxiliary, not or never, optional be, display verb. */
@@ -1388,8 +1393,17 @@ const NEGATION_JOIN = /^\s*,?\s*(?:(?:or|and|nor)\s*)?$/i;
  */
 function negationGovernedSpans(text: string, spans: readonly QuotedSpan[]): Map<number, string> {
   const governed = new Map<number, string>();
+  // A literal inside inline code is part of a code example; no cue governs it.
+  const codeRanges = [...text.matchAll(/`[^`\n]*`/g)].map((m) => ({
+    start: m.index,
+    end: m.index + m[0].length,
+  }));
   let carried: string | null = null;
   spans.forEach((span, i) => {
+    if (codeRanges.some((r) => span.start > r.start && span.start < r.end)) {
+      carried = null;
+      return;
+    }
     const before = text.slice(i === 0 ? 0 : (spans[i - 1]?.end ?? 0), span.start);
     const after = text.slice(span.end, spans[i + 1]?.start ?? text.length);
     const pre = NEGATION_BEFORE.exec(before);
