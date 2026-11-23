@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "design-critique-not-warranted-for-6298-because-this-is-a-test-is",
+  "decision": "design-critique: not warranted for #6298, because this is a test-isolation fix only (no new check, gate, refusal or production behaviour change) with concrete acceptance criteria",
+  "governingRule": {
+    "description": "Before issue:ingest record arc or design-critique: not warranted, because ...",
+    "path": "AGENTS.md",
+    "rfc2119": "MUST"
+  },
+  "alternativesConsidered": [
+    {
+      "option": "run a design-critique arc on #6298"
+    }
+  ],
+  "whyWinner": "The fix only makes session-start tests build their own env instead of inheriting Claude host markers; the in-tree pattern (hooks/dispatcher.test.ts, #6227) already settles the shape, so an arc would re-derive it",
+  "confidence": "high",
+  "activeScopeRefs": [],
+  "timestamp": "2026-11-23T21:48:59Z",
+  "revisitTrigger": "If isolating a test needs a production code change or a new env parameter",
+  "tags": [
+    "process",
+    "testing"
+  ],
+  "relatedIssues": [
+    6298
+  ]
+}
