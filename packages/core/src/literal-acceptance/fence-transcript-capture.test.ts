@@ -231,10 +231,14 @@ describe("output-shaped fences are not captured (#3511)", () => {
       "task check --no-fail",
       "```",
     ].join("\n");
-    const cmds = captureLiteralAcceptanceCommandsDetailed(text).commands.map((c) => c.command);
-    expect(cmds).toEqual(
+    const detailed = captureLiteralAcceptanceCommandsDetailed(text);
+    expect(detailed.commands.map((c) => c.command)).toEqual(
+      expect.arrayContaining(["pnpm test --fail-fast"]),
+    );
+    // Captured, then refused by the closed argument grammar (GHSA-mq3j-2229-p7xx):
+    // the rejected ledger shows they were read as commands, not as FAIL output.
+    expect(detailed.rejected.map((r) => r.command)).toEqual(
       expect.arrayContaining([
-        "pnpm test --fail-fast",
         "pnpm exec vitest run packages/core --failOnError",
         "task check --no-fail",
       ]),
@@ -251,13 +255,15 @@ describe("output-shaped fences are not captured (#3511)", () => {
       "$ task check",
       "```",
     ].join("\n");
-    const cmds = captureLiteralAcceptanceCommandsDetailed(text).commands.map((c) => c.command);
-    expect(cmds).toEqual(
+    const detailed = captureLiteralAcceptanceCommandsDetailed(text);
+    expect(detailed.commands.map((c) => c.command)).toEqual(
+      expect.arrayContaining(["pnpm exec vitest run --testNamePattern fail", "task check"]),
+    );
+    // Captured, then refused by the closed argument grammar (GHSA-mq3j-2229-p7xx).
+    expect(detailed.rejected.map((r) => r.command)).toEqual(
       expect.arrayContaining([
         "pnpm exec vitest run --filter fail",
         "pnpm exec vitest run --grep FAIL",
-        "pnpm exec vitest run --testNamePattern fail",
-        "task check",
       ]),
     );
   });

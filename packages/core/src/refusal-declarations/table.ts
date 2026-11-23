@@ -103,7 +103,7 @@ export const REFUSAL_DECLARATION_ROWS: readonly RawRefusalDeclaration[] = /* ref
     "id": "acceptance-record-activate",
     "gate": "scope:activate and xbrief:activate: an acceptance command record that verify:ac would refuse before any run, or an unpromoted capture (#6886)",
     "remedy": ["deft verify:ac --capture-only"],
-    "deferred": "the fix is a brief edit (replace a refused command with an admitted form, promote the exact capture into plan.metadata.swarm.verify_commands, or record it in plan.metadata.literal_acceptance_not_commands); the printed command only lists each record and its reason; owned by #6886"
+    "deferred": "the fix is a brief edit (replace a refused command with an admitted form, record a capture in plan.metadata.swarm.verify_commands only after reading it and confirming it runs only this repository's own tests, or record it in plan.metadata.literal_acceptance_not_commands); the printed command only lists each record and its reason; owned by #6886"
   },
   {
     "id": "acceptance-cwd-grammar",

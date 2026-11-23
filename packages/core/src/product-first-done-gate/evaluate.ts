@@ -600,7 +600,8 @@ function runAcceptanceCommandRecords(
     const message =
       `Literal acceptance-command gate FAILED (#3267): ${records.blocking.length} ` +
       `safety-rejected stated command(s) block completion until resolved ` +
-      `(promote a safe alternative or remove from the task statement); nothing was run (#6886).\n` +
+      `(record a safe alternative only after reading it and confirming it runs only this ` +
+      `repository's own tests, or remove it from the task statement); nothing was run (#6886).\n` +
       formatRejectedLedger(records.blocking);
     return {
       ok: false,
@@ -1232,9 +1233,28 @@ function isInlineScrapedAcceptanceCommand(
   if (hasNonDefaultAcceptanceContext(command)) return false;
   if (hasStructuredAcceptancePeer(plan, command.command)) return false;
   if (readNotAcceptanceCommands(plan).has(command.command)) return true;
-  return readStoredLiteralAcceptanceCommands(plan).some(
-    (c) => c.command === command.command && isInlineProseMention(c),
-  );
+  return hasStoredInlineMention(plan, command.command);
+}
+
+/**
+ * True when the stored literal ledger has an inline-mention row for `command`.
+ * Reads the raw rows: a mention that the command grammar refuses is still a
+ * mention, and its plan.acceptance copy is dropped, not run (GHSA-mq3j-2229-p7xx).
+ */
+function hasStoredInlineMention(plan: Record<string, unknown>, command: string): boolean {
+  const metadata = asRecord(plan.metadata);
+  const rows = metadata?.literal_acceptance_commands ?? metadata?.literalAcceptanceCommands;
+  if (!Array.isArray(rows)) return false;
+  return rows.some((row) => {
+    const rec = asRecord(row);
+    if (rec === null || typeof rec.command !== "string" || rec.command.trim() !== command.trim()) {
+      return false;
+    }
+    return isInlineProseMention({
+      source: typeof rec.source === "string" ? rec.source : undefined,
+      sourceSpan: typeof rec.sourceSpan === "string" ? rec.sourceSpan : null,
+    });
+  });
 }
 
 /** plan.acceptance.commands minus ingest-copied inline mentions (#3721). */

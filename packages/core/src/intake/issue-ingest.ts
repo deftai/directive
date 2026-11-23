@@ -1841,8 +1841,9 @@ export function buildIssueVbrief(
 
   // #3267: capture exact stated acceptance commands from the issue body at intake
   // into plan.metadata.literal_acceptance_commands (source=task_statement, capture-only).
-  // Agents MUST promote exact strings into swarm.verify_commands before shell execution
-  // (Greptile P1: raw issue text must not auto-spawn). Not paraphrased.
+  // Before shell execution an agent MUST read each capture and confirm it is an admitted
+  // form that runs only this repository's own tests, then record it in
+  // swarm.verify_commands (Greptile P1: raw issue text must not auto-spawn).
   if (bodyStr.length > 0 || harvestSource !== undefined) {
     const intakeText = [title, harvestSource ?? bodyStr].filter((s) => s.length > 0).join("\n\n");
     const attached = captureAndAttachLiteralAcceptance(plan, intakeText);

@@ -278,7 +278,8 @@ export function evaluateLiteralAcceptanceFromPlan(
     message =
       `Literal acceptance-command gate FAILED (#3267): ${mergedRejected.length} ` +
       `safety-rejected stated command(s) block completion until resolved ` +
-      `(promote a safe alternative or remove from the task statement).\n` +
+      `(record a safe alternative only after reading it and confirming it runs only this ` +
+      `repository's own tests, or remove it from the task statement).\n` +
       ledger +
       (result.message.length > 0 ? `\n${result.message}` : "");
   }

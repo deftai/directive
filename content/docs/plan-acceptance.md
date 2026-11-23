@@ -146,16 +146,40 @@ reason text.
 
 | First token | Admitted arguments |
 | --- | --- |
-| `task` | `check`, `doctor`, `test`, `verify:*`, `help`, `--version` (arguments may follow), and exactly `<name>:test` with nothing after it (`<name>` matches `[a-z0-9][a-z0-9_-]*`) |
-| `deft`, `directive` | `check`, `doctor`, `test`, `verify:*`, `help`, `--version` (arguments may follow) |
+| `task` | `check`, `doctor`, `test`, `verify:<name>`, `help`, `--version` (closed arguments may follow), and exactly `<name>:test` with nothing after it (`<name>` matches `[a-z0-9][a-z0-9_-]*`) |
+| `deft`, `directive` | `check`, `doctor`, `test`, `verify:<name>`, `help`, `--version` (closed arguments may follow) |
 | `npx` | `vitest run …`, `--version`, `--help` |
-| `pnpm`, `npm`, `yarn`, `bun` | `test`, `exec vitest run …`, `run vitest …`, `run test…`, `run check…`, `--version` |
+| `pnpm`, `npm`, `yarn`, `bun` | `test …`, `exec vitest run …`, `run vitest …`, `run <script> …`, `--version`; `<script>` is exactly `test`, `check`, `test:<name>` or `check:<name>` |
 | `vitest` | `run …`, `--version` |
 | `python`, `python3`, `py` | `-m pytest …` |
 | `node` | `--test …` |
 
-Shell metacharacters are refused in every form. `task web:test web:deploy`,
-`task web:test --dir x`, `task a:b:test` and `task web:deploy` are refused.
+Shell metacharacters (including `%`) are refused in every form.
+`task web:test web:deploy`, `task web:test --dir x`, `task a:b:test` and
+`task web:deploy` are refused.
+
+**Closed argument grammar.** Every argument after the admitted verb, on both
+sides of `--`, is either a plain relative path (no `..`, no leading `/`, no
+`:`, `=` or `\`) or an admitted flag:
+
+- Test runner: `--run`, `--fail-fast`, `--changed`, `--coverage`,
+  `--coverage.enabled=true|false`, `--reporter <built-in>`, `-t <test name>`.
+- npm before `--`: `--prefix <relative dir>` (once), `-w` / `--workspace
+  <package>`. pnpm: `--filter <package>`.
+- `task` / `deft` / `directive`: verification flags such as `--json`,
+  `--full`, `--enforce`, `--strict`, `--tier <word>`, `--base-ref <ref>`,
+  `--issue <n>`. No positional before `--` (a second task or `VAR=value`);
+  `task` flags before `--` attach their value with `=`.
+- `python -m pytest`: `-q`, `-v`, `-x`, `-s`, `-k`, `-m`, `--tb`,
+  `--maxfail`, `-n`, and `path::name` node ids.
+- `node --test`: relative paths, with `*` globs, and exactly these flags:
+  `--test-reporter <spec|tap|junit|lcov|dot>`, `--test-name-pattern`,
+  `--test-skip-pattern`, `--test-only`, `--test-force-exit`,
+  `--test-concurrency <n>`, `--test-timeout <n>`, `--test-shard <i>/<n>`,
+  `--test-isolation <process|none>`, `--experimental-test-coverage`.
+
+Other package-manager, runner and interpreter options are refused, and so is
+`--if-present`. A quote must wrap a whole argument (or a whole `--flag=` value).
 
 JS workspace example. Either record passes activation and `verify:ac`:
 
@@ -179,11 +203,14 @@ JS workspace example. Either record passes activation and `verify:ac`:
   directory is missing or its real path is outside the project root (a symlink
   that leaves the root included), `verify:ac` exits 2 with `refused:` and
   spawns nothing (`acceptance-cwd-containment`, enforce). An absolute `cwd`
-  inside the root runs there, with the grammar warning.
+  inside the root runs there, with the grammar warning. An `npm --prefix`
+  directory gets the same real-path check, resolved from the `cwd`.
 - **Promotion.** A capture-only record (`source: task_statement`) runs only
   when an agent-promoted peer with the same command, `cwd` and expected exit
-  exists. Promote the exact record into `plan.metadata.swarm.verify_commands`,
-  or record the string in `plan.metadata.literal_acceptance_not_commands`.
+  exists. Read the command first and confirm it is an admitted form that runs
+  only this repository's own tests; then record it in
+  `plan.metadata.swarm.verify_commands`. Otherwise record the string in
+  `plan.metadata.literal_acceptance_not_commands`.
 - **Activation warns.** Activation prints one `acceptance-record-activate` or
   `acceptance-cwd-grammar` line per record that `verify:ac` would refuse before
   any run, per unpromoted capture and per `cwd` outside the grammar. It does
@@ -194,9 +221,8 @@ JS workspace example. Either record passes activation and `verify:ac`:
 This rule is command-form admission and initial working-directory containment,
 under the assumption that repository test code is trusted. It is not
 isolation: a test runner still runs repository code with the inherited
-environment, and runner flags such as `--root` or `--config`, `npx` registry
-fetches, extra arguments after `task test` and `run test*` script names are not
-narrowed.
+environment. The closed argument grammar keeps the run on the repository's own
+test scripts and paths; what those scripts do is the repository's trust.
 
 ## See also
 

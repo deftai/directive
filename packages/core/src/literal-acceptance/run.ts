@@ -11,7 +11,11 @@ import { realpathSync, statSync } from "node:fs";
 import { isAbsolute, relative, resolve, sep } from "node:path";
 import { formatDeclaredRefusal } from "../refusal-declarations/print.js";
 import { isInlineProseMention } from "./capture.js";
-import { evaluateCommandSafety, isExecutableLiteralSource } from "./safety.js";
+import {
+  evaluateCommandSafety,
+  isExecutableLiteralSource,
+  packageManagerPrefixOperand,
+} from "./safety.js";
 import type {
   LiteralAcceptanceCommand,
   LiteralAcceptanceGateResult,
@@ -123,6 +127,34 @@ export function evaluateAcceptanceCwdContainment(
   return { ok: true, reason: null };
 }
 
+/**
+ * Containment for one spawn: the cwd, then the `npm --prefix` directory when the
+ * command names one. The grammar checks the prefix spelling only; a symlink or
+ * junction can still point outside the repository (GHSA-mq3j-2229-p7xx).
+ */
+function evaluateRunContainment(
+  projectRoot: string,
+  cwd: string,
+  command: string,
+): AcceptanceCwdContainment {
+  const containment = evaluateAcceptanceCwdContainment(projectRoot, cwd);
+  if (!containment.ok) {
+    return containment;
+  }
+  const prefix = packageManagerPrefixOperand(command);
+  if (prefix === null) {
+    return containment;
+  }
+  const prefixContainment = evaluateAcceptanceCwdContainment(projectRoot, resolve(cwd, prefix));
+  if (!prefixContainment.ok) {
+    return {
+      ok: false,
+      reason: `--prefix ${JSON.stringify(prefix)}: ${prefixContainment.reason ?? "outside the repository"}`,
+    };
+  }
+  return prefixContainment;
+}
+
 /** The declared containment refusal line (#6886 item 7). */
 export function formatAcceptanceCwdContainmentRefusal(command: string, reason: string): string {
   return formatDeclaredRefusal({
@@ -193,7 +225,7 @@ export function runLiteralAcceptanceCommand(
       detail: `refused: ${safety.reason ?? "unsafe command"}`,
     };
   }
-  const containment = evaluateAcceptanceCwdContainment(options.projectRoot, cwd);
+  const containment = evaluateRunContainment(options.projectRoot, cwd, cmd.command);
   if (!containment.ok) {
     return containmentRefusalRun(cmd, cwd, containment.reason ?? "cwd outside the repository");
   }
@@ -303,8 +335,9 @@ export function formatUnpromotedCaptureOnlyRecord(c: LiteralAcceptanceCommand): 
 
 /** Promote-or-dispose remedy for an unpromoted capture-only record (#3267 / #3721). */
 export const UNPROMOTED_CAPTURE_REMEDY =
-  "If the command is this story's acceptance, promote the exact strings " +
-  "(and cwd/expectedStdout/expectedExitCode when stated) into " +
+  "If the command is this story's acceptance, read it first: confirm it is an admitted form " +
+  "that runs only this repository's own tests, with no extra options or paths outside the " +
+  "repository. Only then record it (and cwd/expectedStdout/expectedExitCode when stated) in " +
   "plan.metadata.swarm.verify_commands (or plan item / explicit metadata), then re-run.\n" +
   "If the capture is not an acceptance command, record the exact string in " +
   "plan.metadata.literal_acceptance_not_commands without promoting it (#3721).";
@@ -424,7 +457,7 @@ export function runLiteralAcceptanceCommands(
     const cmd = group.representative;
     if (typeof cmd.command !== "string" || cmd.command.trim().length === 0) continue;
     const cwd = resolveCwd(options.projectRoot, cmd);
-    const containment = evaluateAcceptanceCwdContainment(options.projectRoot, cwd);
+    const containment = evaluateRunContainment(options.projectRoot, cwd, cmd.command);
     if (!containment.ok) {
       containmentRefusals.push(
         containmentRefusalRun(cmd, cwd, containment.reason ?? "cwd outside the repository"),
