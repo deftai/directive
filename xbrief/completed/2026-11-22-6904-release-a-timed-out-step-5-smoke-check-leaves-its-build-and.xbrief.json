@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6904",
-    "updated": "2026-11-22T22:13:22Z"
+    "updated": "2026-11-23T01:51:53Z"
   },
   "plan": {
     "title": "release: a timed-out Step 5 smoke check leaves its build and vitest processes running",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "release: a timed-out Step 5 smoke check leaves its build and vitest processes running",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6904",
@@ -17,93 +17,279 @@
     "items": [
       {
         "title": "Smoke runner. `runSmokeCommand` (`packages/core/src/release/ci-reuse.ts`) runs its command through `runTimedChild` instead of `spawnSync`, with the plan from `smokeSpawnPlan` (command, args, `windowsVerbatimArguments`, cwd), `env: sanitizeTsLaneEnv(process.env)`, `timeoutMs` equal to the time left on the shared deadline, and the current platform. It takes the timed runner as an optional seam. `runHostSmokeCheck`, its `runner` seam and its single `RELEASE_CHECK_TIMEOUT_MS` deadline do not change. No new constant.",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Smoke here names the release Step 5 smoke check under change, not a smoke-test axis; behaviour is covered by tests merged in #7129 (d1b84f3e5).",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "operator",
+            "mintedAt": "2026-11-23T01:51:34Z",
+            "mintedVia": "deft authz:grant",
+            "eventRef": "template:acceptance-disposition",
+            "grantId": "grant-20261123015134-34b73b"
+          },
+          "recorded_at": "2026-11-23T01:51:53Z"
+        }
       },
       {
         "title": "Scan completeness. The descendant scan reports whether it completed. A sibling of `listDescendantPids` returns `{ pids, complete }`; `listDescendantPids` keeps returning only the list for its other callers. `complete` is false when the scan budget runs out before the walk ends, or when any listing call fails: a spawn error (for example a missing `wmic` or `pgrep`), a timeout, or an exit status other than success or the command's no-match status (`pgrep` exit 1). The injected `listDirect` seam may return `null` to mean a failed listing. `killTreeAndProveEmpty` returns `{ remaining, scanComplete }`; callers that read only `remaining` do not change.",
-        "status": "proposed",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d1b84f3e52672c07b536a5962d01e72fc8fdb66c",
+          "recorded_at": "2026-11-23T01:43:24Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Cleanup outcome. `SupervisedGateResult` gains an optional field `treeCleanup` with the values `stopped`, `survivors` and `unverified`, an optional `survivorPids` list and an optional `lastReportedPid`. In `superviseTimedChild`, the deadline timer keeps the result of `killTreeAndProveEmpty`: a non-empty `remaining` gives `survivors` with those PIDs; an empty `remaining` with `scanComplete` gives `stopped`; an empty `remaining` without `scanComplete` gives `unverified`. When the deadline fires after the child has already exited (`confirmChildHandleForKill` returns null), or the plan's `killTree` test seam is used, the result is `unverified`. A result without a timeout has no `treeCleanup` field.",
-        "status": "proposed",
-        "id": "clause.3"
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d1b84f3e52672c07b536a5962d01e72fc8fdb66c",
+          "recorded_at": "2026-11-23T01:43:24Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Only the worker kills. The kill at the deadline stays in the worker, which holds the live child handle, as today. `superviseTimedChild` takes an optional `onSpawn(pid)` callback. In timed mode the worker uses it to post `{ kind: \"spawned\", pid }` on the port as soon as the child starts, and posts its final result as `{ kind: \"result\", result }` before it notifies, as today. Suite mode keeps its untagged message. `runTimedChild` reads every queued message with `receiveMessageOnPort`, takes the `result` message as the result and remembers the last `spawned` PID. When `plan.timeoutMs` is set and the backstop wait expires, or the worker fails or ends with no `result` message, `runTimedChild` returns a failure with `treeCleanup: unverified` and `lastReportedPid` set to the remembered PID, if any. The calling thread never kills a process and never passes `lastReportedPid` to a kill function. The backstop of `timeoutMs + 15_000` and the worker termination on return do not change.",
-        "status": "proposed",
-        "id": "clause.4"
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d1b84f3e52672c07b536a5962d01e72fc8fdb66c",
+          "recorded_at": "2026-11-23T01:43:24Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Result mapping in the smoke check. A timed-out result with `treeCleanup: stopped` returns `status: null` and an error that says the command passed the deadline and its process tree was stopped. With `survivors`, the error names the surviving PIDs and does not say the tree was stopped. With `unverified`, the error says the cleanup could not be checked and the command's processes may still be running; when `lastReportedPid` is set it names that PID and says it may already have exited and been reused. A spawn error or a missing worker returns `status: null` and that error. Step 5 fails in all of these cases, as today. Otherwise `status` is the exit code.",
-        "status": "proposed",
-        "id": "clause.5"
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Smoke here names the release Step 5 smoke check under change, not a smoke-test axis; behaviour is covered by tests merged in #7129 (d1b84f3e5).",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "operator",
+            "mintedAt": "2026-11-23T01:51:34Z",
+            "mintedVia": "deft authz:grant",
+            "eventRef": "template:acceptance-disposition",
+            "grantId": "grant-20261123015134-34b73b"
+          },
+          "recorded_at": "2026-11-23T01:51:53Z"
+        }
       },
       {
         "title": "Output. Before each command the smoke check prints one line naming the command and the time left. The captured stdout and stderr are written to the release output when the command ends. The doc comment of `runSmokeCommand` states that output is delayed and keeps only the last 256 KiB of each stream.",
-        "status": "proposed",
-        "id": "clause.6"
+        "status": "completed",
+        "id": "clause.6",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Smoke here names the release Step 5 smoke check under change, not a smoke-test axis; behaviour is covered by tests merged in #7129 (d1b84f3e5).",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "operator",
+            "mintedAt": "2026-11-23T01:51:34Z",
+            "mintedVia": "deft authz:grant",
+            "eventRef": "template:acceptance-disposition",
+            "grantId": "grant-20261123015134-34b73b"
+          },
+          "recorded_at": "2026-11-23T01:51:53Z"
+        }
       },
       {
         "title": "Shared users. The Step 5 hygiene gates (`cached-orchestrator.ts`) get the same `treeCleanup` field and message handling through `runTimedChild`; they do not change how they read the result.",
-        "status": "proposed",
-        "id": "clause.7"
+        "status": "completed",
+        "id": "clause.7",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d1b84f3e52672c07b536a5962d01e72fc8fdb66c",
+          "recorded_at": "2026-11-23T01:43:24Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Tests. None needs a built `dist` worker. (a) Through the seam, `runSmokeCommand` passes the smoke plan, environment and time left, and maps each `treeCleanup` value (with and without `lastReportedPid`) and a spawn error as in item 5. (b) An in-process `superviseTimedChild` run of a smoke plan whose command starts a child that outlives the deadline and records its PID shows, after it returns, that the recorded PID is not running, on win32 and POSIX, and that the result is `stopped` when the scan completed and `unverified` when it did not. (c) With a fake `isPidAlive` seam that leaves a PID alive, `superviseTimedChild` returns `survivors` with that PID. When the child has already exited as the deadline fires, it returns `unverified` and no kill is attempted. (d) Scan completeness, in-process with the `listDirect` seam: a listing that returns `null` (failed) gives `complete: false`; a budget that expires before the walk ends gives `complete: false`; a full walk gives `complete: true`. With those seams, `killTreeAndProveEmpty` and `superviseTimedChild` give `unverified` for a failed listing and for an expired budget when no PID is left alive, and `survivors` when a known PID is still alive. The existing budget test keeps its list result and also asserts `complete: false`. (e) The message handling of `runTimedChild` is factored into one function that takes the receiving port and the wait outcome. It is driven through a real in-process `MessageChannel` with these sequences: spawned then result gives that result; result alone gives that result; spawned alone with a backstop expiry gives `unverified` with that PID; two spawned messages and no result give `unverified` with the last PID; no message after a worker failure gives `unverified` with no PID. The function has no kill seam. (f) The metacharacter-cwd test keeps a real execution, through the in-process runner with the plan `runSmokeCommand` builds, and asserts that `runSmokeCommand` forwards that plan.",
-        "status": "proposed",
-        "id": "clause.8"
+        "status": "completed",
+        "id": "clause.8",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Smoke here names the release Step 5 smoke check under change, not a smoke-test axis; behaviour is covered by tests merged in #7129 (d1b84f3e5).",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "operator",
+            "mintedAt": "2026-11-23T01:51:34Z",
+            "mintedVia": "deft authz:grant",
+            "eventRef": "template:acceptance-disposition",
+            "grantId": "grant-20261123015134-34b73b"
+          },
+          "recorded_at": "2026-11-23T01:51:53Z"
+        }
       },
       {
         "title": "Given a smoke command whose child outlives the deadline, when the smoke check times out, then after it returns the recorded child PID is not running, on win32 and POSIX.",
-        "status": "proposed",
-        "id": "clause.9"
+        "status": "completed",
+        "id": "clause.9",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Smoke here names the release Step 5 smoke check under change, not a smoke-test axis; behaviour is covered by tests merged in #7129 (d1b84f3e5).",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "operator",
+            "mintedAt": "2026-11-23T01:51:34Z",
+            "mintedVia": "deft authz:grant",
+            "eventRef": "template:acceptance-disposition",
+            "grantId": "grant-20261123015134-34b73b"
+          },
+          "recorded_at": "2026-11-23T01:51:53Z"
+        }
       },
       {
         "title": "Given that case with a completed descendant scan and no process left, then the result carries `treeCleanup: stopped` and the failure says the process tree was stopped.",
-        "status": "proposed",
-        "id": "clause.10"
+        "status": "completed",
+        "id": "clause.10",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d1b84f3e52672c07b536a5962d01e72fc8fdb66c",
+          "recorded_at": "2026-11-23T01:43:24Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given a timed-out command where a known process survives the kill passes, then the result carries `treeCleanup: survivors` with that PID and the smoke failure names it, without saying the tree was stopped.",
-        "status": "proposed",
-        "id": "clause.11"
+        "status": "completed",
+        "id": "clause.11",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Smoke here names the release Step 5 smoke check under change, not a smoke-test axis; behaviour is covered by tests merged in #7129 (d1b84f3e5).",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "operator",
+            "mintedAt": "2026-11-23T01:51:34Z",
+            "mintedVia": "deft authz:grant",
+            "eventRef": "template:acceptance-disposition",
+            "grantId": "grant-20261123015134-34b73b"
+          },
+          "recorded_at": "2026-11-23T01:51:53Z"
+        }
       },
       {
         "title": "Given a descendant listing that fails (for example a missing `wmic` or `pgrep`) or a scan budget that expires, with no known survivor, then the result carries `treeCleanup: unverified`, never `stopped`.",
-        "status": "proposed",
-        "id": "clause.12"
+        "status": "completed",
+        "id": "clause.12",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d1b84f3e52672c07b536a5962d01e72fc8fdb66c",
+          "recorded_at": "2026-11-23T01:43:24Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given the backstop of `runTimedChild` expires, or the worker fails or ends without a result, then the calling thread kills no process, the result carries `treeCleanup: unverified`, and the smoke failure names the PID the worker reported at spawn, if any.",
-        "status": "proposed",
-        "id": "clause.13"
+        "status": "completed",
+        "id": "clause.13",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Smoke here names the release Step 5 smoke check under change, not a smoke-test axis; behaviour is covered by tests merged in #7129 (d1b84f3e5).",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "operator",
+            "mintedAt": "2026-11-23T01:51:34Z",
+            "mintedVia": "deft authz:grant",
+            "eventRef": "template:acceptance-disposition",
+            "grantId": "grant-20261123015134-34b73b"
+          },
+          "recorded_at": "2026-11-23T01:51:53Z"
+        }
       },
       {
         "title": "Given the child has already exited when the deadline fires, then nothing is killed and the result carries `treeCleanup: unverified`.",
-        "status": "proposed",
-        "id": "clause.14"
+        "status": "completed",
+        "id": "clause.14",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d1b84f3e52672c07b536a5962d01e72fc8fdb66c",
+          "recorded_at": "2026-11-23T01:43:24Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "`runTimedChild` takes the worker result from the `result` message even when a `spawned` message came first.",
-        "status": "proposed",
-        "id": "clause.15"
+        "status": "completed",
+        "id": "clause.15",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d1b84f3e52672c07b536a5962d01e72fc8fdb66c",
+          "recorded_at": "2026-11-23T01:43:24Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "The smoke check keeps one shared deadline of `RELEASE_CHECK_TIMEOUT_MS` for both commands, and no new timeout constant is added.",
-        "status": "proposed",
-        "id": "clause.16"
+        "status": "completed",
+        "id": "clause.16",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Smoke here names the release Step 5 smoke check under change, not a smoke-test axis; behaviour is covered by tests merged in #7129 (d1b84f3e5).",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "operator",
+            "mintedAt": "2026-11-23T01:51:34Z",
+            "mintedVia": "deft authz:grant",
+            "eventRef": "template:acceptance-disposition",
+            "grantId": "grant-20261123015134-34b73b"
+          },
+          "recorded_at": "2026-11-23T01:51:53Z"
+        }
       },
       {
         "title": "The smoke spawn keeps `shell: false` and the project root only as the cwd; a real run in a directory named with shell metacharacters runs no extra command.",
-        "status": "proposed",
-        "id": "clause.17"
+        "status": "completed",
+        "id": "clause.17",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Smoke here names the release Step 5 smoke check under change, not a smoke-test axis; behaviour is covered by tests merged in #7129 (d1b84f3e5).",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "operator",
+            "mintedAt": "2026-11-23T01:51:34Z",
+            "mintedVia": "deft authz:grant",
+            "eventRef": "template:acceptance-disposition",
+            "grantId": "grant-20261123015134-34b73b"
+          },
+          "recorded_at": "2026-11-23T01:51:53Z"
+        }
       },
       {
         "title": "Each smoke command prints a start line, and its captured output is written when it ends.",
-        "status": "proposed",
-        "id": "clause.18"
+        "status": "completed",
+        "id": "clause.18",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Smoke here names the release Step 5 smoke check under change, not a smoke-test axis; behaviour is covered by tests merged in #7129 (d1b84f3e5).",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "operator",
+            "mintedAt": "2026-11-23T01:51:34Z",
+            "mintedVia": "deft authz:grant",
+            "eventRef": "template:acceptance-disposition",
+            "grantId": "grant-20261123015134-34b73b"
+          },
+          "recorded_at": "2026-11-23T01:51:53Z"
+        }
       }
     ],
     "tags": [
@@ -776,6 +962,35 @@
         "leanCommentId": 7070710091,
         "harvestDigest": "c8feae2fa24fd34d05871f578c15b545930ea36890ea0460b53821041afc73b1",
         "slice": null
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "9d9e0d7b6c13624ca96db5ed937336bb8a691585",
+        "prNumber": 7129,
+        "prBase": "master",
+        "mergeCommit": "d1b84f3e52672c07b536a5962d01e72fc8fdb66c",
+        "deliveryBranch": "master",
+        "deliveryCommit": "e3e72a43cce3b79bf0aaf05462ad804ba951de01",
+        "verifiedAt": "2026-11-23T01:51:53Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:OWEwZDY5MDktOTZkNS00NjFiLWIzMTUtODg5ZjNlZjFkNTI0",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          7114
+        ]
+      },
+      "completedAt": "2026-11-23T01:51:53Z",
+      "completedSessionId": "host:claude:v1:OWEwZDY5MDktOTZkNS00NjFiLWIzMTUtODg5ZjNlZjFkNTI0",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-23T01:51:53Z"
       }
     },
     "acceptance": {
@@ -955,6 +1170,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.6519687670",
-    "updated": "2026-11-22T22:13:22Z"
+    "updated": "2026-11-23T01:51:53Z"
   }
 }
