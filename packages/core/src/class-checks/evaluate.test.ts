@@ -1268,6 +1268,13 @@ describe("co-located tests and the class 2 import rule (#6668)", () => {
     ],
     ['/* lead */ import { b } from "./b.spec";', "./b.spec"],
     ['*/ const c = require("./c.test.cjs");', "./c.test.cjs"],
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: source line under test
+    ["const label = `${require('./labels.test').title}`;", "./labels.test"],
+    ["const m = await import(`./t.test.js`);", "./t.test.js"],
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: source line under test
+    ["const n = `a ${`b ${import('./n.spec')}`}`;", "./n.spec"],
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: source line under test
+    ["const v = import(`./${name}.test`);", "./${name}.test"],
   ])("class 2 reports a production line importing a test module: %s", (line, spec) => {
     const content = `export const a = 1;\n${line}\n`;
     const result = run(
@@ -1302,6 +1309,8 @@ describe("co-located tests and the class 2 import rule (#6668)", () => {
     'const x = 1; // require("./fake.test")',
     'const y = 1; /* import("./fake.test") */',
     "const z = `import x from './fake.spec'`;",
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: source line under test
+    "const w = `${name} require('./fake.test')`;",
   ])("class 2 ignores a line that is not a test-module import: %s", (line) => {
     const result = run({ "src/payments/index.ts": `${line}\n` });
     expect(result.findings).toEqual([]);

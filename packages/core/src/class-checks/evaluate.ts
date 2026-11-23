@@ -131,32 +131,75 @@ function isModuleSpecifierPosition(code: string): boolean {
  * Module specifiers on one source line (#6668 class 2 import rule). A one-line
  * lexer drops `//` and `/* … *\/` comments and reads each string literal once,
  * so text inside a comment or inside another string is never a specifier, and
- * a comment between `import(` and its path does not hide it. A line that starts
- * with `*` continues a block comment; after a leading `*\/` the rest is code.
+ * a comment between `import(` and its path does not hide it. Code inside a
+ * template `${…}` is lexed as code. A line that starts with `*` continues a
+ * block comment; after a leading `*\/` the rest is code.
  */
 function moduleSpecifiersOnLine(rawLine: string): string[] {
   const lead = rawLine.trimStart();
-  const line = lead.startsWith("*/") ? lead.slice(2) : rawLine;
-  if (!lead.startsWith("*/") && lead.startsWith("*")) return [];
+  const closesComment = lead.startsWith("*/");
+  if (!closesComment && lead.startsWith("*")) return [];
   const out: string[] = [];
+  lexSpecifiers(closesComment ? lead.slice(2) : rawLine, 0, false, out);
+  return out;
+}
+
+/**
+ * Lex code from `start`, pushing module specifiers to `out`. With `inTemplate`,
+ * stop after the `}` that closes a template `${`. Returns the index lexing
+ * stopped at (the line length when the line ends or a comment runs to its end).
+ */
+function lexSpecifiers(line: string, start: number, inTemplate: boolean, out: string[]): number {
   let code = "";
-  let i = 0;
+  let depth = 0;
+  let i = start;
   while (i < line.length) {
     const ch = line[i];
-    if (ch === "/" && line[i + 1] === "/") break;
+    if (ch === "/" && line[i + 1] === "/") return line.length;
     if (ch === "/" && line[i + 1] === "*") {
       const end = line.indexOf("*/", i + 2);
-      if (end === -1) break;
+      if (end === -1) return line.length;
       code += " ";
       i = end + 2;
       continue;
     }
-    if (ch === '"' || ch === "'" || ch === "`") {
+    if (ch === "{") depth += 1;
+    if (ch === "}") {
+      if (inTemplate && depth === 0) return i + 1;
+      depth -= 1;
+    }
+    if (ch === '"' || ch === "'") {
       let j = i + 1;
       while (j < line.length && line[j] !== ch) j += line[j] === "\\" ? 2 : 1;
-      if (j >= line.length) break;
+      if (j >= line.length) return line.length;
       const spec = line.slice(i + 1, j);
       if (spec.length > 0 && isModuleSpecifierPosition(code)) out.push(spec);
+      code += '""';
+      i = j + 1;
+      continue;
+    }
+    if (ch === "`") {
+      // A specifier template keeps its raw text; each `${…}` reads as one name
+      // character, so `./${name}.test` still ends in `.test`.
+      const atSpecifier = isModuleSpecifierPosition(code);
+      let text = "";
+      let j = i + 1;
+      while (j < line.length && line[j] !== "`") {
+        if (line[j] === "\\") {
+          text += line.slice(j, j + 2);
+          j += 2;
+        } else if (line[j] === "$" && line[j + 1] === "{") {
+          text += "x";
+          j = lexSpecifiers(line, j + 2, true, out);
+        } else {
+          text += line[j];
+          j += 1;
+        }
+      }
+      if (j >= line.length) return line.length;
+      if (atSpecifier && text.length > 0 && isCoLocatedTestModuleSpecifier(text)) {
+        out.push(line.slice(i + 1, j));
+      }
       code += '""';
       i = j + 1;
       continue;
@@ -164,7 +207,7 @@ function moduleSpecifiersOnLine(rawLine: string): string[] {
     code += ch;
     i += 1;
   }
-  return out;
+  return line.length;
 }
 
 const TEST_BOUNDARY_POLICY_PATHS = [
