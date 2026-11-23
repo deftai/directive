@@ -45,7 +45,14 @@ function fakeGitHub(initial: FakeIssue[] = []) {
       expect(args).toContain("--slurp");
       const comments = /issues\/(\d+)\/comments/.exec(path);
       if (comments) {
-        return JSON.stringify([byNumber(comments[1] as string).comments.map((body) => ({ body }))]);
+        // A comment stored with a FOREIGN: prefix was written by someone else.
+        return JSON.stringify([
+          byNumber(comments[1] as string).comments.map((body) =>
+            body.startsWith("FOREIGN:")
+              ? { body: body.slice("FOREIGN:".length), user: { login: "someone" } }
+              : { body, user: { login: ISSUE_CREATOR } },
+          ),
+        ]);
       }
       expect(path).toContain(`creator=${encodeURIComponent(ISSUE_CREATOR)}`);
       expect(path).toContain("state=all");
@@ -296,6 +303,22 @@ describe("tracking issues (#6849 clauses 13, 14, 16)", () => {
     expect(windows.comments).toHaveLength(2);
     expect(lines.join("\n")).toContain("a newer run already reported on #8; state left as is");
     expect(fake.calls.some((c) => c[1] === "close")).toBe(false);
+  });
+
+  it("ignores run markers in comments not written by the reporter", () => {
+    const fake = fakeGitHub([
+      {
+        number: 8,
+        state: "closed",
+        body: issueBody(LANES[1]),
+        assignees: [],
+        comments: [`FOREIGN:${commentMarker("windows", "999999999", "1")}`],
+      },
+    ]);
+    runReport(env(RED), deps(fake).deps);
+    const windows = fake.issues.find((i) => i.number === 8) as FakeIssue;
+    expect(windows.state).toBe("open");
+    expect(windows.comments).toHaveLength(2);
   });
 
   it("fails when NEEDS_JSON is not valid JSON", () => {

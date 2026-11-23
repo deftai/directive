@@ -299,6 +299,8 @@ export function reportedRuns(gh, repo, number, laneId) {
   const runs = [];
   for (const c of flattenPages(JSON.parse(out))) {
     if (c === null || typeof c !== "object" || typeof c.body !== "string") continue;
+    // Only the reporter's own comments count; anyone else could forge a marker.
+    if (c.user?.login !== ISSUE_CREATOR) continue;
     for (const m of c.body.matchAll(pattern)) {
       runs.push({ runId: Number(m[1]), attempt: Number(m[2]) });
     }
