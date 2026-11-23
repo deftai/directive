@@ -10,7 +10,10 @@ import {
 import type { LifecycleVisibleResult } from "../lifecycle-visible/evaluate.js";
 import type { EnvironmentContext } from "../platform/shell-context.js";
 import type { ResolveUserMdResult } from "../user-config/resolve-user-md.js";
+import { useCleanHostEnv } from "./__tests__/clean-host-env.js";
 import { READ_ONLY_POSTURE, runSessionStart } from "./session-start.js";
+
+useCleanHostEnv();
 
 const temps: string[] = [];
 const environment: EnvironmentContext = {

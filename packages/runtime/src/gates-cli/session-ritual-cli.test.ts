@@ -4,7 +4,10 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { runSessionStart, verifySessionRitual } from "@deftai/directive-core/session";
 import { afterAll, describe, expect, it } from "vitest";
+import { useCleanHostEnv } from "../__tests__/clean-host-env.js";
 import { runDeftTs, seedProject } from "./_helpers.js";
+
+useCleanHostEnv();
 
 const roots: string[] = [];
 afterAll(() => {

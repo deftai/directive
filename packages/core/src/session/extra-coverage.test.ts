@@ -3,6 +3,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { useCleanHostEnv } from "./__tests__/clean-host-env.js";
 import { buildContext, evaluate, evaluateResumeEligibility, parse } from "./resume-conditions.js";
 import {
   computeResumeSignal,
@@ -20,6 +21,8 @@ import { runSessionStartHookWrite } from "./session-start-hook.js";
 import { resolveSessionRitualStalenessHours } from "./staleness.js";
 import { parseTimestamp } from "./time.js";
 import { verifySessionRitual } from "./verify-session-ritual.js";
+
+useCleanHostEnv();
 
 const temps: string[] = [];
 afterEach(() => {

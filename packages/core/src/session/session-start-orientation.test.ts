@@ -5,11 +5,14 @@ import { afterEach, describe, expect, it } from "vitest";
 import type { EnvironmentContext } from "../platform/shell-context.js";
 import { selectCeremonyDepth } from "../policy/ceremony-dial.js";
 import type { ResolveUserMdResult } from "../user-config/resolve-user-md.js";
+import { useCleanHostEnv } from "./__tests__/clean-host-env.js";
 import type { GitRunResult } from "./git.js";
 import type { OrientationBundle } from "./orientation-compression.js";
 import { ORIENTATION_LATER_STATUS } from "./orientation-compression.js";
 import { ritualStatePath } from "./ritual-sentinel.js";
 import { READ_ONLY_POSTURE, runSessionStart, type SessionStartOptions } from "./session-start.js";
+
+useCleanHostEnv();
 
 const STANDARD_DIAL = selectCeremonyDepth({
   config: { enabled: true, override: "standard" },

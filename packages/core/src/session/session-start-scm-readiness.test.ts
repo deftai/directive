@@ -6,8 +6,11 @@ import { afterEach, describe, expect, it } from "vitest";
 import type { EnvironmentContext } from "../platform/shell-context.js";
 import type { ScmReadinessReport } from "../scm/readiness.js";
 import type { ResolveUserMdResult } from "../user-config/resolve-user-md.js";
+import { useCleanHostEnv } from "./__tests__/clean-host-env.js";
 import { ritualStatePath } from "./ritual-sentinel.js";
 import { READ_ONLY_POSTURE, runSessionStart } from "./session-start.js";
+
+useCleanHostEnv();
 
 const temps: string[] = [];
 const environment: EnvironmentContext = {

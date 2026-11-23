@@ -4,6 +4,7 @@ import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { decideHook } from "../hooks/dispatcher.js";
 import type { EnvironmentContext } from "../platform/shell-context.js";
+import { useCleanHostEnv } from "./__tests__/clean-host-env.js";
 import type { GitRunResult } from "./git.js";
 import {
   type ApplyOccupancyInput,
@@ -31,6 +32,8 @@ import {
   type SessionStartStepTiming,
 } from "./session-start.js";
 import { inspectSessionRitual } from "./verify-session-ritual.js";
+
+useCleanHostEnv();
 
 const temps: string[] = [];
 const environment: EnvironmentContext = {

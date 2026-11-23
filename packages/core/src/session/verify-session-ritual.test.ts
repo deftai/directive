@@ -5,6 +5,7 @@ import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { writePlanSequence } from "../plan-sequence/store.js";
 import { createPlanSequence } from "../plan-sequence/types.js";
+import { useCleanHostEnv } from "./__tests__/clean-host-env.js";
 import type { GitRunResult } from "./git.js";
 import {
   DRIFT_PROBE_SKIPPED_NO_WORK_SELECTION,
@@ -28,6 +29,8 @@ import {
 } from "./index.js";
 import { applyWorktreeOccupancy } from "./occupancy.js";
 import { defaultBranchSync, parseDeferrals, runSessionStart } from "./session-start.js";
+
+useCleanHostEnv();
 
 function initRepo(): { root: string; head: string } {
   const root = mkdtempSync(join(tmpdir(), "session-verify-"));

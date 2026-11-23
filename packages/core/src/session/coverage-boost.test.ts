@@ -3,6 +3,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { useCleanHostEnv } from "./__tests__/clean-host-env.js";
 import type { GitRunner } from "./git.js";
 import { pythonJsonDump, sortKeys, stableJson } from "./json.js";
 import { evaluateResumeEligibility, parse, RESUME_ELIGIBLE_DECISION } from "./resume-conditions.js";
@@ -26,6 +27,8 @@ import {
   emitVerifyJson,
   verifySessionRitual,
 } from "./verify-session-ritual.js";
+
+useCleanHostEnv();
 
 const temps: string[] = [];
 afterEach(() => {
