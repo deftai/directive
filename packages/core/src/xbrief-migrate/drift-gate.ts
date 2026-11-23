@@ -186,7 +186,25 @@ function listFiles(projectRoot: string, mode: DriftScanMode): string[] | { error
   }
 }
 
-/** Scan a canonical corpus artifact's content for the bare legacy reference token. */
+/** True when any JSON string value in `value` starts with the legacy reference prefix. */
+function hasLegacyReferenceValue(value: unknown): boolean {
+  if (typeof value === "string") return value.startsWith(LEGACY_REFERENCE_PREFIX);
+  if (Array.isArray(value)) return value.some(hasLegacyReferenceValue);
+  if (typeof value === "object" && value !== null) {
+    return Object.values(value).some(hasLegacyReferenceValue);
+  }
+  return false;
+}
+
+/**
+ * Scan a canonical corpus artifact for the bare legacy reference token (#4905).
+ *
+ * A legacy reference is a JSON string VALUE that starts with the prefix, e.g.
+ * `"type": "x-vbrief/..."`. Prose that only quotes the prefix mid-string
+ * (narratives, ingested comments, contract text, escaped quotes) is not a
+ * reference and passes. Unparseable JSON falls back to an unescaped
+ * quoted-string boundary scan so a broken file cannot hide a real reference.
+ */
 export function scanCorpusToken(fullPath: string): boolean {
   let source: string;
   try {
@@ -194,9 +212,13 @@ export function scanCorpusToken(fullPath: string): boolean {
   } catch {
     return false;
   }
-  // Reference types appear as JSON string values, e.g. `"type": "x-vbrief/..."`.
-  // The bare prefix as a quoted-string boundary is the structural token we forbid.
-  return source.includes(`"${LEGACY_REFERENCE_PREFIX}`) || source.includes(LEGACY_REFERENCE_PREFIX);
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(source);
+  } catch {
+    return new RegExp(`(?<!\\\\)"${LEGACY_REFERENCE_PREFIX}`).test(source);
+  }
+  return hasLegacyReferenceValue(parsed);
 }
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
