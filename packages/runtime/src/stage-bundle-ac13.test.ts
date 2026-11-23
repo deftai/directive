@@ -97,8 +97,13 @@ describe("stage-bundle AC1.3 packaging purity (PKG-AC13-NEST)", () => {
       expect(tgz && existsSync(tgz)).toBe(true);
 
       // Bare archive name in its folder: Git Bash GNU tar reads `C:` as a host (#7172).
-      const tarOpts = { cwd: dirname(tgz!), encoding: "utf8" as const };
-      const pkgJson = spawnSync("tar", ["-xOf", basename(tgz!), "package/package.json"], tarOpts);
+      const tgzFile = tgz ?? "";
+      const tarOpts = { cwd: dirname(tgzFile), encoding: "utf8" as const };
+      const pkgJson = spawnSync(
+        "tar",
+        ["-xOf", basename(tgzFile), "package/package.json"],
+        tarOpts,
+      );
       expect(pkgJson.status).toBe(0);
       const pkg = JSON.parse(pkgJson.stdout) as {
         dependencies?: Record<string, string>;
@@ -109,7 +114,7 @@ describe("stage-bundle AC1.3 packaging purity (PKG-AC13-NEST)", () => {
       expect(pkg.bundledDependencies).toBeUndefined();
       expect(pkg.directive?.contract).toBe(1);
 
-      const listing = spawnSync("tar", ["-tzf", basename(tgz!)], tarOpts);
+      const listing = spawnSync("tar", ["-tzf", basename(tgzFile)], tarOpts);
       expect(listing.status).toBe(0);
       const names = listing.stdout.split(/\r?\n/);
       for (const name of PRIVATE) {

@@ -36,7 +36,16 @@ async function loadRunTar(): Promise<RunTar> {
 
 describe("pack-staged-runtime tar invocation on win32 (#7172)", () => {
   // join keeps it platform-native so dirname/basename split it on every runner.
-  const tgz = join("C:\\", "Users", "me", "AppData", "Local", "Temp", "pack-1", "deftai-directive-runtime-1.0.0.tgz");
+  const tgz = join(
+    "C:\\",
+    "Users",
+    "me",
+    "AppData",
+    "Local",
+    "Temp",
+    "pack-1",
+    "deftai-directive-runtime-1.0.0.tgz",
+  );
   const win32 = {
     platform: "win32",
     env: { SystemRoot: "C:\\Windows" },
@@ -51,13 +60,19 @@ describe("pack-staged-runtime tar invocation on win32 (#7172)", () => {
   ])("%s uses System32 bsdtar, the tarball folder as cwd, and a bare archive name", async (flag, rest) => {
     const runTar = await loadRunTar();
     const calls: TarCall[] = [];
-    runTar(flag, tgz, rest, { env: { COPYFILE_DISABLE: "1" } }, {
-      ...win32,
-      spawnSync: (cmd, args, options) => {
-        calls.push({ cmd, args, options });
-        return { status: 0, stdout: "", stderr: "" };
+    runTar(
+      flag,
+      tgz,
+      rest,
+      { env: { COPYFILE_DISABLE: "1" } },
+      {
+        ...win32,
+        spawnSync: (cmd, args, options) => {
+          calls.push({ cmd, args, options });
+          return { status: 0, stdout: "", stderr: "" };
+        },
       },
-    });
+    );
     expect(calls).toHaveLength(1);
     const [call] = calls;
     expect(call.cmd).toBe("C:\\Windows\\System32\\tar.exe");
@@ -71,13 +86,19 @@ describe("pack-staged-runtime tar invocation on win32 (#7172)", () => {
   it("uses plain tar off win32", async () => {
     const runTar = await loadRunTar();
     const calls: TarCall[] = [];
-    runTar("-tzf", "/tmp/pack-1/rt.tgz", [], {}, {
-      platform: "linux",
-      spawnSync: (cmd, args, options) => {
-        calls.push({ cmd, args, options });
-        return { status: 0, stdout: "", stderr: "" };
+    runTar(
+      "-tzf",
+      "/tmp/pack-1/rt.tgz",
+      [],
+      {},
+      {
+        platform: "linux",
+        spawnSync: (cmd, args, options) => {
+          calls.push({ cmd, args, options });
+          return { status: 0, stdout: "", stderr: "" };
+        },
       },
-    });
+    );
     expect(calls[0].cmd).toBe("tar");
     expect(calls[0].args).toEqual(["-tzf", "rt.tgz"]);
     expect(calls[0].options.cwd).toBe("/tmp/pack-1");
