@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6897",
-    "updated": "2026-11-22T22:39:13Z"
+    "updated": "2026-11-23T01:43:37Z"
   },
   "plan": {
     "title": "test(cli): guard every documented deft <verb> -- form with a real-parser test",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "test(cli): guard every documented deft <verb> -- form with a real-parser test",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6897",
@@ -17,103 +17,243 @@
     "items": [
       {
         "title": "File. A new test, `packages/runtime/src/dispatch-double-dash-documented-forms.test.ts`. It may move the run harness of `dispatch-double-dash-real-parser.test.ts` (empty-cwd run, captured dispatch io and `process.stdout`/`stderr`) into a small shared test helper used by both files. No product code, parser or doc changes.",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ea27be317d894dd4d1646dbe09935f8050471fb6",
+          "recorded_at": "2026-11-23T01:43:37Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Case list. At test time the test reads `AGENTS.md`, `content/templates/agents-entry.md`, `content/templates/agent-prompt-preamble.md`, `content/skills/deft-directive-swarm/SKILL.md` and `content/skills/deft-directive-review-cycle/SKILL.md` from the repo root and collects each `deft <verb> -- ` form, where the verb is a colon verb or a two-word namespace form. Each form is kept as its user-facing token list (`[\"review-monitor:register\"]`, or `[\"policy\", \"show\"]` for a two-word form), with a display key and the files it appears in. The set must not be empty. A documented key with no probe-table entry fails, naming the key and its files. A table entry whose key is no longer documented fails as stale.",
-        "status": "proposed",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ea27be317d894dd4d1646dbe09935f8050471fb6",
+          "recorded_at": "2026-11-23T01:43:37Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Probe table. Each entry gives the probe arguments, the expected exit code, the exact expected text, whether the verb's parser refuses `--` (`refusesDash`), and a one-line note naming the check that returns before any work. The default probe is one unknown flag, `--deft-6897-no-such-flag`, for parsers that refuse unknown flags. Four named exceptions:",
-        "status": "proposed",
-        "id": "clause.3"
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ea27be317d894dd4d1646dbe09935f8050471fb6",
+          "recorded_at": "2026-11-23T01:43:37Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "`xbrief:activate`: two positional paths, `missing-6897-a.xbrief.json missing-6897-b.xbrief.json`; exit 2, `unrecognized arguments: missing-6897-b.xbrief.json`; `refusesDash: true`.",
-        "status": "proposed",
-        "id": "clause.4"
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ea27be317d894dd4d1646dbe09935f8050471fb6",
+          "recorded_at": "2026-11-23T01:43:37Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "`authz:grant`: `--generation invalid`; exit 2, `--generation requires a non-negative integer`; `refusesDash: false`.",
-        "status": "proposed",
-        "id": "clause.5"
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ea27be317d894dd4d1646dbe09935f8050471fb6",
+          "recorded_at": "2026-11-23T01:43:37Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "`swarm:pre-dispatch`: `--action invalid`; exit 2, `--action must be one of: begin, complete, cancel.`; `refusesDash: false`.",
-        "status": "proposed",
-        "id": "clause.6"
+        "status": "completed",
+        "id": "clause.6",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ea27be317d894dd4d1646dbe09935f8050471fb6",
+          "recorded_at": "2026-11-23T01:43:37Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "`escalation:file`: `--type cmd_approval` with no title; exit 2, `escalation:file requires --title <text>`. This is the required-field check in `main` before `fileEscalation`, not a parser refusal; `refusesDash: false`.",
-        "status": "proposed",
-        "id": "clause.7"
+        "status": "completed",
+        "id": "clause.7",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ea27be317d894dd4d1646dbe09935f8050471fb6",
+          "recorded_at": "2026-11-23T01:43:37Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Equality run. For each entry the test runs `routeAndDispatch([...tokens, ...probe])` and `routeAndDispatch([...tokens, \"--\", ...probe])`. Both must exit with the expected code, both outputs must contain the expected text, and the two results (exit code, stdout, stderr) must be equal. No probe contains `--help` or `-h`, and no handler, router or parser is stubbed or mocked.",
-        "status": "proposed",
-        "id": "clause.8"
+        "status": "completed",
+        "id": "clause.8",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ea27be317d894dd4d1646dbe09935f8050471fb6",
+          "recorded_at": "2026-11-23T01:43:37Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Sensitivity run. For each entry the test builds the argument list a dispatcher would get if the router's boundary drop were bypassed: `routeArgv([...tokens, ...probe]).argv` with `--` put back just before the probe arguments. It asserts that list exactly, then calls `dispatch` with it. For every `refusesDash: true` entry the result must differ from the plain run, and at least one entry must be `refusesDash: true`. This shows sensitivity to bypassing today's drop; it is not a run of an older tree. In addition, the PR records one implementation check: with `applyDoubleDashBoundary` changed to return its input unchanged, the new test fails.",
-        "status": "proposed",
-        "id": "clause.9"
+        "status": "completed",
+        "id": "clause.9",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ea27be317d894dd4d1646dbe09935f8050471fb6",
+          "recorded_at": "2026-11-23T01:43:37Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "`scope:*` entries. `routeArgv` sends these to `scope-lifecycle`, which spawns the built core CLI that the source-aliased suite does not provide. For these the test asserts the router result with and without `--` (`[\"scope-lifecycle\", sub, ...probe]`), and runs the core parser in-process, `lifecycleMain([sub, ...probe])` and `lifecycleMain([sub, \"--\", ...probe])`, with the same equality and expected-text checks (unknown-flag probe; exit 2; the scope usage line). They are `refusesDash: false` (`scope/main.ts` 175). The test names this as an exception to item 4: the spawn adapter is not run.",
-        "status": "proposed",
-        "id": "clause.10"
+        "status": "completed",
+        "id": "clause.10",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ea27be317d894dd4d1646dbe09935f8050471fb6",
+          "recorded_at": "2026-11-23T01:43:37Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Isolation. The test makes one fresh fixture root with an empty `.git` directory, so project-root discovery stops there (`scope/project-context.ts` sentinels `xbrief`, `vbrief`, `.git`). Every run directory and a temp home live inside it. While the test runs, HOME, USERPROFILE, APPDATA, LOCALAPPDATA, XDG_CONFIG_HOME and GH_CONFIG_DIR point into the temp home, `GH_TOKEN` and `GITHUB_TOKEN` hold an invalid value, and every `DEFT_*` variable is unset; all are restored after. After every run, sensitivity runs included, the test lists the whole fixture root and compares it with the list taken before the runs; only the fixture's own entries may exist. Safety rests on each entry's early return (item 3 note and expected text); the environment redirection is a second line of defence.",
-        "status": "proposed",
-        "id": "clause.11"
+        "status": "completed",
+        "id": "clause.11",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ea27be317d894dd4d1646dbe09935f8050471fb6",
+          "recorded_at": "2026-11-23T01:43:37Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "One PR: the new test file, the optional shared helper, and one `changelog.d/` fragment.",
-        "status": "proposed",
-        "id": "clause.12"
+        "status": "completed",
+        "id": "clause.12",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ea27be317d894dd4d1646dbe09935f8050471fb6",
+          "recorded_at": "2026-11-23T01:43:37Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given the five docs at HEAD, when the test runs, then it collects every `deft <verb> -- ` form (today 26 single-token colon verbs) as token lists and finds a probe-table entry for each.",
-        "status": "proposed",
-        "id": "clause.13"
+        "status": "completed",
+        "id": "clause.13",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ea27be317d894dd4d1646dbe09935f8050471fb6",
+          "recorded_at": "2026-11-23T01:43:37Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given a documented verb whose probe-table entry is removed, when the test runs, then it fails and names the verb and the files it appears in; given a table entry for a verb no doc shows, then it fails as stale.",
-        "status": "proposed",
-        "id": "clause.14"
+        "status": "completed",
+        "id": "clause.14",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ea27be317d894dd4d1646dbe09935f8050471fb6",
+          "recorded_at": "2026-11-23T01:43:37Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given any entry, when the test runs its form with and without the leading `--` through `routeAndDispatch`, then both runs exit with the entry's expected code, both outputs contain its expected text, and the exit code, stdout and stderr are equal.",
-        "status": "proposed",
-        "id": "clause.15"
+        "status": "completed",
+        "id": "clause.15",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ea27be317d894dd4d1646dbe09935f8050471fb6",
+          "recorded_at": "2026-11-23T01:43:37Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given `xbrief:activate`, `authz:grant`, `swarm:pre-dispatch` and `escalation:file`, then their runs use the item 3 probes and show the item 3 texts.",
-        "status": "proposed",
-        "id": "clause.16"
+        "status": "completed",
+        "id": "clause.16",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ea27be317d894dd4d1646dbe09935f8050471fb6",
+          "recorded_at": "2026-11-23T01:43:37Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given a `scope:*` entry, then the router maps both forms to `[\"scope-lifecycle\", sub, ...probe]` and `lifecycleMain` gives equal exit 2 results with the scope usage text for both forms.",
-        "status": "proposed",
-        "id": "clause.17"
+        "status": "completed",
+        "id": "clause.17",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ea27be317d894dd4d1646dbe09935f8050471fb6",
+          "recorded_at": "2026-11-23T01:43:37Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given a `refusesDash: true` entry, when `dispatch` gets the routed tokens with `--` put back before the probe (an argument list the test asserts exactly), then the result differs from the plain run; at least one entry is `refusesDash: true`.",
-        "status": "proposed",
-        "id": "clause.18"
+        "status": "completed",
+        "id": "clause.18",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ea27be317d894dd4d1646dbe09935f8050471fb6",
+          "recorded_at": "2026-11-23T01:43:37Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given `applyDoubleDashBoundary` changed to return its input unchanged, then the test fails (recorded in the PR, not committed).",
-        "status": "proposed",
-        "id": "clause.19"
+        "status": "completed",
+        "id": "clause.19",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ea27be317d894dd4d1646dbe09935f8050471fb6",
+          "recorded_at": "2026-11-23T01:43:37Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given any run, sensitivity runs included, then the fixture root's file list is unchanged afterwards, no probe contains `--help` or `-h`, and the test mocks no handler, router or parser.",
-        "status": "proposed",
-        "id": "clause.20"
+        "status": "completed",
+        "id": "clause.20",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ea27be317d894dd4d1646dbe09935f8050471fb6",
+          "recorded_at": "2026-11-23T01:43:37Z",
+          "recorded_by": "scope:complete"
+        }
       }
     ],
     "tags": [
@@ -467,6 +607,35 @@
         "leanCommentId": 7086803984,
         "harvestDigest": "57e14d396fbfd85a645b874f7104a65c0abfed858f3d8eaf1e24e936225d9205",
         "slice": null
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "370829ee6ca0a7c7c1aa436e98c186ab6c6a7f66",
+        "prNumber": 7133,
+        "prBase": "master",
+        "mergeCommit": "ea27be317d894dd4d1646dbe09935f8050471fb6",
+        "deliveryBranch": "master",
+        "deliveryCommit": "e3e72a43cce3b79bf0aaf05462ad804ba951de01",
+        "verifiedAt": "2026-11-23T01:43:37Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:OWEwZDY5MDktOTZkNS00NjFiLWIzMTUtODg5ZjNlZjFkNTI0",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          7120
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-23T01:43:37Z",
+      "completedSessionId": "host:claude:v1:OWEwZDY5MDktOTZkNS00NjFiLWIzMTUtODg5ZjNlZjFkNTI0",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-23T01:43:37Z"
       }
     },
     "acceptance": {
@@ -664,6 +833,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.6519260787",
-    "updated": "2026-11-22T22:39:13Z"
+    "updated": "2026-11-23T01:43:37Z"
   }
 }
