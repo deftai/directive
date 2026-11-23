@@ -4,6 +4,7 @@
  */
 import { resolve } from "node:path";
 import { classChecks } from "@deftai/directive-core";
+import { mergeGroupSkip } from "@deftai/directive-core/pr-wait-mergeable";
 import { isDirectEntrypoint } from "./entrypoint.js";
 
 interface ParsedArgs {
@@ -48,11 +49,21 @@ export function parseArgs(argv: string[]): ParsedArgs {
   return parsed;
 }
 
-export function run(argv: string[]): number {
+export function run(
+  argv: string[],
+  env: Readonly<Record<string, string | undefined>> = process.env,
+): number {
   const args = parseArgs(argv);
   if (args.error !== undefined) {
     process.stderr.write(`verify_class_checks: ${args.error}\n`);
     return 2;
+  }
+  // #7147: on a merge-queue group commit the change set holds every PR queued
+  // ahead, so this change-set check skips there and runs on the PR head.
+  const skip = mergeGroupSkip("verify:class-checks", env);
+  if (skip !== null) {
+    process.stdout.write(`${skip}\n`);
+    return 0;
   }
   const projectRoot = resolve(args.projectRoot);
   const result = classChecks.evaluateClassChecks(projectRoot, {

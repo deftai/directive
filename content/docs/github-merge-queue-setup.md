@@ -25,7 +25,7 @@ PRs merge through GitHub's merge queue instead of a direct merge. The queue test
      merge_group:
    ```
 2. ! Any required check that a GitHub App posts (for example a review bot) and that does not run on `merge_group` has a `merge_group`-only job with the same name, or the queue waits for it forever. Example in this repository: `.github/workflows/greptile-review-merge-group.yml` reports `Greptile Review` on the group commit.
-3. ~ PR-context checks (closing keywords, scope provenance, intent constraint) skip themselves on `merge_group`; they ran on the PR head. Directive's `task check:merge` already does this.
+3. ~ PR-context checks (closing keywords, scope provenance, intent constraint) skip themselves on `merge_group`; they run on the PR head and body. Change-set checks (changelog, class checks) skip there too: on a group commit the change set holds every PR queued ahead, so they run on the PR head instead (#7147). Directive's `task check:merge` already does this.
 4. ! A required check that is path-filtered must report `skipped` (job-level `if:`), not be absent (workflow-level `paths:`). A skipped required check passes; an absent one blocks the queue.
 
 ## Settings (repository admin)

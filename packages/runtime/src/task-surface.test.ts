@@ -73,6 +73,9 @@ describe("verify:changelog-unreleased on merge_group (#6296 item 6)", () => {
     const result = runCli(["--against-merge-base"], { GITHUB_EVENT_NAME: "merge_group" });
     expect(result.code).toBe(0);
     expect(result.out).toContain("verify:changelog-unreleased: skipped on merge_group");
+    // #7147: a change-set check gives its own reason, not "it already ran".
+    expect(result.out).toContain("change-set check");
+    expect(result.out).not.toMatch(/already ran|PR-context/);
   });
 
   it("still runs on a pull_request run and in presence-only mode", () => {
