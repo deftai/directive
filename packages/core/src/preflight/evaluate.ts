@@ -13,8 +13,10 @@ import {
   type ParentLineageResult,
 } from "../scope/parent-lineage.js";
 import {
+  type EvaluateOriginFreshnessOptions,
   evaluateOriginFreshness,
   type FetchOriginUpdatedAt,
+  type OriginRefusalReason,
 } from "../vbrief-reconcile/origin-freshness.js";
 import { evaluateIntendedPlacement, resolveProjectRootFromBrief } from "./intended-placement.js";
 import {
@@ -43,16 +45,23 @@ export const ACTIVATE_HINT =
  * the field this reject compares. It is interim: the pair also records a
  * `blocked` -> `running` transition for a brief that was never blocked, a
  * tradeoff accepted knowingly. #3857 owns the dedicated acknowledge verb.
+ *
+ * #7138: the commands print in the `deft` form (`formatOriginCommand`, the
+ * same text as `formatFrameworkCommand`), and the restore-`gh` sentence only
+ * for the unavailable reasons.
  */
 export const ORIGIN_FRESHNESS_HINT =
   "Recovery: this xBRIEF is already in active/ at status running. " +
   "Once you have re-read the origin delta, stamp xBRIEFInfo.updated in place with " +
-  "`task scope:block -- {path}` then `task scope:unblock -- {path}`. " +
+  "`{block}` then `{unblock}`. " +
   "That pair is interim: it records a blocked -> running transition for a brief " +
   "that was never blocked, and #3857 owns the verb that records the " +
-  "acknowledgement honestly. If the origin could not be fetched or compared, " +
-  "restore `gh` REST access to the origin repository first -- a stamp does not " +
-  "clear that.";
+  "acknowledgement honestly.";
+
+/** Appended to the origin hint when the origin or a permission could not be read (#7138). */
+export const ORIGIN_UNAVAILABLE_HINT =
+  "If the origin could not be fetched or compared, restore `gh` REST access to the " +
+  "origin repository first -- a stamp does not clear that.";
 
 /** Lifecycle folder names eligible for implementation (#810). */
 export const ELIGIBLE_LIFECYCLE_DIRS = ["xbrief/active", "vbrief/active"] as const;
@@ -115,6 +124,11 @@ export interface EvaluateOptions {
   readonly skipIntendedPlacement?: boolean;
   /** Injected origin fetch for tests. Default: live `gh api` REST. */
   readonly fetchOriginUpdatedAt?: FetchOriginUpdatedAt;
+  /** Injected origin comment, permission and Spec-path reads for tests (#7138). */
+  readonly originReads?: Pick<
+    EvaluateOriginFreshnessOptions,
+    "fetchOriginComments" | "fetchAuthorWritePermission" | "fetchSpecPathLiveIdentities"
+  >;
   /** Small-change lane recheck overrides (#6204). Production leaves this unset. */
   readonly smallChangeLane?: SmallChangeLaneGateOverrides;
 }
@@ -124,9 +138,38 @@ export function formatActivateHint(path: string): string {
   return ACTIVATE_HINT.replace("{path}", () => path);
 }
 
-/** Substitute every `{path}` without `$`-pattern expansion in user paths (#1721). */
-export function formatOriginFreshnessHint(path: string): string {
-  return ORIGIN_FRESHNESS_HINT.split("{path}").join(path);
+/**
+ * `deft` form of a framework command: the text `formatFrameworkCommand(args)`
+ * prints on its default surface (a test pins the two equal). Not imported from
+ * render/framework-commands: that module loads doctor/main, which reaches
+ * hooks/scope (and so this module) through ts-check-lane/run-lane, and loading
+ * hooks/scope first then fails on an uninitialized ACTIVE_SCOPE_PIN_ENV (#7138).
+ */
+export function formatOriginCommand(args: readonly string[]): string {
+  return ["deft", ...args].join(" ");
+}
+
+/**
+ * Origin-freshness recovery (#3828 / #7138): the `deft scope:block` /
+ * `deft scope:unblock` pair for this path, plus the restore-`gh` sentence when
+ * the reason is unavailable (or not named). Split/join keeps `$` in paths
+ * literal (#1721).
+ */
+export function formatOriginFreshnessHint(path: string, reason?: OriginRefusalReason): string {
+  const hint = ORIGIN_FRESHNESS_HINT.split("{block}")
+    .join(formatOriginCommand(["scope:block", "--", path]))
+    .split("{unblock}")
+    .join(formatOriginCommand(["scope:unblock", "--", path]));
+  const unavailable =
+    reason === undefined ||
+    reason === "origin unavailable" ||
+    reason === "author permission unknown";
+  return unavailable ? `${hint} ${ORIGIN_UNAVAILABLE_HINT}` : hint;
+}
+
+/** Usage line of the origin-freshness reject, in the `deft` form for this path (#7138). */
+export function formatOriginPreflightUsage(path: string): string {
+  return `Expected: \`${formatOriginCommand(["xbrief:preflight", "--", path])}\` after the recovery below.`;
 }
 
 function buildReject(path: string, reason: string, hint?: string): string {
@@ -265,8 +308,10 @@ export function evaluate(vbriefPath: string, options: EvaluateOptions = {}): Eva
     );
   }
 
-  // #3363: fail closed when the live GitHub origin is newer than the brief.
+  // #3363 / #7138: the origin timestamp is the first check; on drift a brief
+  // with a baseline is compared by content and refuses only on a requirement change.
   const originFreshness = evaluateOriginFreshness(record, {
+    ...options.originReads,
     skip: options.skipOriginFreshness === true,
     fetchOriginUpdatedAt: options.fetchOriginUpdatedAt,
     cwd: options.projectRoot,
@@ -274,10 +319,15 @@ export function evaluate(vbriefPath: string, options: EvaluateOptions = {}): Eva
   if (!originFreshness.ok) {
     // #3828: the brief is active + running by this point, so the activate
     // hint would name a transition that hard-errors from the printed state.
-    return outcome(1, buildReject(path, originFreshness.message, formatOriginFreshnessHint(path)), {
-      parentLineage: lineage,
-    });
+    // #7138: the message names the reason; the usage and recovery lines print
+    // the `deft` commands for this path.
+    return outcome(
+      1,
+      `${originFreshness.message}\n  ${formatOriginPreflightUsage(path)}\n  ${formatOriginFreshnessHint(path, originFreshness.reason)}`,
+      { parentLineage: lineage },
+    );
   }
+  const originWarnings = originFreshness.warnings ?? [];
 
   // #3425: fail closed when an applicable project invariant has no disposition.
   const invariants = evaluateProjectInvariantsGate(record, {
@@ -332,6 +382,10 @@ export function evaluate(vbriefPath: string, options: EvaluateOptions = {}): Eva
     : `OK ${path} -- lifecycle-ready.`;
   if (placementWarning !== undefined) {
     message = `${message} ${placementWarning}`;
+  }
+  // #7138: origin activity that is not a requirement change; ids and URLs only.
+  for (const warning of originWarnings) {
+    message = `${message}\nWARN: ${warning}`;
   }
   // #6934: open story briefs sharing this brief's completion issue; a warning only.
   // The brief was read relative to the cwd, so pass its absolute path.

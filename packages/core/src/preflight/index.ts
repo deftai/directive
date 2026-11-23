@@ -19,6 +19,8 @@ export {
   emitJson,
   evaluate,
   formatActivateHint,
+  formatOriginFreshnessHint,
+  formatOriginPreflightUsage,
   PREFLIGHT_USAGE_HINT,
 } from "./evaluate.js";
 export type {

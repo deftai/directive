@@ -265,7 +265,7 @@ directive doctor
 
 ## Phase 5 -- Origin Freshness (RFC D12)
 
-! For xBRIEFs with external origin references, detect externally-closed origins. `task reconcile:issues` reports linked / unlinked / closed / completed-status drift -- it does **not** have a stale-content (`updatedAt`) bucket. Implementation-intent fail-closed for a newer origin is `task xbrief:preflight` (#3363).
+! For xBRIEFs with external origin references, detect externally-closed origins. `task reconcile:issues` reports linked / unlinked / closed / completed-status drift -- it does **not** have a stale-content (`updatedAt`) bucket. Implementation intent is checked by `task xbrief:preflight` (#3363 / #7138): the origin's `updated_at` is the first check; on drift it compares content and exits 1 only on a requirement change -- a changed body, a new, edited or deleted requirement-shaped comment (design-critique record, selected Current shape, or Acceptance Criteria list by the issue author or a writer), a changed Spec-path source, an unknown author permission, or an unreadable origin or thread. Plain comments, labels, closes and same-content edits pass with one `WARN:` line naming comment ids and URLs (never their text); read those comments before implementing (#2143). Referenced origins other than the authoritative one only warn.
 
 ### Step 1: Scan Origins
 
@@ -285,7 +285,7 @@ directive doctor
 ### Step 3: Recommendation
 
 - ! Report only -- never auto-update xBRIEFs based on origin changes
-- ~ If newer or externally-closed origins are found, suggest: "Run a refinement session (`skills/deft-directive-refinement/SKILL.md`) to walk origin changes with user approval. Implementation will fail closed at `task xbrief:preflight` until the brief is refreshed or intentional divergence is recorded."
+- ~ If newer or externally-closed origins are found, suggest: "Run a refinement session (`skills/deft-directive-refinement/SKILL.md`) to walk origin changes with user approval. `task xbrief:preflight` refuses only when the origin's requirements changed; other origin activity passes with a WARN line to read before implementing."
 
 ⊗ Auto-update xBRIEFs based on origin freshness checks -- report only; user decides during refinement
 
