@@ -495,13 +495,20 @@ export function evaluatePathBActivationAdmit(args: {
     return { ok: false, detail: "no nonterminal brief land" };
   }
   // #5792: null bodyText → local issue-ref identity; "" / whitespace live body still needs marks.
+  // #7083: a `deft-story-part: N` line counts as mark coverage, offline and live, so one
+  // brief-only PR activates a cohort with the line each per-story activation carries.
   const bodyText = args.bodyText;
   const marks =
     typeof bodyText === "string" && bodyText.trim().length > 0
-      ? parseAllDeftStoryMarks(bodyText)
+      ? [
+          ...new Set([
+            ...parseAllDeftStoryMarks(bodyText),
+            ...parseAllDeftStoryPartLines(bodyText),
+          ]),
+        ].sort((a, b) => a - b)
       : [];
   if (bodyText !== null && marks.length === 0) {
-    return { ok: false, detail: "missing deft-story marks" };
+    return { ok: false, detail: "missing deft-story marks or deft-story-part lines" };
   }
   const coveredIssues = new Set<number>();
   for (const relPath of changedNonterminal) {

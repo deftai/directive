@@ -84,7 +84,7 @@ import {
   type WriteWorkerAuthAssignmentResult,
   writeWorkerAuthAssignment,
 } from "./worker-auth-assignment.js";
-import { resolveWorktreeMap, type WorktreeRecord } from "./worktrees.js";
+import { compareKey, resolveWorktreeMap, type WorktreeRecord } from "./worktrees.js";
 
 export interface ResolvedStory {
   token: string;
@@ -456,6 +456,87 @@ export type WorktreeResolverFn = (
   createMissing?: boolean,
   options?: { repoRoot?: string },
 ) => WorktreeRecord[];
+
+/**
+ * Story id → `base_branch` of each worktree-map row that names one (#7083). An
+ * unreadable or malformed map yields no rows here; the later map resolution
+ * reports it as today.
+ */
+function worktreeMapRowBases(mapPath: string | null | undefined): Map<string, string> {
+  const out = new Map<string, string>();
+  if (mapPath === undefined || mapPath === null || mapPath.length === 0) return out;
+  let payload: unknown;
+  try {
+    payload = JSON.parse(readFileSync(mapPath, "utf8")) as unknown;
+  } catch {
+    return out;
+  }
+  if (!Array.isArray(payload)) return out;
+  for (const row of payload) {
+    if (row === null || typeof row !== "object" || Array.isArray(row)) continue;
+    const r = row as Record<string, unknown>;
+    if (typeof r.story_id !== "string" || typeof r.base_branch !== "string") continue;
+    const id = r.story_id.trim();
+    const base = r.base_branch.trim();
+    if (id.length > 0 && base.length > 0) out.set(id, base);
+  }
+  return out;
+}
+
+/**
+ * Group worktree-map rows by the base each one resolves against (#7083): a row
+ * whose `base_branch` is a pinned one-PR commit other than the cohort base forms
+ * its own group; every other row stays with the cohort base. Empty groups are
+ * dropped, except that an empty map keeps the cohort base group.
+ */
+export function groupRowsByPinnedBase(
+  mapping: readonly Record<string, unknown>[],
+  base: string,
+  pins: ReadonlySet<string>,
+): Map<string, Record<string, unknown>[]> {
+  const groups = new Map<string, Record<string, unknown>[]>([[base, []]]);
+  for (const row of mapping) {
+    const rowBase =
+      row !== null && typeof row === "object" && typeof row.base_branch === "string"
+        ? row.base_branch.trim()
+        : "";
+    const key = rowBase !== base && pins.has(rowBase) ? rowBase : base;
+    const rows = groups.get(key) ?? [];
+    rows.push(row);
+    groups.set(key, rows);
+  }
+  if (groups.size > 1 && (groups.get(base)?.length ?? 0) === 0) groups.delete(base);
+  return groups;
+}
+
+/**
+ * Story-id and worktree-path clashes across the whole map (#7083). Each group is
+ * resolved on its own, so a clash between two groups is caught here; malformed
+ * rows are left for the resolver to report.
+ */
+function crossGroupClash(
+  mapping: readonly Record<string, unknown>[],
+  projectRoot: string,
+): string | null {
+  const ids = new Set<string>();
+  const paths = new Map<string, string>();
+  for (const row of mapping) {
+    if (row === null || typeof row !== "object") continue;
+    const id = typeof row.story_id === "string" ? row.story_id.trim() : "";
+    const raw = typeof row.worktree_path === "string" ? row.worktree_path.trim() : "";
+    if (id.length === 0 || raw.length === 0) continue;
+    if (ids.has(id)) return `duplicate story_id '${id}'`;
+    ids.add(id);
+    const key = compareKey(resolve(projectRoot, raw));
+    const prior = paths.get(key);
+    if (prior !== undefined) {
+      return `worktree path collision: stories '${prior}' and '${id}' both map to '${raw}'`;
+    }
+    paths.set(key, id);
+  }
+  return null;
+}
+
 export type RuntimeAuthProbeFn = () => [string, string];
 export type OccupancyReleaseFn = typeof releaseOccupancy;
 
@@ -1823,8 +1904,12 @@ export function swarmLaunch(args: LaunchArgs): {
 
   const runGit = args.runGit ?? runText;
   const requireOriginActive = args.requireOriginActiveBrief !== false;
-  /** Pinned commit of `origin/<base-branch>` when a one-PR brief was admitted there (#6361). */
-  let onePrWorktreeBase: string | null = null;
+  /**
+   * Pinned commit per one-PR branch a brief was admitted on (#6361 / #7083). A
+   * cohort with one `--base-branch` pins one commit, as before; rows that name
+   * their own `base_branch` each pin their own branch tip.
+   */
+  const onePrPins = new Map<string, string>();
   if (requireOriginActive) {
     const inside = runGit(["git", "rev-parse", "--is-inside-work-tree"], { cwd: projectRoot });
     const remote = runGit(["git", "remote", "get-url", "origin"], { cwd: projectRoot });
@@ -1835,13 +1920,17 @@ export function swarmLaunch(args: LaunchArgs): {
         const result = runGit(["git", ...gitArgs], { cwd: root });
         return { code: result.returncode, stdout: result.stdout, stderr: result.stderr };
       });
-      const onePrBase = args.baseBranch?.trim() ?? "";
+      const cohortBase = args.baseBranch?.trim() ?? "";
+      const rowBases = worktreeMapRowBases(args.worktreeMap);
       for (const story of resolved) {
         const probe = originActiveBriefPresent(projectRoot, delivery.branch, story.relpath, runGit);
         if (probe.present) continue;
-        // #6361: a one-PR brief lives on the pushed --base-branch, not the delivery tip.
-        // The first admit pins that branch's commit; later stories are checked
-        // against the same commit (no refetch), and the dests are built from it.
+        // #6361: a one-PR brief lives on a pushed branch, not the delivery tip.
+        // #7083: the story's own worktree-map row `base_branch` names that branch
+        // when set; else `--base-branch`. The first admit on a branch pins its
+        // commit; later stories on the same branch reuse it (no refetch), and each
+        // dest is built from its own branch's pinned commit.
+        const onePrBase = rowBases.get(story.story_id) ?? cohortBase;
         const onePr: OnePrOriginBriefResult | null =
           onePrBase.length > 0 && onePrBase !== delivery.branch
             ? originOnePrBriefAdmitted(
@@ -1850,11 +1939,11 @@ export function swarmLaunch(args: LaunchArgs): {
                 onePrBase,
                 story.relpath,
                 runGit,
-                onePrWorktreeBase ?? undefined,
+                onePrPins.get(onePrBase),
               )
             : null;
         if (onePr?.present === true && onePr.ref !== null) {
-          onePrWorktreeBase = onePr.ref;
+          onePrPins.set(onePrBase, onePr.ref);
           continue;
         }
         const onePrNote =
@@ -2122,30 +2211,44 @@ export function swarmLaunch(args: LaunchArgs): {
           }
           const requestedBase = args.baseBranch ?? DEFAULT_BASE_BRANCH;
           // #6361: a one-PR dest is built from the pushed ref; no brief/record bytes are copied.
-          const base = onePrWorktreeBase ?? requestedBase;
-          const mapping = (payload as Record<string, unknown>[]).map((row) =>
-            onePrWorktreeBase !== null &&
-            row !== null &&
-            typeof row === "object" &&
-            typeof row.base_branch === "string" &&
-            row.base_branch.trim() === requestedBase
-              ? { ...row, base_branch: onePrWorktreeBase }
-              : row,
-          );
+          // #7083: each row naming an admitted branch is built from that branch's pin.
+          const base = onePrPins.get(requestedBase) ?? requestedBase;
+          const mapping = (payload as Record<string, unknown>[]).map((row) => {
+            if (row === null || typeof row !== "object" || typeof row.base_branch !== "string") {
+              return row;
+            }
+            const pin = onePrPins.get(row.base_branch.trim());
+            return pin !== undefined ? { ...row, base_branch: pin } : row;
+          });
           const createMissing = !(args.noCreateWorktrees ?? false);
           const opts = { repoRoot: projectRoot };
-          let records: WorktreeRecord[];
-          if (args.worktreeResolver !== undefined) {
-            records = args.worktreeResolver(mapping, base, createMissing, opts);
-          } else {
-            const resolved = resolveWorktreeMap(mapping, base, createMissing, opts);
+          // #7083: rows on another admitted branch resolve as their own group against
+          // that branch's pin; every other row resolves against the cohort base, so a
+          // row naming an unadmitted base still raises the mismatch as today.
+          const groups = groupRowsByPinnedBase(mapping, base, new Set(onePrPins.values()));
+          if (groups.size > 1) {
+            const clash = crossGroupClash(mapping, projectRoot);
+            if (clash !== null) {
+              return failAfterClaim(
+                EXIT_CONFIG_ERROR,
+                `Error: worktree map resolution failed: ${clash}\n`,
+              );
+            }
+          }
+          const records: WorktreeRecord[] = [];
+          for (const [groupBase, rows] of groups) {
+            if (args.worktreeResolver !== undefined) {
+              records.push(...args.worktreeResolver(rows, groupBase, createMissing, opts));
+              continue;
+            }
+            const resolved = resolveWorktreeMap(rows, groupBase, createMissing, opts);
             if (!resolved.ok) {
               return failAfterClaim(
                 EXIT_CONFIG_ERROR,
                 `Error: worktree map resolution failed: ${resolved.message}\n`,
               );
             }
-            records = resolved.records;
+            records.push(...resolved.records);
           }
           worktreeRecordMap = new Map(records.map((r) => [r.story_id, r]));
         } catch (exc: unknown) {

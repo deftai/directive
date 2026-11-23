@@ -30,6 +30,14 @@ import {
   refuseNonInteractiveMint,
   resolveHumanPresenceMintSeams,
 } from "./human-presence-mint.js";
+import {
+  type CohortWriteSeams,
+  formatCohortNext,
+  formatCohortPlan,
+  prepareCohortMint,
+  readCohortManifest,
+  writeCohortPairs,
+} from "./scope-record-approved-scope-cohort.js";
 
 /** True when `candidate` is the same as or a descendant of `root` after realpath. */
 export function isPathInsideRoot(root: string, candidate: string): boolean {
@@ -73,6 +81,8 @@ export interface ParsedArgs {
   repo: string;
   /** Repeatable `--add-path` widen requests (#6643); empty means the plain mint. */
   addPaths: string[];
+  /** `--manifest <file>` cohort mint (#7083); empty means one brief. */
+  manifest: string;
   /** Typed `--help` / `-h` (#4203); run() prints usage on stdout and exits 0. */
   help?: boolean;
   error?: string;
@@ -83,9 +93,14 @@ function usage(): string {
     "usage: scope:record-approved-scope -- <xbrief-path> --actor <name> --confirm " +
     "[--kind operator] [--project-root <dir>] [--xbrief-rel-path <posix>] [--repo owner/name] " +
     "[--add-path <p> ...] [--quiet]\n" +
+    "       scope:record-approved-scope -- --manifest <file> --actor <name> --confirm " +
+    "[--kind operator] [--project-root <dir>] [--repo owner/name] [--quiet]\n" +
     "  Writes .deft/approved-scope/<plan-id>.json and <plan-id>.intent.json (#3205 / #3384 / #3385).\n" +
     "  --add-path (repeatable, #6643) widens the brief's file_scope through a brief-only PR cut from " +
     "the delivery tip in a temporary checkout; the bound worktree is not changed.\n" +
+    "  --manifest (#7083) takes a JSON array of { xbrief_path, worktree_path } rows, prints " +
+    "each story's plan id, brief, worktree, file_scope, acceptance and intent digest, asks for " +
+    "the typed mint once, and writes each record pair into that story's worktree.\n" +
     "  --actor is display only and never authorizes mint. Mint requires a real TTY, " +
     "controlling terminal, --confirm, and typed phrase mint (#3110). Agent/CI shells refuse."
   );
@@ -149,6 +164,7 @@ export function parseArgs(argv: string[]): ParsedArgs {
     confirm: false,
     repo: "",
     addPaths: [],
+    manifest: "",
   };
   const positionals: string[] = [];
   for (let i = 0; i < argv.length; i += 1) {
@@ -229,6 +245,15 @@ export function parseArgs(argv: string[]): ParsedArgs {
         return { ...parsed, error: "argument --add-path: expected one argument" };
       }
       parsed.addPaths.push(value);
+    } else if (arg === "--manifest") {
+      const value = argv[i + 1];
+      if (value === undefined || value === "--") {
+        return { ...parsed, error: "argument --manifest: expected one argument" };
+      }
+      parsed.manifest = value;
+      i += 1;
+    } else if (arg?.startsWith("--manifest=")) {
+      parsed.manifest = arg.slice("--manifest=".length);
     } else if (arg?.startsWith("-")) {
       return { ...parsed, error: `unrecognized argument: ${arg}` };
     } else if (arg !== undefined) {
@@ -236,6 +261,30 @@ export function parseArgs(argv: string[]): ParsedArgs {
     }
   }
   if (parsed.help) {
+    return parsed;
+  }
+  if (parsed.manifest.length > 0) {
+    if (positionals.length > 0) {
+      return {
+        ...parsed,
+        error: "--manifest takes no xBRIEF path; name the briefs in the manifest",
+      };
+    }
+    if (parsed.addPaths.length > 0) {
+      return {
+        ...parsed,
+        error: "--add-path stays single-brief; it cannot be used with --manifest",
+      };
+    }
+    if (parsed.xbriefRelPath.length > 0) {
+      return { ...parsed, error: "--xbrief-rel-path cannot be used with --manifest" };
+    }
+    if (parsed.actor.trim().length === 0) {
+      return {
+        ...parsed,
+        error: `argument --actor is required (human operator identity)\n${usage()}`,
+      };
+    }
     return parsed;
   }
   if (positionals.length === 0) {
@@ -505,6 +554,7 @@ export function run(
   argv: string[],
   seams: HumanPresenceMintSeams = {},
   widenSeams: WidenSeams = {},
+  cohortSeams: CohortWriteSeams = {},
 ): number {
   const args = parseArgs(argv);
   if (args.help) {
@@ -516,6 +566,9 @@ export function run(
     return 2;
   }
   const projectRoot = resolve(args.projectRoot);
+  if (args.manifest.length > 0) {
+    return runCohort(argv, args, projectRoot, seams, cohortSeams);
+  }
   const xbriefAbs = resolve(projectRoot, args.xbriefPath);
   if (!existsSync(xbriefAbs)) {
     // Also try absolute path as given
@@ -649,6 +702,96 @@ export function run(
         "  At merge-base onePrScopeProof=mint, the pair may ride in the same PR as the " +
         "brief and its code (#6273 / #6354).\n",
     );
+  }
+  return 0;
+}
+
+/**
+ * Cohort mint (#7083): build and freeze every pair, refuse the whole set before the
+ * prompt on any refusal, print each story, take the typed mint once, then write each
+ * pair into its own worktree. A failed run removes only the files it created.
+ */
+function runCohort(
+  argv: string[],
+  args: ParsedArgs,
+  projectRoot: string,
+  seams: HumanPresenceMintSeams,
+  cohortSeams: CohortWriteSeams,
+): number {
+  const verb = "scope:record-approved-scope";
+  const manifest = readCohortManifest(projectRoot, args.manifest);
+  if (!manifest.ok) {
+    process.stderr.write(`scope_record_approved_scope: --manifest: ${manifest.error}\n`);
+    return 2;
+  }
+  // Every root that receives a pair is checked for an active UAT lease, not only
+  // the project root.
+  const roots = [
+    projectRoot,
+    ...manifest.entries.map((entry) => resolve(projectRoot, entry.worktreePath)),
+  ];
+  for (const root of new Set(roots)) {
+    const uatBlocked = refuseMintWhileUatActive(verb, root);
+    if (uatBlocked !== null) return uatBlocked;
+  }
+  const stamp = {
+    kind: args.kind.trim(),
+    actor: args.actor.trim(),
+    mintedAt: new Date().toISOString().replace(/\.\d{3}Z$/, "Z"),
+    mintedVia: "scope:record-approved-scope",
+  };
+  if (!isHumanApprovalStamp(stamp)) {
+    process.stderr.write(
+      "scope_record_approved_scope: refused agent/non-human stamp " +
+        `(kind=${stamp.kind}, actor=${stamp.actor}) (#3205).\n`,
+    );
+    return 1;
+  }
+  const prepared = prepareCohortMint({
+    entries: manifest.entries,
+    projectRoot,
+    stamp,
+    repo: args.repo.trim(),
+  });
+  if (!prepared.ok) {
+    process.stderr.write(
+      "scope_record_approved_scope: --manifest refused the whole set before the prompt; " +
+        `nothing was written:\n${prepared.errors.map((e) => `  - ${e}\n`).join("")}`,
+    );
+    return 1;
+  }
+  process.stdout.write(formatCohortPlan(prepared.stories));
+  if (prepared.stories.every((s) => s.existing === "identical")) {
+    process.stdout.write(
+      "scope_record_approved_scope: every pair is already present; nothing to write.\n",
+    );
+    return 0;
+  }
+  const resolved = resolveHumanPresenceMintSeams(seams);
+  const mintBlocked = refuseNonInteractiveMint({
+    verb,
+    confirm: args.confirm,
+    isTty: resolved.isTty,
+    environ: resolved.environ,
+    hasControllingTerminal: resolved.hasControllingTerminal,
+    readInteractiveConfirm: resolved.readInteractiveConfirm,
+    operatorStop: {
+      projectRoot,
+      args: mintArgsAfterVerb(argv, null),
+      record: resolved.recordOperatorStop,
+    },
+  });
+  if (mintBlocked !== null) return mintBlocked;
+  const written = writeCohortPairs(prepared.stories, cohortSeams);
+  if (!written.ok) {
+    process.stderr.write(
+      `scope_record_approved_scope: --manifest write failed (${written.error}); ` +
+        `removed the ${String(written.removed.length)} file(s) this run created.\n`,
+    );
+    return 1;
+  }
+  if (!args.quiet) {
+    process.stdout.write(formatCohortNext(prepared.stories, written.written));
   }
   return 0;
 }

@@ -89,6 +89,27 @@ axes and are never inferred from Git alone. Explicit non-delivery dispositions
 lifecycle without claiming the work shipped. Legacy completed records without completion
 provenance surface as `unknown` / `unverified`, not retroactively `delivered`.
 
+## Batched cohort flow (#7083)
+
+A story on the two-PR path costs up to three PRs: activation, product and lifecycle. A
+cohort can share most of that work:
+
+1. **Prepare.** At `onePrScopeProof: off`, one brief-only PR activates every brief, with one
+   `deft-story-part: N` line per brief. At `mint`, prepare one branch per story that carries
+   only that story's activated brief.
+2. **Mint once.** At `mint`, run `scope:record-approved-scope -- --manifest <file>`. Read each
+   story's printed file list, acceptance criteria and intent digest, then type `mint` once.
+   Each story's record pair is written into its own worktree.
+3. **Launch.** `swarm:launch` admits each story at its own branch.
+4. **Complete in the PR.** A story that `scope:complete --in-pr` admits completes in its
+   product PR.
+5. **One lifecycle PR.** `swarm:finalize-cohort` completes the other merged stories in one
+   lifecycle PR.
+
+When every post-merge completion fits one lifecycle sweep, ten stories cost at most 11 PRs
+and one mint at `mint`, or at most 12 PRs at `off`, instead of 30. Each further sweep adds
+one lifecycle PR. Details: [commands.md](../commands.md) § Batched cohort flow.
+
 ## Why it loops
 
 The central claim of the picture is that Directive is **reiterative**. Strategy analysis is
