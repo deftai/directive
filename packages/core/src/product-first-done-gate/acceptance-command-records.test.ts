@@ -242,7 +242,7 @@ describe("web brief with a vitest acceptance command (#6886)", () => {
   });
 
   it("prints one cwd warning text at both activations and verify:ac without refusing on the grammar", () => {
-    for (const cwd of ["../x", "/x", "C:x", "C:/x", "\\\\srv\\share", "web\\sub"]) {
+    for (const cwd of ["/x", "C:x", "C:/x", "\\\\srv\\share", "web\\sub"]) {
       const p = plan({ commands: [{ command: VITEST, cwd }] });
       const expected = formatAcceptanceActivationWarnings(resolveAcceptanceCommandRecords(p));
       expect(expected, cwd).toHaveLength(1);
@@ -260,10 +260,17 @@ describe("web brief with a vitest acceptance command (#6886)", () => {
   });
 
   it("refuses a cwd outside the root or missing with exit 2 and never calls the runner", () => {
-    for (const cwd of ["../x", "C:x", "missing"]) {
+    for (const cwd of ["C:x", "missing"]) {
       const { result, calls } = verifyAc(plan({ commands: [{ command: VITEST, cwd }] }));
       expect(result.code, cwd).toBe(2);
       expect(result.message, cwd).toContain("refused: ");
+      expect(calls, cwd).toEqual([]);
+    }
+    // #7223: a `..` or dependency segment is refused by the grammar before any run.
+    for (const cwd of ["../x", "node_modules/pkg"]) {
+      const { result, calls } = verifyAc(plan({ commands: [{ command: VITEST, cwd }] }));
+      expect(result.code, cwd).toBe(1);
+      expect(result.message, cwd).toContain("deft gate acceptance-cwd-dependency ");
       expect(calls, cwd).toEqual([]);
     }
     const outside = mkdtempSync(join(tmpdir(), "ac-records-outside-"));

@@ -24,6 +24,7 @@ import {
   type SpecPathSourceRecord,
 } from "../intake/spec-path-source.js";
 import {
+  ACCEPTANCE_CWD_DEPENDENCY_REFUSAL_ID,
   appendLiteralAcceptanceAdvisory,
   type EvaluateLiteralAcceptanceOptions,
   evaluateAcceptanceCommandRecord,
@@ -505,6 +506,18 @@ export function resolveAcceptanceCommandRecords(
       block({
         command: record.command,
         reason: verdict.command.reason ?? "unsafe command",
+        sourceSpan: record.sourceSpan ?? null,
+      });
+      continue;
+    }
+    if (verdict.cwd.refused === true) {
+      // #7223: a dependency or dot-folder cwd is refused before any run.
+      block({
+        command: record.command,
+        reason: formatDeclaredRefusal({
+          id: ACCEPTANCE_CWD_DEPENDENCY_REFUSAL_ID,
+          detail: `acceptance command ${JSON.stringify(record.command)} has cwd ${JSON.stringify(String(record.cwd ?? "").trim())}: ${verdict.cwd.reason ?? ""}`,
+        }).line,
         sourceSpan: record.sourceSpan ?? null,
       });
       continue;

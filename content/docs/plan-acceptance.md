@@ -164,7 +164,8 @@ sides of `--`, is either a plain relative path (no `..`, no leading `/`, no
 
 - Test runner: `--run`, `--fail-fast`, `--changed`, `--coverage`,
   `--coverage.enabled=true|false`, `--reporter <built-in>`, `-t <test name>`.
-- npm before `--`: `--prefix <relative dir>` (once), `-w` / `--workspace
+- npm before `--`: `--prefix <relative dir>` (once; no `node_modules` or
+  leading-dot segment), `-w` / `--workspace
   <package>`. pnpm: `--filter <package>`.
 - `task` / `deft` / `directive`: verification flags such as `--json`,
   `--full`, `--enforce`, `--strict`, `--tier <word>`, `--base-ref <ref>`,
@@ -193,18 +194,26 @@ JS workspace example. Either record passes activation and `verify:ac`:
 
 `pnpm exec vitest run <path>` with `cwd: web` is also admitted.
 
+- **Own directories only (refusal).** Acceptance commands run only from the
+  repository's own directories, never from installed dependencies. A `cwd` or
+  an `npm --prefix` value with a `node_modules` segment (any case) or a segment
+  that starts with a dot (`.cache`, `..`) is refused before any run
+  (`acceptance-cwd-dependency` for the `cwd`, a command refusal for
+  `--prefix`, both enforce). A lone `.` segment is not counted.
 - **`cwd` grammar (warning).** A `cwd` conforms when it is absent, empty, `.`,
   or one or more segments joined by `/`, each matching
-  `[A-Za-z0-9_][A-Za-z0-9._-]*`. Any other form (`..`, an absolute or rooted
-  path, `C:x`, a UNC path, a backslash) prints the `acceptance-cwd-grammar`
-  warning at activation and in `verify:ac`. It never refuses.
+  `[A-Za-z0-9_][A-Za-z0-9._-]*`. Any other form that the rule above does not
+  refuse (an absolute or rooted path, `C:x`, a UNC path, a backslash) prints
+  the `acceptance-cwd-grammar` warning at activation and in `verify:ac`.
 - **Run-time check (refusal).** Just before it runs any command, `verify:ac`
   resolves the real path of the project root and of the `cwd`. When the
-  directory is missing or its real path is outside the project root (a symlink
-  that leaves the root included), `verify:ac` exits 2 with `refused:` and
-  spawns nothing (`acceptance-cwd-containment`, enforce). An absolute `cwd`
-  inside the root runs there, with the grammar warning. An `npm --prefix`
-  directory gets the same real-path check, resolved from the `cwd`.
+  directory is missing, its real path is outside the project root (a symlink
+  that leaves the root included), or its real path below the root has a
+  `node_modules` segment (a symlink or junction into dependencies included),
+  `verify:ac` exits 2 with `refused:` and spawns nothing
+  (`acceptance-cwd-containment`, enforce). An absolute `cwd` inside the root
+  runs there, with the grammar warning. An `npm --prefix` directory gets the
+  same real-path check, resolved from the `cwd`.
 - **Promotion.** A capture-only record (`source: task_statement`) runs only
   when an agent-promoted peer with the same command, `cwd` and expected exit
   exists. Read the command first and confirm it is an admitted form that runs

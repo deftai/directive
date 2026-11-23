@@ -147,10 +147,16 @@ describe("acceptance command rows (#6886 item 7)", () => {
     expect(containment?.exception).toBe(
       "an acceptance command must not be spawned outside the repository",
     );
+    const dependency = findRefusalDeclaration("acceptance-cwd-dependency");
+    expect(dependency?.mode).toBe("enforce");
+    expect(dependency?.exception).toBe(
+      "an acceptance command must not run from installed dependencies or a dot folder",
+    );
     for (const id of [
       "acceptance-record-activate",
       "acceptance-cwd-grammar",
       "acceptance-cwd-containment",
+      "acceptance-cwd-dependency",
     ]) {
       expect(findRefusalDeclaration(id)?.remedy).toEqual(["deft verify:ac --capture-only"]);
     }

@@ -113,11 +113,19 @@ export const REFUSAL_DECLARATION_ROWS: readonly RawRefusalDeclaration[] = /* ref
   },
   {
     "id": "acceptance-cwd-containment",
-    "gate": "verify:ac: an acceptance command whose real working directory is missing or outside the repository (#6886)",
+    "gate": "verify:ac: an acceptance command whose real working directory is missing, outside the repository or inside node_modules (#6886, #7223)",
     "mode": "enforce",
     "remedy": ["deft verify:ac --capture-only"],
     "exception": "an acceptance command must not be spawned outside the repository",
     "deferred": "the fix is a brief edit (point the cwd at an existing directory inside the repository) or creating that directory; the printed command only lists each record and its cwd; owned by #6886"
+  },
+  {
+    "id": "acceptance-cwd-dependency",
+    "gate": "scope:activate, xbrief:activate and verify:ac: an acceptance command cwd with a node_modules or leading-dot segment (#7223)",
+    "mode": "enforce",
+    "remedy": ["deft verify:ac --capture-only"],
+    "exception": "an acceptance command must not run from installed dependencies or a dot folder",
+    "deferred": "the fix is a brief edit (point the cwd at one of the repository's own directories); the printed command only lists each record and its reason; owned by #7223"
   }
 ] /* refusal-declarations:end */;
 
