@@ -1,0 +1,2 @@
+section: Fixed
+- `task pr:wait-mergeable-and-merge` no longer needs `--repo` in a clone whose `origin` is a non-fork github.com repository. Without `--repo` or `GH_REPO` it reads `origin`, checks through REST that the repository is not a fork, and prints `pr_wait_mergeable: repo=<owner/name> (from origin)`. Any other `origin` exits 2 and names the reason. The release pipeline's next step now prints `--repo` for the release repository (#6869).

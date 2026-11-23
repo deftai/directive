@@ -830,7 +830,8 @@ export function runPipeline(config: ReleaseConfig, seams: ReleaseSeams = {}): nu
     }
     process.stderr.write(
       `Release v${version} is a release PR. Next: merge it through the merge queue ` +
-        "(`task pr:wait-mergeable-and-merge -- <N> --wait`), then tag the merged commit with " +
+        `(\`task pr:wait-mergeable-and-merge -- <N> --repo ${config.repo} --wait\`), ` +
+        "then tag the merged commit with " +
         `\`${finishCommand(version)}\` (needs the release grant).\n`,
     );
     return EXIT_OK;
