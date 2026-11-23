@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6668",
-    "updated": "2026-11-22T23:21:26Z"
+    "updated": "2026-11-23T03:20:49Z"
   },
   "plan": {
     "title": "bug(class-checks): test-under-source-root rejects co-located tests with no waiver; pre-PR cannot pass",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(class-checks): test-under-source-root rejects co-located tests with no waiver; pre-PR cannot pass",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6668",
@@ -17,83 +17,195 @@
     "items": [
       {
         "title": "Co-located name. `packages/core/src/test-boundary/evaluate.ts` exports one predicate, true when the basename ends in `.test.<ext>` or `.spec.<ext>` with `<ext>` one of `ts`, `tsx`, `js`, `jsx`, `mjs`, `cjs`, `mts`, `cts` (case-insensitive), or ends in `_test.go`.",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "87f095cff026bbc6bbc9712b25980652f4ff9a99",
+          "recorded_at": "2026-11-23T03:20:49Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Class 1. In `class-checks/evaluate.ts`, a changed path for which that predicate is true is never a `test-under-source-root` finding, by name or by content. `isExempt` and the test roots are unchanged, so the path still goes through class 2 (skipped there as a test file, below), class 3 and class 4 as today.",
-        "status": "proposed",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "87f095cff026bbc6bbc9712b25980652f4ff9a99",
+          "recorded_at": "2026-11-23T03:20:49Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Class 2 test-file skip. Class 2's skip for test-named files also uses that predicate, so a co-located `.test.mjs` is not scanned as production.",
-        "status": "proposed",
-        "id": "clause.3"
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "87f095cff026bbc6bbc9712b25980652f4ff9a99",
+          "recorded_at": "2026-11-23T03:20:49Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Class 2 import rule. In a file that class 2 scans (non-test, under a source root or deploy-shaped), an added line whose module specifier in `import … from`, `export … from`, bare `import`, `import(` or `require(` has a last path segment matching `<name>.test` or `<name>.spec`, optionally followed by one of the item 1 extensions, is a `production-references-test-root` finding naming the specifier and line. Added lines only (#7077); no module resolution.",
-        "status": "proposed",
-        "id": "clause.4"
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "87f095cff026bbc6bbc9712b25980652f4ff9a99",
+          "recorded_at": "2026-11-23T03:20:49Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Class 1 remediation. The class 1 finding's remediation says: move the path under a test root, or declare it in the merge-base test-boundary policy (`.deft/test-boundary.policy.json` when that file exists on the merge base, else `plan.policy.testBoundary` in `xbrief/PROJECT-DEFINITION.xbrief.json`), preferably as a narrow `allow` entry with a reason; an authored `testRoots` list replaces every default root and must repeat the ones still needed; the policy is read from the merge base, so the policy change lands in an earlier PR. Classes 2 to 4 keep \"move or remove\". `check/named-cause.ts` 89 is reworded so it reads correctly for every class.",
-        "status": "proposed",
-        "id": "clause.5"
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "87f095cff026bbc6bbc9712b25980652f4ff9a99",
+          "recorded_at": "2026-11-23T03:20:49Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Docs. `content/docs/test-boundary.md` states the class 1 co-located exception, the class 2 import rule, and that `verify:test-boundary` still reports co-located tests under source roots (warn by default).",
-        "status": "proposed",
-        "id": "clause.6"
+        "status": "completed",
+        "id": "clause.6",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "87f095cff026bbc6bbc9712b25980652f4ff9a99",
+          "recorded_at": "2026-11-23T03:20:49Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "One PR. Files: `packages/core/src/class-checks/evaluate.ts` and its test, `packages/core/src/test-boundary/evaluate.ts` and its test, `packages/core/src/check/named-cause.ts`, `content/docs/test-boundary.md`, one `changelog.d/` fragment. No new `.test.mjs` or other non-`.ts` test file under `packages/core/src`. No change to shared default lists, no new verb, flag, policy field or gate step.",
-        "status": "proposed",
-        "id": "clause.7"
+        "status": "completed",
+        "id": "clause.7",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "87f095cff026bbc6bbc9712b25980652f4ff9a99",
+          "recorded_at": "2026-11-23T03:20:49Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given default policy, when the change adds `src/ui/A.plan-wide.test.tsx` and edits `src/ui/B.test.ts`, each with describe/it/expect content, then `verify:class-checks` reports no class 1 finding.",
-        "status": "proposed",
-        "id": "clause.8"
+        "status": "completed",
+        "id": "clause.8",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "87f095cff026bbc6bbc9712b25980652f4ff9a99",
+          "recorded_at": "2026-11-23T03:20:49Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given default policy, when the change adds `src/shared/c.test.mjs` with suite content that names `tests/fixtures/x.json`, then there is no class 1 or class 2 finding.",
-        "status": "proposed",
-        "id": "clause.9"
+        "status": "completed",
+        "id": "clause.9",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "87f095cff026bbc6bbc9712b25980652f4ff9a99",
+          "recorded_at": "2026-11-23T03:20:49Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given default policy, when the change adds `src/helpers/smoke.ts` with describe/it/expect content, then class 1 reports `test-under-source-root` with the item 5 remediation.",
-        "status": "proposed",
-        "id": "clause.10"
+        "status": "completed",
+        "id": "clause.10",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "87f095cff026bbc6bbc9712b25980652f4ff9a99",
+          "recorded_at": "2026-11-23T03:20:49Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given default policy, when the change adds `src/test_helpers.py` or `infra/scripts/test_release.py`, then class 1 still reports it.",
-        "status": "proposed",
-        "id": "clause.11"
+        "status": "completed",
+        "id": "clause.11",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "87f095cff026bbc6bbc9712b25980652f4ff9a99",
+          "recorded_at": "2026-11-23T03:20:49Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given default policy, when the change adds `infra/smoke/prod-health.spec.ts` that binds a test-marker identity, then class 1 does not report it and class 3 does.",
-        "status": "proposed",
-        "id": "clause.12"
+        "status": "completed",
+        "id": "clause.12",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "87f095cff026bbc6bbc9712b25980652f4ff9a99",
+          "recorded_at": "2026-11-23T03:20:49Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given default policy, when `src/payments/index.ts` gains `import { Fake } from \"./fakeGateway.test\"` (or `require(\"./x.spec.js\")`, or `import(\"./y.test.mjs\")`), then class 2 reports `production-references-test-root` naming the specifier and line; an unchanged existing import line is not reported.",
-        "status": "proposed",
-        "id": "clause.13"
+        "status": "completed",
+        "id": "clause.13",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "87f095cff026bbc6bbc9712b25980652f4ff9a99",
+          "recorded_at": "2026-11-23T03:20:49Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given a merge-base `.deft/test-boundary.policy.json`, when class 1 fires, then the remediation names that file, not `plan.policy.testBoundary`.",
-        "status": "proposed",
-        "id": "clause.14"
+        "status": "completed",
+        "id": "clause.14",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "87f095cff026bbc6bbc9712b25980652f4ff9a99",
+          "recorded_at": "2026-11-23T03:20:49Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given Directive's own `packages/core/src/x/y.test.ts`, then results are unchanged.",
-        "status": "proposed",
-        "id": "clause.15"
+        "status": "completed",
+        "id": "clause.15",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "87f095cff026bbc6bbc9712b25980652f4ff9a99",
+          "recorded_at": "2026-11-23T03:20:49Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given the scope fence and write fence on default policy, then `src/ui/A.test.tsx` still classes as a production path (no change to `classifyExtraPath`).",
-        "status": "proposed",
-        "id": "clause.16"
+        "status": "completed",
+        "id": "clause.16",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "87f095cff026bbc6bbc9712b25980652f4ff9a99",
+          "recorded_at": "2026-11-23T03:20:49Z",
+          "recorded_by": "scope:complete"
+        }
       }
     ],
     "tags": [
@@ -618,9 +730,38 @@
         "conflict_group": "class-checks",
         "model_tier": "high",
         "acceptance_criteria_justification": "The 16 clauses are the 7 Bound remedy items and 9 Acceptance Criteria of the accepted arc lean 7087350365 on #6668 (synthesis 7087407006), harvested and digest-pinned by issue ingest; they cannot be merged or dropped without breaking the admitted-source pin."
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "22511aca9555410da8839f986997e524d7bb74c4",
+        "prNumber": 7154,
+        "prBase": "master",
+        "mergeCommit": "87f095cff026bbc6bbc9712b25980652f4ff9a99",
+        "deliveryBranch": "master",
+        "deliveryCommit": "87f095cff026bbc6bbc9712b25980652f4ff9a99",
+        "verifiedAt": "2026-11-23T03:20:49Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:OWEwZDY5MDktOTZkNS00NjFiLWIzMTUtODg5ZjNlZjFkNTI0",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          7137
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-23T03:20:49Z",
+      "completedSessionId": "host:claude:v1:OWEwZDY5MDktOTZkNS00NjFiLWIzMTUtODg5ZjNlZjFkNTI0",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-23T03:20:49Z"
       }
     },
     "id": "github.issue.6471933784",
-    "updated": "2026-11-22T23:21:26Z"
+    "updated": "2026-11-23T03:20:49Z"
   }
 }

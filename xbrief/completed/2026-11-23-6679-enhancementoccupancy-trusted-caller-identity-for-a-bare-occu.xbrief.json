@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6679",
-    "updated": "2026-11-23T02:07:56Z"
+    "updated": "2026-11-23T04:04:15Z"
   },
   "plan": {
     "title": "enhancement(occupancy): trusted caller identity for a bare occupancy:release outside the hook path",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "occupancy:release and session:end free a lease on this checkout only for its owner, whether the lease is live, heartbeat-stale or age-capped. A bare release no longer takes its identity from DEFT_SESSION_ID, which a child process inherits, and keeps the Grok host owner only when Grok is the only declared host. Refusals name the owner and tell the caller to leave a quiet lease in place, and the runtime help, README and design-critique contract stop teaching the copy-from-file recipe.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6679",
@@ -20,138 +20,257 @@
     "items": [
       {
         "title": "Owner-only release. `releaseOccupancy` in `packages/core/src/session/occupancy.ts` frees a lease recorded for this checkout only when the presented id equals its `session_id`, whether the lease is live, heartbeat-stale or age-capped. A record that names a different checkout stays clearable, as today. This extends the #6274 owner-only rule of `releaseOwnedOccupancyOnSessionEnd` to the manual verb; that function's comment stops saying the manual path is unchanged.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "When the presented id differs from the session_id of the lease on this checkout, occupancy:release leaves the lease file in place whether the lease is live, heartbeat-stale or age-capped; when it matches, the lease is removed; a record that names a different checkout is still cleared; the releaseOwnedOccupancyOnSessionEnd comment no longer says the manual path is unchanged."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d347ddbe68a76f8b00b63cf925916dd373c9a2e7",
+          "recorded_at": "2026-11-23T03:57:52Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Bare identity. When no `--session-id` is passed, `releaseOccupancy` does not read `DEFT_SESSION_ID`. It uses `ambientHostSessionOwner` only when `detectDeclaredIdentityHosts` on the same environment returns exactly `grok`; otherwise the caller presents no identity. This covers `session:end`, which runs the same module. Explicit `--session-id` is unchanged, and so is the hook rewrite. Other occupancy verbs, claim and swarm close-out keep `resolvePresentedIdentity`.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "With no --session-id, releaseOccupancy does not read DEFT_SESSION_ID; it presents ambientHostSessionOwner only when detectDeclaredIdentityHosts on the same environment returns exactly grok, and otherwise presents no identity; session:end behaves the same; explicit --session-id, the hook rewrite, claim, swarm close-out and the other occupancy verbs keep resolvePresentedIdentity."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d347ddbe68a76f8b00b63cf925916dd373c9a2e7",
+          "recorded_at": "2026-11-23T03:57:52Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Non-owner refusal. Exit 1, the lease file untouched. The message names the owner and the lease's liveness and says only that session may present that id. For a non-live lease it says that the lease blocks no write, that its owner can re-claim it, and to leave it in place and work read-only or in its own worktree. It prints no `occupancy:steal` command and no command filled with the owner's id; the rerun line stays `formatReleaseRerunLine` on the caller's own presented id.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "A non-owner release exits 1 and leaves the lease file unchanged; the message names the owner and the lease liveness and says only that session may present that id; for a non-live lease it says the lease blocks no write, that its owner can re-claim it, and to leave it in place and work read-only or in its own worktree; it contains no occupancy:steal command and no command filled with the owner's id, and its rerun line is formatReleaseRerunLine on the caller's presented id."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d347ddbe68a76f8b00b63cf925916dd373c9a2e7",
+          "recorded_at": "2026-11-23T03:57:52Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Bare refusal. When a bare release presents no identity and a lease exists, the message says that `DEFT_SESSION_ID` is not used for a bare release because child processes inherit it, or that more than one host is declared (naming the hosts and, when Grok is one of them, the canonical id `GROK_SESSION_ID` maps to, as a note), and prints the `<your-session-id>` template line.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "A bare release that presents no identity while a lease exists exits 1 with a message that says DEFT_SESSION_ID is not used for a bare release because child processes inherit it, or that more than one host is declared (naming the hosts, and when Grok is one of them the canonical id GROK_SESSION_ID maps to as a note), and that prints the <your-session-id> template line."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d347ddbe68a76f8b00b63cf925916dd373c9a2e7",
+          "recorded_at": "2026-11-23T03:57:52Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Recovery copy. `formatOccupancyReleaseHelp`, `ABANDONED_OCCUPANCY_LEASE_RECOVERY` in `packages/runtime/src/occupancy-release.ts` and `README.md` line 141 say that only the owner releases its lease, that a quiet lease blocks no write and is claimed over by the next `session:start`, and that a lease's `session_id` is never copied into a release command. None names `occupancy:steal`. The tests that lock the old recipe move with the text.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "The formatOccupancyReleaseHelp output, ABANDONED_OCCUPANCY_LEASE_RECOVERY in packages/runtime/src/occupancy-release.ts and README.md line 141 say that only the owner releases its lease, that a quiet lease blocks no write and is claimed over by the next session:start, and that a lease's session_id is never copied into a release command; none names occupancy:steal, and the tests that locked the old recipe assert the new text."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d347ddbe68a76f8b00b63cf925916dd373c9a2e7",
+          "recorded_at": "2026-11-23T03:57:52Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Contract. `content/contracts/design-critique.md` line 65 becomes: parent-unclaimed is its own MUST: `session:start --read-only`, or, if this session holds the mutation lease, release of its own lease (`session:end`). A lease held by another session is not this session's to release; a refused release leaves it in place, and the parent stays read-only.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "narrative": {
           "Acceptance": "When an arc parent reads content/contracts/design-critique.md line 65, it shows that parent-unclaimed is its own MUST: session:start --read-only, or, if this session holds the mutation lease, release of its own lease (session:end); it says a lease held by another session is not this session's to release, and that a refused release leaves it in place and the parent stays read-only."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d347ddbe68a76f8b00b63cf925916dd373c9a2e7",
+          "recorded_at": "2026-11-23T03:57:52Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Residuals, unchanged and named: the `deft doctor` recovery copy (`packages/core/src/doctor/main.ts` 148-182) still names the copy-from-file recipe (polfer's area, for his digest); a release with no lease still clears an abandoned applying-host record (#6143).",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
         "narrative": {
           "Acceptance": "When the change lands, the deft doctor recovery copy in packages/core/src/doctor/main.ts and its test are unchanged, and a release with no lease still deletes an abandoned applying-host record (#6143)."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d347ddbe68a76f8b00b63cf925916dd373c9a2e7",
+          "recorded_at": "2026-11-23T03:57:52Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "One PR: `occupancy.ts` and its tests, `packages/runtime/src/occupancy-release.ts` and its tests, `README.md`, the contract line, and one `changelog.d/` fragment. No change under `packages/core/src/hooks/` or `packages/core/src/doctor/`.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.8",
         "narrative": {
           "Acceptance": "When the change lands, it is one PR whose product edits are occupancy.ts and its tests, packages/runtime/src/occupancy-release.ts and its tests, README.md, the contract line and one changelog.d/ fragment, with no file changed under packages/core/src/hooks/ or packages/core/src/doctor/."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d347ddbe68a76f8b00b63cf925916dd373c9a2e7",
+          "recorded_at": "2026-11-23T03:57:52Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given a heartbeat-stale lease and an age-capped lease owned by session A on this checkout, when session B runs `occupancy:release --session-id=B` or `session:end --session-id=B`, then each exits 1, the lease file is unchanged, and the message names A and the liveness, says the lease blocks no write, and contains no `occupancy:steal` command and no command filled with A's id.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.9",
         "narrative": {
           "Acceptance": "Given a heartbeat-stale lease and an age-capped lease owned by session A on this checkout, when session B runs occupancy:release --session-id=B or session:end --session-id=B, then each exits 1, leaves the lease file unchanged, and prints a message that names A and the liveness, says the lease blocks no write, and contains no occupancy:steal command and no command filled with A's id."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d347ddbe68a76f8b00b63cf925916dd373c9a2e7",
+          "recorded_at": "2026-11-23T03:57:52Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given session A's own heartbeat-stale or age-capped lease, when A runs `occupancy:release --session-id=A`, then it exits 0 and the lease is removed.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.10",
         "narrative": {
           "Acceptance": "Given session A's own heartbeat-stale or age-capped lease, when A runs occupancy:release --session-id=A, then it exits 0 and deletes the lease file."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d347ddbe68a76f8b00b63cf925916dd373c9a2e7",
+          "recorded_at": "2026-11-23T03:57:52Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given a live lease owned by A and an environment with `DEFT_SESSION_ID=A` and no host variables, when a bare `occupancy:release` runs, then it exits 1, the lease stays, and the message says `DEFT_SESSION_ID` is not used for a bare release and prints the `<your-session-id>` template line.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.11",
         "narrative": {
           "Acceptance": "Given a live lease owned by A and an environment with DEFT_SESSION_ID=A and no host variables, when a bare occupancy:release runs, then it exits 1, the lease stays, and the message says DEFT_SESSION_ID is not used for a bare release and prints the <your-session-id> template line."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d347ddbe68a76f8b00b63cf925916dd373c9a2e7",
+          "recorded_at": "2026-11-23T03:57:52Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given a lease claimed under `GROK_SESSION_ID` in an environment with only Grok markers, when a bare `occupancy:release` or a bare `session:end` runs in that environment, then it exits 0 and the lease is removed.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.12",
         "narrative": {
           "Acceptance": "Given a lease claimed under GROK_SESSION_ID and an environment with only Grok markers, when a bare occupancy:release or a bare session:end runs there, then it exits 0 and deletes the lease file."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d347ddbe68a76f8b00b63cf925916dd373c9a2e7",
+          "recorded_at": "2026-11-23T03:57:52Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given that lease and an environment that carries `GROK_SESSION_ID` plus a Claude Code or Codex host marker, when a bare release runs, then it exits 1, the lease stays, and the message names the declared hosts; with `--session-id` set to the canonical Grok id it exits 0.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.13",
         "narrative": {
           "Acceptance": "Given that Grok lease and an environment that carries GROK_SESSION_ID plus a Claude Code or Codex host marker, when a bare release runs, then it exits 1, the lease stays and the message names the declared hosts; with --session-id set to the canonical Grok id it exits 0."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d347ddbe68a76f8b00b63cf925916dd373c9a2e7",
+          "recorded_at": "2026-11-23T03:57:52Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given no lease, a bare release exits 0 and reports already-free; given a record that names a different checkout, a release by any caller still clears it.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.14",
         "narrative": {
           "Acceptance": "Given no lease, when a bare release runs, then it exits 0 and reports already-free; given a record that names a different checkout, when any caller releases, then the record is deleted."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d347ddbe68a76f8b00b63cf925916dd373c9a2e7",
+          "recorded_at": "2026-11-23T03:57:52Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "The child-occupancy release, swarm close-out and launch-rollback release tests pass unchanged.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.15",
         "narrative": {
           "Acceptance": "When the existing child-occupancy release, swarm close-out and launch-rollback release tests run with no edits, then they pass."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d347ddbe68a76f8b00b63cf925916dd373c9a2e7",
+          "recorded_at": "2026-11-23T03:57:52Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "The runtime help, `ABANDONED_OCCUPANCY_LEASE_RECOVERY` and `README.md` no longer contain `<id from .deft/occupancy.json>` or `occupancy:steal`; the doctor copy and its test are unchanged.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.16",
         "narrative": {
           "Acceptance": "When the runtime help, ABANDONED_OCCUPANCY_LEASE_RECOVERY and README.md are read, then none contains <id from .deft/occupancy.json> or occupancy:steal, and the doctor recovery copy and its test are unchanged."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d347ddbe68a76f8b00b63cf925916dd373c9a2e7",
+          "recorded_at": "2026-11-23T03:57:52Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Contract line 65 names this session's own lease, says a refused release of another session's lease leaves it in place, still contains `session:start --read-only`, and the design-critique content-contract test passes.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.17",
         "narrative": {
           "Acceptance": "When contract line 65 is read, then it names this session's own lease, says a refused release of another session's lease leaves it in place and still contains session:start --read-only, and the design-critique content-contract test passes."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d347ddbe68a76f8b00b63cf925916dd373c9a2e7",
+          "recorded_at": "2026-11-23T03:57:52Z",
+          "recorded_by": "scope:complete"
         }
       }
     ],
@@ -752,9 +871,38 @@
         "conflict_group": "session-occupancy-cli",
         "model_tier": "high",
         "acceptance_criteria_justification": "The 17 clauses are the Bound-remedy items and Acceptance Criteria of the accepted design-critique lean 7089293224 on #6679 (synthesis 7089348126, ingest-ready), harvested by triage:accept through issue:ingest (Spec-path) and digest-pinned; they cannot be merged or dropped without breaking the admitted-source pin."
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "301a1ae8259b9211435380188103881717099bc3",
+        "prNumber": 7165,
+        "prBase": "master",
+        "mergeCommit": "d347ddbe68a76f8b00b63cf925916dd373c9a2e7",
+        "deliveryBranch": "master",
+        "deliveryCommit": "ff8e3ee6519527e7c6e30ed4f96ba1b306c9e587",
+        "verifiedAt": "2026-11-23T04:04:15Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:OWEwZDY5MDktOTZkNS00NjFiLWIzMTUtODg5ZjNlZjFkNTI0",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          7155
+        ]
+      },
+      "completedAt": "2026-11-23T04:04:15Z",
+      "completedSessionId": "host:claude:v1:OWEwZDY5MDktOTZkNS00NjFiLWIzMTUtODg5ZjNlZjFkNTI0",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-23T04:04:15Z"
       }
     },
     "id": "github.issue.6473740512",
-    "updated": "2026-11-23T02:07:56Z"
+    "updated": "2026-11-23T04:04:15Z"
   }
 }

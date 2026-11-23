@@ -20,6 +20,7 @@ export {
 export { cmdPrWaitMergeable, parseWaitMergeableArgs, runWaitMergeable } from "./main.js";
 export {
   isMergeGroupEvent,
+  MERGE_GROUP_CHANGE_SET_CHECKS,
   MERGE_GROUP_EVENT,
   MERGE_GROUP_SKIPPED_CHECKS,
   type MergeGroupSkippedCheck,
