@@ -1,6 +1,8 @@
 /** Content contract for the batched cohort flow docs (#7083). */
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { readText } from "./_helpers.js";
+import { readText, repoRoot } from "./_helpers.js";
 
 describe("batched cohort flow docs (#7083)", () => {
   it("commands.md names the cohort mint, the batched flow and its counts", () => {
@@ -46,9 +48,16 @@ describe("batched cohort flow docs (#7083)", () => {
     }
   });
 
-  it("a CHANGELOG fragment names the change", () => {
-    const text = readText("../changelog.d/7083-cohort-mint.md");
-    expect(text).toContain("section: Added");
-    expect(text).toContain("(#7083)");
+  // A release cut folds changelog.d fragments into CHANGELOG.md and deletes them,
+  // so read the fragment while it exists and the folded entry after that. The
+  // `section:` header does not survive the fold, so only the fragment checks it.
+  it("a CHANGELOG fragment or the folded CHANGELOG entry names the change", () => {
+    if (existsSync(join(repoRoot(), "changelog.d", "7083-cohort-mint.md"))) {
+      const text = readText("../changelog.d/7083-cohort-mint.md");
+      expect(text).toContain("section: Added");
+      expect(text).toContain("(#7083)");
+    } else {
+      expect(readText("CHANGELOG.md")).toContain("(#7083)");
+    }
   });
 });
