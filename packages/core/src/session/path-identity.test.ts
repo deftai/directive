@@ -59,7 +59,10 @@ function git(cwd: string, args: readonly string[]): string {
   return execFileSync("git", [...args], { cwd, encoding: "utf8", env: GIT_ENV }).trim();
 }
 
-/** 8.3 spelling from cmd's `%~sI`, or null when the host gives none. */
+/**
+ * 8.3 spelling from `cmd /c for %I in ("<path>") do @echo %~sI`, checked to
+ * resolve back to `<path>`; null when the host gives none.
+ */
 function shortSpelling(longPath: string): string | null {
   const run = spawnSync(
     "cmd.exe",
