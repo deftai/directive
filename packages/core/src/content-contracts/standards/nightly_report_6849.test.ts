@@ -280,6 +280,31 @@ describe("tracking issues (#6849 clauses 13, 14, 16)", () => {
     expect(summaries.join("")).toMatch(/NIGHTLY_OWNER is not set: no one was assigned/);
   });
 
+  it("leaves the issue state alone when a newer run already reported (older rerun)", () => {
+    const fake = fakeGitHub([
+      {
+        number: 8,
+        state: "open",
+        body: issueBody(LANES[1]),
+        assignees: [],
+        comments: [commentMarker("windows", "600", "1")],
+      },
+    ]);
+    const lines = runReport(env(GREEN, { RUN_ID: "555" }), deps(fake, files({})).deps);
+    const windows = fake.issues[0] as FakeIssue;
+    expect(windows.state).toBe("open");
+    expect(windows.comments).toHaveLength(2);
+    expect(lines.join("\n")).toContain("a newer run already reported on #8; state left as is");
+    expect(fake.calls.some((c) => c[1] === "close")).toBe(false);
+  });
+
+  it("fails when NEEDS_JSON is not valid JSON", () => {
+    const fake = fakeGitHub();
+    expect(() => runReport(env(GREEN, { NEEDS_JSON: "{oops" }), deps(fake).deps)).toThrow(
+      /NEEDS_JSON is not valid JSON/,
+    );
+  });
+
   it("ignores issues without the lane marker and pull requests", () => {
     const fake = fakeGitHub([
       { number: 3, state: "open", body: "unrelated", assignees: [], comments: [] },

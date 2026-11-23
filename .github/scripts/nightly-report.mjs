@@ -239,7 +239,13 @@ function flattenPages(parsed) {
  * @returns {string}
  */
 export function runGh(args) {
-  return execFileSync("gh", args, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+  // Issue and comment listings grow with each red night; the default 1 MiB
+  // output cap would fail the report on a long-lived tracking issue.
+  return execFileSync("gh", args, {
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+    maxBuffer: 256 * 1024 * 1024,
+  });
 }
 
 /**
@@ -279,18 +285,39 @@ export function findTrackingIssue(gh, repo, laneId) {
 }
 
 /**
- * True when a comment for this lane, run id and attempt is already on the issue.
+ * The runs already reported on the issue for this lane, from the comment markers.
  *
  * @param {(args: string[]) => string} gh
  * @param {string} repo
  * @param {number} number
- * @param {string} marker
+ * @param {string} laneId
+ * @returns {{ runId: number, attempt: number }[]}
  */
-export function hasRunComment(gh, repo, number, marker) {
+export function reportedRuns(gh, repo, number, laneId) {
   const out = gh(["api", "--paginate", "--slurp", `repos/${repo}/issues/${number}/comments?per_page=100`]);
-  return flattenPages(JSON.parse(out)).some(
-    (c) => c !== null && typeof c === "object" && typeof c.body === "string" && c.body.includes(marker),
-  );
+  const pattern = new RegExp(`<!-- deft-nightly-run: ${laneId} (\\d+) (\\d+) -->`, "g");
+  const runs = [];
+  for (const c of flattenPages(JSON.parse(out))) {
+    if (c === null || typeof c !== "object" || typeof c.body !== "string") continue;
+    for (const m of c.body.matchAll(pattern)) {
+      runs.push({ runId: Number(m[1]), attempt: Number(m[2]) });
+    }
+  }
+  return runs;
+}
+
+/**
+ * @param {{ runId: number, attempt: number }[]} runs
+ * @param {string} runId
+ * @param {string} attempt
+ */
+function runState(runs, runId, attempt) {
+  const id = Number(runId);
+  return {
+    already: runs.some((r) => r.runId === id && r.attempt === Number(attempt)),
+    // A rerun of an older nightly must not undo what a newer run reported.
+    newer: Number.isFinite(id) && runs.some((r) => r.runId > id),
+  };
 }
 
 /**
@@ -310,16 +337,24 @@ export function hasRunComment(gh, repo, number, marker) {
  */
 export function reportLane(input) {
   const { gh, writeBody, repo, owner, lane, outcome, comment, runId, attempt } = input;
-  const marker = commentMarker(lane.id, runId, attempt);
   let issue = findTrackingIssue(gh, repo, lane.id);
+  const post = (number) => {
+    const file = writeBody(`${lane.id}-comment.md`, comment);
+    gh(["issue", "comment", String(number), "--repo", repo, "--body-file", file]);
+  };
+  const seen =
+    issue === null
+      ? { already: false, newer: false }
+      : runState(reportedRuns(gh, repo, issue.number, lane.id), runId, attempt);
+  if (issue !== null && seen.newer) {
+    if (!seen.already) post(issue.number);
+    return `${lane.name}: ${outcome}; a newer run already reported on #${issue.number}; state left as is`;
+  }
   if (outcome === "passed") {
     if (issue === null || issue.state !== "open") {
       return `${lane.name}: passed; no open tracking issue`;
     }
-    if (!hasRunComment(gh, repo, issue.number, marker)) {
-      const file = writeBody(`${lane.id}-comment.md`, comment);
-      gh(["issue", "comment", String(issue.number), "--repo", repo, "--body-file", file]);
-    }
+    if (!seen.already) post(issue.number);
     gh(["issue", "close", String(issue.number), "--repo", repo]);
     return `${lane.name}: passed; commented on and closed #${issue.number}`;
   }
@@ -342,11 +377,10 @@ export function reportLane(input) {
   if (owner !== "" && !issue.assignees.includes(owner)) {
     gh(["issue", "edit", String(issue.number), "--repo", repo, "--add-assignee", owner]);
   }
-  if (hasRunComment(gh, repo, issue.number, marker)) {
+  if (seen.already) {
     return `${lane.name}: ${outcome}; ${action}; this run was already reported`;
   }
-  const file = writeBody(`${lane.id}-comment.md`, comment);
-  gh(["issue", "comment", String(issue.number), "--repo", repo, "--body-file", file]);
+  post(issue.number);
   return `${lane.name}: ${outcome}; ${action}`;
 }
 
@@ -382,11 +416,11 @@ export function runReport(env, deps = {}) {
   const runUrl = runId !== "" ? `${env.SERVER_URL || "https://github.com"}/${repo}/actions/runs/${runId}/attempts/${attempt || "1"}` : "";
   const artifactDir = env.ARTIFACT_DIR ?? "nightly-artifacts";
   const workspace = env.GITHUB_WORKSPACE ?? "";
-  let needs = {};
+  let needs;
   try {
-    needs = JSON.parse(env.NEEDS_JSON ?? "{}") ?? {};
-  } catch {
-    needs = {};
+    needs = JSON.parse(env.NEEDS_JSON ?? "") ?? {};
+  } catch (err) {
+    throw new Error(`NEEDS_JSON is not valid JSON: ${err instanceof Error ? err.message : String(err)}`);
   }
   // upload-artifact roots an artifact at the common folder of the files it
   // found, so a file sits either under its folder or at the artifact root.
