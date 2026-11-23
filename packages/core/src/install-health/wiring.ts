@@ -7,6 +7,7 @@
  * may opt out; presence of mismatched content fails.
  */
 
+import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parseTaskfileIncludes } from "../check/consumer-gate-integrity.js";
@@ -14,6 +15,11 @@ import {
   hostHookConfigEntryLines,
   isHostHookOuterCommand,
 } from "../init-deposit/host-hook-outer.js";
+import {
+  KILL_SWITCH_GITHOOK_MARKER,
+  KILL_SWITCH_READER_FLAG,
+  KILL_SWITCH_READER_VERSION,
+} from "../policy/kill-switch-record.js";
 import { RUNTIME_PACKAGE_PATH_PREFIX } from "./constants.js";
 import {
   MANAGED_SECTION_CLOSE,
@@ -317,4 +323,114 @@ export function checkWiringTargetsRuntime(
     inspected,
     mismatched: [],
   };
+}
+
+/** One doctor finding about an old kill-switch reader (#6740). */
+export interface KillSwitchReaderFinding {
+  /** Repo-relative file the finding is about. */
+  readonly rel: string;
+  readonly message: string;
+}
+
+export interface KillSwitchReaderSeams extends FsSeams {
+  /** `git rev-parse --show-toplevel` for the project, or null. */
+  readonly showToplevel?: (projectRoot: string) => string | null;
+}
+
+/** Redeposit remedy named by every reader finding (#6740). */
+export const KILL_SWITCH_READER_REDEPOSIT =
+  "Run `directive upgrade` (or `directive install --repair`) to redeposit it.";
+
+const OUTER_REL_PATTERN =
+  /(?:^|[\s"'`])((?:\.claude|\.cursor\/hooks|\.codex|\.grok\/hooks)\/deft-hook-[a-f0-9]{8}\.mjs)(?=[\s"'`]|$)/g;
+
+function defaultShowToplevel(projectRoot: string): string | null {
+  try {
+    const out = execFileSync("git", ["-C", projectRoot, "rev-parse", "--show-toplevel"], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+    const trimmed = out.replace(/\n+$/, "");
+    return trimmed.length > 0 ? trimmed : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Old kill-switch readers still wired into this checkout (#6740). Compatibility
+ * information only, never authority:
+ *
+ * - a host-hook call without the reader flag: a registered outer `.mjs` whose
+ *   text does not pass `--kill-switch-reader v1` to the runtime, or a registered
+ *   Directive hook entry that calls the runtime with no outer at all;
+ * - the checkout-local git-hook helper (`<show-toplevel>/.githooks/_directive-run.sh`,
+ *   the file the entry scripts source) without the marker line.
+ *
+ * Each finding names the redeposit. Missing files are not findings here.
+ */
+export function checkKillSwitchReaderMarkers(
+  projectRoot: string,
+  seams: KillSwitchReaderSeams = {},
+): KillSwitchReaderFinding[] {
+  const isFile = seams.isFile ?? defaultIsFile;
+  const readText = seams.readText ?? defaultReadText;
+  const findings: KillSwitchReaderFinding[] = [];
+  const seenOuters = new Set<string>();
+  for (const rel of HOST_HOOK_REGISTRATION_RELS) {
+    const path = join(projectRoot, rel);
+    if (!isFile(path)) continue;
+    const text = readText(path);
+    if (text === null) continue;
+    for (const line of hostHookConfigEntryLines(text).split("\n")) {
+      const outers = [...line.matchAll(OUTER_REL_PATTERN)].map((m) => m[1] as string);
+      if (outers.length === 0) {
+        const directRuntimeCall =
+          line.includes("node_modules/@deftai/directive-runtime/dist/hook-bin.js") ||
+          /(^|[\s"`'])deft-hook([\s"`']|$)/.test(line) ||
+          line.includes("hook:dispatch");
+        if (directRuntimeCall && !line.includes(KILL_SWITCH_READER_FLAG)) {
+          findings.push({
+            rel,
+            message:
+              `${rel}: a Directive host-hook call runs without the kill-switch reader flag ` +
+              `(\`${KILL_SWITCH_READER_FLAG} ${KILL_SWITCH_READER_VERSION}\`); an older reader may still honor a bare flag file. ` +
+              KILL_SWITCH_READER_REDEPOSIT,
+          });
+        }
+        continue;
+      }
+      for (const outerRel of outers) {
+        if (seenOuters.has(outerRel)) continue;
+        seenOuters.add(outerRel);
+        const outerPath = join(projectRoot, outerRel);
+        if (!isFile(outerPath)) continue;
+        const outerText = readText(outerPath);
+        if (outerText === null || outerText.includes(KILL_SWITCH_READER_FLAG)) continue;
+        findings.push({
+          rel: outerRel,
+          message:
+            `${outerRel} (registered in ${rel}) calls the runtime hook without the kill-switch reader flag ` +
+            `(\`${KILL_SWITCH_READER_FLAG} ${KILL_SWITCH_READER_VERSION}\`); this older outer may still honor a bare flag file. ` +
+            KILL_SWITCH_READER_REDEPOSIT,
+        });
+      }
+    }
+  }
+  const toplevel = (seams.showToplevel ?? defaultShowToplevel)(projectRoot) ?? projectRoot;
+  const helperRel = ".githooks/_directive-run.sh";
+  const helperPath = join(toplevel, helperRel);
+  if (isFile(helperPath)) {
+    const helperText = readText(helperPath);
+    if (helperText !== null && !helperText.split("\n").includes(KILL_SWITCH_GITHOOK_MARKER)) {
+      findings.push({
+        rel: helperRel,
+        message:
+          `${helperRel}: this checkout's git-hook helper has no kill-switch reader marker ` +
+          `(\`${KILL_SWITCH_GITHOOK_MARKER}\`); an older helper may still honor a bare flag file. ` +
+          KILL_SWITCH_READER_REDEPOSIT,
+      });
+    }
+  }
+  return findings;
 }

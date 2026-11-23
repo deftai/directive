@@ -6,9 +6,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { inspectAgentHookDeposit, writeAgentHookDeposit } from "../init-deposit/agent-hooks.js";
 import { CANONICAL_INSTALL_ROOT } from "../init-deposit/constants.js";
 import {
-  DEFT_DIRECTIVE_DISABLE_FLAG_NAME,
   DEFT_DIRECTIVE_DISABLE_STATUS,
+  resolveAbsoluteGitDir,
 } from "../policy/deft-directive-disable.js";
+import { KILL_SWITCH_RECORD_REL, writeKillSwitchRecord } from "../policy/kill-switch-record.js";
 import { cmdDoctor } from "./main.js";
 
 const temps: string[] = [];
@@ -21,6 +22,15 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+/** #6740: only a valid kill record stands Directive down; a bare flag does not. */
+function writeKillRecord(root: string): void {
+  writeKillSwitchRecord(root, {
+    gitDir: resolveAbsoluteGitDir(root) ?? "",
+    mintedAt: "2026-11-22T00:00:00Z",
+    mintedVia: "kill-switch:on",
+  });
+}
+
 function tempRoot(): string {
   const root = mkdtempSync(join(tmpdir(), "doctor-disable-"));
   temps.push(root);
@@ -29,10 +39,10 @@ function tempRoot(): string {
 }
 
 describe("cmdDoctor — .deft-directive-disable short-circuit (#3039)", () => {
-  it("exits 0 with recovery message when an untracked kill-switch is present", () => {
+  it("exits 0 with recovery message when a valid kill record is present (#6740)", () => {
     const root = tempRoot();
-    writeFileSync(join(root, DEFT_DIRECTIVE_DISABLE_FLAG_NAME), "", "utf8");
-    // Temp root is git-init'd so successful empty ls-files → untracked → eligible (#6122).
+    writeKillRecord(root);
+    // Temp root is git-init'd so the record binds to its git dir (#6740).
     const stdout: string[] = [];
     const stdoutSpy = vi.spyOn(process.stdout, "write").mockImplementation(((
       chunk: string | Uint8Array,
@@ -46,8 +56,9 @@ describe("cmdDoctor — .deft-directive-disable short-circuit (#3039)", () => {
     const out = stdout.join("");
     expect(out).toContain(".deft-directive-disable");
     expect(out).toContain("NEW agent session");
-    expect(out).toContain("rm .deft-directive-disable");
-    expect(out).toContain("The flag is present: stop Directive process load");
+    expect(out).toContain("kill-switch:off --confirm");
+    expect(out).toContain("mintedVia=kill-switch:on");
+    expect(out).toContain("The record is valid: stop Directive process load");
     expect(out).toContain("claude: agent notice via SessionStart not registered");
     expect(out).toContain("grok: agent notice via SessionStart not registered");
     expect(out).toContain("cursor: agent notice via SessionStart not registered");
@@ -58,7 +69,7 @@ describe("cmdDoctor — .deft-directive-disable short-circuit (#3039)", () => {
 
   it("reports SessionStart registered from per-host SessionStart inspection on DISABLED (#4884)", () => {
     const root = tempRoot();
-    writeFileSync(join(root, DEFT_DIRECTIVE_DISABLE_FLAG_NAME), "", "utf8");
+    writeKillRecord(root);
     const stdout: string[] = [];
     const stdoutSpy = vi.spyOn(process.stdout, "write").mockImplementation(((
       chunk: string | Uint8Array,
@@ -87,7 +98,7 @@ describe("cmdDoctor — .deft-directive-disable short-circuit (#3039)", () => {
 
   it("keeps SessionStart registered when PreToolUse or compact has drifted (#4884)", () => {
     const root = tempRoot();
-    writeFileSync(join(root, DEFT_DIRECTIVE_DISABLE_FLAG_NAME), "", "utf8");
+    writeKillRecord(root);
     writeAgentHookDeposit(root);
     const claudePath = join(root, ".claude/settings.json");
     const claude = JSON.parse(readFileSync(claudePath, "utf8")) as {
@@ -121,7 +132,7 @@ describe("cmdDoctor — .deft-directive-disable short-circuit (#3039)", () => {
 
   it("reports SessionStart not registered when only that event is missing (#4884)", () => {
     const root = tempRoot();
-    writeFileSync(join(root, DEFT_DIRECTIVE_DISABLE_FLAG_NAME), "", "utf8");
+    writeKillRecord(root);
     writeAgentHookDeposit(root);
     const claudePath = join(root, ".claude/settings.json");
     const claude = JSON.parse(readFileSync(claudePath, "utf8")) as {
@@ -144,7 +155,7 @@ describe("cmdDoctor — .deft-directive-disable short-circuit (#3039)", () => {
 
   it("stays DISABLED when SessionStart registration probe throws (#4884)", () => {
     const root = tempRoot();
-    writeFileSync(join(root, DEFT_DIRECTIVE_DISABLE_FLAG_NAME), "", "utf8");
+    writeKillRecord(root);
     const stdout: string[] = [];
     const stdoutSpy = vi.spyOn(process.stdout, "write").mockImplementation(((
       chunk: string | Uint8Array,
@@ -166,7 +177,7 @@ describe("cmdDoctor — .deft-directive-disable short-circuit (#3039)", () => {
 
   it("allows deposit to remain without #2926 inconsistent dirty path", () => {
     const root = tempRoot();
-    writeFileSync(join(root, DEFT_DIRECTIVE_DISABLE_FLAG_NAME), "", "utf8");
+    writeKillRecord(root);
     mkdirSync(join(root, CANONICAL_INSTALL_ROOT), { recursive: true });
     const stdout: string[] = [];
     const stdoutSpy = vi.spyOn(process.stdout, "write").mockImplementation(((
@@ -193,12 +204,12 @@ describe("cmdDoctor — .deft-directive-disable short-circuit (#3039)", () => {
     expect(payload.kill_switch).toBe(true);
     expect(payload.inconsistent).toBe(false);
     expect(payload.deposit_present).toBe(true);
-    expect(payload.disabled_via).toBe(DEFT_DIRECTIVE_DISABLE_FLAG_NAME);
+    expect(payload.disabled_via).toBe(KILL_SWITCH_RECORD_REL);
   });
 
   it("emits JSON disabled-test-kill-switch status", () => {
     const root = tempRoot();
-    writeFileSync(join(root, DEFT_DIRECTIVE_DISABLE_FLAG_NAME), "# test\n", "utf8");
+    writeKillRecord(root);
     const stdout: string[] = [];
     const stdoutSpy = vi.spyOn(process.stdout, "write").mockImplementation(((
       chunk: string | Uint8Array,

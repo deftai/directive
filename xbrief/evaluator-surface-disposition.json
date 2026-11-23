@@ -1,11 +1,10 @@
 {
   "schema": "deft.evaluator-surface-disposition.v1",
   "kind": "disclosure",
-  "issue": 6668,
+  "issue": 6740,
   "surfaces": [
-    "packages/core/src/class-checks/evaluate.test.ts",
-    "packages/core/src/class-checks/evaluate.ts",
+    "Taskfile.yml",
     "xbrief/evaluator-surface-disposition.json"
   ],
-  "note": "Disclosure for #6668 (product PR), a deliberate gate change through issue and PR (#3156) built from the accepted arc (bound lean 7087350365, synthesis 7087407006). verify:class-checks class 1 no longer reports a co-located test name (*.test.<ext> / *.spec.<ext> for ts, tsx, js, jsx, mjs, cjs, mts, cts, or *_test.go; isCoLocatedTestName in test-boundary/evaluate.ts) under a source root, by name or by content; the path is not made a test root, so classes 2 to 4, isExempt and the scope and write fences see it as before. Class 2 skips such files as tests and adds one added-line rule: a production line whose module specifier (import/export from, bare import, import(), require()) ends in <name>.test or <name>.spec is a production-references-test-root finding. The class 1 remediation names the base-ref test-boundary policy route; classes 2 to 4 keep move or remove. No change to DEFAULT_TEST_ROOTS, DEFAULT_TEST_FILE_PATTERNS, isRecognizedTestBasename, FRAMEWORK_SELF_ALLOW, exit codes or verify:test-boundary. Tests pin the new contract. Disclosure only; not #3164 authorization. Refs #6668."
+  "note": "Disclosure for #6740 slice 1 (product PR), a deliberate change through issue and PR (#3156). Taskfile.yml adds one include, tasks/kill-switch.yml (kill-switch:on / kill-switch:off). The Taskfile engine reader (tasks/engine-invoke.cjs) applies the kill record contract: a valid .deft/authz/kill-switch.disable bound to git rev-parse --absolute-git-dir stands Directive down; a bare root flag file turns nothing off and prints one warning. No gate is relaxed: enforcement stays on unless a valid record exists, and only kill-switch:on writes the record, behind the kept terminal mint. Disclosure only; not #3164 authorization. Refs #6740."
 }

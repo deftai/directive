@@ -27,6 +27,9 @@ import {
   DISABLE_FLAG_NAME,
   DISABLE_ONE_LINE,
   ENTRY_GUARD_PERSON_RUNS_INSTALL,
+  KILL_RECORD_GIT_DIR_PREFIX,
+  KILL_RECORD_REL,
+  KILL_RECORD_SCHEMA_LINE,
 } from "./entry-guard.js";
 
 /** `runtime-missing` row with no lockfile in the fixture (#6620). */
@@ -375,10 +378,15 @@ describe("runtime-pinned project (AC10.11)", () => {
     );
   });
 
-  describe("untracked disable flag comes first (AC9.12 step 1, #6620)", () => {
+  describe("valid kill record comes first (AC9.12 step 1, #6620 / #6740)", () => {
     function disable(root: string): void {
       expect(spawnSync("git", ["init", "-q"], { cwd: root }).status).toBe(0);
-      writeFileSync(join(root, DISABLE_FLAG_NAME), "1\n");
+      const gitDir = spawnSync("git", ["-C", root, "rev-parse", "--absolute-git-dir"], {
+        encoding: "utf8",
+      }).stdout.replace(/\n+$/, "");
+      const record = join(root, KILL_RECORD_REL);
+      mkdirSync(dirname(record), { recursive: true });
+      writeFileSync(record, `${KILL_RECORD_SCHEMA_LINE}\n${KILL_RECORD_GIT_DIR_PREFIX}${gitDir}\n`);
     }
 
     it("deft-hook: pin mismatch + flag → exit 0, no output, runtime never started", () => {
@@ -416,10 +424,22 @@ describe("runtime-pinned project (AC10.11)", () => {
       nothingElseRan(root);
     });
 
-    it("a tracked flag does not stop anything", () => {
-      const root = newRepo(false);
+    it.each([
+      [["kill-switch:off", "--confirm"]],
+      [["kill-switch", "off", "--confirm"]],
+    ])("deft %j passes the stop so the record can be removed", (argv) => {
+      const root = newRepo(true);
+      writeFileSync(join(root, RUNTIME_DIR, "dist", "bin.js"), recorderSource("runtime-bin"));
       disable(root);
-      spawnSync("git", ["add", DISABLE_FLAG_NAME], { cwd: root });
+      const result = run(root, argv, { entry: "deft" });
+      expect(result.stderr).not.toContain(DISABLE_ONE_LINE);
+      expect(marker(root, "runtime-bin")?.argv).toEqual(argv);
+    });
+
+    it("a bare root flag does not stop anything (#6740)", () => {
+      const root = newRepo(false);
+      expect(spawnSync("git", ["init", "-q"], { cwd: root }).status).toBe(0);
+      writeFileSync(join(root, DISABLE_FLAG_NAME), "1\n");
       expect(run(root, toolBefore("claude")).status).toBe(2);
     });
   });

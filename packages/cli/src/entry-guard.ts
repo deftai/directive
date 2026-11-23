@@ -8,7 +8,7 @@
  */
 
 import { spawnSync } from "node:child_process";
-import { existsSync, lstatSync } from "node:fs";
+import { existsSync, lstatSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { ProjectInstallState } from "./pin.js";
 
@@ -146,19 +146,37 @@ export function classifyLauncherSituation(
 }
 
 /**
- * Step 1 of the shared entry order for launcher entry points (AC9.12, #6620):
- * an untracked root `.deft-directive-disable` stops Directive quietly.
+ * Step 1 of the shared entry order for launcher entry points (AC9.12, #6620 /
+ * #6740): a valid kill record stops Directive quietly. A bare root
+ * `.deft-directive-disable` file turns nothing off.
  *
- * Same eligibility as the committed hook file: a regular file (not a link)
- * that `git ls-files` successfully reports as untracked. Tracked, wrong kind
- * or an indeterminate Git answer never select the stop. Reads only.
+ * Same contract as every other reader (core `policy/kill-switch-record.ts`):
+ * `.deft/authz/kill-switch.disable` is a regular file (not a link) with the
+ * exact whole lines `schema=deft.kill-switch.v1` and `gitDir=` plus
+ * `git rev-parse --absolute-git-dir` (trailing newlines removed). Lines split
+ * on LF after every CR is removed. Reads only.
  */
 
 export const DISABLE_FLAG_NAME = ".deft-directive-disable";
 
+/** Kill record path and lines (core `kill-switch-record.ts`, kept equal by the parity test). */
+export const KILL_RECORD_REL = ".deft/authz/kill-switch.disable";
+export const KILL_RECORD_SCHEMA_LINE = "schema=deft.kill-switch.v1";
+export const KILL_RECORD_GIT_DIR_PREFIX = "gitDir=";
+
+/**
+ * Kill record verbs (#6740) pass the step-1 stop, so `deft kill-switch:off`
+ * (or the namespace form `deft kill-switch off`) can remove a valid record.
+ */
+export const KILL_SWITCH_LAUNCHER_COMMANDS: ReadonlySet<string> = new Set([
+  "kill-switch:on",
+  "kill-switch:off",
+  "kill-switch",
+]);
+
 /** One-line notice for passthrough commands (core `DEFT_DIRECTIVE_DISABLE_ONE_LINE`). */
 export const DISABLE_ONE_LINE =
-  "Directive disabled via `.deft-directive-disable` (test/local kill-switch; deposit OK)";
+  "Directive disabled via kill record `.deft/authz/kill-switch.disable` (test/local kill-switch; deposit OK)";
 
 function isRegularFile(path: string): boolean {
   try {
@@ -169,13 +187,23 @@ function isRegularFile(path: string): boolean {
   }
 }
 
-/** True when the untracked disable flag is active at `projectRoot`. */
+/** True when the kill record at `projectRoot` is valid for this checkout (#6740). */
 export function isDisableFlagActive(projectRoot: string): boolean {
-  if (!isRegularFile(join(projectRoot, DISABLE_FLAG_NAME))) return false;
-  const listing = spawnSync("git", ["-C", projectRoot, "ls-files", "--", DISABLE_FLAG_NAME], {
+  const recordPath = join(projectRoot, KILL_RECORD_REL);
+  if (!isRegularFile(recordPath)) return false;
+  let text: string;
+  try {
+    text = readFileSync(recordPath, "utf8");
+  } catch {
+    return false;
+  }
+  const lines = text.replace(/\r/g, "").split("\n");
+  if (!lines.includes(KILL_RECORD_SCHEMA_LINE)) return false;
+  const gitDir = spawnSync("git", ["-C", projectRoot, "rev-parse", "--absolute-git-dir"], {
     encoding: "utf8",
     stdio: ["ignore", "pipe", "ignore"],
   });
-  if (listing.error || listing.status !== 0 || typeof listing.stdout !== "string") return false;
-  return listing.stdout.trim().length === 0;
+  if (gitDir.error || gitDir.status !== 0 || typeof gitDir.stdout !== "string") return false;
+  const dir = gitDir.stdout.replace(/\n+$/, "");
+  return dir.length > 0 && lines.includes(`${KILL_RECORD_GIT_DIR_PREFIX}${dir}`);
 }

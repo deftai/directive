@@ -5,10 +5,14 @@
  * Outer uses Node built-ins only until entry guards pass, then spawns pin
  * `hook-bin.js`. No timeout logic in the outer (#5920 / #5988 out of scope).
  *
- * F1 operator-disable eligibility (#6122): quietAllow only for positively
- * validated eligible (lstat regular-file + successful untracked `git ls-files`
- * listing with usable captured output). Tracked / wrong kind / indeterminate
- * never select the override.
+ * F1 operator-disable eligibility (#6122 / #6740): quietAllow only for a valid
+ * kill record (`.deft/authz/kill-switch.disable`: a regular file, not a link,
+ * with the exact whole lines `schema=deft.kill-switch.v1` and `gitDir=` plus
+ * `git rev-parse --absolute-git-dir`). A bare root flag file never selects it.
+ * The outer passes `--kill-switch-reader v1` to hook-bin; an older runtime
+ * refuses the unknown argument, which the outer reports as a hook failure
+ * (fails closed). With no runtime, the outer prints the one bare-flag or
+ * invalid-record warning itself; otherwise the runtime prints it.
  *
  * The outer runs the first steps of the shared entry order
  * (`install-health/constants.ts`, #6620): disabled → runtime missing → run the
@@ -21,6 +25,17 @@ import {
   ENTRY_GUARD_MESSAGES,
   ENTRY_GUARD_PERSON_RUNS_INSTALL,
 } from "../install-health/constants.js";
+import {
+  formatInvalidKillRecordWarning,
+  KILL_SWITCH_BARE_FLAG_NAME,
+  KILL_SWITCH_BARE_FLAG_WARNING,
+  KILL_SWITCH_READER_FLAG,
+  KILL_SWITCH_READER_VERSION,
+  KILL_SWITCH_RECORD_GIT_DIR_PREFIX,
+  KILL_SWITCH_RECORD_REL,
+  KILL_SWITCH_RECORD_SCHEMA_LINE,
+  type KillSwitchRecordInvalidReason,
+} from "../policy/kill-switch-record.js";
 
 /**
  * The outer's missing-runtime message (AC9.12, D-013): the `runtime-missing`
@@ -204,15 +219,18 @@ export function hostHookOuterSource(): string {
   const guidance = HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE;
   const nondecision = HOST_HOOK_NONDECISION_REASON;
   const pinRel = HOST_HOOK_OUTER_PIN_HOOK_BIN_REL;
+  const reasonSlot = "{reason}" as KillSwitchRecordInvalidReason;
+  const invalidWarning = formatInvalidKillRecordWarning(reasonSlot, false);
+  const invalidWarningFlag = formatInvalidKillRecordWarning(reasonSlot, true);
   return `#!/usr/bin/env node
 /**
- * Directive host-hook outer (v261027 / #5994 / #6122 / #6201 / #6620). Node built-ins only.
- * Shared entry order: eligible disable → runtime missing (project install, by
- * lockfile) → spawn pin hook-bin.js.
- * Eligible = lstat regular-file + successful untracked git ls-files listing.
+ * Directive host-hook outer (v261027 / #5994 / #6122 / #6201 / #6620 / #6740). Node built-ins only.
+ * Shared entry order: valid kill record → runtime missing (project install, by
+ * lockfile) → spawn pin hook-bin.js with the kill-switch reader flag.
+ * A bare root flag file turns nothing off; it gets one warning.
  * Any failure on tool.before blocks the tool call in the host's own form.
  */
-import { existsSync, lstatSync } from "node:fs";
+import { existsSync, lstatSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
@@ -220,7 +238,14 @@ import { spawnSync } from "node:child_process";
 const GUIDANCE = ${JSON.stringify(guidance)};
 const NONDECISION = ${JSON.stringify(nondecision)};
 const PIN_REL = ${JSON.stringify(pinRel)};
-const FLAG = ".deft-directive-disable";
+const FLAG = ${JSON.stringify(KILL_SWITCH_BARE_FLAG_NAME)};
+const RECORD_REL = ${JSON.stringify(KILL_SWITCH_RECORD_REL)};
+const SCHEMA_LINE = ${JSON.stringify(KILL_SWITCH_RECORD_SCHEMA_LINE)};
+const GIT_DIR_PREFIX = ${JSON.stringify(KILL_SWITCH_RECORD_GIT_DIR_PREFIX)};
+const READER_ARGS = [${JSON.stringify(KILL_SWITCH_READER_FLAG)}, ${JSON.stringify(KILL_SWITCH_READER_VERSION)}];
+const BARE_FLAG_WARNING = ${JSON.stringify(KILL_SWITCH_BARE_FLAG_WARNING)};
+const INVALID_WARNING = ${JSON.stringify(invalidWarning)};
+const INVALID_WARNING_FLAG = ${JSON.stringify(invalidWarningFlag)};
 
 const here = dirname(fileURLToPath(import.meta.url));
 
@@ -254,16 +279,50 @@ function isRegularFile(path) {
   }
 }
 
-/** tracked | untracked | indeterminate — only untracked selects quietAllow. */
-function gitTrackListing(root, rel) {
-  const r = spawnSync("git", ["-C", root, "ls-files", "--", rel], {
+/** git rev-parse --absolute-git-dir with trailing newlines removed, or "". */
+function absoluteGitDir(root) {
+  const r = spawnSync("git", ["-C", root, "rev-parse", "--absolute-git-dir"], {
     encoding: "utf8",
     stdio: ["ignore", "pipe", "ignore"],
   });
-  if (r.error || r.status === null || r.status !== 0 || typeof r.stdout !== "string") {
-    return "indeterminate";
+  if (r.error || r.status !== 0 || typeof r.stdout !== "string") return "";
+  return r.stdout.replace(/\\n+$/, "");
+}
+
+/**
+ * Kill record verdict (#6740): "absent", "valid", or an invalid reason. Exact
+ * whole lines (CR removed, split on LF); the same contract as every other reader.
+ */
+function killRecordVerdict(root) {
+  const path = join(root, RECORD_REL);
+  let lst;
+  try {
+    lst = lstatSync(path);
+  } catch {
+    return "absent";
   }
-  return r.stdout.trim().length > 0 ? "tracked" : "untracked";
+  if (lst.isSymbolicLink() || !lst.isFile()) return "not-a-regular-file";
+  let text;
+  try {
+    text = readFileSync(path, "utf8");
+  } catch {
+    return "unreadable";
+  }
+  const lines = text.replace(/\\r/g, "").split("\\n");
+  if (!lines.includes(SCHEMA_LINE)) return "missing-schema-line";
+  const gitDir = absoluteGitDir(root);
+  if (gitDir.length === 0) return "git-dir-unresolved";
+  if (!lines.includes(GIT_DIR_PREFIX + gitDir)) return "git-dir-mismatch";
+  return "valid";
+}
+
+/** The one warning for a bare flag or an invalid record, or "". */
+function killSwitchWarning(root, verdict) {
+  const flag = isRegularFile(join(root, FLAG));
+  if (verdict !== "absent") {
+    return (flag ? INVALID_WARNING_FLAG : INVALID_WARNING).replace("{reason}", () => verdict);
+  }
+  return flag ? BARE_FLAG_WARNING : "";
 }
 
 /** The project install named in GUIDANCE, from the lockfile at root (AC9.12). */
@@ -320,17 +379,19 @@ const argv = process.argv.slice(2);
 const host = parseArg(argv, "--host");
 const event = parseArg(argv, "--event");
 
-const killPath = join(root, FLAG);
-if (isRegularFile(killPath) && gitTrackListing(root, FLAG) === "untracked") {
+const verdict = killRecordVerdict(root);
+if (verdict === "valid") {
   quietAllow();
 }
 
 const pin = join(root, PIN_REL);
 if (!existsSync(pin)) {
+  const warning = killSwitchWarning(root, verdict);
+  if (warning.length > 0) process.stderr.write(warning + "\\n");
   blockToolCall(host, event, GUIDANCE.replace("{install}", () => installCommand(root)));
 }
 
-const child = spawnSync(process.execPath, [pin, ...argv], {
+const child = spawnSync(process.execPath, [pin, ...argv, ...READER_ARGS], {
   cwd: root,
   env: process.env,
   stdio: ["inherit", "pipe", "inherit"],

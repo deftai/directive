@@ -1,0 +1,125 @@
+{
+  "schema": "deft.kill-switch-record-cases.v1",
+  "note": "Shared kill-record cases (#6740). Every reader runs every case: core detector, runtime hook dispatch, launcher entry guard, outer hook, git-hook helper (sh, no node) and the Taskfile entry reader. `{gitDir}` is this checkout's `git rev-parse --absolute-git-dir`; `{otherGitDir}` is another checkout's. `kind` is file | symlink (a link to a valid record) | dir. `eol` is lf | crlf; every reader removes CR before matching whole lines. `finalNewline` defaults to true.",
+  "cases": [
+    {
+      "name": "valid",
+      "kind": "file",
+      "eol": "lf",
+      "lines": [
+        "schema=deft.kill-switch.v1",
+        "gitDir={gitDir}",
+        "mintedAt=2026-11-22T00:00:00Z",
+        "mintedVia=kill-switch:on"
+      ],
+      "valid": true
+    },
+    {
+      "name": "valid-lines-in-any-order-with-extra-lines",
+      "kind": "file",
+      "eol": "lf",
+      "lines": ["note=display only", "gitDir={gitDir}", "", "schema=deft.kill-switch.v1"],
+      "valid": true
+    },
+    {
+      "name": "valid-without-final-newline",
+      "kind": "file",
+      "eol": "lf",
+      "finalNewline": false,
+      "lines": ["schema=deft.kill-switch.v1", "gitDir={gitDir}"],
+      "valid": true
+    },
+    {
+      "name": "missing-schema-line",
+      "kind": "file",
+      "eol": "lf",
+      "lines": ["gitDir={gitDir}", "mintedVia=kill-switch:on"],
+      "valid": false
+    },
+    {
+      "name": "missing-git-dir-line",
+      "kind": "file",
+      "eol": "lf",
+      "lines": ["schema=deft.kill-switch.v1"],
+      "valid": false
+    },
+    {
+      "name": "wrong-schema-version",
+      "kind": "file",
+      "eol": "lf",
+      "lines": ["schema=deft.kill-switch.v2", "gitDir={gitDir}"],
+      "valid": false
+    },
+    {
+      "name": "wrong-git-dir",
+      "kind": "file",
+      "eol": "lf",
+      "lines": ["schema=deft.kill-switch.v1", "gitDir={gitDir}/elsewhere"],
+      "valid": false
+    },
+    {
+      "name": "extra-whitespace-after-git-dir",
+      "kind": "file",
+      "eol": "lf",
+      "lines": ["schema=deft.kill-switch.v1", "gitDir={gitDir} "],
+      "valid": false
+    },
+    {
+      "name": "extra-whitespace-before-schema",
+      "kind": "file",
+      "eol": "lf",
+      "lines": [" schema=deft.kill-switch.v1", "gitDir={gitDir}"],
+      "valid": false
+    },
+    {
+      "name": "crlf-line-endings-match-after-cr-removal",
+      "kind": "file",
+      "eol": "crlf",
+      "lines": ["schema=deft.kill-switch.v1", "gitDir={gitDir}"],
+      "valid": true
+    },
+    {
+      "name": "crlf-with-wrong-git-dir",
+      "kind": "file",
+      "eol": "crlf",
+      "lines": ["schema=deft.kill-switch.v1", "gitDir={otherGitDir}"],
+      "valid": false
+    },
+    {
+      "name": "json-instead-of-lines",
+      "kind": "file",
+      "eol": "lf",
+      "lines": ["{\"schema\":\"deft.kill-switch.v1\",\"gitDir\":\"{gitDir}\"}"],
+      "valid": false
+    },
+    {
+      "name": "empty-file",
+      "kind": "file",
+      "eol": "lf",
+      "finalNewline": false,
+      "lines": [],
+      "valid": false
+    },
+    {
+      "name": "copied-from-another-checkout",
+      "kind": "file",
+      "eol": "lf",
+      "lines": ["schema=deft.kill-switch.v1", "gitDir={otherGitDir}"],
+      "valid": false
+    },
+    {
+      "name": "linked-file",
+      "kind": "symlink",
+      "eol": "lf",
+      "lines": ["schema=deft.kill-switch.v1", "gitDir={gitDir}"],
+      "valid": false
+    },
+    {
+      "name": "directory-at-record-path",
+      "kind": "dir",
+      "eol": "lf",
+      "lines": [],
+      "valid": false
+    }
+  ]
+}

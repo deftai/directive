@@ -4,7 +4,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { INSTALLATION_RECOVERY_GUIDANCE } from "@deftai/directive-core/dist/install-health/constants.js";
 import type { CheapInSyncResult } from "@deftai/directive-core/dist/install-health/types.js";
-import { DEFT_DIRECTIVE_DISABLE_FLAG_NAME } from "@deftai/directive-core/dist/policy/deft-directive-disable.js";
+import {
+  DEFT_DIRECTIVE_DISABLE_FLAG_NAME,
+  resolveAbsoluteGitDir,
+} from "@deftai/directive-core/dist/policy/deft-directive-disable.js";
+import { writeKillSwitchRecord } from "@deftai/directive-core/dist/policy/kill-switch-record.js";
 import {
   fixtureCaseById,
   fixtureCasesFor,
@@ -1038,10 +1042,14 @@ function dispatch(root: string, seams: { cheapInSync?: (r: string) => CheapInSyn
   return { code, text: out.join(""), cheapCalls: () => cheapCalls };
 }
 
-describe("hook-bin: disable flag before root and pin checks (#6620)", () => {
-  it("untracked flag + pin mismatch + root mismatch → disabled allow, no install check", () => {
+describe("hook-bin: kill record before root and pin checks (#6620 / #6740)", () => {
+  it("valid kill record + pin mismatch + root mismatch → disabled allow, no install check", () => {
     const root = mismatchedProject();
-    writeFileSync(join(root, DEFT_DIRECTIVE_DISABLE_FLAG_NAME), "1\n");
+    writeKillSwitchRecord(root, {
+      gitDir: resolveAbsoluteGitDir(root) ?? "",
+      mintedAt: "2026-11-22T00:00:00Z",
+      mintedVia: "kill-switch:on",
+    });
     const result = dispatch(root);
     expect(result.code).toBe(0);
     expect(result.cheapCalls()).toBe(0);
@@ -1051,10 +1059,9 @@ describe("hook-bin: disable flag before root and pin checks (#6620)", () => {
     expect(result.text).not.toContain("deny");
   });
 
-  it("a tracked flag does not stop the checks", () => {
+  it("a bare root flag does not stop the checks", () => {
     const root = mismatchedProject();
     writeFileSync(join(root, DEFT_DIRECTIVE_DISABLE_FLAG_NAME), "1\n");
-    execFileSync("git", ["add", DEFT_DIRECTIVE_DISABLE_FLAG_NAME], { cwd: root });
     const result = dispatch(root);
     expect(result.text).toContain("payload project root does not match");
   });

@@ -1,11 +1,15 @@
 /**
- * Temporary test/local kill-switch for Directive enforcement (#3039).
+ * Temporary test/local kill-switch for Directive enforcement (#3039 / #6740).
  *
- * Presence of root `.deft-directive-disable` means Directive **enforcement** is
- * OFF (hooks, session ritual, automation) while the deposit may remain — **only
- * when the file is not tracked by git**. A committed flag is misconfig: doctor
- * warns and enforcement stays ON (repository-controlled content must not disable
- * hooks for downstream clones).
+ * #6740: a bare root `.deft-directive-disable` file turns nothing off. Directive
+ * **enforcement** is OFF (hooks, session ritual, automation) only when the kill
+ * record `.deft/authz/kill-switch.disable` is valid for this checkout (see
+ * `kill-switch-record.ts`): `kill-switch:on` writes it after the kept terminal
+ * mint and `kill-switch:off --confirm` removes it. A bare flag, or an invalid,
+ * copied or other-checkout record, leaves enforcement on with one warning.
+ *
+ * The rest of this header is the #3039 history. Flag presence is still
+ * reported (`present`, `trackedByGit`) but never selects the stand-down.
  *
  * Distinct from `.no-deft-directive` (#2926 permanent opt-out): flag+deposit is
  * **not** inconsistent here.
@@ -29,6 +33,17 @@ import { execFileSync } from "node:child_process";
 import { lstatSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { CANONICAL_INSTALL_ROOT } from "../init-deposit/constants.js";
+import {
+  type AbsoluteGitDirResolver,
+  formatKillRecordProvenance,
+  KILL_SWITCH_OFF_VERB,
+  KILL_SWITCH_ON_VERB,
+  KILL_SWITCH_RECORD_REL,
+  type KillSwitchRecordVerdict,
+  killSwitchWarning,
+  readKillSwitchRecord,
+  trimGitOutput,
+} from "./kill-switch-record.js";
 
 /** Canonical root-only filename (lowercase). Presence = candidate flag. */
 export const DEFT_DIRECTIVE_DISABLE_FLAG_NAME = ".deft-directive-disable";
@@ -41,18 +56,19 @@ export const DEFT_DIRECTIVE_DISABLE_GITIGNORE_LINE = DEFT_DIRECTIVE_DISABLE_FLAG
  * Surfaces (doctor, agent, CLI, hooks) share this wording.
  */
 export const DEFT_DIRECTIVE_DISABLE_RECOVERY_MESSAGE =
-  "Directive is DISABLED for this project via root `.deft-directive-disable` (test/local kill-switch).\n" +
+  `Directive is DISABLED for this checkout by the kill record \`${KILL_SWITCH_RECORD_REL}\` (test/local kill-switch, #6740).\n` +
   "Deposit may still be present; enforcement (hooks, session ritual, automation) will not run.\n" +
-  "The flag is present: stop Directive process load (AGENTS.md Temporary test kill-switch #3039).\n" +
+  "The record is valid: stop Directive process load (AGENTS.md Temporary test kill-switch #3039).\n" +
+  "A bare root `.deft-directive-disable` file turns nothing off; only the record does.\n" +
   "\n" +
   "To fully re-enable Directive:\n" +
-  "  1. Delete the file:  rm .deft-directive-disable   (or equivalent)\n" +
+  `  1. Remove the record:  deft ${KILL_SWITCH_OFF_VERB} --confirm   (no mint needed)\n` +
   "  2. Start a NEW agent session (reload AGENTS / host skills / hooks)\n" +
   "Until both are done, Directive is not fully operational.";
 
 /** One-line summary for log lines and short CLI output. */
 export const DEFT_DIRECTIVE_DISABLE_ONE_LINE =
-  "Directive disabled via `.deft-directive-disable` (test/local kill-switch; deposit OK)";
+  "Directive disabled via kill record `.deft/authz/kill-switch.disable` (test/local kill-switch; deposit OK)";
 
 /** Doctor/status label when the kill-switch is active (local / untracked). */
 export const DEFT_DIRECTIVE_DISABLE_STATUS = "disabled-test-kill-switch" as const;
@@ -61,8 +77,7 @@ export const DEFT_DIRECTIVE_DISABLE_STATUS = "disabled-test-kill-switch" as cons
  * Warning when the kill-switch file is tracked by git (should be gitignored).
  * Tracked flags do **not** disable enforcement.
  */
-export const DEFT_DIRECTIVE_DISABLE_TRACKED_WARNING =
-  "Misconfig: `.deft-directive-disable` is tracked by git. The flag must be gitignored (local kill-switch only). Untrack it and ensure `.gitignore` covers the path. Enforcement is NOT disabled while the flag is tracked.";
+export const DEFT_DIRECTIVE_DISABLE_TRACKED_WARNING = `Misconfig: \`.deft-directive-disable\` is tracked by git. A flag file never disables enforcement (#6740); untrack it. To turn Directive off for this checkout, a person runs \`deft ${KILL_SWITCH_ON_VERB} --confirm\` at a terminal.`;
 
 /** Cap git probe so hot-path hooks never hang on a slow VCS call. */
 const GIT_TRACKED_PROBE_TIMEOUT_MS = 1500;
@@ -106,6 +121,8 @@ export interface DeftDirectiveDisableSeams {
    * model launch/nonzero failure; return stdout string on success.
    */
   readonly gitLsFilesCapture?: (projectRoot: string, relPath: string) => string;
+  /** Kill-record git-dir resolver (#6740). Default: `resolveAbsoluteGitDir`. */
+  readonly absoluteGitDir?: AbsoluteGitDirResolver;
 }
 
 export interface DeftDirectiveDisableState {
@@ -118,13 +135,24 @@ export interface DeftDirectiveDisableState {
    * tracked listing (including indeterminate).
    */
   readonly trackedByGit: boolean;
-  /** Three-way eligibility; `active` is true only when this is `eligible`. */
+  /**
+   * Three-way eligibility; `active` is true only when this is `eligible`.
+   * #6740: eligible means a valid kill record; `indeterminate` means a record
+   * is present but git could not report this checkout's git dir.
+   */
   readonly eligibility: OperatorDisableEligibility;
   /**
    * True when the kill-switch is **active** for enforcement short-circuit:
-   * positively validated eligible (present regular file + successful untracked listing).
+   * the kill record is valid for this checkout (#6740). A bare flag never is.
    */
   readonly active: boolean;
+  /** Kill-record verdict (#6740). */
+  readonly record: KillSwitchRecordVerdict;
+  /**
+   * The one warning readers print for this checkout (bare flag, or an invalid
+   * record), or null (#6740).
+   */
+  readonly warning: string | null;
 }
 
 /**
@@ -176,6 +204,26 @@ export function probeGitLsFilesListing(
     return out.trim().length > 0 ? "tracked" : "untracked";
   } catch {
     return "indeterminate";
+  }
+}
+
+/**
+ * `git rev-parse --absolute-git-dir` for the checkout (the kill record's
+ * binding, #6740), or null on any failure. Same hot-path cap as the listing
+ * probe above: both are this detector's git probe.
+ */
+export function resolveAbsoluteGitDir(projectRoot: string): string | null {
+  try {
+    const out = execFileSync("git", ["-C", projectRoot, "rev-parse", "--absolute-git-dir"], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+      timeout: GIT_TRACKED_PROBE_TIMEOUT_MS,
+    });
+    if (typeof out !== "string") return null;
+    const trimmed = trimGitOutput(out);
+    return trimmed.length > 0 ? trimmed : null;
+  } catch {
+    return null;
   }
 }
 
@@ -264,20 +312,35 @@ export function detectDeftDirectiveDisable(
   const present = isFile(flagPath);
   const depositPresent = isDir(join(projectRoot, CANONICAL_INSTALL_ROOT));
   const probe: GitTrackProbeResult = present ? resolveTrackProbe(projectRoot, seams) : "untracked";
-  const { eligibility, trackedByGit } = eligibilityFromPresentProbe(present, probe);
+  const { trackedByGit } = eligibilityFromPresentProbe(present, probe);
+  // #6740: only a valid kill record selects the stand-down; the flag never does.
+  const record = readKillSwitchRecord(projectRoot, seams.absoluteGitDir ?? resolveAbsoluteGitDir);
+  const eligibility: OperatorDisableEligibility =
+    record.kind === "valid"
+      ? "eligible"
+      : record.kind === "invalid" && record.reason === "git-dir-unresolved"
+        ? "indeterminate"
+        : "ineligible";
   return {
     present,
     flagPath,
     depositPresent,
     trackedByGit,
     eligibility,
-    active: eligibility === "eligible",
+    active: record.kind === "valid",
+    record,
+    warning: killSwitchWarning(record, present),
   };
 }
 
+/** Provenance line for a valid record, or null (doctor / session:start, #6740). */
+export function killRecordProvenanceLine(state: DeftDirectiveDisableState): string | null {
+  return state.record.kind === "valid" ? formatKillRecordProvenance(state.record) : null;
+}
+
 /**
- * True when the local (untracked) kill-switch is active for enforcement
- * short-circuit. Tracked / indeterminate flags return false so hooks stay enforced.
+ * True when the kill record is valid for this checkout (#6740). A bare flag,
+ * tracked or not, returns false so hooks stay enforced.
  */
 export function isDeftDirectiveDisableActive(
   projectRoot: string,

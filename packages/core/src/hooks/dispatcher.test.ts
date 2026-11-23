@@ -2259,7 +2259,7 @@ describe("direct-write hook policy", () => {
       killSeams,
     );
     expect(tool).toMatchObject({ verdict: "allow", code: "directive-disabled" });
-    expect(tool.message).toContain("rm .deft-directive-disable");
+    expect(tool.message).toContain("kill-switch:off --confirm");
   });
 
   it("injects session.start disable notice as decision.message on all four hosts (#4884)", () => {

@@ -664,16 +664,105 @@ describe("framework pin exclusive invoke (#5805)", () => {
     );
   });
 
-  it("disable-active / pin-bin quiet-skip when untracked disable flag present (#5994)", () => {
+  it("a bare disable flag turns nothing off and prints one warning (#6740)", () => {
+    const { KILL_SWITCH_BARE_FLAG_WARNING } = require("./engine-invoke.cjs");
     const root = pinTempRoot();
     const script = join(__dirname, "engine-invoke.cjs");
     writeFileSync(join(root, ".deft-directive-disable"), "1\n");
-    // Ensure git repo so ls-files --error-unmatch can run (untracked → active).
-    spawnSync("git", ["init"], { cwd: root, stdio: "ignore" });
+    spawnSync("git", ["init", "-q"], { cwd: root, stdio: "ignore" });
+    const d = spawnSync(process.execPath, [script, "disable-active", root], { encoding: "utf8" });
+    assert.equal(d.status, 1);
+    assert.equal(d.stderr.trim(), KILL_SWITCH_BARE_FLAG_WARNING);
+    assert.match(d.stderr, /\.deft-directive-disable/);
+    assert.match(d.stderr, /kill-switch:on/);
+  });
+
+  it("disable-active / pin-bin quiet-skip on a valid kill record (#6740)", () => {
+    const root = pinTempRoot();
+    const script = join(__dirname, "engine-invoke.cjs");
+    spawnSync("git", ["init", "-q"], { cwd: root, stdio: "ignore" });
+    const gitDir = gitAbsoluteDir(root);
+    writeKillRecord(root, `schema=deft.kill-switch.v1\ngitDir=${gitDir}\n`);
     const d = spawnSync(process.execPath, [script, "disable-active", root], { encoding: "utf8" });
     assert.equal(d.status, 0);
+    assert.equal(d.stderr, "");
     const r = spawnSync(process.execPath, [script, "pin-bin", root], { encoding: "utf8" });
     assert.equal(r.status, 0);
     assert.equal((r.stdout || "").trim(), "");
   });
+
+  it("kill record verbs pass disable-active and pin-bin while the record is valid (#6740)", () => {
+    const { engineCmdIsKillSwitch } = require("./engine-invoke.cjs");
+    assert.equal(engineCmdIsKillSwitch({ DEFT_ENGINE_CMD_JSON: '"kill-switch off --confirm"' }), true);
+    assert.equal(engineCmdIsKillSwitch({ DEFT_ENGINE_CMD: "kill-switch:off --confirm" }), true);
+    assert.equal(engineCmdIsKillSwitch({ DEFT_ENGINE_CMD_JSON: '"policy show"' }), false);
+    const root = pinTempRoot();
+    const script = join(__dirname, "engine-invoke.cjs");
+    spawnSync("git", ["init", "-q"], { cwd: root, stdio: "ignore" });
+    writeKillRecord(root, `schema=deft.kill-switch.v1\ngitDir=${gitAbsoluteDir(root)}\n`);
+    const env = { ...process.env, DEFT_ENGINE_CMD_JSON: '"kill-switch off --confirm"' };
+    const d = spawnSync(process.execPath, [script, "disable-active", root], { encoding: "utf8", env });
+    assert.equal(d.status, 1);
+  });
+
+  it("applies the shared kill record cases (#6740)", () => {
+    const { killRecordVerdict, killSwitchWarning } = require("./engine-invoke.cjs");
+    const cases = JSON.parse(
+      readFileSync(
+        join(__dirname, "..", "packages", "core", "src", "policy", "fixtures", "kill-switch-record-cases.json"),
+        "utf8",
+      ),
+    ).cases;
+    const root = pinTempRoot();
+    spawnSync("git", ["init", "-q"], { cwd: root, stdio: "ignore" });
+    const other = pinTempRoot();
+    spawnSync("git", ["init", "-q"], { cwd: other, stdio: "ignore" });
+    const gitDir = gitAbsoluteDir(root);
+    const otherGitDir = gitAbsoluteDir(other);
+    for (const c of cases) {
+      if (!materializeKillCase(root, c, gitDir, otherGitDir)) continue;
+      const verdict = killRecordVerdict(root);
+      assert.equal(verdict === "valid", c.valid, c.name);
+      const warning = killSwitchWarning(root, verdict);
+      assert.equal(warning.length > 0, !c.valid, c.name);
+    }
+  });
 });
+
+function gitAbsoluteDir(root) {
+  const r = spawnSync("git", ["-C", root, "rev-parse", "--absolute-git-dir"], { encoding: "utf8" });
+  return String(r.stdout).replace(/\n+$/, "");
+}
+
+function writeKillRecord(root, body) {
+  mkdirSync(join(root, ".deft", "authz"), { recursive: true });
+  writeFileSync(join(root, ".deft", "authz", "kill-switch.disable"), body);
+}
+
+/** Write one shared case at the record path; false when this platform cannot make a link. */
+function materializeKillCase(root, c, gitDir, otherGitDir) {
+  const { symlinkSync } = require("node:fs");
+  const dir = join(root, ".deft", "authz");
+  const rec = join(dir, "kill-switch.disable");
+  mkdirSync(dir, { recursive: true });
+  rmSync(rec, { recursive: true, force: true });
+  const eol = c.eol === "crlf" ? "\r\n" : "\n";
+  const lines = c.lines.map((l) => l.replaceAll("{gitDir}", gitDir).replaceAll("{otherGitDir}", otherGitDir));
+  const body = lines.length === 0 ? "" : lines.join(eol) + (c.finalNewline === false ? "" : eol);
+  if (c.kind === "dir") {
+    mkdirSync(rec);
+    return true;
+  }
+  if (c.kind === "symlink") {
+    const target = join(dir, "link-target.txt");
+    writeFileSync(target, body);
+    try {
+      symlinkSync(target, rec, "file");
+    } catch {
+      return false;
+    }
+    return true;
+  }
+  writeFileSync(rec, body);
+  return true;
+}

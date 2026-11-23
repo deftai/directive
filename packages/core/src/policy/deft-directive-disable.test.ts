@@ -17,6 +17,7 @@ import {
   formatDeftDirectiveDisableMessage,
   isDeftDirectiveDisableActive,
 } from "./deft-directive-disable.js";
+import { KILL_SWITCH_BARE_FLAG_WARNING } from "./kill-switch-record.js";
 
 const temps: string[] = [];
 
@@ -46,16 +47,17 @@ describe("detectDeftDirectiveDisable (#3039)", () => {
     expect(isDeftDirectiveDisableActive(root)).toBe(false);
   });
 
-  it("activates on an empty untracked root flag file", () => {
+  it("does not activate on an empty untracked root flag file (#6740)", () => {
     const root = tempRoot();
     writeFileSync(join(root, DEFT_DIRECTIVE_DISABLE_FLAG_NAME), "", "utf8");
     const state = detectDeftDirectiveDisable(root, {
       isGitTracked: () => false,
     });
     expect(state.present).toBe(true);
-    expect(state.active).toBe(true);
-    expect(state.eligibility).toBe("eligible");
-    expect(isDeftDirectiveDisableActive(root, { isGitTracked: () => false })).toBe(true);
+    expect(state.active).toBe(false);
+    expect(state.eligibility).toBe("ineligible");
+    expect(state.warning).toBe(KILL_SWITCH_BARE_FLAG_WARNING);
+    expect(isDeftDirectiveDisableActive(root, { isGitTracked: () => false })).toBe(false);
   });
 
   it("detects a short-comment flag file as present", () => {
@@ -96,8 +98,8 @@ describe("detectDeftDirectiveDisable (#3039)", () => {
     const state = detectDeftDirectiveDisable(root, { isGitTracked: () => false });
     expect(state.present).toBe(true);
     expect(state.depositPresent).toBe(true);
-    expect(state.active).toBe(true);
-    expect(state.eligibility).toBe("eligible");
+    expect(state.active).toBe(false);
+    expect(state.eligibility).toBe("ineligible");
   });
 
   it("does not activate when the flag is tracked by git (misconfig)", () => {
@@ -131,34 +133,38 @@ describe("detectDeftDirectiveDisable (#3039)", () => {
     });
     expect(state.present).toBe(true);
     expect(state.depositPresent).toBe(true);
-    expect(state.active).toBe(true);
-    expect(state.eligibility).toBe("eligible");
+    // #6740: an untracked flag no longer selects the stand-down; only a record does.
+    expect(state.active).toBe(false);
+    expect(state.eligibility).toBe("ineligible");
   });
 
   it("documents recovery wording and gitignore constant", () => {
     expect(DEFT_DIRECTIVE_DISABLE_FLAG_NAME).toBe(".deft-directive-disable");
     expect(DEFT_DIRECTIVE_DISABLE_GITIGNORE_LINE).toBe(".deft-directive-disable");
     expect(DEFT_DIRECTIVE_DISABLE_STATUS).toBe("disabled-test-kill-switch");
-    expect(DEFT_DIRECTIVE_DISABLE_RECOVERY_MESSAGE).toContain("rm .deft-directive-disable");
+    expect(DEFT_DIRECTIVE_DISABLE_RECOVERY_MESSAGE).toContain("deft kill-switch:off --confirm");
+    expect(DEFT_DIRECTIVE_DISABLE_RECOVERY_MESSAGE).not.toContain("rm .deft-directive-disable");
     expect(DEFT_DIRECTIVE_DISABLE_RECOVERY_MESSAGE).toContain("NEW agent session");
     expect(DEFT_DIRECTIVE_DISABLE_RECOVERY_MESSAGE).toContain(
-      "The flag is present: stop Directive process load (AGENTS.md Temporary test kill-switch #3039).",
+      "The record is valid: stop Directive process load (AGENTS.md Temporary test kill-switch #3039).",
     );
     expect(softAgentsRebindForbiddenHits(DEFT_DIRECTIVE_DISABLE_RECOVERY_MESSAGE)).toEqual([]);
     expect(DEFT_DIRECTIVE_DISABLE_ONE_LINE).toContain("test/local kill-switch");
-    expect(DEFT_DIRECTIVE_DISABLE_TRACKED_WARNING).toContain("gitignored");
-    expect(DEFT_DIRECTIVE_DISABLE_TRACKED_WARNING).toContain("NOT disabled");
+    expect(DEFT_DIRECTIVE_DISABLE_TRACKED_WARNING).toContain("never disables");
+    expect(DEFT_DIRECTIVE_DISABLE_TRACKED_WARNING).toContain("kill-switch:on");
   });
 });
 
-describe("operator-disable eligibility matrix (#6122)", () => {
+// #6740: the flag probe still reports trackedByGit, but no flag row is eligible
+// or active any more; only a valid kill record selects the stand-down.
+describe("operator-disable eligibility matrix (#6122 / #6740)", () => {
   const cases = [
     {
       name: "valid local regular-file untracked",
       present: true,
       probe: "untracked",
-      eligibility: "eligible",
-      active: true,
+      eligibility: "ineligible",
+      active: false,
       trackedByGit: false,
     },
     {
@@ -181,7 +187,7 @@ describe("operator-disable eligibility matrix (#6122)", () => {
       name: "indeterminate probe",
       present: true,
       probe: "indeterminate",
-      eligibility: "indeterminate",
+      eligibility: "ineligible",
       active: false,
       trackedByGit: false,
     },
@@ -207,7 +213,7 @@ describe("operator-disable eligibility matrix (#6122)", () => {
     const state = detectDeftDirectiveDisable(root, {
       probeGitTrackListing: () => "indeterminate",
     });
-    expect(state.eligibility).toBe("indeterminate");
+    expect(state.eligibility).toBe("ineligible");
     expect(state.active).toBe(false);
   });
 
@@ -218,7 +224,7 @@ describe("operator-disable eligibility matrix (#6122)", () => {
       skipTrackedCache: true,
       probeGitTrackListing: () => "indeterminate",
     });
-    expect(state.eligibility).toBe("indeterminate");
+    expect(state.eligibility).toBe("ineligible");
     expect(state.active).toBe(false);
   });
 
@@ -234,7 +240,7 @@ describe("operator-disable eligibility matrix (#6122)", () => {
       return next;
     };
     const first = detectDeftDirectiveDisable(root, { probeGitTrackListing: probe });
-    expect(first.eligibility).toBe("indeterminate");
+    expect(first.eligibility).toBe("ineligible");
     expect(first.active).toBe(false);
     const second = detectDeftDirectiveDisable(root, { probeGitTrackListing: probe });
     expect(second.eligibility).toBe("ineligible");
@@ -253,7 +259,8 @@ describe("operator-disable eligibility matrix (#6122)", () => {
       skipTrackedCache: true,
       probeGitTrackListing: () => (tracked ? "tracked" : "untracked"),
     });
-    expect(first.active).toBe(true);
+    expect(first.active).toBe(false);
+    expect(first.trackedByGit).toBe(false);
     tracked = true;
     const second = detectDeftDirectiveDisable(root, {
       isFile: (p) => files.has(p),
@@ -278,7 +285,7 @@ describe("operator-disable eligibility matrix (#6122)", () => {
       return `${DEFT_DIRECTIVE_DISABLE_FLAG_NAME}\n`;
     };
     const first = detectDeftDirectiveDisable(root, { gitLsFilesCapture: capture });
-    expect(first.eligibility).toBe("indeterminate");
+    expect(first.eligibility).toBe("ineligible");
     expect(first.active).toBe(false);
     expect(calls).toBe(1);
     const second = detectDeftDirectiveDisable(root, { gitLsFilesCapture: capture });
@@ -307,13 +314,14 @@ describe("operator-disable eligibility matrix (#6122)", () => {
       skipTrackedCache: true,
       gitLsFilesCapture: capture,
     });
-    expect(first.eligibility).toBe("indeterminate");
+    expect(first.eligibility).toBe("ineligible");
     const second = detectDeftDirectiveDisable(root, {
       skipTrackedCache: true,
       gitLsFilesCapture: capture,
     });
-    expect(second.eligibility).toBe("eligible");
-    expect(second.active).toBe(true);
+    expect(second.eligibility).toBe("ineligible");
+    expect(second.active).toBe(false);
+    expect(second.trackedByGit).toBe(false);
     expect(calls).toBe(2);
   });
 });
@@ -321,7 +329,8 @@ describe("operator-disable eligibility matrix (#6122)", () => {
 describe("formatDeftDirectiveDisableMessage (#3039)", () => {
   it("includes recovery steps by default", () => {
     const msg = formatDeftDirectiveDisableMessage();
-    expect(msg).toContain("Delete the file");
+    expect(msg).toContain("Remove the record");
+    expect(msg).toContain("kill-switch:off --confirm");
     expect(msg).toContain("NEW agent session");
   });
 

@@ -43,7 +43,6 @@ import {
 import {
   detectDeftDirectiveDisable,
   formatDeftDirectiveDisableMessage,
-  isDeftDirectiveDisableActive,
 } from "../policy/deft-directive-disable.js";
 import { evaluateIntentCeilingFromEnv, type IntentCeilingOp } from "../policy/intent-ceiling.js";
 import {
@@ -4824,20 +4823,18 @@ function routeHookDecision(
 ): HookDecision {
   const projectRoot = resolve(input.projectRoot);
 
-  // #3039: local (untracked) `.deft-directive-disable` wins for enforcement
-  // short-circuit (SessionStart / compact / PreToolUse). Deposit may remain.
-  // Tracked/committed flags do NOT bypass gates (repo-controlled content must
-  // not disable enforcement for clones) — doctor warns instead.
-  // #3794: the kill-switch is pinned to payloadRoot. The flag is untracked, so
-  // linked worktrees do not carry it; re-pointing would silently re-arm.
+  // #3039 / #6740: a valid kill record (`.deft/authz/kill-switch.disable`,
+  // bound to this checkout's git dir) wins for enforcement short-circuit
+  // (SessionStart / compact / PreToolUse). Deposit may remain. A bare root
+  // flag file, tracked or not, never bypasses gates; the hook process prints
+  // one warning instead.
+  // #3794: the kill-switch is pinned to payloadRoot. Linked worktrees have
+  // their own record store; re-pointing would silently re-arm.
   {
+    // #6740: `active` means a valid kill record; a bare flag never stands down.
     const detectKill = seams.detectDeftDirectiveDisable ?? detectDeftDirectiveDisable;
     const kill = detectKill(projectRoot);
-    const killActive =
-      seams.detectDeftDirectiveDisable !== undefined
-        ? kill.active
-        : isDeftDirectiveDisableActive(projectRoot);
-    if (killActive) {
+    if (kill.active) {
       const detectOptOut = seams.detectNoDeftDirective ?? detectNoDeftDirective;
       const optOut = detectOptOut(projectRoot);
       const message = formatDeftDirectiveDisableMessage({

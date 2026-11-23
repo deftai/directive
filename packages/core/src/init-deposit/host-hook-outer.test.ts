@@ -3,6 +3,7 @@ import { chmodSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync }
 import { tmpdir } from "node:os";
 import { delimiter, join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { KILL_SWITCH_BARE_FLAG_WARNING } from "../policy/kill-switch-record.js";
 import {
   HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE,
   HOST_HOOK_NONDECISION_REASON,
@@ -34,6 +35,17 @@ function writeRuntime(root: string, body: string): void {
     recursive: true,
   });
   writeFileSync(join(root, "node_modules/@deftai/directive-runtime/dist/hook-bin.js"), body);
+}
+
+/** A kill record bound to this checkout's git dir (#6740). */
+function writeValidKillRecord(root: string): void {
+  const r = spawnSync("git", ["-C", root, "rev-parse", "--absolute-git-dir"], { encoding: "utf8" });
+  const gitDir = String(r.stdout).replace(/\n+$/, "");
+  mkdirSync(join(root, ".deft", "authz"), { recursive: true });
+  writeFileSync(
+    join(root, ".deft", "authz", "kill-switch.disable"),
+    `schema=deft.kill-switch.v1\ngitDir=${gitDir}\nmintedVia=kill-switch:on\n`,
+  );
 }
 
 function writeDenyRuntime(root: string): void {
@@ -146,16 +158,67 @@ describe("host-hook-outer (#5994)", () => {
     ).toBe(false);
   });
 
-  it("F1: eligible disable quiet-allows without pin present", () => {
+  it("F1 (#6740): a valid kill record quiet-allows without pin present", () => {
     const root = mkdtempSync(join(tmpdir(), "outer-disable-"));
     try {
       writeFileSync(join(root, "package.json"), "{}\n");
       gitInit(root);
-      writeFileSync(join(root, ".deft-directive-disable"), "1\n");
+      writeValidKillRecord(root);
       const r = runOuter(root, "grok");
       expect(r.status).toBe(0);
       expect(r.stdout ?? "").toBe("");
       expect(r.stderr ?? "").toBe("");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("F1 (#6740): a bare untracked flag does not quiet-allow and prints one warning", () => {
+    const root = mkdtempSync(join(tmpdir(), "outer-bareflag-"));
+    try {
+      writeFileSync(join(root, "package.json"), "{}\n");
+      gitInit(root);
+      writeFileSync(join(root, ".deft-directive-disable"), "1\n");
+      const r = runOuter(root, "claude");
+      expectHostFailClosed(r, "claude");
+      const warnings = String(r.stderr)
+        .split("\n")
+        .filter((l) => l === KILL_SWITCH_BARE_FLAG_WARNING);
+      expect(warnings).toHaveLength(1);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("passes --kill-switch-reader v1 to the runtime hook binary (#6740)", () => {
+    const root = mkdtempSync(join(tmpdir(), "outer-reader-"));
+    try {
+      writeFileSync(join(root, "package.json"), "{}\n");
+      writeRuntime(root, "process.stdout.write(JSON.stringify(process.argv.slice(2)));\n");
+      const r = runOuter(root, "claude");
+      expect(r.status).toBe(0);
+      expect(JSON.parse(String(r.stdout))).toEqual([
+        "--host",
+        "claude",
+        "--event",
+        "tool.before",
+        "--kill-switch-reader",
+        "v1",
+      ]);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("an older runtime that refuses the reader flag fails closed as a hook failure (#6740)", () => {
+    const root = mkdtempSync(join(tmpdir(), "outer-oldrt-"));
+    try {
+      writeFileSync(join(root, "package.json"), "{}\n");
+      writeRuntime(
+        root,
+        'if (process.argv.includes("--kill-switch-reader")) { process.stderr.write("unrecognized argument: --kill-switch-reader\\n"); process.exit(2); }\n',
+      );
+      for (const host of HOSTS) expectHostDenyRuntime(runOuter(root, host), host);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
@@ -175,14 +238,20 @@ describe("host-hook-outer (#5994)", () => {
     }
   });
 
-  it("source mentions pin hook-bin and disable flag", () => {
+  it("source mentions pin hook-bin and the kill record contract (#6740)", () => {
     const source = hostHookOuterSource();
     expect(source).toContain("node_modules/@deftai/directive-runtime/dist/hook-bin.js");
     expect(source).toContain(".deft-directive-disable");
+    expect(source).toContain(".deft/authz/kill-switch.disable");
+    expect(source).toContain("schema=deft.kill-switch.v1");
+    expect(source).toContain("--absolute-git-dir");
+    expect(source).toContain('"--kill-switch-reader"');
     expect(source).toContain(HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE);
     expect(source).toContain(HOST_HOOK_NONDECISION_REASON);
     expect(source).toContain("isRegularFile");
-    expect(source).toContain("gitTrackListing");
+    expect(source).toContain("killRecordVerdict");
+    expect(source).not.toContain("gitTrackListing");
+    expect(source).not.toContain("ls-files");
     expect(source).not.toContain("error-unmatch");
   });
 
@@ -289,17 +358,27 @@ describe("host-hook-outer eligibility conformance (#6122)", () => {
     }
   });
 
-  it.each(
-    HOSTS,
-  )("%s: eligible untracked still quietAllows without pin (missing-runtime)", (host) => {
+  it.each(HOSTS)("%s: a valid kill record quietAllows without pin (#6740)", (host) => {
     const root = mkdtempSync(join(tmpdir(), `outer-eligible-${host}-`));
     try {
       writeFileSync(join(root, "package.json"), "{}\n");
       gitInit(root);
-      writeFileSync(join(root, ".deft-directive-disable"), "1\n");
+      writeValidKillRecord(root);
       const r = runOuter(root, host);
       expect(r.status).toBe(0);
       expect(r.stdout ?? "").toBe("");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it.each(HOSTS)("%s: a bare untracked flag fails closed without pin (#6740)", (host) => {
+    const root = mkdtempSync(join(tmpdir(), `outer-bare-${host}-`));
+    try {
+      writeFileSync(join(root, "package.json"), "{}\n");
+      gitInit(root);
+      writeFileSync(join(root, ".deft-directive-disable"), "1\n");
+      expectHostFailClosed(runOuter(root, host), host);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
@@ -330,7 +409,9 @@ describe("host-hook-outer bytes stay put (#6613)", () => {
     // (block the tool call when the hook cannot decide): a598056e -> 8edf26e9.
     // #6620 changed them on purpose (shared message table, install named by
     // lockfile): 8edf26e9 -> 8149fb11.
-    expect(hostHookOuterSha8()).toBe("8149fb11");
+    // #6740 changed them on purpose (kill record instead of the bare flag,
+    // `--kill-switch-reader v1` passed to hook-bin): 8149fb11 -> 665df6a9.
+    expect(hostHookOuterSha8()).toBe("665df6a9");
   });
 });
 

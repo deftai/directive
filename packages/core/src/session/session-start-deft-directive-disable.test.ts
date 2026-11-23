@@ -5,9 +5,10 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { CANONICAL_INSTALL_ROOT } from "../init-deposit/constants.js";
 import {
-  DEFT_DIRECTIVE_DISABLE_FLAG_NAME,
   DEFT_DIRECTIVE_DISABLE_STATUS,
+  resolveAbsoluteGitDir,
 } from "../policy/deft-directive-disable.js";
+import { KILL_SWITCH_RECORD_REL, writeKillSwitchRecord } from "../policy/kill-switch-record.js";
 import { NO_DEFT_DIRECTIVE_FLAG_NAME } from "../policy/no-deft-directive.js";
 import { runSessionStart } from "./session-start.js";
 
@@ -26,10 +27,19 @@ function tempRoot(): string {
   return root;
 }
 
-describe("runSessionStart — .deft-directive-disable short-circuit (#3039)", () => {
-  it("skips the session ritual when the kill-switch is present", () => {
+/** #6740: only a valid kill record stands the ritual down; a bare flag does not. */
+function writeKillRecord(root: string): void {
+  writeKillSwitchRecord(root, {
+    gitDir: resolveAbsoluteGitDir(root) ?? "",
+    mintedAt: "2026-11-22T00:00:00Z",
+    mintedVia: "kill-switch:on",
+  });
+}
+
+describe("runSessionStart — kill record short-circuit (#3039 / #6740)", () => {
+  it("skips the session ritual when a valid kill record is present", () => {
     const root = tempRoot();
-    writeFileSync(join(root, DEFT_DIRECTIVE_DISABLE_FLAG_NAME), "", "utf8");
+    writeKillRecord(root);
     const result = runSessionStart(root, {
       writeHistory: false,
       verifyTools: () => {
@@ -44,17 +54,18 @@ describe("runSessionStart — .deft-directive-disable short-circuit (#3039)", ()
     });
     expect(result.code).toBe(0);
     expect(result.payload.disabled).toBe(true);
-    expect(result.payload.disabled_via).toBe(DEFT_DIRECTIVE_DISABLE_FLAG_NAME);
+    expect(result.payload.disabled_via).toBe(KILL_SWITCH_RECORD_REL);
     expect(result.payload.status).toBe(DEFT_DIRECTIVE_DISABLE_STATUS);
     expect(result.payload.ready).toBe(false);
     expect(result.payload.inconsistent).toBe(false);
     expect(String(result.payload.message)).toContain("NEW agent session");
-    expect(result.lines.join("\n")).toContain("rm .deft-directive-disable");
+    expect(result.lines.join("\n")).toContain("kill-switch:off --confirm");
+    expect(result.lines.join("\n")).toContain("mintedVia=kill-switch:on");
   });
 
   it("allows deposit to remain without dirty exit", () => {
     const root = tempRoot();
-    writeFileSync(join(root, DEFT_DIRECTIVE_DISABLE_FLAG_NAME), "# A/B\n", "utf8");
+    writeKillRecord(root);
     mkdirSync(join(root, CANONICAL_INSTALL_ROOT), { recursive: true });
     const result = runSessionStart(root, { writeHistory: false });
     expect(result.code).toBe(0);
@@ -63,13 +74,13 @@ describe("runSessionStart — .deft-directive-disable short-circuit (#3039)", ()
     expect(result.payload.ready).toBe(false);
   });
 
-  it("combines permanent opt-out when both flags present", () => {
+  it("combines permanent opt-out when the record and the opt-out flag are present", () => {
     const root = tempRoot();
-    writeFileSync(join(root, DEFT_DIRECTIVE_DISABLE_FLAG_NAME), "", "utf8");
+    writeKillRecord(root);
     writeFileSync(join(root, NO_DEFT_DIRECTIVE_FLAG_NAME), "", "utf8");
     const result = runSessionStart(root, { writeHistory: false });
     expect(result.code).toBe(0);
-    expect(result.payload.disabled_via).toBe(DEFT_DIRECTIVE_DISABLE_FLAG_NAME);
+    expect(result.payload.disabled_via).toBe(KILL_SWITCH_RECORD_REL);
     expect(result.payload.permanent_opt_out_also_present).toBe(true);
     expect(result.lines.join("\n")).toContain(".no-deft-directive");
   });

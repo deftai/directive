@@ -104,6 +104,7 @@ export const CLI_MODULE_VERBS = [
   "coverage-hotspots",
   "policy",
   "authz",
+  "kill-switch",
   "escalation-cli",
   "pr-closing-keywords",
   "pr-merge-readiness",
@@ -355,6 +356,16 @@ const AUTHZ_ACTION_COLON_ALIASES = Object.fromEntries(
   Object.keys(AUTHZ_ACTION_ALIAS_SUBCOMMANDS).map((alias) => [alias, "authz"]),
 ) as Record<string, string>;
 
+/** Colon aliases for the kill record verbs (#6740). */
+export const KILL_SWITCH_ALIAS_SUBCOMMANDS: Readonly<Record<string, string>> = {
+  "kill-switch:on": "on",
+  "kill-switch:off": "off",
+};
+
+const KILL_SWITCH_COLON_ALIASES = Object.fromEntries(
+  Object.keys(KILL_SWITCH_ALIAS_SUBCOMMANDS).map((alias) => [alias, "kill-switch"]),
+) as Record<string, string>;
+
 /** Colon aliases for escalation subcommands (#518). */
 export const ESCALATION_ACTION_ALIAS_SUBCOMMANDS: Readonly<Record<string, string>> = {
   "escalation:file": "file",
@@ -534,6 +545,7 @@ export const VERB_ALIASES: Readonly<Record<string, string>> = {
   ...TRIAGE_ACTION_COLON_ALIASES,
   ...POLICY_ACTION_COLON_ALIASES,
   ...AUTHZ_ACTION_COLON_ALIASES,
+  ...KILL_SWITCH_COLON_ALIASES,
   ...ESCALATION_ACTION_COLON_ALIASES,
   ...PRODUCT_SIGNAL_COLON_ALIASES,
   "agents:refresh": "agents-refresh",
@@ -3594,6 +3606,8 @@ export async function dispatch(argv: string[], io: DispatchIo = defaultIo()): Pr
     const triageSubcommand = verb !== undefined ? TRIAGE_ACTION_ALIAS_SUBCOMMANDS[verb] : undefined;
     const policySubcommand = verb !== undefined ? POLICY_ACTION_ALIAS_SUBCOMMANDS[verb] : undefined;
     const authzSubcommand = verb !== undefined ? AUTHZ_ACTION_ALIAS_SUBCOMMANDS[verb] : undefined;
+    const killSwitchSubcommand =
+      verb !== undefined ? KILL_SWITCH_ALIAS_SUBCOMMANDS[verb] : undefined;
     const escalationSubcommand =
       verb !== undefined ? ESCALATION_ACTION_ALIAS_SUBCOMMANDS[verb] : undefined;
     const planSequenceSubcommand =
@@ -3615,19 +3629,21 @@ export async function dispatch(argv: string[], io: DispatchIo = defaultIo()): Pr
             ? [policySubcommand, ...rest]
             : authzSubcommand !== undefined && canonical === "authz"
               ? [authzSubcommand, ...rest]
-              : escalationSubcommand !== undefined && canonical === "escalation-cli"
-                ? [escalationSubcommand, ...rest]
-                : planSequenceSubcommand !== undefined && canonical === "plan-sequence"
-                  ? [planSequenceSubcommand, ...rest]
-                  : tutorialSubcommand !== undefined && canonical === "tutorial"
-                    ? [tutorialSubcommand, ...rest]
-                    : productSignalSubcommand !== undefined && canonical === "product-signal"
-                      ? [productSignalSubcommand, ...rest]
-                      : freshnessSubcommand !== undefined && canonical === "freshness-report"
-                        ? [freshnessSubcommand, ...rest]
-                        : vbriefValidateSubcommand !== undefined
-                          ? [vbriefValidateSubcommand, ...rest]
-                          : rest;
+              : killSwitchSubcommand !== undefined && canonical === "kill-switch"
+                ? [killSwitchSubcommand, ...rest]
+                : escalationSubcommand !== undefined && canonical === "escalation-cli"
+                  ? [escalationSubcommand, ...rest]
+                  : planSequenceSubcommand !== undefined && canonical === "plan-sequence"
+                    ? [planSequenceSubcommand, ...rest]
+                    : tutorialSubcommand !== undefined && canonical === "tutorial"
+                      ? [tutorialSubcommand, ...rest]
+                      : productSignalSubcommand !== undefined && canonical === "product-signal"
+                        ? [productSignalSubcommand, ...rest]
+                        : freshnessSubcommand !== undefined && canonical === "freshness-report"
+                          ? [freshnessSubcommand, ...rest]
+                          : vbriefValidateSubcommand !== undefined
+                            ? [vbriefValidateSubcommand, ...rest]
+                            : rest;
     const helpRc = interceptHelp(canonical.replaceAll("-", "_"), handlerArgv, {
       write: io.writeOut,
     });

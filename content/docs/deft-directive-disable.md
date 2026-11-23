@@ -1,90 +1,110 @@
-# Temporary kill-switch: `.deft-directive-disable`
+# Temporary kill-switch: the kill record
 
-Use a **root file flag** to turn Directive **enforcement** off for local testing (A/B, DevHammer, ceremony vs loop) **without** permanent project opt-out and **without** deleting the deposit.
+Use the **kill record** to turn Directive **enforcement** off for local testing (A/B, ceremony vs loop) **without** permanent project opt-out and **without** deleting the deposit.
 
-Tracker: [#3039](https://github.com/deftai/directive/issues/3039).
+Trackers: [#3039](https://github.com/deftai/directive/issues/3039) (kill-switch), [#6740](https://github.com/deftai/directive/issues/6740) (kill record).
 
 **Not** permanent opt-out — that is [`.no-deft-directive`](./no-deft-directive.md) (#2926).
 
-## Filename and location
+## Turn it off and on
+
+A person runs these at a terminal:
 
 ```text
-.deft-directive-disable
+deft kill-switch:on --confirm     # enforcement off for this checkout
+deft kill-switch:off --confirm    # enforcement back on (no mint)
 ```
 
-- **Exact name:** lowercase `.deft-directive-disable`
-- **Location:** project / workspace **root only**
-- **Content:** empty file or a short `#` comment. Presence is the flag. No schema.
-- **Git:** **Must be gitignored** (deposit baseline includes this entry). Committed / tracked flag is a misconfig: doctor **warns**, and enforcement is **not** disabled (repo-controlled content must not turn off hooks for clones).
+Then start a **new agent session** either way.
+
+- `kill-switch:on` runs the kept terminal mint: it refuses shells with agent or CI markers, non-interactive callers and an active UAT lease, and asks for the typed phrase. It then writes the record atomically.
+- `kill-switch:off` removes only the record. It needs `--confirm` and no mint, because turning enforcement back on tightens (#5980).
+
+## The record
+
+```text
+.deft/authz/kill-switch.disable
+```
+
+- **Location:** the payload root's grant store. A linked worktree uses its own root, never the main clone's.
+- **Content:** plain lines. Two of them decide:
+  - `schema=deft.kill-switch.v1`
+  - `gitDir=` followed by what `git rev-parse --absolute-git-dir` prints in this checkout
+- `mintedAt=` and `mintedVia=` are display only.
+
+A record counts only when it is a regular file (not a link) that contains both lines exactly, as whole lines. Every CR is removed before matching. Anything else (a malformed, linked or copied record, or one from another checkout) leaves enforcement on, with one warning.
+
+## A bare flag turns nothing off
+
+Earlier versions turned enforcement off when a root `.deft-directive-disable` file was present. Current readers ignore that file. Presence alone means nothing.
+
+When the bare flag is present and there is no valid record, every hook event, `doctor` and `session:start` print one warning that names the file and `deft kill-switch:on --confirm`. Enforcement stays on. There is no automatic record for an existing flag.
+
+Older deposits still read the bare flag. Run `directive upgrade` or `directive install --repair` to get the current readers. `doctor` reports a host-hook call without the `--kill-switch-reader v1` flag and a checkout-local `.githooks/_directive-run.sh` without the `# directive-kill-switch-reader: v1` marker. The flag and the marker are compatibility information only, never authority.
 
 ## Distinct from permanent opt-out
 
 | File | Intent |
 |------|--------|
 | [`.no-deft-directive`](./no-deft-directive.md) | Permanent: project does not use Directive. Flag + deposit is **inconsistent**. |
-| `.deft-directive-disable` | Temporary: testing kill-switch. **Deposit OK**. |
+| `.deft/authz/kill-switch.disable` | Temporary: testing kill-switch. **Deposit OK**. |
 
 ## Behavior
 
-| Surface | When flag present |
-|---------|-------------------|
-| **Doctor** | Status **disabled (test kill-switch)**; **not** the #2926 flag+deposit dirty path; prints full recovery (file gone + new session) and one SessionStart registration line per host from that host's SessionStart check. |
+| Surface | When a valid record is present |
+|---------|-------------------------------|
+| **Doctor** | Status **disabled (test kill-switch)**; prints the record's `mintedVia` and `mintedAt`, full recovery (record gone + new session) and one SessionStart registration line per host. |
 | **Agent** | Always-on AGENTS contract: stop further Directive process load; echo recovery. |
-| **CLI** (`session:start`, ritual paths) | Disabled + recovery; no ritual write / no half-DD automation. |
-| **Host hooks** | SessionStart / PreToolUse / compact skip ritual and enforcement. |
-| **Git hooks** | Deposited `.githooks/_directive-run.sh` skips CLI spawn (exit 0 + recovery) when the flag is local/untracked (#5543 / #3039). Tracked flag does **not** disable. |
+| **CLI** (`session:start`, ritual paths) | Disabled + recovery; no ritual write / no half-DD automation. `session:start` prints the record's `mintedVia` and `mintedAt`. |
+| **Launcher** | `deft <command>` stops with a one-line notice before it starts the runtime, except install, upgrade, uninstall, doctor, the kill record verbs, `--version` and `--help`. |
+| **Host hooks** | The deposited outer hook (`node:fs` plus `git`) and the runtime hook dispatch skip ritual and enforcement. |
+| **Git hooks** | Deposited `.githooks/_directive-run.sh` checks the record with shell tests, `git` and `grep -qxF` before it looks for the runtime or `node`, then skips the CLI spawn (exit 0) (#5543 / #3039 / #6740). |
 
-Deposit (`.deft/core`) **may remain**. Init/update are not blocked by this flag alone (unlike permanent opt-out).
+Deposit (`.deft/core`) **may remain**. Init/update are not blocked by the record.
 
 ## Recovery (hysteresis)
 
 Directive is **fully operational** only when:
 
-1. **`.deft-directive-disable` is absent**, and
-2. A **new agent session** has been started after the file was removed
+1. The **record is gone** (`deft kill-switch:off --confirm`), and
+2. A **new agent session** has been started after that.
 
 Canonical recovery message:
 
 ```text
-Directive is DISABLED for this project via root `.deft-directive-disable` (test/local kill-switch).
+Directive is DISABLED for this checkout by the kill record `.deft/authz/kill-switch.disable` (test/local kill-switch, #6740).
 Deposit may still be present; enforcement (hooks, session ritual, automation) will not run.
-The flag is present: stop Directive process load (AGENTS.md Temporary test kill-switch #3039).
+The record is valid: stop Directive process load (AGENTS.md Temporary test kill-switch #3039).
+A bare root `.deft-directive-disable` file turns nothing off; only the record does.
 
 To fully re-enable Directive:
-  1. Delete the file:  rm .deft-directive-disable   (or equivalent)
+  1. Remove the record:  deft kill-switch:off --confirm   (no mint needed)
   2. Start a NEW agent session (reload AGENTS / host skills / hooks)
 Until both are done, Directive is not fully operational.
 ```
 
 ## Precedence
 
-1. `.deft-directive-disable` → test kill-switch (deposit OK; recovery = delete + new session)
+1. Valid kill record → test kill-switch (deposit OK; recovery = `kill-switch:off` + new session)
 2. `.no-deft-directive` → permanent opt-out (#2926)
 3. Else normal Directive
 
-If **both** flags are present: one combined message; permanent install semantics still apply for init/update.
+If the record and the opt-out flag are both present: one combined message; permanent install semantics still apply for init/update.
 
-## Consumer note (A/B / DevHammer)
+## Honest limits
 
-Typical arm for “without Directive enforcement”:
+The off switch is as strong as the grant store and the kept mint, no stronger. It is hardening, not proof that a human turned Directive off.
 
-```bash
-# Ensure ignore entry exists (init/update baseline)
-# Then:
-touch .deft-directive-disable
-# Start a new agent session — enforcement off; deposit may stay.
-```
+- The mint refuses shells with agent or CI markers and non-interactive callers. A pseudo-terminal with those markers unset passes it.
+- Store-guard holes (#6292, #6981, #7034, #7036, paths built at run time, programmatic writes) let a process write a record, as they let it forge the settings grant that already authorizes a plant.
+- The `gitDir=` binding isolates checkouts against copies. It does not prove freshness or who wrote the record.
+- Named limits: restoring saved record bytes after `kill-switch:off`, and one checkout used from both Git for Windows and WSL git (one mint each).
 
-Re-enable:
-
-```bash
-rm .deft-directive-disable
-# Start a NEW agent session
-```
+Directive reports when it is off: doctor, `session:start` and the hooks say so.
 
 ## Agent self-serve ban (always-on, grant-gated) (#3186 / #6136)
 
-Operators plant and remove this flag **outside** an agent session (or with a prior human-origin grant covering **settings**). PreToolUse **always** denies agent Write / Edit / Shell that creates or renames-to `.deft-directive-disable` (and permanent opt-out `.no-deft-directive`) without that grant — not only under active UAT. Shell write reissue checks the protected basename **before** skipping out-of-tree dests, so a plant outside the repo tree cannot fail-open. Agents must not self-serve the kill-switch to bypass Write / push / PR / merge gates.
+The #6136 plant guard stays in force, unchanged. PreToolUse **always** denies agent Write / Edit / Shell that creates or renames-to `.deft-directive-disable` (and permanent opt-out `.no-deft-directive`) without a prior human-origin grant covering **settings** — not only under active UAT. Shell write reissue checks the protected basename **before** skipping out-of-tree dests, so a plant outside the repo tree cannot fail-open. Agents must not self-serve the kill-switch to bypass Write / push / PR / merge gates.
 
 ### Shell mention rule (#6681 / #6941)
 
@@ -113,7 +133,7 @@ Related: `policy:allow-bot-merge`, `policy:allow-direct-commits`, and `policy:di
 - ⊗ Rewrite AGENTS to a stub on disable
 - ⊗ Org-remote kill switch
 - ⊗ Nested monorepo package roots
-- ⊗ `DEFT_DISABLED=1` env (optional later)
+- ⊗ Auto-mint a record for an existing bare flag
 
 ## Related
 

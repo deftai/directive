@@ -9,7 +9,7 @@ Maintainer-facing map of how Directive's rules are layered and grouped. This is 
 ## Overview
 
 - **Rules:** 25 groupings, 293 documents
-- **Tasks:** 66 namespaces, 291 Taskfile declarations (includes + unlisted tasks/*.yml, not `task --list`)
+- **Tasks:** 67 namespaces, 293 Taskfile declarations (includes + unlisted tasks/*.yml, not `task --list`)
 - **Packs:** 6 source-of-truth packs (721 entries from rules|lessons|patterns|skills|strategies|entries)
 
 Three layers: **Rules** (lazy-loaded guidance under `content/`), **Tasks** (the Taskfile gates that enforce them), and the **Lifecycle** that ties them together.
@@ -138,7 +138,7 @@ _Explanatory docs and the framework glossary._
 - `cursor-plan-choice.md` — A Cursor conversation records whether to use Directive planning or host-only planning **before the first submitted Plan request**. Literal mode-picker entry is outside this promise.
 - `decision-log.md` — Durable **intent-debt** records for significant agent and operator choices.
 - **decisions/** (1 files)
-- `deft-directive-disable.md` — Use a **root file flag** to turn Directive **enforcement** off for local testing (A/B, DevHammer, ceremony vs loop) **without** permanent project opt-out and **without** deleting the deposit.
+- `deft-directive-disable.md` — Use the **kill record** to turn Directive **enforcement** off for local testing (A/B, ceremony vs loop) **without** permanent project opt-out and **without** deleting the deposit.
 - `delivery-attempt.md` — Deterministic pre-dispatch gate and durable attempt ledger for autonomous **delivery** and **operational-acceptance** loops.
 - `directive-lifecycle.md` — A single-picture mental model of how Deft Directive turns an idea into shipped, auditable work — and keeps doing so as the project grows. It is **not** a one-and-done pipeline; it is two connected phases that loop.
 - `durable-effect-acquisition.md` — Refs: #5080 · [Accepted design amendment](https://github.com/deftai/directive/issues/5080#issuecomment-5873701590) · [Consumer check contract](../content/docs/consumer-check-contract.md)
@@ -429,6 +429,7 @@ _How agents prove work is done: gates, validators, coverage, review._
 | framework | Read-only remote-version probe (#801) -- task framework:check-updates [-- --force \| --json]. Honors DEFT_NO_NETWORK=1 and… | 2 |
 | install | Installer / bootstrap tasks for consumer projects. | 3 |
 | issue | Ingest GitHub issues as scope vBRIEFs (single <N> or --all [--label L] [--status S] [--dry-run]) | 2 |
+| kill-switch | Turn Directive enforcement off for this checkout (#6740). A person runs it at a terminal: it refuses agent or CI shells, non-interactive… | 2 |
 | lifecycle | Emit behavioral framework events (review-cycle plan:approved recorder). -- task lifecycle:event -- emit plan:approved --plan-ref <url>… | 2 |
 | materialize | Build tip staged-runtime and replace this checkout node_modules/@deftai/directive-runtime only (#5805). No lockfile/location-spec… | 3 |
 | migrate | Migration tasks for moving projects between framework versions. | 3 |

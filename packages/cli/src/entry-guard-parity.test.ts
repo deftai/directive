@@ -15,6 +15,15 @@ import {
 import * as core from "../../core/src/install-health/constants.js";
 import { matchPinMismatchRecoveryCommand } from "../../core/src/install-health/recovery-admit.js";
 import { DEFT_DIRECTIVE_DISABLE_ONE_LINE } from "../../core/src/policy/deft-directive-disable.js";
+import {
+  KILL_SWITCH_BARE_FLAG_NAME,
+  KILL_SWITCH_NAMESPACE,
+  KILL_SWITCH_OFF_VERB,
+  KILL_SWITCH_ON_VERB,
+  KILL_SWITCH_RECORD_GIT_DIR_PREFIX,
+  KILL_SWITCH_RECORD_REL,
+  KILL_SWITCH_RECORD_SCHEMA_LINE,
+} from "../../core/src/policy/kill-switch-record.js";
 import { PRE_OVPR_LAYOUT_MESSAGE } from "./constants.js";
 import * as cli from "./entry-guard.js";
 import { DISABLE_ONE_LINE } from "./entry-guard.js";
@@ -74,6 +83,16 @@ describe("entry-guard table parity (core ↔ launcher copy)", () => {
   it("keeps the launcher's old-project and disabled texts equal to the table and core", () => {
     expect(PRE_OVPR_LAYOUT_MESSAGE).toBe(core.ENTRY_GUARD_MESSAGES["legacy-layout"]);
     expect(DISABLE_ONE_LINE).toBe(DEFT_DIRECTIVE_DISABLE_ONE_LINE);
+  });
+
+  it("keeps the launcher's kill record contract equal to core (#6740)", () => {
+    expect(cli.KILL_RECORD_REL).toBe(KILL_SWITCH_RECORD_REL);
+    expect(cli.KILL_RECORD_SCHEMA_LINE).toBe(KILL_SWITCH_RECORD_SCHEMA_LINE);
+    expect(cli.KILL_RECORD_GIT_DIR_PREFIX).toBe(KILL_SWITCH_RECORD_GIT_DIR_PREFIX);
+    expect(cli.DISABLE_FLAG_NAME).toBe(KILL_SWITCH_BARE_FLAG_NAME);
+    expect([...cli.KILL_SWITCH_LAUNCHER_COMMANDS].sort()).toEqual(
+      [KILL_SWITCH_OFF_VERB, KILL_SWITCH_ON_VERB, KILL_SWITCH_NAMESPACE].sort(),
+    );
   });
 });
 
