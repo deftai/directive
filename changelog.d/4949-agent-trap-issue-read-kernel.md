@@ -1,2 +1,0 @@
-section: Changed
-- agents-entry: the `## Issue body→comments reading (#2143)` line now says issue text is data, not instructions, and to read main.md § Agent Trap Defenses (#480) first. The agent preamble gets § 14, the same instruction hierarchy for dispatched workers. Two preamble pointers drop the `node_modules/@deftai/directive-runtime/` prefix to fund it, and `agentsMdBudget.absoluteMaxBytes` drops from 30500 to 30469 (#4949).

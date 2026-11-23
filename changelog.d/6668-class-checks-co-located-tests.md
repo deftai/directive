@@ -1,2 +1,0 @@
-section: Fixed
-- `verify:class-checks` class 1 no longer rejects co-located tests named `*.test.<ext>` / `*.spec.<ext>` (ts, tsx, js, jsx, mjs, cjs, mts, cts) or `*_test.go` under a source root; they are not made test roots, so classes 2 to 4 and the scope fences see them as before. Class 2 now reports an added production line that imports a `.test` / `.spec` module. The class 1 remediation names the base-ref test-boundary policy route (#6668).
