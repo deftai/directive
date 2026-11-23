@@ -33,6 +33,7 @@ import {
   superviseTimedChild,
   touchTeeMtime,
 } from "./suite-gate-supervisor.js";
+import { hasPendingSigkill } from "./suite-gate-supervisor-lib.js";
 
 const temps: string[] = [];
 afterEach(() => {
@@ -417,6 +418,30 @@ describe("tree cleanup outcome (#6904)", () => {
     expect(isPidRunning(process.pid, "linux", stat("S"))).toBe(true);
     expect(isPidRunning(process.pid, "win32")).toBe(true);
     expect(isPidRunning(-1, "linux")).toBe(false);
+  });
+
+  it("treats a Linux process with SIGKILL pending as not running (#7181)", () => {
+    // Shape seen on WSL2 6.6 right after the root's exit event: still R, but
+    // the group SIGKILL (signal 9, mask bit 8) is pending in ShdPnd.
+    const proc =
+      (status: string | null) =>
+      (path: string): string => {
+        if (path.endsWith("/stat")) return `${process.pid} (node) R 1 2 3`;
+        if (status === null) throw new Error("ENOENT");
+        return `Name:\tnode\nState:\tR (running)\n${status}\nSigBlk:\t0000000000000000\n`;
+      };
+    const pnd = (sig: string, shd: string) => `SigPnd:\t${sig}\nShdPnd:\t${shd}`;
+    const none = "0000000000000000";
+    const kill = "0000000000000100";
+    expect(isPidRunning(process.pid, "linux", proc(pnd(none, kill)))).toBe(false);
+    expect(isPidRunning(process.pid, "linux", proc(pnd(kill, none)))).toBe(false);
+    expect(isPidRunning(process.pid, "linux", proc(pnd(none, "0000000000004100")))).toBe(false);
+    // SIGTERM (15, bit 14) pending can still be caught: the process runs.
+    expect(isPidRunning(process.pid, "linux", proc(pnd(none, "0000000000004000")))).toBe(true);
+    expect(isPidRunning(process.pid, "linux", proc(pnd(none, none)))).toBe(true);
+    // An unreadable status keeps the plain liveness answer.
+    expect(isPidRunning(process.pid, "linux", proc(null))).toBe(true);
+    expect(hasPendingSigkill("Name:\tnode\n")).toBe(false);
   });
 });
 

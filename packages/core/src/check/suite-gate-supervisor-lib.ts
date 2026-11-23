@@ -7,6 +7,7 @@
 import { spawn, spawnSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { existsSync, readdirSync, readFileSync, statSync, utimesSync } from "node:fs";
+import { constants as osConstants } from "node:os";
 import { join, relative, resolve, sep } from "node:path";
 import { containedOpenExclusive, containedRemove } from "../fs/contained-write.js";
 import { RELEASE_CHECK_TIMEOUT_MS } from "../release/constants.js";
@@ -173,10 +174,33 @@ export function isPidAlive(pid: number): boolean {
 }
 
 /**
- * Like `isPidAlive`, but a Linux zombie (state Z or X in `/proc/<pid>/stat`)
- * counts as not running (#6904). A killed process stays a zombie until its
- * parent reaps it, and `kill(pid, 0)` still succeeds on a zombie, so the
- * tree-kill proof would report a dead process as a survivor.
+ * True when `/proc/<pid>/status` text shows SIGKILL pending for the thread
+ * (`SigPnd`) or the process (`ShdPnd`) (#7181). Each field is a hex mask with
+ * bit `n - 1` set for pending signal `n`.
+ */
+export function hasPendingSigkill(status: string): boolean {
+  const bit = BigInt(osConstants.signals.SIGKILL - 1);
+  for (const field of ["SigPnd", "ShdPnd"]) {
+    const match = new RegExp(`^${field}:\\s*([0-9a-fA-F]+)\\s*$`, "m").exec(status);
+    const mask = match?.[1];
+    if (mask !== undefined && ((BigInt(`0x${mask}`) >> bit) & 1n) === 1n) return true;
+  }
+  return false;
+}
+
+/**
+ * Like `isPidAlive`, but on Linux a process that is dead or dying counts as
+ * not running:
+ * - a zombie (state Z or X in `/proc/<pid>/stat`) (#6904). A killed process
+ *   stays a zombie until its parent reaps it, and `kill(pid, 0)` still
+ *   succeeds on a zombie.
+ * - a process with SIGKILL pending (#7181). SIGKILL cannot be caught, blocked
+ *   or ignored, so the process never runs its own code again. The kernel keeps
+ *   the signal pending while the process tears down its memory and threads,
+ *   which can take some milliseconds after `kill()` returns, even after a
+ *   sibling killed at the same moment has been reaped.
+ * Without these, the tree-kill proof would report a killed process as a
+ * survivor.
  */
 export function isPidRunning(
   pid: number,
@@ -195,7 +219,14 @@ export function isPidRunning(
     .slice(stat.lastIndexOf(")") + 1)
     .trim()
     .charAt(0);
-  return state !== "Z" && state !== "X";
+  if (state === "Z" || state === "X") return false;
+  let status: string;
+  try {
+    status = readStat(`/proc/${pid}/status`);
+  } catch {
+    return isPidAlive(pid);
+  }
+  return !hasPendingSigkill(status);
 }
 
 export function ownerPidFromTeeName(fileName: string): number | null {
