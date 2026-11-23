@@ -7,8 +7,8 @@ Deft runtime is pinned as `@deftai/directive-runtime`. Full guidelines: node_mod
 
 ## Temporary test kill-switch (#3039)
 
-! Before further Directive process load, check the kill record `.deft/authz/kill-switch.disable` (#6740); a hook, `deft doctor` or `session:start` says when it is valid. Valid → stop DD load; recovery = a person runs `deft kill-switch:off --confirm` + NEW agent session. A bare root `.deft-directive-disable` turns nothing off (presence alone means nothing). Deposit OK; not `.no-deft-directive` (#2926). Docs: `node_modules/@deftai/directive-runtime/docs/deft-directive-disable.md`.
-⊗ Claim full operation while a valid record exists or after `kill-switch:off` without a NEW agent session.
+! Before further DD load, check `.deft/authz/kill-switch.disable` (#6740). Valid → stop DD load; recovery = a person runs `deft kill-switch:off --confirm` + NEW agent session. Bare `.deft-directive-disable` turns nothing off; not `.no-deft-directive`. Docs: `node_modules/@deftai/directive-runtime/docs/deft-directive-disable.md`.
+⊗ Claim full operation before a NEW agent session.
 
 ## Directive hook can't run (#3785)
 

@@ -35,12 +35,11 @@ import {
   mkdirSync,
   readFileSync,
   realpathSync,
-  renameSync,
   rmSync,
   unlinkSync,
-  writeFileSync,
 } from "node:fs";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
+import { containedRename, containedWrite } from "../fs/contained-write.js";
 
 /** Record schema line (exact whole line). */
 export const KILL_SWITCH_RECORD_SCHEMA = "deft.kill-switch.v1";
@@ -235,8 +234,15 @@ export function writeKillSwitchRecord(
     mkdirSync(dirname(path), { recursive: true });
     const after = killSwitchRecordParentProblem(projectRoot);
     if (after !== null) return { ok: false, path, error: after };
-    writeFileSync(temp, formatKillSwitchRecord(fields), { encoding: "utf8", flag: "wx" });
-    renameSync(temp, path);
+    const root = resolve(projectRoot);
+    containedWrite({
+      root,
+      target: temp,
+      data: formatKillSwitchRecord(fields),
+      mode: "create",
+      encoding: "utf8",
+    });
+    containedRename({ root, from: temp, to: path });
     return { ok: true, path, changed: true };
   } catch (err) {
     rmSync(temp, { force: true });
