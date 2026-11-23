@@ -2619,19 +2619,133 @@ export function stealOccupancy(
   );
 }
 
+/** The identity a manual `occupancy:release` / `session:end` presents (#6679). */
+export interface ReleasePresentedIdentity {
+  /** The id this release acts under; empty when nothing was presented. */
+  readonly sessionId: string;
+  readonly source: "explicit" | "host" | "none";
+  /** Identity-contract hosts declared in the environment. */
+  readonly declaredHosts: readonly HookHostIdentityProvider[];
+  /** True when a bare release found `DEFT_SESSION_ID` set and did not use it. */
+  readonly ignoredEnvironmentId: boolean;
+  /** Canonical id `GROK_SESSION_ID` maps to, when a bare release did not use it. */
+  readonly unusedGrokOwner: string | null;
+}
+
+/**
+ * Release identity (#6679). An explicit `--session-id` is used as given. A bare
+ * release does not read `DEFT_SESSION_ID`: a child process inherits it, so it
+ * would present the parent. It uses the Grok host owner only when Grok is the
+ * only declared host, because Grok's hook never rewrites lifecycle commands and
+ * `GROK_SESSION_ID` is how a Grok session presents itself. Otherwise it presents
+ * no identity. Claim, heartbeat, grant and swarm close-out keep
+ * `resolvePresentedIdentity`.
+ */
+export function resolveReleasePresentedIdentity(
+  input: { readonly sessionId?: string; readonly env?: NodeJS.ProcessEnv } = {},
+): ReleasePresentedIdentity {
+  const env = input.env ?? process.env;
+  const declaredHosts = detectDeclaredIdentityHosts(env);
+  const hostOwner = ambientHostSessionOwner(env);
+  const explicit = input.sessionId?.trim();
+  if (explicit) {
+    return {
+      sessionId: explicit,
+      source: "explicit",
+      declaredHosts,
+      ignoredEnvironmentId: false,
+      unusedGrokOwner: null,
+    };
+  }
+  const ignoredEnvironmentId = (env.DEFT_SESSION_ID?.trim() ?? "").length > 0;
+  const grokAlone = declaredHosts.length === 1 && declaredHosts[0] === "grok";
+  if (grokAlone && hostOwner !== null) {
+    return {
+      sessionId: hostOwner,
+      source: "host",
+      declaredHosts,
+      ignoredEnvironmentId,
+      unusedGrokOwner: null,
+    };
+  }
+  return {
+    sessionId: "",
+    source: "none",
+    declaredHosts,
+    ignoredEnvironmentId,
+    unusedGrokOwner: hostOwner,
+  };
+}
+
+/**
+ * Refusal for a release by a caller that does not own the lease (#6679).
+ *
+ * It names the owner and the lease's liveness and tells the caller to leave the
+ * lease in place. It prints no `occupancy:steal` command and no command filled
+ * with the owner's id: on the primary checkout steal and claim-over both refuse
+ * a caller beside live sibling leases, and a quiet lease blocks no write and is
+ * its owner's re-claim token (#5413).
+ */
+export function formatOccupancyReleaseRefusal(
+  record: OccupancyRecord,
+  now: Date,
+  identity: ReleasePresentedIdentity,
+): string {
+  const owner = record.sessionId;
+  const caller = identity.sessionId;
+  const liveness = occupancyLiveness(record, now);
+  const presented =
+    caller.length > 0 ? `presented session ${caller}` : "presented no session identity";
+  const lines = [
+    OCCUPANCY_ADVISORY_COORDINATION_PREFACE,
+    `occupancy:release refused: this lease belongs to session ${owner} (liveness=${liveness}, ` +
+      `intent=${record.intent}, heartbeat ${heartbeatAgeSeconds(record, now)}s ago, ` +
+      `${occupancyClockLine(record)}), and this process ${presented}. Only session ${owner} ` +
+      "may present that id to release it. Never copy a lease's session_id into a release command.",
+  ];
+  lines.push(
+    liveness === "live"
+      ? "Leave this lease in place: stay read-only (`session:start --read-only`) or work in your " +
+          "own worktree. Its owner releases it with its own `occupancy:release` / `session:end`."
+      : `This lease is ${liveness}: it blocks no write, and its owner can re-claim it. Leave it in ` +
+          "place: stay read-only (`session:start --read-only`) or work in your own worktree.",
+  );
+  if (caller.length === 0) {
+    lines.push(
+      "A bare release does not use DEFT_SESSION_ID, because child processes inherit it. It uses " +
+        "the Grok host owner only when Grok is the only declared host.",
+    );
+    if (identity.declaredHosts.length > 1) {
+      lines.push(
+        `More than one identity host is declared in this environment ` +
+          `(${identity.declaredHosts.join(", ")}), so this bare release presents no host owner.`,
+      );
+    }
+    if (identity.unusedGrokOwner !== null) {
+      lines.push(
+        `Note: GROK_SESSION_ID in this environment maps to ${identity.unusedGrokOwner}. Child ` +
+          "processes inherit that variable; present that id only if this session is that Grok session.",
+      );
+    }
+  }
+  return lines.join("\n");
+}
+
 /**
  * Release the caller's own lease.
  *
- * Owner-only, deliberately (#3954 item 4, answering the open question the
- * design-critique arc left for the builder). Letting an unidentified caller
- * release the occupant the lease file itself records would make possession of
- * that file path into authority to delete a live lease, which is exactly what
- * the `!expired && !owns` refusal exists to prevent -- and the cooperative
- * bearer model (#3755) has no second check behind it. The unreachable printed
- * recovery is fixed by the shared lookup chain instead: on a host that
- * publishes an owner, the occupant now resolves itself and a bare
- * `occupancy:release` is the occupant, so the message the deny prints is one
- * the party it addresses can actually run.
+ * Owner-only, live or not (#6679). A lease recorded for this checkout is freed
+ * only when the presented id equals its owner, whether the lease is live,
+ * heartbeat-stale or age-capped. This extends the #6274 rule of
+ * `releaseOwnedOccupancyOnSessionEnd` to the manual verb. A quiet lease blocks
+ * no write and is its owner's re-claim token (#5413), so a non-owner has no
+ * reason to delete it. A record that names a different checkout is residue and
+ * stays clearable by any caller.
+ *
+ * Identity comes from `resolveReleasePresentedIdentity`, not the shared lookup:
+ * a bare release does not read the inherited `DEFT_SESSION_ID` (#6679). Letting
+ * an unidentified caller release the occupant the lease file records would make
+ * possession of that file path into authority to delete it (#3954).
  */
 export function releaseOccupancy(
   projectRoot: string,
@@ -2647,10 +2761,19 @@ export function releaseOccupancy(
   // #5544 P2: share the lease-root view CLI and Write hooks use for this tree.
   const root = resolveOccupancyLeaseRoot(projectRoot);
   const path = occupancyPath(root);
-  const identity = resolvePresentedIdentity(input);
+  const identity = resolveReleasePresentedIdentity(input);
   const caller = identity.sessionId;
-  const split = formatPresentedIdentityDisagreement(identity);
   const leaseNote = ` ${formatOccupancyLeaseViewNote(path)}`;
+  const refusal = (record: OccupancyRecord, rerun: string): string => {
+    const grant = caller.length > 0 ? occupancyGrantFor(record, caller, now) : null;
+    return (
+      (grant === null
+        ? formatOccupancyReleaseRefusal(record, now, identity)
+        : formatOccupancyMemberAdministrationRefusal(record, grant, "occupancy:release")) +
+      leaseNote +
+      rerun
+    );
+  };
   return withOccupancyLock(
     root,
     (fence) => {
@@ -2672,19 +2795,16 @@ export function releaseOccupancy(
           code: 0,
         };
       }
-      const expired = liveOccupancyOnTree(root, existing, now) === null;
+      // #6679: owner-only on this checkout, live or not; an other-checkout record is residue.
+      const onThisTree = occupancyWorktreeMatches(existing.worktreePath, root);
       const owns = caller.length > 0 && caller === existing.sessionId;
-      if (!expired && !owns) {
+      if (onThisTree && !owns) {
         return {
           action: "denied" as const,
           sessionId: caller,
           record: existing,
           path,
-          message:
-            membershipOwnerDenial(existing, caller, now, "occupancy:release", root) +
-            split +
-            leaseNote +
-            formatReleaseRerunLine(caller),
+          message: refusal(existing, formatReleaseRerunLine(caller)),
           code: 1,
         };
       }
@@ -2720,16 +2840,13 @@ export function releaseOccupancy(
       if (still.sessionId !== existing.sessionId) {
         throw new Error("lock compromised: occupancy session changed before release");
       }
-      if (!expired && caller !== still.sessionId) {
+      if (onThisTree && caller !== still.sessionId) {
         return {
           action: "denied" as const,
           sessionId: caller,
           record: still,
           path,
-          message:
-            membershipOwnerDenial(still, caller, now, "occupancy:release", root) +
-            split +
-            leaseNote,
+          message: refusal(still, ""),
           code: 1,
         };
       }
@@ -2777,7 +2894,8 @@ export interface SessionEndReleaseResult {
  * not edit consumer content (#6274 F2). No id, no lease or another owner
  * leaves every file untouched, applying-host included (#6274 F1). On its own
  * release it removes applying-host only when that record names the same
- * session. The manual `occupancy:release` / `session:end` path is unchanged.
+ * session. The manual `occupancy:release` / `session:end` path applies the same
+ * owner-only rule since #6679 (`releaseOccupancy`).
  */
 export function releaseOwnedOccupancyOnSessionEnd(
   projectRoot: string,

@@ -3,11 +3,12 @@ import { releaseOccupancy } from "@deftai/directive-core/session";
 import { occupancyUnrecognizedArgument } from "./occupancy-unrecognized.js";
 
 /**
- * First-class abandoned-lease recovery (#4667). Live actor is session_id in
- * .deft/occupancy.json; bare session:end with empty identity refuses; TTL
- * claim-over and deny-embedded copy-paste remain. host:none / address:none
- * are unset metadata, not the lock cause. Does not reopen anonymous live
- * auto-release (#3954).
+ * Abandoned-lease recovery copy (#4667), owner-only since #6679. Only the owner
+ * releases its lease, live or quiet; a quiet lease blocks no write and the next
+ * session:start may claim over it under the existing claim rules. The copy never
+ * tells the reader to copy session_id out of .deft/occupancy.json and never
+ * names occupancy:steal. host:none / address:none are unset metadata, not the
+ * lock cause.
  *
  * #5544 Prefer-A: pass the supplied --project-root through to releaseOccupancy
  * so the consumer AGENTS.md header check stays at the project directory.
@@ -15,10 +16,13 @@ import { occupancyUnrecognizedArgument } from "./occupancy-unrecognized.js";
  * Write-hook lease view); denials / already-free print occupancyFile=.
  */
 export const ABANDONED_OCCUPANCY_LEASE_RECOVERY =
-  "Abandoned live occupancy lease: bare session:end / occupancy:release without a presented " +
-  "session identity refuses while the lease is live. Immediate recovery: " +
-  "occupancy:release --session-id=<id from .deft/occupancy.json> " +
-  "(read session_id from that file). Or wait for TTL claim-over. " +
+  "Abandoned occupancy lease: only the session that owns a lease releases it, live or quiet " +
+  "(occupancy:release / session:end with its own presented session identity). A release by " +
+  "any other session is refused and leaves the lease in place. Never copy a lease's session_id " +
+  "into a release command. A bare release does not use DEFT_SESSION_ID, because child " +
+  "processes inherit it. A live lease whose owner is gone goes heartbeat-stale after the TTL. " +
+  "A quiet (heartbeat-stale or age-capped) lease blocks no write, and the next session:start " +
+  "may claim over it, subject to the existing claim rules. " +
   "host:none / address:none are ordinary unset metadata, not the lock cause. " +
   "Denials and already-free print occupancyFile= for the lease root this CLI resolved.";
 
@@ -26,7 +30,7 @@ export function formatOccupancyReleaseHelp(): string {
   return [
     "Usage: deft occupancy:release [--project-root <path>] [--session-id <id>]",
     "",
-    "Release this worktree occupancy lease (owner live, or expired residue).",
+    "Release this checkout's occupancy lease when it is the caller's own, live or not. A lease owned by another session is refused.",
     "Pass the consumer project directory as --project-root (header check uses it; lease file resolves to the Git toplevel when available).",
     "",
     ABANDONED_OCCUPANCY_LEASE_RECOVERY,
