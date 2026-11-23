@@ -1,0 +1,149 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #7203",
+    "updated": "2026-11-23T14:46:49Z"
+  },
+  "plan": {
+    "title": "test(windows): coverage-report symlink-swap test assumes O_NOFOLLOW (#7199 D)",
+    "status": "running",
+    "narratives": {
+      "Description": "The controller.test.ts test 'symlink swap at the read (mocked lstatSync, no production hook): exit 4 row refused' fails on Windows because readCoverageReportNoFollow (packages/core/src/pre-pr-controller/coverage-report.ts) has no O_NOFOLLOW there and falls back to lstat presence plus an fstat check, which the mocked lstat passes. This story decides the Windows behavior for a symlink swap at the coverage-report read, writes that decision in coverage-report.ts or the test, and makes the test pass on the nightly Windows lane by a platform skip with a reason or by a product fallback that refuses the swap, while the Linux nightly and the merge gate stay green.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/7203",
+      "Overview": "## Problem\n\n`packages/core/src/pre-pr-controller/controller.test.ts` > \"waived arm reads the report without following a symlink > symlink swap at the read (mocked lstatSync, no production hook): exit 4 row refused\" fails on Windows: `runObservablesComplete(...).ok` is `true`, expected `false`.\n\n`readCoverageReportNoFollow` (`packages/core/src/pre-pr-controller/coverage-report.ts:44`) opens the report with `O_NOFOLLOW`. Windows has no `O_NOFOLLOW`, so the code falls back to \"lstat presence plus an fstat check on the opened fd\". The test mocks `lstatSync` to report a regular file at the swapped path, so on Windows the fallback follows the symlink and accepts it. The Windows runner can create symlinks, so the test does not take its `EPERM` early return.\n\n## Scope (1 file / 1 test)\n\n- `packages/core/src/pre-pr-controller/controller.test.ts` (1).\n\n## Likely fix site\n\nDecide which side is wrong:\n- If the no-follow guarantee is POSIX-only by design, the test skips on platforms without `O_NOFOLLOW` and says why.\n- If Windows must refuse a swapped symlink too, the fallback in `coverage-report.ts` also compares the opened fd's identity with a fresh `lstat` (or checks for a reparse point) and refuses a mismatch.\n\n## Acceptance Criteria\n\n- [ ] The Windows behavior for a symlink swap at the coverage-report read is decided, and the decision is written in `coverage-report.ts` or the test.\n- [ ] The test passes on the nightly Windows lane, by a platform skip with a reason or by a product fallback that refuses the swap.\n- [ ] The Linux nightly and the merge gate stay green.\n\nRefs #7199, #7172\n\n",
+      "Labels": "bug, platform:windows",
+      "UserStory": "As a maintainer running the suite on Windows, I want the coverage-report symlink-swap test to follow a decided Windows behavior, so that the nightly Windows lane is green without silently weakening the no-follow read.",
+      "ImplementationPlan": "1. Decide the Windows behavior for a symlink swap at the coverage-report read: either the no-follow guarantee is POSIX-only (the test skips where O_NOFOLLOW is absent and says why) or the win32 fallback in readCoverageReportNoFollow refuses a swapped symlink (for example a reparse-point or fd-identity check, in coverage-report.ts or readRegularFileNoFollow in fs/contained-write.ts).\n2. Write the decision as a comment in coverage-report.ts or the test.\n3. Apply the matching change: a platform skip with a reason in controller.test.ts, or the product fallback plus a test in contained-write.test.ts or controller.test.ts.\n4. Run the targeted tests on Windows and Linux; add one changelog.d fragment; regenerate RULE-MAP, PROJECT-DEFINITION, evaluator-surface disposition and the spec-drift row only if the build changes them.",
+      "Traces": "#7203 (Windows triage umbrella #7199, item D); Refs #7172. Arc: design-critique not warranted, because it is a one-test platform fix with no design choice (issue comment 7104398336)."
+    },
+    "items": [
+      {
+        "title": "The Windows behavior for a symlink swap at the coverage-report read is decided, and the decision is written in `coverage-report.ts` or the test.",
+        "status": "proposed",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "When the story ships, then the Windows behavior for a symlink swap at the coverage-report read is decided, and the decision is written in coverage-report.ts or the test."
+        }
+      },
+      {
+        "title": "The test passes on the nightly Windows lane, by a platform skip with a reason or by a product fallback that refuses the swap.",
+        "status": "proposed",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "When the nightly Windows lane runs controller.test.ts, then the symlink-swap test passes, by a platform skip with a reason or by a product fallback that refuses the swap."
+        }
+      },
+      {
+        "title": "The Linux nightly and the merge gate stay green.",
+        "status": "proposed",
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "When the story merges, then the Linux nightly and the merge gate stay green."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "platform:windows"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/7203",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #7203: test(windows): coverage-report symlink-swap test assumes O_NOFOLLOW (#7199 D)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/7199",
+        "type": "x-xbrief/refs",
+        "title": "Issue #7199"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per sentence-list entry (3), in order (#6333)",
+      "sentences": [
+        "The Windows behavior for a symlink swap at the coverage-report read is decided, and the decision is written in `coverage-report.ts` or the test.",
+        "The test passes on the nightly Windows lane, by a platform skip with a reason or by a product fallback that refuses the swap.",
+        "The Linux nightly and the merge gate stay green."
+      ],
+      "admitted_source_sentences": [
+        "The Windows behavior for a symlink swap at the coverage-report read is decided, and the decision is written in `coverage-report.ts` or the test.",
+        "The test passes on the nightly Windows lane, by a platform skip with a reason or by a product fallback that refuses the swap.",
+        "The Linux nightly and the merge gate stay green."
+      ],
+      "admitted_source_digest": "29b45c19bcfea82b7dc3e5ae85bec8c0d3ed3cacb528afd79b6a94a81d9fc56f",
+      "admitted_source_extractor": 2,
+      "clauses": [
+        {
+          "id": 1,
+          "text": "The Windows behavior for a symlink swap at the coverage-report read is decided, and the decision is written in `coverage-report.ts` or the test.",
+          "artifact_path": "packages/core/src/pre-pr-controller/coverage-report.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "The test passes on the nightly Windows lane, by a platform skip with a reason or by a product fallback that refuses the swap.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "The Linux nightly and the merge gate stay green.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6561559785,
+        "origin": "deftai/directive#7203",
+        "id": "github.issue.6561559785"
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/pre-pr-controller/coverage-report.ts",
+          "packages/core/src/pre-pr-controller/controller.test.ts",
+          "packages/core/src/fs/contained-write.ts",
+          "packages/core/src/fs/contained-write.test.ts",
+          "changelog.d/7203-windows-coverage-report-symlink-swap.md",
+          "docs/RULE-MAP.md",
+          "xbrief/evaluator-surface-disposition.json",
+          "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "xbrief/.audit/spec-drift/github.issue.6561559785.json"
+        ],
+        "verify_commands": [
+          "npx vitest run packages/core/src/pre-pr-controller/controller.test.ts packages/core/src/fs/contained-write.test.ts"
+        ],
+        "size": "small",
+        "file_scope_confidence": "medium",
+        "depends_on": [],
+        "expected_outputs": [
+          "coverage-report.ts or controller.test.ts states the decided Windows behavior for a symlink swap at the report read",
+          "the symlink-swap test passes on Windows by a platform skip with a reason or by a product fallback that refuses the swap",
+          "one changelog fragment changelog.d/7203-windows-coverage-report-symlink-swap.md"
+        ],
+        "conflict_group": "pre-pr-coverage-report-read",
+        "model_tier": "high"
+      }
+    },
+    "id": "github.issue.6561559785",
+    "updated": "2026-11-23T14:46:49Z"
+  }
+}
