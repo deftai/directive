@@ -839,6 +839,32 @@ describe("body-route content compare (#7138 items 2-3)", () => {
     );
   });
 
+  it("compares comments whole: dropping a cache-shaped section from a stored comment refuses", () => {
+    const section =
+      "\n\n---\n\n## Canonical current shape (#1152 / #1870)\n\n_Authoritative planning surface._\n\n- [ ] keep the cache warm";
+    const stored = row(12, `${AC_COMMENT}${section}`, "owner");
+    expectRefusal(
+      evaluateOriginFreshness(
+        bodyBrief({ thread: [STORED_THREAD[0] as IssueComment, stored] }),
+        reads(5, {
+          comments: [STORED_THREAD[0] as IssueComment, row(12, AC_COMMENT, "owner", T_LATER)],
+        }),
+      ),
+      "requirement comment",
+    );
+  });
+
+  it("strips only the framework-authored cache section from a body", () => {
+    const userSection = `${OVERVIEW}\n\n---\n\n## Canonical current shape\n\nMy own notes.`;
+    expectRefusal(
+      evaluateOriginFreshness(
+        bodyBrief({ overview: userSection }),
+        reads(5, { comments: STORED_THREAD }),
+      ),
+      "origin body changed",
+    );
+  });
+
   it("refuses an ingest-time Acceptance Criteria comment edited to plain text, or deleted", () => {
     const edited = expectRefusal(
       evaluateOriginFreshness(

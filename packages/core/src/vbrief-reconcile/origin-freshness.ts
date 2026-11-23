@@ -448,18 +448,26 @@ function scannedBody(body: string): string {
  */
 const CACHE_CURRENT_SHAPE_SECTION_LEAD = "\n---\n\n## Canonical current shape";
 
+/** The framework-authored heading and first line of that section (either form). */
+const CACHE_CURRENT_SHAPE_SECTION_RE =
+  /^\n---\n\n## Canonical current shape(?: \(#1152 \/ #1870\)\n\n_Authoritative planning surface|: not selected \(#1152 \/ #2307\)\n\n_)/;
+
 function withoutCacheCurrentShapeSection(text: string): string {
   const at = text.lastIndexOf(CACHE_CURRENT_SHAPE_SECTION_LEAD);
-  return at >= 0 ? text.slice(0, at) : text;
+  return at >= 0 && CACHE_CURRENT_SHAPE_SECTION_RE.test(text.slice(at)) ? text.slice(0, at) : text;
 }
 
-/** Does the scanned live body equal the stored body (cache-appended section ignored)? */
-function sameBody(liveRaw: string, stored: string): boolean {
+/**
+ * Does the scanned live text equal the stored text? Only an issue body may
+ * drop the cache-appended section (`cacheBody`); comments compare whole.
+ */
+function sameBody(liveRaw: string, stored: string, cacheBody = false): boolean {
   const live = normalizeBodyForCompare(scannedBody(liveRaw));
   const normalizedStored = normalizeBodyForCompare(stored.replace(/\r\n/g, "\n"));
   return (
     live === normalizedStored ||
-    live === normalizeBodyForCompare(withoutCacheCurrentShapeSection(normalizedStored))
+    (cacheBody &&
+      live === normalizeBodyForCompare(withoutCacheCurrentShapeSection(normalizedStored)))
   );
 }
 
@@ -578,7 +586,7 @@ function compareBodyRoute(
       "uncomparable",
     );
   }
-  if (!sameBody(snapshot.body ?? "", baseline.body)) {
+  if (!sameBody(snapshot.body ?? "", baseline.body, true)) {
     return refuse(
       "origin body changed",
       `The body of origin GitHub issue #${origin.number} (${slugOf(origin)}) differs from the body this xBRIEF was ingested from.`,
@@ -731,7 +739,7 @@ function compareSpecPath(
   }
   let bodyNote = "";
   if (typeof snapshot.body === "string" && baseline.storedBody !== null) {
-    const changed = !sameBody(snapshot.body, baseline.storedBody);
+    const changed = !sameBody(snapshot.body, baseline.storedBody, true);
     bodyNote = changed
       ? " (its body changed; the lean, not the body, is this brief's contract)"
       : "";
