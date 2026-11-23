@@ -147,17 +147,23 @@ function moduleSpecifiersOnLine(rawLine: string): string[] {
 /**
  * True when a `/` after `code` starts a regular expression literal, not a
  * division: nothing precedes it, or an operator, opening bracket or keyword does.
+ * A postfix `++` / `--` ends an operand, so the `/` after it divides.
  */
 function startsRegexLiteral(code: string): boolean {
   const before = code.trimEnd();
   if (before.length === 0) return true;
+  if (before.endsWith("++") || before.endsWith("--")) return false;
   if ("([{,;:=!&|?+-*%<>~^".includes(before[before.length - 1] ?? "")) return true;
   return /(?:^|[^\w$.])(?:return|typeof|case|do|else|in|of|void|yield|await|delete|new|throw)$/.test(
     before,
   );
 }
 
-/** Index just past a regex literal that starts at `start` (escapes, classes, flags). */
+/**
+ * Index just past a regex literal that starts at `start` (escapes, classes,
+ * flags), or -1 when the line has no closing `/`: then the `/` is read as code,
+ * so an unterminated guess never hides the rest of the line.
+ */
 function skipRegexLiteral(line: string, start: number): number {
   let j = start + 1;
   let inClass = false;
@@ -176,7 +182,7 @@ function skipRegexLiteral(line: string, start: number): number {
     }
     j += 1;
   }
-  return line.length;
+  return -1;
 }
 
 /**
@@ -199,9 +205,12 @@ function lexSpecifiers(line: string, start: number, inTemplate: boolean, out: st
       continue;
     }
     if (ch === "/" && startsRegexLiteral(code)) {
-      i = skipRegexLiteral(line, i);
-      code += "/r/";
-      continue;
+      const end = skipRegexLiteral(line, i);
+      if (end !== -1) {
+        i = end;
+        code += "/r/";
+        continue;
+      }
     }
     if (ch === "{") depth += 1;
     if (ch === "}") {
