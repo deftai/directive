@@ -5,7 +5,6 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { CANONICAL_INSTALL_ROOT } from "../init-deposit/constants.js";
 import {
-  DEFT_DIRECTIVE_DISABLE_FLAG_NAME,
   DEFT_DIRECTIVE_DISABLE_STATUS,
   resolveAbsoluteGitDir,
 } from "../policy/deft-directive-disable.js";

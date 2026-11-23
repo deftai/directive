@@ -368,7 +368,10 @@ describe("runSetup package-relative wiring (Wave 2c / R9)", { timeout: 30_000 },
     const runHelper = (): string =>
       execFileSync(
         "sh",
-        ["-c", `. "$REPO_ROOT/.githooks/_directive-run.sh"; run_directive doctor 2>&1; echo EXIT:$?`],
+        [
+          "-c",
+          `. "$REPO_ROOT/.githooks/_directive-run.sh"; run_directive doctor 2>&1; echo EXIT:$?`,
+        ],
         {
           encoding: "utf8",
           cwd: root,
