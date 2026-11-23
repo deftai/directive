@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4923",
-    "updated": "2026-11-22T22:24:05Z"
+    "updated": "2026-11-23T01:51:03Z"
   },
   "plan": {
     "title": "leftover(#4916): stop mandating main.md on rapid / identity-only / read-only",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "The always-on Session routing in agents-entry.md tells read-only and identity-only sessions to load main.md before USER.md and PROJECT-DEFINITION. This story drops main.md from that load list and its else-clause, makes commands.md and host-lifecycle-duties.md match, and keeps the L4 install-root locator.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4923",
@@ -19,58 +19,107 @@
     "items": [
       {
         "title": "Recut `content/templates/agents-entry.md` L20 load list so it does not eager `main.md / ` on the read-only first prompt. Load AGENTS.md, USER.md, and PROJECT-DEFINITION.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "Recut `content/templates/agents-entry.md` L20 load list so it does not eager `main.md / ` on the read-only first prompt. Load AGENTS.md, USER.md, and PROJECT-DEFINITION."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "14b6539de3390323df44bce8d53207f6a46be2ee",
+          "recorded_at": "2026-11-23T01:51:03Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Recut the L20 else-clause so it does not eager `main →`.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "Recut the L20 else-clause so it does not eager `main →`."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "14b6539de3390323df44bce8d53207f6a46be2ee",
+          "recorded_at": "2026-11-23T01:51:03Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Same-PR recut of `content/commands.md` L419 to match L454 (omit main.md on read-only alignment). At pin `23c8b01ad48c19f478b69a78a973bafffca4882d` this is commands.md L440.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "Same-PR recut of `content/commands.md` L419 to match L454 (omit main.md on read-only alignment). At pin `23c8b01ad48c19f478b69a78a973bafffca4882d` this is commands.md L440."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "14b6539de3390323df44bce8d53207f6a46be2ee",
+          "recorded_at": "2026-11-23T01:51:03Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Keep L4 `Deft is installed in` plus `Full guidelines: <root>/main.md` as the install-root haystack.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "Keep L4 `Deft is installed in` plus `Full guidelines: <root>/main.md` as the install-root haystack."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "14b6539de3390323df44bce8d53207f6a46be2ee",
+          "recorded_at": "2026-11-23T01:51:03Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Recut `content/contracts/host-lifecycle-duties.md` L50 with commands.md if that line still eagers main.md. Rules pack regenerates from source; no hand-edit.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "Recut `content/contracts/host-lifecycle-duties.md` L50 with commands.md if that line still eagers main.md. Rules pack regenerates from source; no hand-edit."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "14b6539de3390323df44bce8d53207f6a46be2ee",
+          "recorded_at": "2026-11-23T01:51:03Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "`task agents:refresh` and `agents_entry_contract` so the generated consumer route cannot restore an unconditional main.md read.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "narrative": {
           "Acceptance": "`task agents:refresh` and `agents_entry_contract` so the generated consumer route cannot restore an unconditional main.md read."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "14b6539de3390323df44bce8d53207f6a46be2ee",
+          "recorded_at": "2026-11-23T01:51:03Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "No Personal-wins add. No mutation load-main.md insert. No `absoluteMaxBytes` raise. No skipFatPath switch. No setup identity-only detector switch.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
         "narrative": {
           "Acceptance": "No Personal-wins add. No mutation load-main.md insert. No `absoluteMaxBytes` raise. No skipFatPath switch. No setup identity-only detector switch."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "14b6539de3390323df44bce8d53207f6a46be2ee",
+          "recorded_at": "2026-11-23T01:51:03Z",
+          "recorded_by": "scope:complete"
         }
       }
     ],
@@ -758,9 +807,38 @@
         "model_tier": "medium",
         "acceptance_criteria_justification": "The 7 clauses are the 7 Bound remedy items of the accepted arc lean 6174554332 on #4923, harvested and digest-pinned by issue ingest; they cannot be merged or dropped without breaking the admitted-source pin."
       },
-      "kind": "story"
+      "kind": "story",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "53cd479c27f722dad63647654c0c7c8578c4e50c",
+        "prNumber": 7125,
+        "prBase": "master",
+        "mergeCommit": "14b6539de3390323df44bce8d53207f6a46be2ee",
+        "deliveryBranch": "master",
+        "deliveryCommit": "e3e72a43cce3b79bf0aaf05462ad804ba951de01",
+        "verifiedAt": "2026-11-23T01:51:03Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:OWEwZDY5MDktOTZkNS00NjFiLWIzMTUtODg5ZjNlZjFkNTI0",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          7117
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-23T01:51:03Z",
+      "completedSessionId": "host:claude:v1:OWEwZDY5MDktOTZkNS00NjFiLWIzMTUtODg5ZjNlZjFkNTI0",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-23T01:51:03Z"
+      }
     },
     "id": "github.issue.5545361968",
-    "updated": "2026-11-22T22:24:05Z"
+    "updated": "2026-11-23T01:51:03Z"
   }
 }
