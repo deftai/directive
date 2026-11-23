@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4905",
-    "updated": "2026-11-22T17:57:26Z"
+    "updated": "2026-11-23T04:42:21Z"
   },
   "plan": {
     "title": "bug(xbrief): drift gate rejects a canonical brief that only quotes the legacy x-vbrief prefix",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "`verify:xbrief-drift` fails a canonical brief when any text in it contains the legacy x-vbrief reference prefix, even prose that only quotes it. `scanCorpusToken` in `packages/core/src/xbrief-migrate/drift-gate.ts` counts every occurrence as a legacy reference. This story narrows the scan to JSON string values that start with the legacy prefix, such as a reference `type`, so quoting prose passes and a real legacy reference still fails. Pre-commit keeps running the gate with no brief-specific allow-list. This blocks committing the #4846 and #7025 briefs.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4905",
@@ -19,26 +19,47 @@
     "items": [
       {
         "title": "Given a canonical brief whose only occurrences of the legacy `x-vbrief` prefix are narrative, comment, or contract prose, `verify:xbrief-drift` returns exit 0.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "Given a canonical brief whose only occurrences of the legacy `x-vbrief` prefix are narrative, comment, or contract prose, `verify:xbrief-drift` returns exit 0."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7ba4872596041e2bbb550e4c4d55a758a2eb928b",
+          "recorded_at": "2026-11-23T04:42:21Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "A reference object whose `type` starts with the legacy `x-vbrief` prefix still fails.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "A reference object whose `type` starts with the legacy `x-vbrief` prefix still fails."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7ba4872596041e2bbb550e4c4d55a758a2eb928b",
+          "recorded_at": "2026-11-23T04:42:21Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "When a brief is committed, pre-commit still runs `verify:xbrief-drift --staged` with no brief-specific allow-list.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "When a brief is committed, pre-commit still runs `verify:xbrief-drift --staged` with no brief-specific allow-list."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "7ba4872596041e2bbb550e4c4d55a758a2eb928b",
+          "recorded_at": "2026-11-23T04:42:21Z",
+          "recorded_by": "scope:complete"
         }
       }
     ],
@@ -146,7 +167,36 @@
         "origin": "deftai/directive#4905",
         "id": "github.issue.5542072439"
       },
-      "kind": "story"
+      "kind": "story",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "ec6a6a5856a3c7c721ea6a17f4ea981e28c852a1",
+        "prNumber": 7166,
+        "prBase": "master",
+        "mergeCommit": "7ba4872596041e2bbb550e4c4d55a758a2eb928b",
+        "deliveryBranch": "master",
+        "deliveryCommit": "c7393e206ee2da252bd580bcfcaafc9e2bf82c48",
+        "verifiedAt": "2026-11-23T04:42:21Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:OWEwZDY5MDktOTZkNS00NjFiLWIzMTUtODg5ZjNlZjFkNTI0",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          7074
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-23T04:42:21Z",
+      "completedSessionId": "host:claude:v1:OWEwZDY5MDktOTZkNS00NjFiLWIzMTUtODg5ZjNlZjFkNTI0",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-23T04:42:21Z"
+      }
     },
     "acceptance": {
       "commands": [],
@@ -191,6 +241,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.5542072439",
-    "updated": "2026-11-22T17:57:26Z"
+    "updated": "2026-11-23T04:42:21Z"
   }
 }
