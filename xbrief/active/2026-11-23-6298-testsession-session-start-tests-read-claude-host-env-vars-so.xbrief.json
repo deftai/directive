@@ -1,0 +1,184 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6298",
+    "updated": "2026-11-23T22:03:31Z"
+  },
+  "plan": {
+    "title": "test(session): session-start tests read Claude host env vars, so task check fails under Claude Code",
+    "status": "running",
+    "narratives": {
+      "Description": "test(session): session-start tests read Claude host env vars, so task check fails under Claude Code",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6298",
+      "Overview": "## Summary\n\nWhen `task check` runs inside a Claude Code agent shell, Claude host environment variables (`CLAUDECODE`, `CLAUDE_*`) leak into the session-start test suites. Those tests then take the Claude-host branches of host and session detection, and fail. The product code is fine; the tests are not isolated from the host environment that runs them.\n\n## Evidence\n\nOn 2026-11-13 (Directive 0.129.8), a worker ran `task check` from a Claude Code sub-agent in a linked worktree for #6271. The `ts:check-lane` step failed with 44 tests:\n\n- 32 failures were in session-start tests and disappeared when the same suite was re-run with the `CLAUDE*` variables removed from the environment (the session-start tests then passed 47/47).\n- The remaining 12 were unrelated environment issues (SCM not ready in a linked worktree, a Git Bash `tar` path, one spawn-heavy test).\n\nTelling the 32 host-env failures apart from real ones cost about 15 minutes. It also makes an agent-run `task check` red for reasons unrelated to the change being tested.\n\n## Expected\n\nSession-start and host-detection tests build their environment explicitly. They pass an empty or test-specific env bag, and never inherit `process.env` host markers. Tests that exercise the Claude-host path set the markers themselves. This is a test-isolation fix only: no new check, gate or refusal.\n\n## Acceptance Criteria\n\n- [ ] Given `CLAUDECODE=1` and other `CLAUDE_*` variables set in the shell, when the session-start test files run, then they pass with the same results as in a clean shell.\n- [ ] Tests that need Claude-host detection set those variables inside the test, not from the ambient environment.\n- [ ] No production code path changes behaviour.\n\nRelated: #5943 (Windows test-lane failures), #3134 (Claude Code host detection signals).\n\n",
+      "Labels": "bug, framework-gap"
+    },
+    "items": [
+      {
+        "title": "Given `CLAUDECODE=1` and other `CLAUDE_*` variables set in the shell, when the session-start test files run, then they pass with the same results as in a clean shell.",
+        "status": "proposed",
+        "id": "clause.1"
+      },
+      {
+        "title": "Tests that need Claude-host detection set those variables inside the test, not from the ambient environment.",
+        "status": "proposed",
+        "id": "clause.2"
+      },
+      {
+        "title": "No production code path changes behaviour.",
+        "status": "proposed",
+        "id": "clause.3"
+      }
+    ],
+    "tags": [
+      "bug",
+      "framework-gap"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6298",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6298: test(session): session-start tests read Claude host env vars, so task check fails under Claude Code"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "task check",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L14"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": false,
+        "file_scope": [
+          "packages/core/src/session/session-start-consumer-root.test.ts",
+          "packages/core/src/session/session-start-lifecycle-visible.test.ts",
+          "packages/core/src/session/session-start-orientation.test.ts",
+          "packages/core/src/session/session-start-read-only.test.ts",
+          "packages/core/src/session/session-start-rearm.test.ts",
+          "packages/core/src/session/session-start-scm-readiness.test.ts",
+          "packages/core/src/session/extra-coverage.test.ts",
+          "packages/core/src/session/branches.test.ts",
+          "packages/core/src/session/coverage-boost.test.ts",
+          "packages/core/src/session/package-manager-network.test.ts",
+          "packages/core/src/session/verify-session-ritual.test.ts",
+          "packages/runtime/src/gates-cli/session-ritual-cli.test.ts",
+          "packages/runtime/src/verify-session-ritual.test.ts",
+          "packages/core/src/session/__tests__/clean-host-env.ts",
+          "packages/core/src/session/__tests__/clean-host-env.test.ts",
+          "packages/runtime/src/__tests__/clean-host-env.ts",
+          "changelog.d/6298-session-test-host-env.md",
+          "docs/RULE-MAP.md",
+          "xbrief/evaluator-surface-disposition.json",
+          "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "xbrief/.audit/spec-drift/github.issue.6376310388.json"
+        ],
+        "verify_commands": [
+          "npx vitest run packages/core/src/session/session-start-consumer-root.test.ts packages/core/src/session/session-start-lifecycle-visible.test.ts packages/core/src/session/session-start-orientation.test.ts packages/core/src/session/session-start-read-only.test.ts packages/core/src/session/session-start-rearm.test.ts packages/core/src/session/session-start-scm-readiness.test.ts",
+          "npx vitest run packages/core/src/session/extra-coverage.test.ts packages/core/src/session/branches.test.ts packages/core/src/session/coverage-boost.test.ts packages/core/src/session/package-manager-network.test.ts packages/core/src/session/verify-session-ritual.test.ts",
+          "npx vitest run packages/runtime/src/gates-cli/session-ritual-cli.test.ts packages/runtime/src/verify-session-ritual.test.ts"
+        ],
+        "size": "small",
+        "file_scope_confidence": "medium",
+        "depends_on": [],
+        "expected_outputs": [
+          "each listed session test file clears ambient host markers (CLAUDE*, AI_AGENT, CURSOR_, GROK_, OPENCLAW, WARP_) before it runs and restores them after, the same way hooks/dispatcher.test.ts does (#6227)",
+          "tests that need Claude-host detection set the markers inside the test; the listed files pass inside a Claude Code shell with the same results as a clean shell",
+          "no production file changes; one fragment changelog.d/6298-session-test-host-env.md"
+        ],
+        "conflict_group": "session-test-host-env",
+        "model_tier": "standard"
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "## Recurrence: `session-start-rearm.test.ts` (2026-11-16)\n\nA worker hit this again on 2026-11-16 and had to run its brief's verify command with `CLAUDE*` unset. Reproduced on `origin/master` at `3e26af7c7`.\n\n**Failing tests** (`packages/core/src/session/session-start-rearm.test.ts`, suite `session re-arm vs cold ceremony tiers (#2992)`):\n\n- `re-arm refuses when ritual state is missing (cold required)`: line 508, `expected undefined to be false` (`rearm_eligible`)\n- `compact marks rearm_needed and denial prefers re-arm recovery`: line 850, deny message lacks `session:start --rearm`; it says occupancy \"refuses to mint an owner on host claude\" and suggests `--session-id=host:claude:v1:...` built from the ambient session id\n- `cold path still records ceremony_tier cold`: line 909, `expected 1 to be +0` (`result.code`)\n\n**Runs** (`npx vitest run packages/core/src/session/session-start-rearm.test.ts`, Windows, Git Bash):\n\n| Environment | Result |\n|---|---|\n| Inside a Claude Code session (`CLAUDE*` set) | 3 failed, 22 passed |\n| All `CLAUDE*` unset | 25 passed |\n| Only `CLAUDECODE`, `CLAUDE_CODE_ENTRYPOINT`, `CLAUDE_CODE_SESSION_ID` unset | 25 passed |\n\n**Leak traced:** `resolveOccupancySessionId` in `packages/core/src/session/occupancy.ts` (line 1772) uses `input.env ?? process.env`, and the deny-message path (line 1448) uses `env ?? process.env`. `detectDeclaredIdentityHosts` (`host-session-owner.ts`) then sees the claude presence markers (`CLAUDECODE`, `CLAUDE_CODE_ENTRYPOINT`, `CLAUDE_CODE_SESSION_ID`) and refuses the mint. The test cases pass `env: {}` to the command but do not reach this env input.\n\n**Fix pattern already in tree:** `packages/core/src/hooks/dispatcher.test.ts` (#6227) clears `/^(CLAUDE|CURSOR_|GROK_|DEFT_|OPENCLAW|WARP_)/` from `process.env` in `beforeAll` and restores it in `afterAll`. Applying the same isolation to `session-start-rearm.test.ts` should close this file.\n\n**Acceptance (this file):**\n- Given `CLAUDE*` variables set in the environment, when `session-start-rearm.test.ts` runs, then all 25 tests pass.\n- The file isolates host env the same way `hooks/dispatcher.test.ts` does.\n\n",
+          "id": 6924154838,
+          "html_url": "https://github.com/deftai/directive/issues/6298#issuecomment-6924154838",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-16T17:39:21Z",
+          "updated_at": "2026-11-16T17:39:21Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6376310388,
+        "origin": "deftai/directive#6298",
+        "id": "github.issue.6376310388"
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per sentence-list entry (3), in order (#6333)",
+      "sentences": [
+        "Given `CLAUDECODE=1` and other `CLAUDE_*` variables set in the shell, when the session-start test files run, then they pass with the same results as in a clean shell.",
+        "Tests that need Claude-host detection set those variables inside the test, not from the ambient environment.",
+        "No production code path changes behaviour."
+      ],
+      "admitted_source_sentences": [
+        "Given `CLAUDECODE=1` and other `CLAUDE_*` variables set in the shell, when the session-start test files run, then they pass with the same results as in a clean shell.",
+        "Tests that need Claude-host detection set those variables inside the test, not from the ambient environment.",
+        "No production code path changes behaviour."
+      ],
+      "admitted_source_digest": "0e3fbc967543f82de8a9e8c3dd39581ae6b0527a75f147743d47527ce414c5ba",
+      "admitted_source_extractor": 2,
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Given `CLAUDECODE=1` and other `CLAUDE_*` variables set in the shell, when the session-start test files run, then they pass with the same results as in a clean shell.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Tests that need Claude-host detection set those variables inside the test, not from the ambient environment.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "No production code path changes behaviour.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.6376310388",
+    "updated": "2026-11-23T22:03:31Z"
+  }
+}
