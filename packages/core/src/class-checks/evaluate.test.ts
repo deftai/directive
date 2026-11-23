@@ -1262,6 +1262,12 @@ describe("co-located tests and the class 2 import rule (#6668)", () => {
     ['} from "../shared/z.spec";', "../shared/z.spec"],
     ['import "./side-effect.test.ts";', "./side-effect.test.ts"],
     ["export * from './w.TEST.tsx';", "./w.TEST.tsx"],
+    [
+      'const load = () => import(/* webpackChunkName: "checks" */ "./checks.test");',
+      "./checks.test",
+    ],
+    ['/* lead */ import { b } from "./b.spec";', "./b.spec"],
+    ['*/ const c = require("./c.test.cjs");', "./c.test.cjs"],
   ])("class 2 reports a production line importing a test module: %s", (line, spec) => {
     const content = `export const a = 1;\n${line}\n`;
     const result = run(
@@ -1292,6 +1298,10 @@ describe("co-located tests and the class 2 import rule (#6668)", () => {
     "const u = \"import x from './a.test'\";",
     'import { latest } from "./latest";',
     'import { spec } from "./spec";',
+    "const example = \"require('./fake.test')\";",
+    'const x = 1; // require("./fake.test")',
+    'const y = 1; /* import("./fake.test") */',
+    "const z = `import x from './fake.spec'`;",
   ])("class 2 ignores a line that is not a test-module import: %s", (line) => {
     const result = run({ "src/payments/index.ts": `${line}\n` });
     expect(result.findings).toEqual([]);

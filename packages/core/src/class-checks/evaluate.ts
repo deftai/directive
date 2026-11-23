@@ -112,33 +112,57 @@ function isCoLocatedTestModuleSpecifier(specifier: string): boolean {
   return CO_LOCATED_TEST_STEMS.some((s) => stem.endsWith(s) && stem.length > s.length);
 }
 
-/** Quoted string on one line; the body excludes quotes and newlines (linear scan). */
-const QUOTED_SPECIFIER_RE = /(["'`])([^"'`\n]*)\1/g;
+/**
+ * True when a string literal that follows `code` (the line's code so far, with
+ * comments removed and earlier strings blanked) sits in a module-specifier
+ * position: `import … from`, `export … from`, a continuation `} from`, bare
+ * `import "x"`, `import("x")` or `require("x")`.
+ */
+function isModuleSpecifierPosition(code: string): boolean {
+  const before = code.trimEnd();
+  const lead = before.trimStart();
+  const startsStatement = /^(?:import|export|from)\b/.test(lead) || lead.startsWith("}");
+  if (startsStatement && /(?:^|[\s}*])from$/.test(before)) return true;
+  if (lead === "import") return true;
+  return /(?:^|[^\w$.])(?:import|require)\s*\($/.test(before);
+}
 
 /**
- * Module specifiers on one source line (#6668 class 2 import rule): `import …
- * from`, `export … from`, a continuation `} from`, bare `import "x"`,
- * `import("x")` and `require("x")`. Comment lines and other strings are not
- * specifiers.
+ * Module specifiers on one source line (#6668 class 2 import rule). A one-line
+ * lexer drops `//` and `/* … *\/` comments and reads each string literal once,
+ * so text inside a comment or inside another string is never a specifier, and
+ * a comment between `import(` and its path does not hide it. A line that starts
+ * with `*` continues a block comment; after a leading `*\/` the rest is code.
  */
-function moduleSpecifiersOnLine(line: string): string[] {
-  const trimmed = line.trimStart();
-  if (trimmed.startsWith("//") || trimmed.startsWith("/*") || trimmed.startsWith("*")) {
-    return [];
-  }
-  const startsStatement = /^(?:import|export|from)\b/.test(trimmed) || trimmed.startsWith("}");
+function moduleSpecifiersOnLine(rawLine: string): string[] {
+  const lead = rawLine.trimStart();
+  const line = lead.startsWith("*/") ? lead.slice(2) : rawLine;
+  if (!lead.startsWith("*/") && lead.startsWith("*")) return [];
   const out: string[] = [];
-  for (const m of line.matchAll(QUOTED_SPECIFIER_RE)) {
-    const before = line.slice(0, m.index ?? 0).trimEnd();
-    const spec = m[2] ?? "";
-    if (spec.length === 0) continue;
-    if (startsStatement && /(?:^|[\s}*])from$/.test(before)) {
-      out.push(spec);
-    } else if (/^import$/.test(before.trimStart())) {
-      out.push(spec);
-    } else if (/(?:^|[^\w$.])(?:import|require)\s*\($/.test(before)) {
-      out.push(spec);
+  let code = "";
+  let i = 0;
+  while (i < line.length) {
+    const ch = line[i];
+    if (ch === "/" && line[i + 1] === "/") break;
+    if (ch === "/" && line[i + 1] === "*") {
+      const end = line.indexOf("*/", i + 2);
+      if (end === -1) break;
+      code += " ";
+      i = end + 2;
+      continue;
     }
+    if (ch === '"' || ch === "'" || ch === "`") {
+      let j = i + 1;
+      while (j < line.length && line[j] !== ch) j += line[j] === "\\" ? 2 : 1;
+      if (j >= line.length) break;
+      const spec = line.slice(i + 1, j);
+      if (spec.length > 0 && isModuleSpecifierPosition(code)) out.push(spec);
+      code += '""';
+      i = j + 1;
+      continue;
+    }
+    code += ch;
+    i += 1;
   }
   return out;
 }
