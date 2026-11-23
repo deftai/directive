@@ -12,17 +12,22 @@ import {
   completeRun,
   computeControllerObservedHash,
   controllerPublisher,
+  describeBoundPrePrPushSetting,
   digestApprovedCriteria,
   evaluateLivePrePrCheck,
   getDefaultPrePrStore,
   hashPrBody,
+  listPresentChangedPathsBetween,
   markComplete,
   noteSkillFileOpen,
   observeCommandPhase,
   PRE_PR_PHASE_IDS,
+  type PrePrExecutionRecord,
   type PrePrGateCheckResult,
   type PrePrPhaseId,
   phaseSpec,
+  prePrNextStep,
+  readRequireBoundPrePrPushSetting,
   resolveRecordFromStore,
   runPrePrGateChecks,
   startControllerRun,
@@ -57,17 +62,24 @@ Options:
                           and records the disposition from that result; a
                           failed verify:ac refuses and publishes nothing (#6888)
   --observe-command       record a command-observable phase before --complete
-  --observe-semantic      record semantic / final-no-change evidence
+  --observe-semantic      record semantic / final-no-change evidence; needs only
+                          --run-id and --phase (#6893)
   --phase <id>
   --command <text>
   --exit-code <n>         required with --observe-command; omit is a parse error
   --input-hash <hex>
   --skip-reason <text>    skip also requires a non-zero --exit-code
   --supplied-contents-hash <hex>
+                          optional; the controller hashes the reviewed files
+                          itself, and a given value must match that hash
   --controller-observed-hash <hex>
                           optional; must match independently hashed reviewed files
   --criteria-digest <hex>
-  --reviewed-file <path>  (repeatable)
+  --reviewed-file <path>  (repeatable) optional; replaces the default list, which
+                          is the run's present changed files from base..head at
+                          the project root. An empty default list (deletion-only
+                          change or no change) refuses: name the reviewed files
+                          with --reviewed-file
   --reviewer-report-ref <ref>
   --verify-ac-disposition <executed-ac|no-obligation>
                           optional with --complete; a value that differs from
@@ -91,6 +103,25 @@ Options:
   --part                  with --body-file: write deft-story-part: N instead
   --json
   --help
+
+Phases (#6893):
+  Required, in this order: branch_policy, plan_sequence, read, write,
+  lint_iteration, render_export, diff, loop.
+  Optional: coverage_headroom, merge_chokepoint.
+  - A recorded failure ends the run. Start a new run and record every
+    required phase again.
+  - A phase recorded out of order is fixed by recording it and every later
+    required phase again.
+  - Semantic hashes cover the working-tree files at the project root, so
+    record phases on the run's head with no uncommitted changes.
+  - Each successful observe names the required phases still missing.
+  - merge_chokepoint is optional. Record it only after a \`deft check\` run
+    the work needed anyway (conflict resolve or behind-rebase).
+  - --complete runs verify:ac itself (#6888) and does not need a PR. When
+    master's named Merge gate is red, it refuses and names that gate first.
+  - On success, --complete prints plan.policy.requireBoundPrePrPush and what
+    the managed pre-push hook does with it. Completing a run is not push
+    admission.
 `;
 
 interface ParsedArgs {
@@ -414,6 +445,20 @@ function emit(json: boolean, payload: unknown, text: string, err: boolean): void
   else process.stdout.write(line);
 }
 
+/** Observe result plus the next step (#6893): missing phases, a new run, or --complete. */
+function emitObserved(
+  json: boolean,
+  d: { readonly ok: boolean; readonly message: string },
+  record: PrePrExecutionRecord | null,
+): void {
+  if (!d.ok || record === null) {
+    emit(json, d, d.message, !d.ok);
+    return;
+  }
+  const next = prePrNextStep(record);
+  emit(json, { ...d, next }, `${d.message}\n${next}`, false);
+}
+
 function asPhaseId(value: string): PrePrPhaseId | null {
   return (PRE_PR_PHASE_IDS as readonly string[]).includes(value) ? (value as PrePrPhaseId) : null;
 }
@@ -536,20 +581,35 @@ export function run(argv: string[], options: PrePrRunOptions = {}): number {
         },
         { projectRoot },
       );
-      emit(args.json, d, d.message, !d.ok);
+      emitObserved(args.json, d, store.getById(args.runId));
       return d.ok ? 0 : 1;
     }
-    if (args.suppliedContentsHash.length === 0) {
-      process.stderr.write("pre_pr_run: --observe-semantic requires --supplied-contents-hash\n");
-      return 2;
-    }
-    if (args.reviewedFiles.length === 0) {
-      process.stderr.write("pre_pr_run: --observe-semantic requires --reviewed-file\n");
-      return 2;
+    // #6893: --reviewed-file is optional; the default is the run's present
+    // changed files from base..head at the project root.
+    let reviewedFiles = args.reviewedFiles;
+    if (reviewedFiles.length === 0) {
+      if (rec === null) {
+        process.stderr.write(`pre_pr_run: pre-PR run ${args.runId} is not in the private store\n`);
+        return 1;
+      }
+      const listed = listPresentChangedPathsBetween(projectRoot, rec.baseSha, rec.headSha);
+      if (listed === null) {
+        process.stderr.write(
+          `pre_pr_run: --observe-semantic could not list the run's changed files (git diff ${rec.baseSha}..${rec.headSha} at ${projectRoot}). Name the reviewed files with --reviewed-file.\n`,
+        );
+        return 2;
+      }
+      if (listed.length === 0) {
+        process.stderr.write(
+          "pre_pr_run: --observe-semantic found no present changed files between the run's base and head (a deletion-only change or no change). Name the reviewed files with --reviewed-file.\n",
+        );
+        return 2;
+      }
+      reviewedFiles = listed;
     }
     // #6902: relative reviewed files resolve against the root, as completeRun re-hashes them.
     const observed = computeControllerObservedHash({
-      reviewedFiles: args.reviewedFiles,
+      reviewedFiles,
       cwd: projectRoot,
     });
     if (observed === null) {
@@ -564,7 +624,8 @@ export function run(argv: string[], options: PrePrRunOptions = {}): number {
       );
       return 1;
     }
-    if (args.suppliedContentsHash !== observed) {
+    // #6893: the supplied hash is optional; a given value must still match.
+    if (args.suppliedContentsHash.length > 0 && args.suppliedContentsHash !== observed) {
       process.stderr.write(
         "pre_pr_run: --supplied-contents-hash does not match independently hashed reviewed-file contents\n",
       );
@@ -572,13 +633,13 @@ export function run(argv: string[], options: PrePrRunOptions = {}): number {
     }
     const d = submitReviewerReport(store, args.runId, {
       phaseId: phase,
-      reviewedFileManifest: args.reviewedFiles,
-      suppliedContentsHash: args.suppliedContentsHash,
+      reviewedFileManifest: reviewedFiles,
+      suppliedContentsHash: observed,
       criteriaDigest: args.criteriaDigest ?? rec?.criteria.digest ?? "",
       reviewerReportRef: args.reviewerReportRef,
       controllerObservedHash: observed,
     });
-    emit(args.json, d, d.message, !d.ok);
+    emitObserved(args.json, d, store.getById(args.runId));
     return d.ok ? 0 : 1;
   }
   if (args.evaluate) {
@@ -658,8 +719,20 @@ export function run(argv: string[], options: PrePrRunOptions = {}): number {
         ? { verifyAcDisposition: args.verifyAcDisposition }
         : {}),
     });
-    emit(args.json, d, d.message, !d.ok);
-    return d.ok ? 0 : 1;
+    if (!d.ok) {
+      emit(args.json, d, d.message, true);
+      return 1;
+    }
+    // #6893: say whether this project's managed pre-push hook looks for the pass.
+    const setting = readRequireBoundPrePrPushSetting(projectRoot);
+    const pushGate = describeBoundPrePrPushSetting(setting);
+    emit(
+      args.json,
+      { ...d, requireBoundPrePrPush: setting, pushGate },
+      `${d.message}\n${pushGate}`,
+      false,
+    );
+    return 0;
   }
   // #6316: the story line goes into the PR body file before the PR is opened.
   if (args.bodyFile !== null) {

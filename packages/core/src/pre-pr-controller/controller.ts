@@ -23,6 +23,7 @@ import { evaluateCoverageHotspots } from "../coverage-hotspots/evaluate.js";
 import { evaluate as evaluateEvaluatorSurface } from "../evaluator-surface/evaluate.js";
 import { admittedUntiedWorktreeKey, type VerifyAcDispositionKind } from "../hooks/scope.js";
 import { isCoverageModeSkipAuthorized, resolveCoverageMode } from "../policy/coverage-mode.js";
+import { readPlanPolicy } from "../policy/plan-extensions.js";
 import type { RunGhFn } from "../pr-merge-readiness/types.js";
 import { FIRST_HOTFIX_BOOTSTRAP_RECOVERY } from "../pr-wait-mergeable/constants.js";
 import { detectMergeQueue, type MergeQueueDetectFn } from "../pr-wait-mergeable/merge-queue.js";
@@ -49,6 +50,7 @@ import {
   type PrePrPhaseId,
   type PrePrPhaseSpec,
   phaseSpec,
+  requiredPhases,
   VERIFY_AC_NO_OBLIGATION_EXIT,
 } from "./phases.js";
 
@@ -208,6 +210,110 @@ export function computeControllerObservedHash(input: {
     }
   }
   return sha256Hex(JSON.stringify(rows));
+}
+
+/**
+ * The default reviewed-file list for `--observe-semantic` (#6893): the present
+ * changed files between base..head at the project root (deletions excluded),
+ * repo-relative. Returns null when git cannot list them.
+ */
+export function listPresentChangedPathsBetween(
+  projectRoot: string,
+  baseSha: string,
+  headSha: string,
+): string[] | null {
+  try {
+    const out = execFileSync(
+      "git",
+      ["diff", "-z", "--name-only", "--diff-filter=d", `${baseSha}..${headSha}`],
+      {
+        cwd: projectRoot,
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"],
+      },
+    );
+    return out
+      .split("\0")
+      .filter((p) => p.length > 0)
+      .map((p) => p.replaceAll("\\", "/"));
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * What to do after a successful observe (#6893): the required phases with no
+ * recorded row, in order; or start a new run when the run is failed or
+ * interrupted; or run `--complete` when none are missing. It never claims a pass.
+ */
+export function prePrNextStep(record: PrePrExecutionRecord): string {
+  if (record.state === "failed" || record.failedAt !== null) {
+    return (
+      "This run has a recorded failure and cannot pass. Next: start a new run " +
+      "with `deft pre-pr:run` and record every required phase again."
+    );
+  }
+  if (record.state === "interrupted" || record.interruptedAt !== null) {
+    return (
+      "This run was interrupted and cannot pass. Next: start a new run " +
+      "with `deft pre-pr:run` and record every required phase again."
+    );
+  }
+  const missing = requiredPhases()
+    .filter((spec) =>
+      spec.kind === "command-observable"
+        ? !record.phaseEvidence.commands.some((c) => c.phaseId === spec.id)
+        : !record.phaseEvidence.semantic.some((s) => s.phaseId === spec.id),
+    )
+    .map((spec) => spec.id);
+  if (missing.length > 0) {
+    return `Required phases not yet recorded, in order: ${missing.join(", ")}.`;
+  }
+  return (
+    "Every required phase is recorded. Next: `deft pre-pr:run --complete --run-id " +
+    `${record.id}\`; it checks each phase before it publishes anything.`
+  );
+}
+
+/**
+ * `plan.policy.requireBoundPrePrPush` as written: true, false, or null when not
+ * set (#6893). Read here directly, as plan-sequence/approval-grant.ts does:
+ * importing the pre-push module would close an import cycle through this file.
+ */
+export function readRequireBoundPrePrPushSetting(projectRoot: string): boolean | null {
+  try {
+    const pdPath = join(projectRoot, "xbrief", "PROJECT-DEFINITION.xbrief.json");
+    if (!existsSync(pdPath)) return null;
+    const data = JSON.parse(readFileSync(pdPath, "utf8")) as { plan?: unknown };
+    const policy = readPlanPolicy(data.plan);
+    if (policy === null || typeof policy !== "object") return null;
+    const raw = (policy as Record<string, unknown>).requireBoundPrePrPush;
+    return typeof raw === "boolean" ? raw : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The push-gate line `--complete` prints on success (#6893): the policy value
+ * and what the managed pre-push hook (`preflight-gh --pre-push-stdin`) does
+ * with it. Completing a run is not push admission.
+ */
+export function describeBoundPrePrPushSetting(setting: boolean | null): string {
+  const hook = "the managed pre-push hook (`preflight-gh --pre-push-stdin`)";
+  const tail = " Completing a run is not push admission.";
+  if (setting === true) {
+    return (
+      `Push gate: plan.policy.requireBoundPrePrPush is true, so ${hook} refuses a push ` +
+      `of non-docs changes without a pre-PR pass bound to HEAD.${tail}`
+    );
+  }
+  const value = setting === false ? "false" : "not set";
+  const admit = setting === null ? " (`deft pre-pr:run --push-admit` treats not set as on.)" : "";
+  return (
+    `Push gate: plan.policy.requireBoundPrePrPush is ${value}, so ${hook} does not ` +
+    `look for a pre-PR pass.${admit}${tail}`
+  );
 }
 
 /** Deleted paths between base..head for pushBinding.reviewedDeletedPaths (#5804). */
@@ -1068,9 +1174,10 @@ export function completeRun(
           named.outcome === "first-hotfix-bootstrap"
             ? FIRST_HOTFIX_BOOTSTRAP_RECOVERY
             : (named.error ?? "named Merge gate refused");
+        // #6893: the red gate first, the missing PR second.
         return deny(
           "deny-master-merge-gate-red",
-          noPullRequest === null ? cause : `${noPullRequest} ${cause}`,
+          noPullRequest === null ? cause : `${cause} ${noPullRequest}`,
         );
       }
     }

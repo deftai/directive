@@ -608,7 +608,8 @@ describe("deft pre-pr:run", () => {
       ]),
     ).toBe(1);
     expect(run(["--observe-command", "--run-id=ppr_x"])).toBe(2);
-    expect(run(["--observe-semantic", "--run-id=ppr_x", "--phase=read"])).toBe(2);
+    // #6893: no hash or file list needed; an unknown run refuses.
+    expect(run(["--observe-semantic", "--run-id=ppr_x", "--phase=read"])).toBe(1);
     expect(run([])).toBe(2);
     const parsed = parseArgs([
       "--repo=deftai/directive",
@@ -1232,5 +1233,310 @@ describe("a failed --complete retry revokes the earlier pass (#6888)", () => {
     expect(d.ok).toBe(false);
     expect(store.getById("ppr_6888_sibling")?.outcome).toBe("none");
     expect(store.getById("ppr_6888_sibling")?.publishedAt).toBeNull();
+  });
+});
+
+describe("leaf ergonomics for finishing a controller run (#6893)", () => {
+  let base: string;
+  let root: string;
+  let store: InProcessPrePrStore;
+
+  function git(cwd: string, args: readonly string[]): string {
+    return execFileSync("git", [...args], { cwd, encoding: "utf8" }).trim();
+  }
+
+  function capture(): { out: string[]; err: string[] } {
+    const out: string[] = [];
+    const err: string[] = [];
+    vi.spyOn(process.stdout, "write").mockImplementation((chunk) => {
+      out.push(String(chunk));
+      return true;
+    });
+    vi.spyOn(process.stderr, "write").mockImplementation((chunk) => {
+      err.push(String(chunk));
+      return true;
+    });
+    return { out, err };
+  }
+
+  /** A repo with a base commit and a head commit made by `change`. */
+  function repo(change: (dir: string) => void): { baseSha: string; headSha: string } {
+    git(root, ["init", "-q", "-b", "master"]);
+    git(root, ["config", "user.email", "t@example.com"]);
+    git(root, ["config", "user.name", "t"]);
+    writeFileSync(join(root, "kept.ts"), "kept\n");
+    writeFileSync(join(root, "gone.ts"), "gone\n");
+    git(root, ["add", "-A"]);
+    git(root, ["commit", "-q", "-m", "base"]);
+    const baseSha = git(root, ["rev-parse", "HEAD"]);
+    change(root);
+    git(root, ["add", "-A"]);
+    git(root, ["commit", "-q", "--allow-empty", "-m", "head"]);
+    return { baseSha, headSha: git(root, ["rev-parse", "HEAD"]) };
+  }
+
+  function startRun(runId: string, shas: { baseSha: string; headSha: string }): void {
+    expect(
+      run([
+        "--repo",
+        "acme/app",
+        "--base-sha",
+        shas.baseSha,
+        "--head-sha",
+        shas.headSha,
+        "--tree-hash",
+        "tree",
+        "--pr-body-hash",
+        "body",
+        "--approved-revision",
+        shas.baseSha,
+        "--run-id",
+        runId,
+        "--project-root",
+        root,
+        "--json",
+      ]),
+    ).toBe(0);
+  }
+
+  function observeSemantic(runId: string, phase: string, extra: readonly string[] = []): number {
+    return run([
+      "--observe-semantic",
+      "--run-id",
+      runId,
+      "--phase",
+      phase,
+      "--project-root",
+      root,
+      ...extra,
+    ]);
+  }
+
+  function observeCommand(runId: string, phase: string, exitCode = 0): number {
+    return run(
+      [
+        "--observe-command",
+        "--run-id",
+        runId,
+        "--phase",
+        phase,
+        "--exit-code",
+        String(exitCode),
+        "--project-root",
+        root,
+      ],
+      { gateChecks: PASS_GATES },
+    );
+  }
+
+  /** Every required phase in order, semantic phases with only --run-id and --phase. */
+  function recordAll(runId: string): void {
+    for (const spec of PRE_PR_PHASES.filter((p) => p.required)) {
+      const code =
+        spec.kind === "command-observable"
+          ? observeCommand(runId, spec.id)
+          : observeSemantic(runId, spec.id);
+      expect(code).toBe(0);
+    }
+  }
+
+  function changeTwoFiles(dir: string): void {
+    writeFileSync(join(dir, "kept.ts"), "kept v2\n");
+    writeFileSync(join(dir, "added.ts"), "added\n");
+    rmSync(join(dir, "gone.ts"));
+  }
+
+  function semanticRow(runId: string, phase: string) {
+    return store.getById(runId)?.phaseEvidence.semantic.find((s) => s.phaseId === phase);
+  }
+
+  beforeEach(() => {
+    base = mkdtempSync(join(tmpdir(), "pre-pr-6893-"));
+    root = join(base, "repo");
+    mkdirSync(root);
+    store = new InProcessPrePrStore();
+    setDefaultPrePrStore(store);
+  });
+
+  afterEach(() => {
+    resetDefaultPrePrStore();
+    rmSync(base, { recursive: true, force: true });
+    vi.restoreAllMocks();
+  });
+
+  it("records a semantic phase with no hash and no file list, from base..head and the controller's hash", () => {
+    const shas = repo(changeTwoFiles);
+    startRun("ppr_6893_default", shas);
+    capture();
+    expect(observeSemantic("ppr_6893_default", "read")).toBe(0);
+    const row = semanticRow("ppr_6893_default", "read");
+    // The present changed files only: gone.ts was deleted.
+    expect(row?.reviewedFileManifest).toEqual(["added.ts", "kept.ts"]);
+    expect(row?.reviewedFileManifest).toEqual(
+      git(root, ["diff", "--name-only", "--diff-filter=d", `${shas.baseSha}..${shas.headSha}`])
+        .split("\n")
+        .filter((p) => p.length > 0),
+    );
+    const expected = computeControllerObservedHash({
+      reviewedFiles: ["added.ts", "kept.ts"],
+      cwd: root,
+    });
+    expect(expected).not.toBeNull();
+    expect(row?.controllerObservedHash).toBe(expected);
+    expect(row?.suppliedContentsHash).toBe(expected);
+  });
+
+  it("a wrong explicit hash still refuses, and explicit --reviewed-file paths replace the default", () => {
+    const shas = repo(changeTwoFiles);
+    startRun("ppr_6893_explicit", shas);
+    const { err } = capture();
+    expect(
+      observeSemantic("ppr_6893_explicit", "read", ["--supplied-contents-hash", "forged"]),
+    ).toBe(1);
+    expect(err.join("")).toMatch(/does not match independently hashed/);
+    expect(semanticRow("ppr_6893_explicit", "read")).toBeUndefined();
+    expect(observeSemantic("ppr_6893_explicit", "read", ["--reviewed-file", "kept.ts"])).toBe(0);
+    expect(semanticRow("ppr_6893_explicit", "read")?.reviewedFileManifest).toEqual(["kept.ts"]);
+    // A matching explicit hash is accepted.
+    const right = computeControllerObservedHash({ reviewedFiles: ["kept.ts"], cwd: root }) ?? "";
+    expect(
+      observeSemantic("ppr_6893_explicit", "write", [
+        "--reviewed-file",
+        "kept.ts",
+        "--supplied-contents-hash",
+        right,
+      ]),
+    ).toBe(0);
+  });
+
+  it("a deletion-only change refuses and names --reviewed-file", () => {
+    const shas = repo((dir) => rmSync(join(dir, "gone.ts")));
+    startRun("ppr_6893_deleted", shas);
+    const { err } = capture();
+    expect(observeSemantic("ppr_6893_deleted", "read")).toBe(2);
+    expect(err.join("")).toMatch(/deletion-only change or no change/);
+    expect(err.join("")).toContain("--reviewed-file");
+    expect(observeSemantic("ppr_6893_deleted", "read", ["--reviewed-file", "kept.ts"])).toBe(0);
+  });
+
+  it("an empty diff refuses and names --reviewed-file", () => {
+    const shas = repo(() => {});
+    startRun("ppr_6893_empty", shas);
+    const { err } = capture();
+    expect(observeSemantic("ppr_6893_empty", "read")).toBe(2);
+    expect(err.join("")).toContain("Name the reviewed files with --reviewed-file");
+    expect(semanticRow("ppr_6893_empty", "read")).toBeUndefined();
+  });
+
+  it("names the missing required phases, a new run when failed, and --complete when none are missing", () => {
+    const shas = repo(changeTwoFiles);
+    startRun("ppr_6893_next", shas);
+    const { out } = capture();
+    expect(observeCommand("ppr_6893_next", "branch_policy")).toBe(0);
+    expect(out.join("")).toContain(
+      "Required phases not yet recorded, in order: plan_sequence, read, write, lint_iteration, render_export, diff, loop.",
+    );
+    out.length = 0;
+    recordAll("ppr_6893_next");
+    const last = out.join("").trim().split("\n").at(-1) ?? "";
+    expect(last).toContain("Every required phase is recorded");
+    expect(last).toContain("--complete --run-id ppr_6893_next");
+    expect(last).not.toMatch(/\bpass(ed)?\b/);
+
+    startRun("ppr_6893_failed", shas);
+    out.length = 0;
+    expect(observeCommand("ppr_6893_failed", "branch_policy", 1)).toBe(0);
+    expect(out.join("")).toContain("recorded failure");
+    expect(out.join("")).toContain("start a new run");
+    expect(out.join("")).not.toContain("Required phases not yet recorded");
+  });
+
+  it("--json observe output carries the next step", () => {
+    const shas = repo(changeTwoFiles);
+    startRun("ppr_6893_json", shas);
+    const { out } = capture();
+    expect(observeSemantic("ppr_6893_json", "read", ["--json"])).toBe(0);
+    const payload = JSON.parse(out.join("").trim()) as { ok: boolean; next: string };
+    expect(payload.ok).toBe(true);
+    expect(payload.next).toMatch(/^Required phases not yet recorded, in order: branch_policy/);
+  });
+
+  for (const [label, setting, expected] of [
+    ["true", true, "requireBoundPrePrPush is true, so"],
+    ["false", false, "requireBoundPrePrPush is false, so"],
+    ["not set", undefined, "requireBoundPrePrPush is not set, so"],
+  ] as const) {
+    it(`--complete reports the push-gate setting when it is ${label}`, () => {
+      const shas = repo(changeTwoFiles);
+      mkdirSync(join(root, "xbrief"), { recursive: true });
+      const policy = setting === undefined ? {} : { requireBoundPrePrPush: setting };
+      writeFileSync(
+        join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+        JSON.stringify({ plan: { policy } }),
+      );
+      startRun("ppr_6893_push", shas);
+      recordAll("ppr_6893_push");
+      const { out } = capture();
+      expect(
+        run(["--complete", "--run-id", "ppr_6893_push", "--project-root", root], {
+          skipNamedMergeGate: true,
+          verifyAc: VERIFY_AC_PASS,
+        }),
+      ).toBe(0);
+      const text = out.join("");
+      expect(text).toContain("published ppr_6893_push");
+      expect(text).toContain(expected);
+      expect(text).toContain("Completing a run is not push admission.");
+      if (setting === undefined) expect(text).toContain("--push-admit` treats not set as on");
+    });
+  }
+
+  it("--complete --json carries the push-gate setting", () => {
+    const shas = repo(changeTwoFiles);
+    startRun("ppr_6893_push_json", shas);
+    recordAll("ppr_6893_push_json");
+    const { out } = capture();
+    expect(
+      run(["--complete", "--run-id", "ppr_6893_push_json", "--project-root", root, "--json"], {
+        skipNamedMergeGate: true,
+        verifyAc: VERIFY_AC_PASS,
+      }),
+    ).toBe(0);
+    const payload = JSON.parse(out.join("").trim()) as {
+      ok: boolean;
+      requireBoundPrePrPush: boolean | null;
+      pushGate: string;
+    };
+    expect(payload.ok).toBe(true);
+    expect(payload.requireBoundPrePrPush).toBeNull();
+    expect(payload.pushGate).toContain("not set");
+  });
+
+  it("the usage text lists the phase order, the optional phases and the run rules", () => {
+    const { out } = capture();
+    expect(run(["--help"])).toBe(0);
+    const text = out.join("");
+    expect(text).toContain(
+      "Required, in this order: branch_policy, plan_sequence, read, write,\n  lint_iteration, render_export, diff, loop.",
+    );
+    expect(text).toContain("Optional: coverage_headroom, merge_chokepoint.");
+    expect(text).toContain("A recorded failure ends the run.");
+    expect(text).toContain(
+      "A phase recorded out of order is fixed by recording it and every later",
+    );
+    expect(text).toContain("merge_chokepoint is optional.");
+    expect(text).toContain("does not need a PR");
+    expect(text).toContain("Completing a run is not push");
+    // The usage order is the controller's order.
+    expect(PRE_PR_PHASES.filter((p) => p.required).map((p) => p.id)).toEqual([
+      "branch_policy",
+      "plan_sequence",
+      "read",
+      "write",
+      "lint_iteration",
+      "render_export",
+      "diff",
+      "loop",
+    ]);
   });
 });
