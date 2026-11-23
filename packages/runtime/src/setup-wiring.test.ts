@@ -24,6 +24,13 @@ import {
   checkFullInSync,
   RUNTIME_PIN_PACKAGE,
 } from "@deftai/directive-core/dist/install-health/index.js";
+import { resolveAbsoluteGitDir } from "@deftai/directive-core/dist/policy/deft-directive-disable.js";
+import {
+  KILL_SWITCH_BARE_FLAG_NAME,
+  KILL_SWITCH_GITHOOK_MARKER,
+  KILL_SWITCH_RECORD_REL,
+  writeKillSwitchRecord,
+} from "@deftai/directive-core/dist/policy/kill-switch-record.js";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   assertInventoryCompleteness,
@@ -341,13 +348,15 @@ describe("runSetup package-relative wiring (Wave 2c / R9)", { timeout: 30_000 },
     expect(result.stderr).not.toMatch(/yarn|npm i -g|install --repair/);
   });
 
-  it("git hook helper short-circuits on local .deft-directive-disable (#5543 / #3039)", () => {
+  it("git hook helper short-circuits on a valid kill record only (#5543 / #3039 / #6740)", () => {
     const root = tempRoot();
     runSetup({ operation: "install", from: "none", root });
     const helper = readFileSync(join(root, ".githooks", "_directive-run.sh"), "utf8");
-    expect(helper).toContain(".deft-directive-disable");
+    expect(helper).toContain(KILL_SWITCH_GITHOOK_MARKER);
+    expect(helper).toContain(KILL_SWITCH_RECORD_REL);
     expect(helper).toContain("#5543");
-    expect(helper).toMatch(/ls-files --error-unmatch/);
+    expect(helper).toContain("rev-parse --absolute-git-dir");
+    expect(helper).toMatch(/grep -qxF/);
     // Fake runtime bin so sourcing the helper succeeds; short-circuit must avoid executing it.
     const binPath = join(root, RUNTIME_PREFIX, "dist", "bin.js");
     mkdirSync(join(root, RUNTIME_PREFIX, "dist"), { recursive: true });
@@ -356,16 +365,25 @@ describe("runSetup package-relative wiring (Wave 2c / R9)", { timeout: 30_000 },
       '#!/usr/bin/env node\nprocess.stderr.write("BIN_RAN\\n"); process.exit(99);\n',
       "utf8",
     );
-    writeFileSync(join(root, ".deft-directive-disable"), "", "utf8");
-    const combined = execFileSync(
-      "sh",
-      ["-c", `. "$REPO_ROOT/.githooks/_directive-run.sh"; run_directive doctor 2>&1; echo EXIT:$?`],
-      {
-        encoding: "utf8",
-        cwd: root,
-        env: { ...process.env, REPO_ROOT: root },
-      },
-    );
+    const runHelper = (): string =>
+      execFileSync(
+        "sh",
+        ["-c", `. "$REPO_ROOT/.githooks/_directive-run.sh"; run_directive doctor 2>&1; echo EXIT:$?`],
+        {
+          encoding: "utf8",
+          cwd: root,
+          env: { ...process.env, REPO_ROOT: root },
+        },
+      );
+    // #6740: a bare root flag turns nothing off; the bin still runs.
+    writeFileSync(join(root, KILL_SWITCH_BARE_FLAG_NAME), "", "utf8");
+    expect(runHelper()).toContain("BIN_RAN");
+    writeKillSwitchRecord(root, {
+      gitDir: resolveAbsoluteGitDir(root) ?? "",
+      mintedAt: "2026-11-22T00:00:00Z",
+      mintedVia: "kill-switch:on",
+    });
+    const combined = runHelper();
     // #5994 F1: disable is quiet allow (no required message); still exit 0 and skip bin.
     expect(combined).toContain("EXIT:0");
     expect(combined).not.toContain("BIN_RAN");

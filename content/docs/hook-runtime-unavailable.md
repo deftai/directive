@@ -2,7 +2,7 @@
 
 Directive registers each agent hook as `node <host dir>/deft-hook-<sha8>.mjs --host <host> --event <event>` (AC9.1). That small committed file uses only Node built-ins. It checks, in this order (AC9.12):
 
-1. **Kill switch.** An untracked kill-switch file at the project root ([deft-directive-disable.md](./deft-directive-disable.md)): the hook allows the call and loads nothing else.
+1. **Kill switch.** A valid kill record `.deft/authz/kill-switch.disable` ([deft-directive-disable.md](./deft-directive-disable.md), #6740), checked with `node:fs` and `git`: the hook allows the call and loads nothing else. A bare root flag file turns nothing off; the hook prints one warning and goes on.
 2. **Runtime missing.** No `node_modules/@deftai/directive-runtime/dist/hook-bin.js`: the hook blocks the tool call and names the project install.
 3. **Otherwise** it runs the pinned runtime, which checks that the installed version matches the pin and then decides.
 
@@ -82,7 +82,7 @@ Setting `failClosed: false` in `.cursor/hooks.json` clears the block exactly onc
 
 | Escape hatch | Effect on this failure |
 |---|---|
-| `.deft-directive-disable` | The hook file checks it first, so an untracked flag lets calls through even while the runtime is missing. It can't help when the hook never starts. |
+| Kill record (`deft kill-switch:on --confirm`) | The hook file checks it first, so a valid record lets calls through even while the runtime is missing. A bare `.deft-directive-disable` flag does nothing. It can't help when the hook never starts. |
 | `.no-deft-directive` | Consulted at `session.start` only; it never reaches `preToolUse`. |
 | Host-side "skip hook" | A host concept. Directive has no such bypass. |
 

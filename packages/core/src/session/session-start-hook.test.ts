@@ -3,6 +3,8 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
+import { resolveAbsoluteGitDir } from "../policy/deft-directive-disable.js";
+import { KILL_SWITCH_RECORD_REL, writeKillSwitchRecord } from "../policy/kill-switch-record.js";
 import { runSessionStartHookWrite } from "./session-start-hook.js";
 
 describe("session start hook", () => {
@@ -69,10 +71,14 @@ describe("session start hook", () => {
     rmSync(root, { recursive: true, force: true });
   });
 
-  it("skips sentinel write when .deft-directive-disable is present (#3039)", () => {
+  it("skips sentinel write when a valid kill record is present (#3039 / #6740)", () => {
     const root = mkdtempSync(join(tmpdir(), "hook-kill-switch-"));
     execFileSync("git", ["init"], { cwd: root, stdio: "ignore" });
-    writeFileSync(join(root, ".deft-directive-disable"), "", "utf8");
+    writeKillSwitchRecord(root, {
+      gitDir: resolveAbsoluteGitDir(root) ?? "",
+      mintedAt: "2026-11-22T00:00:00Z",
+      mintedVia: "kill-switch:on",
+    });
     mkdirSync(join(root, ".deft", "core"), { recursive: true });
     const writeSentinelFn = vi.fn(() => {
       throw new Error("sentinel must not run under kill-switch");
@@ -84,7 +90,7 @@ describe("session start hook", () => {
       writeSentinelFn,
     });
     expect(result.code).toBe(0);
-    expect(result.stdout).toContain(".deft-directive-disable");
+    expect(result.stdout).toContain(KILL_SWITCH_RECORD_REL);
     expect(result.stdout).toContain("NEW agent session");
     expect(writeSentinelFn).not.toHaveBeenCalled();
     rmSync(root, { recursive: true, force: true });

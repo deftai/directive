@@ -139,7 +139,7 @@ Read and follow `../AGENTS.md`. This starts the normal first-session flow (user 
 
 **Consumer issue-label kit:** New or bare backlogs should adopt the thin portable label set in [docs/consumer-issue-label-kit.md](./docs/consumer-issue-label-kit.md) (#2611) — core type labels, optional epic/tracker/child rules, optional `triaged` + mirror PD knobs. Do not copy the full maintainer taxonomy (#2609).
 
-**Opt-out pointer:** Projects that must not use Directive should commit root [`.no-deft-directive`](./docs/no-deft-directive.md) so session/doctor/init/setup skip install and ritual (#2926). Temporary local kill-switch (deposit OK): [`.deft-directive-disable`](./docs/deft-directive-disable.md) (#3039).
+**Opt-out pointer:** Projects that must not use Directive should commit root [`.no-deft-directive`](./docs/no-deft-directive.md) so session/doctor/init/setup skip install and ritual (#2926). Temporary local kill-switch (deposit OK): a person runs `deft kill-switch:on --confirm`, which writes the kill record `.deft/authz/kill-switch.disable`; a bare root flag file turns nothing off ([kill-switch docs](./docs/deft-directive-disable.md), #3039 / #6740).
 
 **Contributor pointer (non-blocking):** Working on Deft itself (a `deftai/directive` source checkout)? See [CONTRIBUTING.md](../CONTRIBUTING.md). The Go installer is deleted — maintainers use the repo's documented Node/pnpm workflow, not `deft-install`. The repo's root `AGENTS.md` has contributor instructions — you do not need the consumer first-session flow above.
 

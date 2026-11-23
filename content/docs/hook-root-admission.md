@@ -77,7 +77,7 @@ directory. Relieving it costs a change to the authority contract, not a bug fix.
 | Session ritual, gated tier | effective root (= payload root here) | **Runs**, including the occupancy↔ritual owner cross-check and the pre-allow re-check. |
 | Authz / UAT grant scoping | payload root | **Payload-root authoritative**, unchanged by admission. |
 | Authz audit trail | payload root | **Payload-root authoritative.** |
-| Kill-switch (`.deft-directive-disable`) | payload root | **Payload-root authoritative.** A flag beside the target does not disable the gate. |
+| Kill-switch (kill record `.deft/authz/kill-switch.disable`, #6740) | payload root | **Payload-root authoritative.** Only a valid kill record at the payload root disables the gate. A record beside the target does not, and a bare root `.deft-directive-disable` flag turns nothing off. |
 | `deny().projectRoot` | payload root | **Payload-root authoritative**, so a deny is reported against the tree the host named. |
 | Mutation intent ceiling (#1193) | neither | **Runs independently** of both roots. |
 | Read-only posture | neither | **Runs.** |

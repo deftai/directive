@@ -3,6 +3,8 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import { resolveAbsoluteGitDir } from "../policy/deft-directive-disable.js";
+import { killSwitchRecordPath, writeKillSwitchRecord } from "../policy/kill-switch-record.js";
 import { loadStoryWriteFenceFromPath } from "../policy/write-fence.js";
 import { defaultGitRunner } from "../session/git.js";
 import { canonicalHostSessionId } from "../session/host-session-owner.js";
@@ -33,6 +35,16 @@ function resetLeaseFiles(root: string): void {
   rmSync(join(root, ".deft", "occupancy.json"), { force: true });
   rmSync(join(root, ".deft", "child-occupancy"), { recursive: true, force: true });
   rmSync(join(root, ".deft-directive-disable"), { force: true });
+  rmSync(killSwitchRecordPath(root), { force: true });
+}
+
+/** #6740: a valid kill record bound to the checkout's own git dir. */
+function writeKillRecord(root: string): void {
+  writeKillSwitchRecord(root, {
+    gitDir: resolveAbsoluteGitDir(root) ?? "",
+    mintedAt: "2026-11-22T00:00:00Z",
+    mintedVia: "kill-switch:on",
+  });
 }
 
 function resetSharedFixtures(): void {
@@ -359,7 +371,8 @@ describe("direct-write occupancy/ritual follow the target worktree (#3794)", () 
 
   it("pins the kill-switch to payloadRoot, not the write-target worktree", () => {
     const { primary, wtA } = linkedFixture();
-    writeFileSync(join(wtA, ".deft-directive-disable"), "off\n", "utf8");
+    // #6740: a valid kill record bound to the worktree's own git dir.
+    writeKillRecord(wtA);
     const { seams } = recordingSeams("wt-owner");
     const stillEnforcing = decideHook(
       {
@@ -373,7 +386,7 @@ describe("direct-write occupancy/ritual follow the target worktree (#3794)", () 
     );
     expect(stillEnforcing.code).not.toBe("directive-disabled");
 
-    writeFileSync(join(primary, ".deft-directive-disable"), "off\n", "utf8");
+    writeKillRecord(primary);
     const disabled = decideHook(
       {
         host: "grok",

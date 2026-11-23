@@ -3823,7 +3823,7 @@
       "id": "agents-016",
       "tier": "MUST",
       "domain": "agents",
-      "text": "Per-project opt-out — root `.no-deft-directive` (#2926) skips install/session/setup (`content/docs/no-deft-directive.md`); flag wins locally over org force-on; flag+deposit → doctor warns, init/update fail closed. Temporary kill-switch `.deft-directive-disable` (#3039) — deposit OK; delete + NEW agent session (`content/docs/deft-directive-disable.md`).",
+      "text": "Per-project opt-out — root `.no-deft-directive` (#2926) skips install/session/setup (`content/docs/no-deft-directive.md`); flag wins locally over org force-on; flag+deposit → doctor warns, init/update fail closed. Temporary kill-switch = kill record `.deft/authz/kill-switch.disable` (#3039 / #6740): a person runs `deft kill-switch:on --confirm`; deposit OK; off = `deft kill-switch:off --confirm` + NEW agent session; a bare root flag turns nothing off (`content/docs/deft-directive-disable.md`).",
       "path": "AGENTS.md",
       "body": null
     },

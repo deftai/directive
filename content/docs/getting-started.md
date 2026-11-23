@@ -289,4 +289,4 @@ Quality notes for `AGENTS.md` live in [good-agents-md.md](./good-agents-md.md). 
 
 **Opt out:** To mark a repo as not using Directive, add root [`.no-deft-directive`](./no-deft-directive.md) (#2926). Tools skip install and session ritual when that file is present.
 
-**Temporary test kill-switch:** For local A/B or DevHammer without permanent opt-out, use root [`.deft-directive-disable`](./deft-directive-disable.md) (#3039). Deposit may stay; re-enable by deleting the file and starting a new agent session.
+**Temporary test kill-switch:** For local A/B testing without permanent opt-out, a person runs `deft kill-switch:on --confirm` at a terminal; it writes the kill record `.deft/authz/kill-switch.disable` ([kill-switch docs](./deft-directive-disable.md), #3039 / #6740). A bare root flag file turns nothing off. Deposit may stay; re-enable with `deft kill-switch:off --confirm` and a new agent session.

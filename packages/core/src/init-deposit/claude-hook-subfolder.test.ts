@@ -139,7 +139,15 @@ describe("Claude locator from any folder (#5959 / #6594)", () => {
     const run = runEntry(top);
     expect(run.status).toBe(0);
     expect(run.decision).toMatchObject({ label: "main", cwd: top });
-    expect(run.decision?.args).toEqual(["--host", "claude", "--event", "tool.before"]);
+    // #6740: the outer appends the kill-switch reader flag for the runtime.
+    expect(run.decision?.args).toEqual([
+      "--host",
+      "claude",
+      "--event",
+      "tool.before",
+      "--kill-switch-reader",
+      "v1",
+    ]);
   });
 
   it("runs the same outer from a workspace subfolder (not the nearest package.json)", () => {
