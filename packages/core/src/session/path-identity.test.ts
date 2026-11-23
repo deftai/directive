@@ -14,7 +14,12 @@ import { mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync, writeFileSyn
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { admitEffectiveHookRoot, admitMutationTargetSet } from "../hooks/dispatcher.js";
+import {
+  admitEffectiveHookRoot,
+  admitMutationTargetSet,
+  isOutsideProjectRootWrite,
+  toProjectRelativePosix,
+} from "../hooks/dispatcher.js";
 import { restampOwnerLivenessOnHookEvent } from "../hooks/owner-liveness.js";
 import { destPlaceImplementSpawn } from "../swarm/dest-place.js";
 import { physicalTargetKey, resolveStoryBindingTarget } from "../swarm/pre-dispatch.js";
@@ -336,6 +341,25 @@ describe.skipIf(!WIN32).each(["8.3", "lowercase"] as const)(
       },
       IT_TIMEOUT_MS,
     );
+
+    it("the write fence keeps an alias-spelled target inside its root, both directions", (ctx) => {
+      const rootAlias = alias(fx.main, () => ctx.skip());
+      const longTarget = join(fx.main, "packages", "secret", "x.ts");
+      const shortTarget = join(rootAlias, "packages", "secret", "x.ts");
+      // long root / alias target, then alias root / long target: never outside.
+      for (const [root, target] of [
+        [fx.main, shortTarget],
+        [rootAlias, longTarget],
+      ] as const) {
+        expect(isOutsideProjectRootWrite(root, target)).toBe(false);
+        expect(toProjectRelativePosix(root, target)).toBe("packages/secret/x.ts");
+      }
+      // A real outside target stays outside and keeps its lexical relative.
+      expect(isOutsideProjectRootWrite(fx.main, join(fx.foreign, "x.ts"))).toBe(true);
+      expect(toProjectRelativePosix(fx.main, join(fx.foreign, "x.ts"))).toBe(
+        "../foreign-repository/x.ts",
+      );
+    });
 
     it(
       "resolveWorktreeMap finds the registered worktree under an alias spelling",

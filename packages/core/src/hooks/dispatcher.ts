@@ -229,7 +229,11 @@ import {
   type OutsideEveryCheckoutSeams,
   targetsKeepOriginalSpelling,
 } from "./outside-every-checkout.js";
-import { isLexicalOutsideProjectRoot, isOutsideProjectRootWrite } from "./outside-project-root.js";
+import {
+  isLexicalOutsideProjectRoot,
+  isOutsideProjectRootWrite,
+  win32PhysicalRelative,
+} from "./outside-project-root.js";
 import {
   type OwnerLivenessInput,
   type OwnerLivenessOutcome,
@@ -864,8 +868,11 @@ export interface HookPolicySeams {
 /** POSIX-ish project-relative path for lifecycle matching. */
 export function toProjectRelativePosix(projectRoot: string, targetPath: string): string {
   const abs = resolve(projectRoot, targetPath.replace(/\\/g, "/"));
-  const rel = relative(resolve(projectRoot), abs);
-  return rel.split(sep).join("/").replace(/\\/g, "/");
+  const rel = relative(resolve(projectRoot), abs).split(sep).join("/").replace(/\\/g, "/");
+  if (!isLexicalOutsideProjectRoot(rel)) return rel;
+  // win32 (#7200): an 8.3, case or junction spelling of a path inside the root
+  // relativizes from the native forms, so file_scope and denyPaths still match.
+  return win32PhysicalRelative(resolve(projectRoot), abs) ?? rel;
 }
 
 export { isLexicalOutsideProjectRoot, isOutsideProjectRootWrite };

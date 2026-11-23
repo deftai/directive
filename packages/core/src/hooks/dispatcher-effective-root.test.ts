@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { loadStoryWriteFenceFromPath } from "../policy/write-fence.js";
-import { defaultGitRunner } from "../session/git.js";
+import { defaultGitRunner, samePathIdentity } from "../session/git.js";
 import { canonicalHostSessionId } from "../session/host-session-owner.js";
 import { applyWorktreeOccupancy, occupancyPath } from "../session/occupancy.js";
 import {
@@ -143,7 +143,10 @@ function scopeSeams(readyRoot: string | null): {
       verifyRitual: () => ({ ...READY_RITUAL, boundSessionId: "owner" }),
       inspectScope: (root) => {
         scopeRoots.push(resolve(root));
-        if (readyRoot !== null && resolve(root) === resolve(readyRoot)) return READY_SCOPE;
+        // One tree in any spelling: the admitted root is git's (#7200).
+        if (readyRoot !== null && samePathIdentity(resolve(root), resolve(readyRoot))) {
+          return READY_SCOPE;
+        }
         return { ready: false, path: null, message: "no active scope xBRIEF" };
       },
       loadStoryWriteFence: (_root, scopePath) => {

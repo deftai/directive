@@ -24,6 +24,7 @@ import { fileURLToPath } from "node:url";
 import ts from "typescript";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { DEFAULT_RUNTIME_AUTHORITY_POLICY } from "../policy/runtime-authority.js";
+import { samePathIdentity } from "../session/git.js";
 import {
   decideHook,
   type HookDispatchInput,
@@ -284,8 +285,9 @@ describe("#6189 (g) linked worktrees", () => {
   /** Ready story with file_scope `src/**` only in `readyRoot`. */
   function treeSeams(readyRoot: string): HookPolicySeams {
     return seams({
+      // One tree in any spelling: the admitted root is git's (#7200).
       inspectScope: (root) =>
-        resolve(root) === resolve(readyRoot)
+        samePathIdentity(resolve(root), resolve(readyRoot))
           ? { ...READY_SCOPE, path: join(readyRoot, "xbrief", "active", "story.xbrief.json") }
           : NOT_READY_SCOPE,
     });

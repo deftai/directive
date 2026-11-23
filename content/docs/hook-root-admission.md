@@ -29,8 +29,14 @@ and both `--git-common-dir` values pass through `canonicalPathIdentity` (`realpa
 an 8.3 short spelling, another letter case or a junction spelling of the same checkout is that
 checkout. When the match is found only this way, the effective root is the candidate (git's
 spelling). No case fold applies to roots, so two case-distinct folders stay two repositories, and a
-path whose native form cannot be read adds no equality. Write targets are still not canonicalized
-(#4023, below). POSIX roots compare as before.
+path whose native form cannot be read adds no equality. POSIX roots compare as before.
+
+The write fence keeps up with that root on Windows. A target that is lexically outside the fence root
+but whose native spelling is inside the root's native spelling (an 8.3 or other-case spelling of a
+path in that checkout) is inside: `isOutsideProjectRootWrite` says so and `toProjectRelativePosix`
+relativizes from the native forms, so story file_scope and denyPaths still apply. This only ever
+moves a target inside, never outside. Admission still picks the target's toplevel from the target
+as written (#4023, below).
 
 Set level: `admitMutationTargetSet` admits every member of one mutation (the declared ApplyPatch
 path plus every path in the patch body), short-circuits on the first refused member, and then
@@ -222,8 +228,8 @@ shift the class the same way: a junction into a linked worktree admits that work
 into a non-repository directory falls back to the payload root.
 
 Recorded, not fixed by #4013. Canonicalization changes admission classification, so it needs its own
-arc: **#4023**. The Windows root identity of #7200 does not change this: it applies to roots, not to
-write targets.
+arc: **#4023**. #7200 does not change this for relative targets or admission classification; on
+Windows it only keeps an alias-spelled target inside its root at the fence (above).
 
 ## What a narrowing would have to define
 
