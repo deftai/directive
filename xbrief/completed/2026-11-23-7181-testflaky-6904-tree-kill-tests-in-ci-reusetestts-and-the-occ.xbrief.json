@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #7181",
-    "updated": "2026-11-23T13:59:25Z"
+    "updated": "2026-11-23T14:58:08Z"
   },
   "plan": {
     "title": "test(flaky): #6904 tree-kill tests in ci-reuse.test.ts and the occupancy suite fail intermittently in the queue",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "test(flaky): #6904 tree-kill tests in ci-reuse.test.ts and the occupancy suite fail intermittently in the queue",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/7181",
@@ -15,13 +15,27 @@
     "items": [
       {
         "title": "The two #6904 tree-kill tests stay real-process tests, with recorded Linux stress evidence: the liveness probe misread rate before and after the fix, and at least 90 test runs with no failure.",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9b63f293c3a1fed6c6beb2141c4f91dc796f3df2",
+          "recorded_at": "2026-11-23T14:58:08Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Per `CONTRIBUTING.md` § Slow tests (#975) there is no slow marker; the real-process tree-kill proof is kept, and the fix removes the race rather than hiding it.",
-        "status": "proposed",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9b63f293c3a1fed6c6beb2141c4f91dc796f3df2",
+          "recorded_at": "2026-11-23T14:58:08Z",
+          "recorded_by": "scope:complete"
+        }
       }
     ],
     "references": [
@@ -109,9 +123,38 @@
           "one changelog fragment changelog.d/7181-tree-kill-pending-sigkill.md"
         ],
         "model_tier": "high"
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "2c2bc9bf0e4d17ca4c139daf1e56a6d2f4ca1ab1",
+        "prNumber": 7204,
+        "prBase": "master",
+        "mergeCommit": "9b63f293c3a1fed6c6beb2141c4f91dc796f3df2",
+        "deliveryBranch": "master",
+        "deliveryCommit": "9b63f293c3a1fed6c6beb2141c4f91dc796f3df2",
+        "verifiedAt": "2026-11-23T14:58:08Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:OWEwZDY5MDktOTZkNS00NjFiLWIzMTUtODg5ZjNlZjFkNTI0",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          7196
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-23T14:58:08Z",
+      "completedSessionId": "host:claude:v1:OWEwZDY5MDktOTZkNS00NjFiLWIzMTUtODg5ZjNlZjFkNTI0",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-23T14:58:08Z"
       }
     },
     "id": "github.issue.6552685477",
-    "updated": "2026-11-23T13:59:25Z"
+    "updated": "2026-11-23T14:58:08Z"
   }
 }
