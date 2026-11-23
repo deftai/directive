@@ -1,0 +1,29 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "design-critique-not-warranted-for-7233-because-the-fix-is-narrow",
+  "decision": "design-critique: not warranted for #7233, because the fix is narrow: a top-level lockfile name change is package-manager metadata when package.json has no name",
+  "governingRule": {
+    "description": "Before issue:ingest: arc or design-critique: not warranted, because ...",
+    "path": "AGENTS.md",
+    "rfc2119": "MUST"
+  },
+  "alternativesConsidered": [
+    {
+      "option": "Run a design-critique arc"
+    },
+    {
+      "option": "Have directive upgrade keep the lockfile name"
+    }
+  ],
+  "whyWinner": "Scott accepted the build with no arc (2026-11-23); the change is one narrow classifier tweak in owned-paths.ts with a unit test",
+  "confidence": "high",
+  "activeScopeRefs": [],
+  "timestamp": "2026-11-23T22:54:49Z",
+  "revisitTrigger": "If the fix needs installer or upgrade-flow changes beyond owned-paths.ts, run an arc",
+  "tags": [
+    "process"
+  ],
+  "relatedIssues": [
+    7233
+  ]
+}
