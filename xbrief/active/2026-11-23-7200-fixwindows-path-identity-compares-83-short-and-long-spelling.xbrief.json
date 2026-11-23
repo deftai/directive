@@ -234,7 +234,11 @@
           "docs/RULE-MAP.md",
           "xbrief/evaluator-surface-disposition.json",
           "xbrief/PROJECT-DEFINITION.xbrief.json",
-          "xbrief/.audit/spec-drift/github.issue.6561558004.json"
+          "xbrief/.audit/spec-drift/github.issue.6561558004.json",
+          "packages/core/src/hooks/outside-project-root.ts",
+          "packages/core/src/hooks/outside-project-root.test.ts",
+          ".deft/approved-scope/github.issue.6561558004.json",
+          ".deft/approved-scope/github.issue.6561558004.intent.json"
         ],
         "verify_commands": [
           "npx vitest run packages/core/src/session/path-identity.test.ts packages/core/src/session/git.test.ts packages/core/src/session/main-worktree.test.ts packages/core/src/session/occupancy.test.ts packages/core/src/session/spawn-occupancy.test.ts packages/core/src/session/child-occupancy.test.ts",
