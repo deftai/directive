@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #7223",
-    "updated": "2026-11-23T20:55:32Z"
+    "updated": "2026-11-23T22:50:05Z"
   },
   "plan": {
     "title": "fix(literal-acceptance): refuse acceptance cwd and npm --prefix inside node_modules",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "This story adds refusals to the literal acceptance cwd and npm --prefix checks. A cwd or --prefix value with a node_modules segment or a leading-dot segment is refused at grammar time, and a resolved real path with a node_modules segment is refused at run time. Acceptance commands then run only from the repo's own directories, never from installed dependencies.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/7223",
@@ -18,42 +18,77 @@
     "items": [
       {
         "title": "A literal acceptance command whose record cwd has a `node_modules` path segment or a leading-dot segment is refused at grammar time (`evaluateAcceptanceCwdGrammar`).",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "Given a literal acceptance record whose cwd has a node_modules segment or a leading-dot segment, when evaluateAcceptanceCwdGrammar runs at activation or verify:ac, then the record is refused at grammar time and nothing is spawned."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ef31f6ed06834eaba271a776d03bac35152f3717",
+          "recorded_at": "2026-11-23T22:50:05Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "An `npm --prefix` value with a `node_modules` segment or a leading-dot segment is refused (`evaluateCommandSafety`).",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "Given an npm acceptance command whose --prefix value has a node_modules segment or a leading-dot segment, when evaluateCommandSafety runs, then the command is refused."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ef31f6ed06834eaba271a776d03bac35152f3717",
+          "recorded_at": "2026-11-23T22:50:05Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "`evaluateAcceptanceCwdContainment` refuses a resolved real path that contains a `node_modules` segment, for both the cwd and the `--prefix` directory.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "Given a cwd or --prefix directory whose resolved real path contains a node_modules segment, when evaluateAcceptanceCwdContainment runs before a spawn, then it refuses for the cwd and for the --prefix directory."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ef31f6ed06834eaba271a776d03bac35152f3717",
+          "recorded_at": "2026-11-23T22:50:05Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Regression tests in `packages/core/src/literal-acceptance/` cover each refusal, and the brief-command survey reports how many existing brief commands change verdict.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "When the build lands, then regression tests in packages/core/src/literal-acceptance/ cover each refusal, and the PR reports how many existing brief acceptance commands change verdict under the brief-command survey."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ef31f6ed06834eaba271a776d03bac35152f3717",
+          "recorded_at": "2026-11-23T22:50:05Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "`content/docs/plan-acceptance.md` states that acceptance commands run only from the repo's own directories, never from installed dependencies.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "When the build lands, then content/docs/plan-acceptance.md states that acceptance commands run only from the repo's own directories, never from installed dependencies."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ef31f6ed06834eaba271a776d03bac35152f3717",
+          "recorded_at": "2026-11-23T22:50:05Z",
+          "recorded_by": "scope:complete"
         }
       }
     ],
@@ -187,9 +222,38 @@
         ],
         "conflict_group": "literal-acceptance-cwd",
         "model_tier": "high"
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "0cf1ef8396332f4e1e78d30afde9076461ee701a",
+        "prNumber": 7231,
+        "prBase": "master",
+        "mergeCommit": "ef31f6ed06834eaba271a776d03bac35152f3717",
+        "deliveryBranch": "master",
+        "deliveryCommit": "0ad599971d93ab30ea6373a3fb4feec87c6441ad",
+        "verifiedAt": "2026-11-23T22:50:05Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:OWEwZDY5MDktOTZkNS00NjFiLWIzMTUtODg5ZjNlZjFkNTI0",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          7225
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-23T22:50:05Z",
+      "completedSessionId": "host:claude:v1:OWEwZDY5MDktOTZkNS00NjFiLWIzMTUtODg5ZjNlZjFkNTI0",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-23T22:50:05Z"
       }
     },
     "id": "github.issue.6568541569",
-    "updated": "2026-11-23T20:55:32Z"
+    "updated": "2026-11-23T22:50:05Z"
   }
 }
