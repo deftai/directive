@@ -6,7 +6,7 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { beforeAll, describe, expect, it } from "vitest";
 
@@ -96,9 +96,14 @@ describe("stage-bundle AC1.3 packaging purity (PKG-AC13-NEST)", () => {
       const tgz = packed.stdout.trim().split("\n").filter(Boolean).at(-1);
       expect(tgz && existsSync(tgz)).toBe(true);
 
-      const pkgJson = spawnSync("tar", ["-xOf", tgz!, "package/package.json"], {
-        encoding: "utf8",
-      });
+      // Bare archive name in its folder: Git Bash GNU tar reads `C:` as a host (#7172).
+      const tgzFile = tgz ?? "";
+      const tarOpts = { cwd: dirname(tgzFile), encoding: "utf8" as const };
+      const pkgJson = spawnSync(
+        "tar",
+        ["-xOf", basename(tgzFile), "package/package.json"],
+        tarOpts,
+      );
       expect(pkgJson.status).toBe(0);
       const pkg = JSON.parse(pkgJson.stdout) as {
         dependencies?: Record<string, string>;
@@ -109,9 +114,9 @@ describe("stage-bundle AC1.3 packaging purity (PKG-AC13-NEST)", () => {
       expect(pkg.bundledDependencies).toBeUndefined();
       expect(pkg.directive?.contract).toBe(1);
 
-      const listing = spawnSync("tar", ["-tzf", tgz!], { encoding: "utf8" });
+      const listing = spawnSync("tar", ["-tzf", basename(tgzFile)], tarOpts);
       expect(listing.status).toBe(0);
-      const names = listing.stdout.split("\n");
+      const names = listing.stdout.split(/\r?\n/);
       for (const name of PRIVATE) {
         expect(names.some((n) => n.startsWith(`package/vendor/${name}/`))).toBe(true);
         expect(names.includes(`package/vendor/${name}/package.json`)).toBe(false);
