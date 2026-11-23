@@ -1,0 +1,116 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #7234",
+    "updated": "2026-11-23T23:09:15Z"
+  },
+  "plan": {
+    "title": "bug(agents-entry): managed AGENTS.md cites templates/agent-prompt-preamble.md, which does not exist in a consumer project (regression from #7152)",
+    "status": "running",
+    "narratives": {
+      "Description": "bug(agents-entry): managed AGENTS.md cites templates/agent-prompt-preamble.md, which does not exist in a consumer project (regression from #7152)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/7234",
+      "Overview": "## Summary\n\nSince 0.131.4, two lines in the AGENTS.md managed section cite `templates/agent-prompt-preamble.md`. In a consumer project that path does not exist. The file is at `node_modules/@deftai/directive-runtime/templates/agent-prompt-preamble.md`, which is what 0.131.3 rendered.\n\nSource: internal benchmark evidence (private). Seen in the managed-section diff of a 0.131.3 → 0.131.4 upgrade.\n\n## Cause\n\nUpstream commit `215047ddf` (PR #7152, \"add the #480 kernel to the issue-read line\") changed `content/templates/agents-entry.md`:\n\n- Line 53 (Umbrella status reading, #2066): `full contract: node_modules/@deftai/directive-runtime/templates/agent-prompt-preamble.md § 5.6` became `full contract: templates/agent-prompt-preamble.md § 5.6`.\n- Line 63 (Issue body→comments reading, #2143): the same prefix was dropped.\n\nThe parent commit `14b6539de` still has the full path on both lines. The same new line 63 also says \"first read main.md § Agent Trap Defenses\" without the prefix, although the managed section's opening gives the full path `node_modules/@deftai/directive-runtime/main.md`.\n\n## Impact\n\nAn agent that follows the pointer (for § 5.6 before dispatch, or the #2143 read rule) finds no file. It then guesses a path or skips the read. The AGENTS.md guidance against inventing payload paths makes a guess the wrong recovery.\n\n## Expected\n\nThe rendered consumer AGENTS.md cites paths that exist in a consumer project.\n\n## Acceptance Criteria\n\n- [ ] Given a consumer install, when AGENTS.md is rendered, then each `templates/…` and `main.md` reference in the managed section resolves to an existing file from the project root (`node_modules/@deftai/directive-runtime/…`).\n- [ ] A content-contract test fails if a managed-section path reference does not resolve in a consumer layout.\n\n## Related\n\n#7152, #4949, #480, #2066, #2143.\n\n\n"
+    },
+    "items": [
+      {
+        "title": "Given a consumer install, when AGENTS.md is rendered, then each `templates/…` and `main.md` reference in the managed section resolves to an existing file from the project root (`node_modules/@deftai/directive-runtime/…`).",
+        "status": "proposed",
+        "id": "clause.1"
+      },
+      {
+        "title": "A content-contract test fails if a managed-section path reference does not resolve in a consumer layout.",
+        "status": "proposed",
+        "id": "clause.2"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/7234",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #7234: bug(agents-entry): managed AGENTS.md cites templates/agent-prompt-preamble.md, which does not exist in a consumer project (regression from #7152)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/7152",
+        "type": "x-xbrief/refs",
+        "title": "Issue #7152"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per sentence-list entry (2), in order (#6333)",
+      "sentences": [
+        "Given a consumer install, when AGENTS.md is rendered, then each `templates/…` and `main.md` reference in the managed section resolves to an existing file from the project root (`node_modules/@deftai/directive-runtime/…`).",
+        "A content-contract test fails if a managed-section path reference does not resolve in a consumer layout."
+      ],
+      "admitted_source_sentences": [
+        "Given a consumer install, when AGENTS.md is rendered, then each `templates/…` and `main.md` reference in the managed section resolves to an existing file from the project root (`node_modules/@deftai/directive-runtime/…`).",
+        "A content-contract test fails if a managed-section path reference does not resolve in a consumer layout."
+      ],
+      "admitted_source_digest": "c0c7fd90a1e3115f3768f88483972b01c0adcf14248faf6dd8af770354d927f6",
+      "admitted_source_extractor": 2,
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Given a consumer install, when AGENTS.md is rendered, then each `templates/…` and `main.md` reference in the managed section resolves to an existing file from the project root (`node_modules/@deftai/directive-runtime/…`).",
+          "artifact_path": "AGENTS.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "A content-contract test fails if a managed-section path reference does not resolve in a consumer layout.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6569775443,
+        "origin": "deftai/directive#7234",
+        "id": "github.issue.6569775443"
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": false,
+        "file_scope": [
+          "content/templates/agents-entry.md",
+          "AGENTS.md",
+          "packages/core/src/content-contracts/skills/agents_entry_consumer_paths.test.ts",
+          "changelog.d/7234-agents-entry-consumer-paths.md",
+          "docs/RULE-MAP.md",
+          "xbrief/evaluator-surface-disposition.json",
+          "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "xbrief/.audit/spec-drift/github.issue.6569775443.json"
+        ],
+        "verify_commands": [
+          "npx vitest run packages/core/src/content-contracts/skills/agents_entry_consumer_paths.test.ts packages/core/src/content-contracts/skills/agents_entry_contract.test.ts"
+        ],
+        "size": "small",
+        "file_scope_confidence": "medium",
+        "depends_on": [],
+        "expected_outputs": [
+          "agents-entry.md and the repo AGENTS.md managed section cite templates/agent-prompt-preamble.md and main.md with the node_modules/@deftai/directive-runtime/ prefix",
+          "a content-contract test resolving every templates/ and main.md path in the managed section against a consumer layout, plus one fragment changelog.d/7234-agents-entry-consumer-paths.md"
+        ],
+        "conflict_group": "agents-entry",
+        "model_tier": "high"
+      }
+    },
+    "id": "github.issue.6569775443",
+    "updated": "2026-11-23T23:09:15Z"
+  }
+}
