@@ -1,0 +1,115 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #7233",
+    "updated": "2026-11-23T22:59:24Z"
+  },
+  "plan": {
+    "title": "bug(scope-cover): a directive upgrade run in a worktree is refused because npm rewrites the lockfile's top-level name",
+    "status": "running",
+    "narratives": {
+      "Description": "bug(scope-cover): a directive upgrade run in a worktree is refused because npm rewrites the lockfile's top-level name",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/7233",
+      "ImplementationPlan": "One product PR. In packages/core/src/install-health/owned-paths.ts, npmLockAppMetadataEqual ignores the top-level `name` (and any difference in it) when neither lockfile's root `packages[\"\"]` entry carries a `name`: npm then derives that label from the folder, so it is package-manager metadata like `lockfileVersion` and `requires`. When the root entry carries a `name`, package.json declares one and a name change stays `mixed`. No change to the upgrade flow or to any installer file. Tests: owned-paths.test.ts (folder-derived name change is directive-only; app-declared name change is mixed; version change still mixed) and directive-only-drop.test.ts (a worktree-upgrade lockfile is dropped). Fragment: changelog.d/7233-lockfile-name-metadata.md. Generated and disclosure files in file_scope are predicted only; remove nothing if untouched.",
+      "Design": "design-critique: not warranted, because the fix is narrow (decision record in xbrief/decisions/, PR #7241).",
+      "Overview": "## Summary\n\nThe prospective scope-cover check (#5656 / #5771) refuses the commit for a plain `directive upgrade` when the upgrade runs in a folder whose name differs from the folder of the last lockfile write. The cause is the top-level `name` in `package-lock.json`.\n\nWhen `package.json` has no `name`, npm writes the folder name into the lockfile's top-level `name`. `directive upgrade` runs npm, so an upgrade in a linked worktree (for example `.deft-scratch/worktrees/<folder>`) changes that field. `npmLockAppMetadataEqual` (`install-health/owned-paths.js`, via `classifyLockfile`) counts the top-level `name` as app metadata, so `classifyDirectiveOwnedChange(\"package-lock.json\", …)` returns `mixed`. `package.json`, `AGENTS.md` and `.deft/GENERATION.json` in the same commit classify as `directive-only`, so the refusal names only the lockfile.\n\nThe suggested remedy (commit the Directive-only files, keep the lockfile out) leaves a commit whose pin does not match its lockfile. The operator had to commit the upgrade by hand.\n\nSource: internal benchmark evidence (private). Directive 0.131.3 and 0.131.4 upgrades, Claude Code, Windows 11, npm 11, each upgrade in its own linked worktree from the default branch. Refused in both releases.\n\n## Evidence\n\nThe upgrade's only lockfile changes were the runtime pin entries and the top-level `name` (`\"<folder-A>\"` → `\"<folder-B>\"`, both worktree folder names). Running the 0.131.4 ownership API on the committed blobs:\n\n| Upgrade | Lockfile as committed | Same, top-level `name` restored |\n|---|---|---|\n| 0.131.2 → 0.131.3 | `mixed` | `directive-only` |\n| 0.131.3 → 0.131.4 | `mixed` | `directive-only` |\n\nSo the top-level `name` is the only reason for the refusal.\n\n## Expected\n\nAn upgrade that changes only Directive's dependency entries is `directive-only`, wherever it runs. Possible fixes (maintainer's choice):\n\n- When `package.json` has no `name`, treat a change to the lockfile's top-level `name` (and an absent root `packages[\"\"].name`) as package-manager metadata, like `lockfileVersion` and `requires`.\n- Or have `directive upgrade` keep the lockfile's existing top-level `name`.\n\n## Acceptance Criteria\n\n- [ ] Given a project whose `package.json` has no `name`, when `directive upgrade` runs in a linked worktree with a different folder name, then the agent's commit of the upgrade deposit (pin, lockfile, generation record, managed AGENTS.md) passes scope-cover with no brief.\n- [ ] Given a lockfile change that also changes the app's own `name` declared in `package.json`, then the verdict stays `mixed`.\n\n## Related\n\n#5771 (deposit-only commits), #6615 (ownership API), #6790 (the opposite precision gap: too permissive), #5949.\n\n"
+    },
+    "items": [
+      {
+        "title": "Given a project whose `package.json` has no `name`, when `directive upgrade` runs in a linked worktree with a different folder name, then the agent's commit of the upgrade deposit (pin, lockfile, generation record, managed AGENTS.md) passes scope-cover with no brief.",
+        "status": "proposed",
+        "id": "clause.1"
+      },
+      {
+        "title": "Given a lockfile change that also changes the app's own `name` declared in `package.json`, then the verdict stays `mixed`.",
+        "status": "proposed",
+        "id": "clause.2"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/7233",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #7233: bug(scope-cover): a directive upgrade run in a worktree is refused because npm rewrites the lockfile's top-level name"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/5771",
+        "type": "x-xbrief/refs",
+        "title": "Issue #5771"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per sentence-list entry (2), in order (#6333)",
+      "sentences": [
+        "Given a project whose `package.json` has no `name`, when `directive upgrade` runs in a linked worktree with a different folder name, then the agent's commit of the upgrade deposit (pin, lockfile, generation record, managed AGENTS.md) passes scope-cover with no brief.",
+        "Given a lockfile change that also changes the app's own `name` declared in `package.json`, then the verdict stays `mixed`."
+      ],
+      "admitted_source_sentences": [
+        "Given a project whose `package.json` has no `name`, when `directive upgrade` runs in a linked worktree with a different folder name, then the agent's commit of the upgrade deposit (pin, lockfile, generation record, managed AGENTS.md) passes scope-cover with no brief.",
+        "Given a lockfile change that also changes the app's own `name` declared in `package.json`, then the verdict stays `mixed`."
+      ],
+      "admitted_source_digest": "01e1389e541ec1952bfcac4dd868187e4c144462a9b293806c5aa82e36e8aa2c",
+      "admitted_source_extractor": 2,
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Given a project whose `package.json` has no `name`, when `directive upgrade` runs in a linked worktree with a different folder name, then the agent's commit of the upgrade deposit (pin, lockfile, generation record, managed AGENTS.md) passes scope-cover with no brief.",
+          "artifact_path": "packages/core/src/hooks/directive-only-drop.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Given a lockfile change that also changes the app's own `name` declared in `package.json`, then the verdict stays `mixed`.",
+          "artifact_path": "packages/core/src/install-health/owned-paths.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/install-health/owned-paths.ts",
+          "packages/core/src/install-health/owned-paths.test.ts",
+          "packages/core/src/hooks/directive-only-drop.test.ts",
+          "changelog.d/7233-lockfile-name-metadata.md",
+          "docs/RULE-MAP.md",
+          "xbrief/evaluator-surface-disposition.json"
+        ],
+        "verify_commands": [
+          "npx vitest run packages/core/src/install-health/owned-paths.test.ts packages/core/src/hooks/directive-only-drop.test.ts"
+        ],
+        "size": "small",
+        "file_scope_confidence": "high",
+        "depends_on": [],
+        "expected_outputs": [
+          "classifyLockfile treats a top-level package-lock name change as package-manager metadata when the root packages entry declares no name",
+          "a name change on a lockfile whose root entry carries the app name stays mixed",
+          "a directive-only-drop test covers a worktree upgrade lockfile"
+        ],
+        "model_tier": "standard"
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6569775120,
+        "origin": "deftai/directive#7233",
+        "id": "github.issue.6569775120"
+      }
+    },
+    "id": "github.issue.6569775120",
+    "updated": "2026-11-23T22:59:24Z"
+  }
+}
