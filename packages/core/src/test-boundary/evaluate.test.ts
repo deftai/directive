@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   evaluateTestBoundary,
+  isCoLocatedTestName,
   isRecognizedTestBasename,
   matchesRootGlob,
   matchesTestFilePattern,
@@ -206,5 +207,33 @@ describe("evaluateTestBoundary (#3145)", () => {
       fileContents: contents,
     });
     expect(result.findings.every((f) => f.path !== "infra/logo.png")).toBe(true);
+  });
+});
+
+describe("isCoLocatedTestName (#6668)", () => {
+  it("matches .test./.spec. with every co-located JS/TS extension, case-insensitive", () => {
+    for (const ext of ["ts", "tsx", "js", "jsx", "mjs", "cjs", "mts", "cts"]) {
+      expect(isCoLocatedTestName(`src/ui/A.test.${ext}`)).toBe(true);
+      expect(isCoLocatedTestName(`src/ui/A.spec.${ext}`)).toBe(true);
+    }
+    expect(isCoLocatedTestName("src/ui/InterviewAgent.plan-wide.test.tsx")).toBe(true);
+    expect(isCoLocatedTestName("src\\shared\\C.TEST.MJS")).toBe(true);
+    expect(isCoLocatedTestName("cmd/app/main_test.go")).toBe(true);
+  });
+
+  it("does not match helpers, other languages or bare stems", () => {
+    expect(isCoLocatedTestName("src/helpers/smoke.ts")).toBe(false);
+    expect(isCoLocatedTestName("src/test/setup.ts")).toBe(false);
+    expect(isCoLocatedTestName("src/test_helpers.py")).toBe(false);
+    expect(isCoLocatedTestName("src/a_test.py")).toBe(false);
+    expect(isCoLocatedTestName("src/FooTests.cs")).toBe(false);
+    expect(isCoLocatedTestName("src/a.test.json")).toBe(false);
+    expect(isCoLocatedTestName("src/latest.ts")).toBe(false);
+    expect(isCoLocatedTestName("src/.test.ts")).toBe(false);
+    expect(isCoLocatedTestName("src/_test.go")).toBe(false);
+  });
+
+  it("leaves isRecognizedTestBasename unchanged for .mjs", () => {
+    expect(isRecognizedTestBasename("src/shared/c.test.mjs")).toBe(false);
   });
 });

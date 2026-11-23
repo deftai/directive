@@ -2,7 +2,8 @@
  * verify:class-checks (#4980 / #3145 class).
  *
  * Fail-closed, diff-scoped class gate independent of file_scope digests and of
- * verify:test-boundary warn mode. Remediation is move or remove the path.
+ * verify:test-boundary warn mode. Remediation is move or remove the path; a
+ * class 1 hit may instead be declared in the base-ref test-boundary policy.
  */
 
 import { spawnSync } from "node:child_process";
@@ -13,6 +14,9 @@ import { classifyDirectiveOwnedChange } from "../install-health/owned-paths.js";
 import { isLifecycleArtifactPath } from "../layout/resolve.js";
 import { unquoteGitPath } from "../scope-provenance/evaluate.js";
 import {
+  CO_LOCATED_TEST_EXTENSIONS,
+  CO_LOCATED_TEST_STEMS,
+  isCoLocatedTestName,
   isRecognizedTestBasename,
   matchesRootGlob,
   matchesTestFilePattern,
@@ -77,6 +81,183 @@ export interface ClassCheckOptions {
 }
 
 const MOVE_OR_REMOVE = "Move or remove the path. Class checks have no approve, skip, or phrase.";
+
+/**
+ * Class 1 remediation (#6668): move the path, or declare it in the test-boundary
+ * policy read from the base ref. Names only the file when the base ref has one.
+ */
+function testUnderSourceRootRemediation(baseTb: TestBoundaryPolicy): string {
+  const where =
+    baseTb.source === "file"
+      ? "the base-ref .deft/test-boundary.policy.json"
+      : "the base-ref test-boundary policy (.deft/test-boundary.policy.json when the base ref has " +
+        "that file, else plan.policy.testBoundary in xbrief/PROJECT-DEFINITION.xbrief.json)";
+  return (
+    `Move the path under a test root, or declare it in ${where}, preferably as a narrow ` +
+    "allow entry with a reason. An authored testRoots list replaces every default root, so " +
+    "repeat the defaults you still need. The policy is read from the base ref, so land the " +
+    "policy change in an earlier PR. See content/docs/test-boundary.md (#6668)."
+  );
+}
+
+/**
+ * True when a module specifier's last path segment is `<name>.test` or
+ * `<name>.spec`, optionally followed by one co-located extension (#6668).
+ * No module resolution.
+ */
+function isCoLocatedTestModuleSpecifier(specifier: string): boolean {
+  const lower = (specifier.replace(/\\/g, "/").split("/").pop() ?? "").toLowerCase();
+  const ext = CO_LOCATED_TEST_EXTENSIONS.find((e) => lower.endsWith(`.${e}`));
+  const stem = ext === undefined ? lower : lower.slice(0, -(ext.length + 1));
+  return CO_LOCATED_TEST_STEMS.some((s) => stem.endsWith(s) && stem.length > s.length);
+}
+
+/**
+ * True when a string literal that follows `code` (the line's code so far, with
+ * comments removed and earlier strings blanked) sits in a module-specifier
+ * position: `import … from`, `export … from`, a continuation `} from`, bare
+ * `import "x"`, `import("x")` or `require("x")`.
+ */
+function isModuleSpecifierPosition(code: string): boolean {
+  const before = code.trimEnd();
+  const lead = before.trimStart();
+  const startsStatement = /^(?:import|export|from)\b/.test(lead) || lead.startsWith("}");
+  if (startsStatement && /(?:^|[\s}*])from$/.test(before)) return true;
+  if (lead === "import") return true;
+  return /(?:^|[^\w$.])(?:import|require)\s*\($/.test(before);
+}
+
+/**
+ * Module specifiers on one source line (#6668 class 2 import rule). A one-line
+ * lexer drops `//` and `/* … *\/` comments and reads each string literal once,
+ * so text inside a comment or inside another string is never a specifier, and
+ * a comment between `import(` and its path does not hide it. Code inside a
+ * template `${…}` is lexed as code. A line that starts with `*` continues a
+ * block comment; after a leading `*\/` the rest is code.
+ */
+function moduleSpecifiersOnLine(rawLine: string): string[] {
+  const lead = rawLine.trimStart();
+  const closesComment = lead.startsWith("*/");
+  if (!closesComment && lead.startsWith("*")) return [];
+  const out: string[] = [];
+  lexSpecifiers(closesComment ? lead.slice(2) : rawLine, 0, false, out);
+  return out;
+}
+
+/**
+ * True when a `/` after `code` starts a regular expression literal, not a
+ * division: nothing precedes it, or an operator, opening bracket or keyword does.
+ * A postfix `++` / `--` ends an operand, so the `/` after it divides.
+ */
+function startsRegexLiteral(code: string): boolean {
+  const before = code.trimEnd();
+  if (before.length === 0) return true;
+  if (before.endsWith("++") || before.endsWith("--")) return false;
+  if ("([{,;:=!&|?+-*%<>~^".includes(before[before.length - 1] ?? "")) return true;
+  return /(?:^|[^\w$.])(?:return|typeof|case|do|else|in|of|void|yield|await|delete|new|throw)$/.test(
+    before,
+  );
+}
+
+/**
+ * Index just past a regex literal that starts at `start` (escapes, classes,
+ * flags), or -1 when the line has no closing `/`: then the `/` is read as code,
+ * so an unterminated guess never hides the rest of the line.
+ */
+function skipRegexLiteral(line: string, start: number): number {
+  let j = start + 1;
+  let inClass = false;
+  while (j < line.length) {
+    const c = line[j];
+    if (c === "\\") {
+      j += 2;
+      continue;
+    }
+    if (c === "[") inClass = true;
+    else if (c === "]") inClass = false;
+    else if (c === "/" && !inClass) {
+      j += 1;
+      while (j < line.length && /[a-z]/i.test(line[j] ?? "")) j += 1;
+      return j;
+    }
+    j += 1;
+  }
+  return -1;
+}
+
+/**
+ * Lex code from `start`, pushing module specifiers to `out`. With `inTemplate`,
+ * stop after the `}` that closes a template `${`. Returns the index lexing
+ * stopped at (the line length when the line ends or a comment runs to its end).
+ */
+function lexSpecifiers(line: string, start: number, inTemplate: boolean, out: string[]): number {
+  let code = "";
+  let depth = 0;
+  let i = start;
+  while (i < line.length) {
+    const ch = line[i];
+    if (ch === "/" && line[i + 1] === "/") return line.length;
+    if (ch === "/" && line[i + 1] === "*") {
+      const end = line.indexOf("*/", i + 2);
+      if (end === -1) return line.length;
+      code += " ";
+      i = end + 2;
+      continue;
+    }
+    if (ch === "/" && startsRegexLiteral(code)) {
+      const end = skipRegexLiteral(line, i);
+      if (end !== -1) {
+        i = end;
+        code += "/r/";
+        continue;
+      }
+    }
+    if (ch === "{") depth += 1;
+    if (ch === "}") {
+      if (inTemplate && depth === 0) return i + 1;
+      depth -= 1;
+    }
+    if (ch === '"' || ch === "'") {
+      let j = i + 1;
+      while (j < line.length && line[j] !== ch) j += line[j] === "\\" ? 2 : 1;
+      if (j >= line.length) return line.length;
+      const spec = line.slice(i + 1, j);
+      if (spec.length > 0 && isModuleSpecifierPosition(code)) out.push(spec);
+      code += '""';
+      i = j + 1;
+      continue;
+    }
+    if (ch === "`") {
+      // A specifier template keeps its raw text; each `${…}` reads as one name
+      // character, so `./${name}.test` still ends in `.test`.
+      const atSpecifier = isModuleSpecifierPosition(code);
+      let text = "";
+      let j = i + 1;
+      while (j < line.length && line[j] !== "`") {
+        if (line[j] === "\\") {
+          text += line.slice(j, j + 2);
+          j += 2;
+        } else if (line[j] === "$" && line[j + 1] === "{") {
+          text += "x";
+          j = lexSpecifiers(line, j + 2, true, out);
+        } else {
+          text += line[j];
+          j += 1;
+        }
+      }
+      if (j >= line.length) return line.length;
+      if (atSpecifier && text.length > 0 && isCoLocatedTestModuleSpecifier(text)) {
+        out.push(line.slice(i + 1, j));
+      }
+      code += '""';
+      i = j + 1;
+      continue;
+    }
+    code += ch;
+    i += 1;
+  }
+  return line.length;
+}
 
 const TEST_BOUNDARY_POLICY_PATHS = [
   ".deft/test-boundary.policy.json",
@@ -641,7 +822,8 @@ function scanProductionReferences(
 ): ClassCheckFinding | null {
   if (
     matchesTestFilePattern(relPath, policy.testFilePatterns) ||
-    isRecognizedTestBasename(relPath)
+    isRecognizedTestBasename(relPath) ||
+    isCoLocatedTestName(relPath)
   ) {
     return null;
   }
@@ -697,6 +879,16 @@ function scanProductionReferences(
           remediation: MOVE_OR_REMOVE,
         };
       }
+    }
+    // A production file must not import a co-located test module (#6668).
+    const spec = moduleSpecifiersOnLine(text).find(isCoLocatedTestModuleSpecifier);
+    if (spec !== undefined) {
+      return {
+        path: relPath,
+        kind: "production-references-test-root",
+        detail: `imports co-located test module '${spec}' on line ${lineNo} (class 2)`,
+        remediation: MOVE_OR_REMOVE,
+      };
     }
   }
   return null;
@@ -1005,32 +1197,35 @@ export function evaluateClassChecks(
     // Class 1: test artifact under non-test root (name or contents).
     let isTest =
       matchesTestFilePattern(posix, baseTb.testFilePatterns) || isRecognizedTestBasename(posix);
-    const underSource = isUnderAnyRoot(posix, baseTb.sourceRoots);
+    // A co-located test name (#6668) is never a class 1 finding, by name or by
+    // content. It is not a test root: classes 2 to 4 still see the path.
+    const class1Candidate =
+      isUnderAnyRoot(posix, baseTb.sourceRoots) && !isCoLocatedTestName(posix);
     const protectedPath = isProtected(posix, classPolicy.protectedGlobs);
 
     // Skip binary-ish for content scans
     if (isBinaryLikePath(posix)) {
-      if (isTest && underSource && isAllowListed(posix, baseTb.allow) === null) {
+      if (isTest && class1Candidate && isAllowListed(posix, baseTb.allow) === null) {
         findings.push({
           path: posix,
           kind: "test-under-source-root",
           detail: "test-only artifact under a non-test root (class 1)",
-          remediation: MOVE_OR_REMOVE,
+          remediation: testUnderSourceRootRemediation(baseTb),
         });
       }
       continue;
     }
 
     const content = readContent(root, posix, options.fileContents);
-    if (!isTest && underSource && content !== undefined && contentMarksTestOnly(content)) {
+    if (!isTest && class1Candidate && content !== undefined && contentMarksTestOnly(content)) {
       isTest = true;
     }
-    if (isTest && underSource && isAllowListed(posix, baseTb.allow) === null) {
+    if (isTest && class1Candidate && isAllowListed(posix, baseTb.allow) === null) {
       findings.push({
         path: posix,
         kind: "test-under-source-root",
         detail: "test-only artifact under a non-test root (class 1)",
-        remediation: MOVE_OR_REMOVE,
+        remediation: testUnderSourceRootRemediation(baseTb),
       });
     }
     if (content === undefined) continue;
