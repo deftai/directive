@@ -12,9 +12,11 @@ vi.mock("node:child_process", async (importOriginal) => {
 import { execFileSync } from "node:child_process";
 import {
   existsSync,
+  lstatSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  renameSync,
   rmSync,
   symlinkSync,
   writeFileSync,
@@ -30,6 +32,8 @@ import {
   containedRename,
   containedWrite,
   fsyncContainedDirectory,
+  readRegularFileMatchingLstat,
+  readRegularFileNoFollow,
   resolveContainedTarget,
 } from "./contained-write.js";
 import {
@@ -579,6 +583,94 @@ describe("fsyncContainedDirectory", () => {
   it("returns false for a missing path without throwing", () => {
     const root = freshDir("cw-dir-fsync-missing-");
     expect(fsyncContainedDirectory(join(root, "nope"))).toBe(false);
+  });
+});
+
+// Real symlink, or false where the runner lacks the privilege (EPERM on win32).
+function trySymlink(target: string, link: string): boolean {
+  try {
+    symlinkSync(target, link);
+    return true;
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === "EPERM") return false;
+    throw err;
+  }
+}
+
+// The win32 no-follow read (#7203), driven on every platform: `observed` is
+// the lstat taken before the open, and the path changes between the two.
+describe("readRegularFileMatchingLstat (#7203)", () => {
+  it("reads the file when the opened fd is the file the lstat saw", () => {
+    const root = freshDir("cw-match-ok-");
+    const p = join(root, "report.json");
+    writeFileSync(p, '{"ok":true}\n');
+    expect(readRegularFileMatchingLstat(p, lstatSync(p, { bigint: true }))).toBe('{"ok":true}\n');
+  });
+
+  it("refuses when another regular file replaced the path after the lstat", () => {
+    const root = freshDir("cw-match-replace-");
+    const p = join(root, "report.json");
+    writeFileSync(p, "original\n");
+    const observed = lstatSync(p, { bigint: true });
+    // Keep the original alive under another name so its ino cannot be reused.
+    renameSync(p, join(root, "kept.json"));
+    writeFileSync(p, "swapped\n");
+    expect(readRegularFileMatchingLstat(p, observed)).toBeNull();
+  });
+
+  it("refuses a symlink swapped in after the lstat", () => {
+    const root = freshDir("cw-match-symlink-");
+    const p = join(root, "report.json");
+    const target = join(root, "passing.json");
+    writeFileSync(p, "original\n");
+    writeFileSync(target, "passing\n");
+    const observed = lstatSync(p, { bigint: true });
+    renameSync(p, join(root, "kept.json"));
+    if (!trySymlink(target, p)) return;
+    expect(readRegularFileMatchingLstat(p, observed)).toBeNull();
+  });
+
+  it("refuses when the lstat saw a symlink", () => {
+    const root = freshDir("cw-match-link-");
+    const target = join(root, "passing.json");
+    const p = join(root, "report.json");
+    writeFileSync(target, "passing\n");
+    if (!trySymlink(target, p)) return;
+    expect(readRegularFileMatchingLstat(p, lstatSync(p, { bigint: true }))).toBeNull();
+  });
+
+  it("refuses when the lstat saw a directory", () => {
+    const root = freshDir("cw-match-dir-");
+    expect(readRegularFileMatchingLstat(root, lstatSync(root, { bigint: true }))).toBeNull();
+  });
+
+  it("refuses when the lstat gives no file identity (ino 0)", () => {
+    const root = freshDir("cw-match-ino0-");
+    const p = join(root, "report.json");
+    writeFileSync(p, "x\n");
+    const st = lstatSync(p, { bigint: true });
+    const noIdentity = Object.assign(Object.create(Object.getPrototypeOf(st)), st, { ino: 0n });
+    expect(readRegularFileMatchingLstat(p, noIdentity)).toBeNull();
+  });
+
+  it("refuses a missing path", () => {
+    const root = freshDir("cw-match-missing-");
+    const p = join(root, "report.json");
+    writeFileSync(p, "x\n");
+    const observed = lstatSync(p, { bigint: true });
+    rmSync(p);
+    expect(readRegularFileMatchingLstat(p, observed)).toBeNull();
+  });
+});
+
+describe("readRegularFileNoFollow symlinked final component (#7203)", () => {
+  it("refuses on every platform, with or without O_NOFOLLOW", () => {
+    const root = freshDir("cw-nofollow-link-");
+    const target = join(root, "passing.json");
+    const p = join(root, "report.json");
+    writeFileSync(target, "passing\n");
+    if (!trySymlink(target, p)) return;
+    expect(readRegularFileNoFollow(p)).toBeNull();
   });
 });
 

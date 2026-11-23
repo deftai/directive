@@ -6,6 +6,7 @@ import {
   openSync,
   readFileSync,
   realpathSync,
+  renameSync,
   rmSync,
   symlinkSync,
   unlinkSync,
@@ -2260,23 +2261,31 @@ describe("coverage N/A rests on applicability; one report path and observed root
   });
 
   describe("waived arm reads the report without following a symlink", () => {
-    it("symlink swap at the read (mocked lstatSync, no production hook): exit 4 row refused", () => {
+    // The lstat mock models the race: lstat still sees the original report (a
+    // regular file), but the path is a symlink by the time of the open. POSIX
+    // refuses through O_NOFOLLOW; win32 refuses because the opened file is not
+    // the file the lstat saw (#7203). Where symlinks need a privilege the
+    // runner lacks (EPERM), win32 swaps in another regular file instead, which
+    // drives the same identity check; POSIX has nothing to prove there.
+    it("symlink swap at the read (lstatSync sees the original report): exit 4 row refused", () => {
       const f = armFixture("exit 4", "ppr_swap");
       const rec = f.build(f.root);
       expect(runObservablesComplete(rec, f.satisfy).ok).toBe(true);
       const report = join(f.root, "coverage", "coverage-final.json");
+      const original = join(f.root, "original-report.json");
       const target = join(f.root, "passing.json");
       writeFileSync(target, "{}");
-      rmSync(report);
+      renameSync(report, original);
       try {
         symlinkSync(target, report);
       } catch (err) {
-        if ((err as NodeJS.ErrnoException).code === "EPERM") return;
-        throw err;
+        if ((err as NodeJS.ErrnoException).code !== "EPERM") throw err;
+        if ((realFs.constants as { O_NOFOLLOW?: number }).O_NOFOLLOW !== undefined) return;
+        writeFileSync(report, "{}");
       }
       vi.mocked(lstatSync).mockImplementation(((p: Parameters<typeof lstatSync>[0], o?: object) =>
         String(p).endsWith(join("coverage", "coverage-final.json"))
-          ? realFs.lstatSync(target)
+          ? realFs.lstatSync(original, o as undefined)
           : realFs.lstatSync(p, o as undefined)) as typeof lstatSync);
       vi.mocked(readFileSync).mockClear();
       expect(runObservablesComplete(rec, f.satisfy).ok).toBe(false);

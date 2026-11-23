@@ -1,0 +1,2 @@
+section: Fixed
+- On Windows, the pre-PR coverage report read now refuses a symlink swapped in at the report path. Windows has no `O_NOFOLLOW`, so the read now checks that the opened file is the same file its `lstat` saw (same dev and ino) and refuses otherwise. Before, the read followed the symlink and accepted the other file. The symlink-swap test in `controller.test.ts` now passes on Windows (#7203).

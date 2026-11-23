@@ -34,6 +34,7 @@
 
 import { execFileSync } from "node:child_process";
 import {
+  type BigIntStats,
   chmodSync,
   closeSync,
   constants,
@@ -829,26 +830,67 @@ export function fsyncContainedDirectory(dirAbs: string): boolean {
  * non-regular file, or any other error. Never writes.
  *
  * Covers the final path component only: a symlinked parent directory is still
- * followed. Without O_NOFOLLOW (win32) a symlinked final component is followed
- * too, so callers there must check presence by lstat first.
+ * followed.
+ *
+ * Without O_NOFOLLOW (win32, #7203) the open follows a symlink, so the read
+ * goes through {@link readRegularFileMatchingLstat}: lstat the path first,
+ * then refuse unless the opened fd is that same regular file.
  */
 export function readRegularFileNoFollow(path: string): string | null {
   const noFollow = (constants as { O_NOFOLLOW?: number }).O_NOFOLLOW;
+  if (noFollow === undefined) {
+    let observed: BigIntStats;
+    try {
+      observed = lstatSync(path, { bigint: true });
+    } catch {
+      return null;
+    }
+    return readRegularFileMatchingLstat(path, observed);
+  }
   let fd: number | null = null;
   try {
-    fd = openSync(path, constants.O_RDONLY | (noFollow ?? 0));
+    fd = openSync(path, constants.O_RDONLY | noFollow);
     if (!fstatSync(fd).isFile()) return null;
     return readFileSync(fd, "utf8");
   } catch {
     return null;
   } finally {
-    if (fd !== null) {
-      try {
-        closeSync(fd);
-      } catch {
-        // already closed
-      }
+    closeQuietly(fd);
+  }
+}
+
+/**
+ * The no-O_NOFOLLOW read (win32, #7203). `observed` is the lstat of `path`
+ * taken before the open. Refuse (null) unless `observed` is a regular file
+ * (not a symlink or other reparse point) and the fd opened at `path` is that
+ * same file: a regular file with the same dev and ino. A symlink swapped in
+ * between the lstat and the open makes the open follow it to another file,
+ * so the identity check refuses the read. A zero ino means no identity, so
+ * the read refuses. Exported so tests can drive the check on any platform.
+ */
+export function readRegularFileMatchingLstat(path: string, observed: BigIntStats): string | null {
+  if (!observed.isFile() || observed.ino === 0n) return null;
+  let fd: number | null = null;
+  try {
+    fd = openSync(path, constants.O_RDONLY);
+    const opened = fstatSync(fd, { bigint: true });
+    if (!opened.isFile() || opened.dev !== observed.dev || opened.ino !== observed.ino) {
+      return null;
     }
+    return readFileSync(fd, "utf8");
+  } catch {
+    return null;
+  } finally {
+    closeQuietly(fd);
+  }
+}
+
+function closeQuietly(fd: number | null): void {
+  if (fd === null) return;
+  try {
+    closeSync(fd);
+  } catch {
+    // already closed
   }
 }
 
