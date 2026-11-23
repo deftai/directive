@@ -6,7 +6,7 @@
   },
   "plan": {
     "title": "feat(hooks): every write-gate deny prints exactly one next command",
-    "status": "running",
+    "status": "proposed",
     "narratives": {
       "Description": "feat(hooks): every write-gate deny prints exactly one next command",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6139",
