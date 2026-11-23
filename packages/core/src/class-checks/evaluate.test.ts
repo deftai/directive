@@ -1277,7 +1277,8 @@ describe("co-located tests and the class 2 import rule (#6668)", () => {
     ["const v = import(`./${name}.test`);", "./${name}.test"],
     ['const d = a / 2; const t = require("./t.spec");', "./t.spec"],
     ["const ratio = count++ / require('./scale.test').value;", "./scale.test"],
-    ["const ratio2 = count-- / require('./scale2.test').value;", "./scale2.test"],  ])("class 2 reports a production line importing a test module: %s", (line, spec) => {
+    ["const ratio2 = count-- / require('./scale2.test').value;", "./scale2.test"],
+  ])("class 2 reports a production line importing a test module: %s", (line, spec) => {
     const content = `export const a = 1;\n${line}\n`;
     const result = run(
       { "src/payments/index.ts": content },
