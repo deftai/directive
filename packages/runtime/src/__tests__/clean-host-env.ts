@@ -4,7 +4,7 @@ import { afterAll, beforeAll } from "vitest";
  * Host agent markers that leak from the shell running the tests (#6298).
  * Same pattern as hooks/dispatcher.test.ts (#6227), plus AI_AGENT.
  */
-export const HOST_ENV_PATTERN = /^(CLAUDE|CURSOR_|GROK_|DEFT_|OPENCLAW|WARP_)/;
+export const HOST_ENV_PATTERN = /^(CLAUDE|CURSOR_|GROK_|DEFT_|OPENCLAW|WARP_|CODEX_|OPENAI_CODEX)/;
 
 export function isHostEnvKey(key: string): boolean {
   return HOST_ENV_PATTERN.test(key) || key === "AI_AGENT";

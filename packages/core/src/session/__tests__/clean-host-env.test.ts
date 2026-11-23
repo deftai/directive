@@ -12,6 +12,9 @@ describe("clean-host-env (#6298)", () => {
       "OPENCLAW_Z",
       "WARP_W",
       "AI_AGENT",
+      "CODEX_SANDBOX",
+      "CODEX_CI",
+      "OPENAI_CODEX",
     ]) {
       expect(isHostEnvKey(key)).toBe(true);
     }
