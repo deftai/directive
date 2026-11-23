@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #7025",
-    "updated": "2026-11-23T05:07:07Z"
+    "updated": "2026-11-23T21:55:24Z"
   },
   "plan": {
     "title": "bug(scope): scope:complete's delivery-identity-join rejects the real, GitHub-confirmed merge commit, citing a SHA that doesn't exist",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "resolvePlanGithubIssueRef takes the first reference whose URI parses as a GitHub issue, whatever its type, so a context link to an upstream issue becomes the brief's story issue. The identity join then fetches a same-numbered PR from that other repository and refuses the real merge commit with a SHA from the wrong repository, and the refusal does not name the repository. This story makes only references typed exactly as a GitHub issue count as the story anchor, and names the queried repository in the merge-commit mismatch refusal.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/7025",
@@ -20,74 +20,137 @@
     "items": [
       {
         "title": "Exact typed anchor. `resolvePlanGithubIssueRef` (`packages/core/src/scope/delivery-evidence.ts`) returns the first reference whose type satisfies `referenceTypeMatches(type, \"github-issue\")` or equals exactly `github-issue`, and whose URI parses with `parseGithubIssueUri`. No other reference type, and no substring match, makes a story anchor. The resolver takes no project root and applies no repository preference.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "Exact typed anchor. `resolvePlanGithubIssueRef` (`packages/core/src/scope/delivery-evidence.ts`) returns the first reference whose type satisfies `referenceTypeMatches(type, \"github-issue\")` or equals exactly `github-issue`, and whose URI parses with `parseGithubIssueUri`. No other reference type, and no substring match, makes a story anchor. The resolver takes no project root and applies no repository preference."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "93d2127d235a4d610fef2ecbcb9693602448143d",
+          "recorded_at": "2026-11-23T21:50:28Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "One answer for all readers. No caller changes: the identity join, #6873 discovery, the non-delivery stamped-PR check, `story-issue.ts`, `lands-with-product.ts`, `lands-with-product-proof.ts`, `thin-brief.ts`, `finalize-owed.ts` and `vbrief-preflight.ts` read the new result.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "When the identity join, #6873 discovery, the non-delivery stamped-PR check, `story-issue.ts`, `lands-with-product.ts`, `lands-with-product-proof.ts`, `thin-brief.ts`, `finalize-owed.ts` and `vbrief-preflight.ts` resolve the story issue, each reads the new resolver result with no caller change."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "93d2127d235a4d610fef2ecbcb9693602448143d",
+          "recorded_at": "2026-11-23T21:50:28Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Named repository. `mergeCommitMismatch` receives the repository the PR was fetched from and prints `PR <owner>/<name>#N merge_commit_sha <sha>`, on the issue-anchored and the PR-only call sites.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "When the supplied merge commit does not match, `mergeCommitMismatch` receives the repository the PR was fetched from and prints `PR <owner>/<name>#N merge_commit_sha <sha>`, on the issue-anchored and the PR-only call sites."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "93d2127d235a4d610fef2ecbcb9693602448143d",
+          "recorded_at": "2026-11-23T21:50:28Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Tests: replace the `delivery-evidence.test.ts` assertion that an issue URL under any type anchors with its opposite; canonical, legacy `x-vbrief/` and bare `github-issue` types anchor; `x-xbrief/external`, `x-xbrief/refs` and a type that only contains `github-issue` do not; an external upstream issue before a typed same-repository issue picks the typed one; a context-only brief without a stamp refuses with the #5710 stamp text and with a stamp joins on the canonical repository; #6873 discovery on those plans; the lands-with-product refusal and preflight advisory for a context-only brief; the mismatch message names the repository.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "When the story's tests run, they cover: the `delivery-evidence.test.ts` assertion that an issue URL under any type anchors, replaced with its opposite; canonical, legacy `x-vbrief/` and bare `github-issue` types anchor; `x-xbrief/external`, `x-xbrief/refs` and a type that only contains `github-issue` do not; an external upstream issue before a typed same-repository issue picks the typed one; a context-only brief without a stamp refuses with the #5710 stamp text and with a stamp joins on the canonical repository; #6873 discovery on those plans; the lands-with-product refusal and preflight advisory for a context-only brief; the mismatch message names the repository."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "93d2127d235a4d610fef2ecbcb9693602448143d",
+          "recorded_at": "2026-11-23T21:50:28Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "A reference whose type is not exactly `x-xbrief/github-issue`, `x-vbrief/github-issue` or `github-issue` never becomes a brief's story issue, whatever its URI.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "When a reference's type is not exactly `x-xbrief/github-issue`, `x-vbrief/github-issue` or `github-issue`, it never becomes a brief's story issue, whatever its URI."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "93d2127d235a4d610fef2ecbcb9693602448143d",
+          "recorded_at": "2026-11-23T21:50:28Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "A brief whose only GitHub issue URLs are context references takes the #5710 PR-only identity: without a `productPullRequest` stamp `scope:complete` refuses with the existing stamp-or-issue-origin text; with a stamp it fetches the PR from the canonical remote's repository.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "narrative": {
           "Acceptance": "When a brief's only GitHub issue URLs are context references, it takes the #5710 PR-only identity: without a `productPullRequest` stamp `scope:complete` refuses with the existing stamp-or-issue-origin text; with a stamp it fetches the PR from the canonical remote's repository."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "93d2127d235a4d610fef2ecbcb9693602448143d",
+          "recorded_at": "2026-11-23T21:50:28Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "A brief with a typed story issue reference after an external upstream issue reference anchors on the typed one, in the identity join and in #6873 delivery discovery.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
         "narrative": {
           "Acceptance": "When a brief has a typed story issue reference after an external upstream issue reference, it anchors on the typed one, in the identity join and in #6873 delivery discovery."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "93d2127d235a4d610fef2ecbcb9693602448143d",
+          "recorded_at": "2026-11-23T21:50:28Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "The merge-commit mismatch refusal names the repository and PR it fetched.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.8",
         "narrative": {
           "Acceptance": "When the merge commit does not match, the merge-commit mismatch refusal names the repository and PR it fetched."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "93d2127d235a4d610fef2ecbcb9693602448143d",
+          "recorded_at": "2026-11-23T21:50:28Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Briefs whose story reference is typed `x-xbrief/github-issue` complete as today.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.9",
         "narrative": {
           "Acceptance": "When a brief's story reference is typed `x-xbrief/github-issue`, it completes as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "93d2127d235a4d610fef2ecbcb9693602448143d",
+          "recorded_at": "2026-11-23T21:50:28Z",
+          "recorded_by": "scope:complete"
         }
       }
     ],
@@ -462,9 +525,38 @@
         "conflict_group": "scope-delivery-evidence",
         "model_tier": "high",
         "acceptance_criteria_justification": "The 9 clauses are the 4 Bound-remedy items and 5 Acceptance Criteria of the accepted design-critique lean 7082423429 (synthesis 7082450969), harvested and digest-pinned by issue:ingest; they cannot be merged or dropped without breaking the admitted-source pin."
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "f2abc055dc4379e7e9048b77545b606251e98b95",
+        "prNumber": 7228,
+        "prBase": "master",
+        "mergeCommit": "93d2127d235a4d610fef2ecbcb9693602448143d",
+        "deliveryBranch": "master",
+        "deliveryCommit": "93d2127d235a4d610fef2ecbcb9693602448143d",
+        "verifiedAt": "2026-11-23T21:55:24Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:OWEwZDY5MDktOTZkNS00NjFiLWIzMTUtODg5ZjNlZjFkNTI0",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          7224
+        ]
+      },
+      "completedAt": "2026-11-23T21:55:24Z",
+      "completedSessionId": "host:claude:v1:OWEwZDY5MDktOTZkNS00NjFiLWIzMTUtODg5ZjNlZjFkNTI0",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-23T21:55:24Z"
       }
     },
     "id": "github.issue.6540119175",
-    "updated": "2026-11-23T05:07:07Z"
+    "updated": "2026-11-23T21:55:24Z"
   }
 }
