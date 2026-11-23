@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6893",
-    "updated": "2026-11-22T22:13:29Z"
+    "updated": "2026-11-23T02:30:23Z"
   },
   "plan": {
     "title": "pre-pr: leaf ergonomics for finishing a controller run (#6888 items 2-4)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "pre-pr: leaf ergonomics for finishing a controller run (#6888 items 2-4)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6893",
@@ -17,83 +17,195 @@
     "items": [
       {
         "title": "Semantic hash (P1, P2). `--observe-semantic` computes the contents hash itself and records it as both the supplied and the observed value. `--supplied-contents-hash` is optional; a given value must still match.",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "1f051430bde22c9b76dee47a2a3a7370d2e61e27",
+          "recorded_at": "2026-11-23T02:30:23Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Default file list (P1). `--reviewed-file` is optional on `--observe-semantic`. When omitted, the list is the run's present changed files: `git diff -z --name-only --diff-filter=d <baseSha>..<headSha>` at the project root, NUL-split, repo-relative, and hashed at the same root. When that list is empty (deletion-only change or no change), the call refuses and says to name the reviewed files with `--reviewed-file`. Given `--reviewed-file` paths replace the default.",
-        "status": "proposed",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "1f051430bde22c9b76dee47a2a3a7370d2e61e27",
+          "recorded_at": "2026-11-23T02:30:23Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Phase guidance (P3). The usage text lists the required order (`branch_policy`, `plan_sequence`, `read`, `write`, `lint_iteration`, `render_export`, `diff`, `loop`) and the optional phases (`coverage_headroom`, `merge_chokepoint`). It says that a recorded failure ends the run and a new run must be started; that a phase recorded out of order is fixed by recording it and every later required phase again; and that semantic hashes cover the working-tree files at the project root, so phases are recorded on the run's head with no uncommitted changes. After each successful observe, the output names the required phases still missing, in order; when the run is failed it says to start a new run instead; when none are missing it says to run `--complete`, without claiming a pass.",
-        "status": "proposed",
-        "id": "clause.3"
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "1f051430bde22c9b76dee47a2a3a7370d2e61e27",
+          "recorded_at": "2026-11-23T02:30:23Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "`merge_chokepoint` (P1). The usage text and the pre-PR skill say it is optional and is recorded only after a `deft check` run the work needed anyway (conflict resolve or behind-rebase), and that `--complete` runs `verify:ac` itself (PR #6913).",
-        "status": "proposed",
-        "id": "clause.4"
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "1f051430bde22c9b76dee47a2a3a7370d2e61e27",
+          "recorded_at": "2026-11-23T02:30:23Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "No PR needed (P1). The usage text and the pre-PR skill say `--complete` does not need a PR. When master's named Merge gate is red, the refusal states the red gate first and the missing PR second.",
-        "status": "proposed",
-        "id": "clause.5"
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "1f051430bde22c9b76dee47a2a3a7370d2e61e27",
+          "recorded_at": "2026-11-23T02:30:23Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Push-gate report (P4). On success, `--complete` prints the value of `plan.policy.requireBoundPrePrPush` (true, false or not set) and what it means for the managed `pre-push` hook (`preflight-gh --pre-push-stdin`): true means the hook refuses a push of non-docs changes without a pass bound to HEAD; false or not set means the hook does not look for a pass. The pre-PR skill and the gate walkthrough say the same, and add that `pre-pr:run --push-admit` treats \"not set\" as on and that completing a run is not push admission.",
-        "status": "proposed",
-        "id": "clause.6"
+        "status": "completed",
+        "id": "clause.6",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "1f051430bde22c9b76dee47a2a3a7370d2e61e27",
+          "recorded_at": "2026-11-23T02:30:23Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Tests (P1-P4). A semantic phase recorded with no hash and no file list; a wrong explicit hash still refuses; an explicit list replaces the default; the default list equals the present `base..head` changed files; deletion-only and empty diffs refuse with the recovery; the missing-phase output for a running, a failed and a fully recorded run; the red-gate message order; the push-gate line for true, false and not set; the usage text.",
-        "status": "proposed",
-        "id": "clause.7"
+        "status": "completed",
+        "id": "clause.7",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "1f051430bde22c9b76dee47a2a3a7370d2e61e27",
+          "recorded_at": "2026-11-23T02:30:23Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "`pre-pr:run --observe-semantic --run-id <id> --phase <phase>` with no `--supplied-contents-hash` and no `--reviewed-file` records the phase, using the run's present changed files from `base..head` at the project root and the controller's own hash.",
-        "status": "proposed",
-        "id": "clause.8"
+        "status": "completed",
+        "id": "clause.8",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "1f051430bde22c9b76dee47a2a3a7370d2e61e27",
+          "recorded_at": "2026-11-23T02:30:23Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "A given `--supplied-contents-hash` that differs from the controller's hash still refuses, and given `--reviewed-file` paths replace the default list.",
-        "status": "proposed",
-        "id": "clause.9"
+        "status": "completed",
+        "id": "clause.9",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "1f051430bde22c9b76dee47a2a3a7370d2e61e27",
+          "recorded_at": "2026-11-23T02:30:23Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "When the default list is empty, `--observe-semantic` refuses and names `--reviewed-file` as the recovery.",
-        "status": "proposed",
-        "id": "clause.10"
+        "status": "completed",
+        "id": "clause.10",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "1f051430bde22c9b76dee47a2a3a7370d2e61e27",
+          "recorded_at": "2026-11-23T02:30:23Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "The `pre-pr:run` usage text lists the required phase order and the optional phases, says a recorded failure ends the run, and says how to fix a phase recorded out of order.",
-        "status": "proposed",
-        "id": "clause.11"
+        "status": "completed",
+        "id": "clause.11",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "1f051430bde22c9b76dee47a2a3a7370d2e61e27",
+          "recorded_at": "2026-11-23T02:30:23Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "After a successful observe, the output names the required phases still missing, says to start a new run when the run is failed, and says to run `--complete` when none are missing.",
-        "status": "proposed",
-        "id": "clause.12"
+        "status": "completed",
+        "id": "clause.12",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "1f051430bde22c9b76dee47a2a3a7370d2e61e27",
+          "recorded_at": "2026-11-23T02:30:23Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "The usage text and the pre-PR skill say `merge_chokepoint` is optional and `--complete` does not need a PR.",
-        "status": "proposed",
-        "id": "clause.13"
+        "status": "completed",
+        "id": "clause.13",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "1f051430bde22c9b76dee47a2a3a7370d2e61e27",
+          "recorded_at": "2026-11-23T02:30:23Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "With master's named Merge gate red and no PR, the `--complete` refusal names the red gate before the missing PR.",
-        "status": "proposed",
-        "id": "clause.14"
+        "status": "completed",
+        "id": "clause.14",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "1f051430bde22c9b76dee47a2a3a7370d2e61e27",
+          "recorded_at": "2026-11-23T02:30:23Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "`--complete` output reports `plan.policy.requireBoundPrePrPush` as true, false or not set and what that means for the managed pre-push hook, and the pre-PR skill and the gate walkthrough say whether a pass gates the push.",
-        "status": "proposed",
-        "id": "clause.15"
+        "status": "completed",
+        "id": "clause.15",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "1f051430bde22c9b76dee47a2a3a7370d2e61e27",
+          "recorded_at": "2026-11-23T02:30:23Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Tests cover each criterion above, including deletion-only and empty diffs and all three policy states.",
-        "status": "proposed",
-        "id": "clause.16"
+        "status": "completed",
+        "id": "clause.16",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "1f051430bde22c9b76dee47a2a3a7370d2e61e27",
+          "recorded_at": "2026-11-23T02:30:23Z",
+          "recorded_by": "scope:complete"
+        }
       }
     ],
     "tags": [
@@ -488,6 +600,35 @@
         "leanCommentId": 7052437809,
         "harvestDigest": "2f8ae862f4b33d03ae26f0448b4f398994605ec7d8c9023600cf9762ab6eff01",
         "slice": null
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "beb67f28020b7382aecf04b5c91a6cd255ec80f3",
+        "prNumber": 7139,
+        "prBase": "master",
+        "mergeCommit": "1f051430bde22c9b76dee47a2a3a7370d2e61e27",
+        "deliveryBranch": "master",
+        "deliveryCommit": "cd45fffcedf3555933fe9c87a830e8ba3ed9b560",
+        "verifiedAt": "2026-11-23T02:30:23Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:OWEwZDY5MDktOTZkNS00NjFiLWIzMTUtODg5ZjNlZjFkNTI0",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          7113
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-23T02:30:23Z",
+      "completedSessionId": "host:claude:v1:OWEwZDY5MDktOTZkNS00NjFiLWIzMTUtODg5ZjNlZjFkNTI0",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-23T02:30:23Z"
       }
     },
     "acceptance": {
@@ -649,6 +790,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.6518740360",
-    "updated": "2026-11-22T22:13:29Z"
+    "updated": "2026-11-23T02:30:23Z"
   }
 }
