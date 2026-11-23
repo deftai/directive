@@ -1,0 +1,470 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #7025",
+    "updated": "2026-11-23T05:07:07Z"
+  },
+  "plan": {
+    "title": "bug(scope): scope:complete's delivery-identity-join rejects the real, GitHub-confirmed merge commit, citing a SHA that doesn't exist",
+    "status": "running",
+    "narratives": {
+      "Description": "resolvePlanGithubIssueRef takes the first reference whose URI parses as a GitHub issue, whatever its type, so a context link to an upstream issue becomes the brief's story issue. The identity join then fetches a same-numbered PR from that other repository and refuses the real merge commit with a SHA from the wrong repository, and the refusal does not name the repository. This story makes only references typed exactly as a GitHub issue count as the story anchor, and names the queried repository in the merge-commit mismatch refusal.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/7025",
+      "Overview": "\n1. Exact typed anchor. `resolvePlanGithubIssueRef` (`packages/core/src/scope/delivery-evidence.ts`) returns the first reference whose type satisfies `referenceTypeMatches(type, \"github-issue\")` or equals exactly `github-issue`, and whose URI parses with `parseGithubIssueUri`. No other reference type, and no substring match, makes a story anchor. The resolver takes no project root and applies no repository preference.\n2. One answer for all readers. No caller changes: the identity join, #6873 discovery, the non-delivery stamped-PR check, `story-issue.ts`, `lands-with-product.ts`, `lands-with-product-proof.ts`, `thin-brief.ts`, `finalize-owed.ts` and `vbrief-preflight.ts` read the new result.\n3. Named repository. `mergeCommitMismatch` receives the repository the PR was fetched from and prints `PR <owner>/<name>#N merge_commit_sha <sha>`, on the issue-anchored and the PR-only call sites.\n4. Tests: replace the `delivery-evidence.test.ts` assertion that an issue URL under any type anchors with its opposite; canonical, legacy `x-vbrief/` and bare `github-issue` types anchor; `x-xbrief/external`, `x-xbrief/refs` and a type that only contains `github-issue` do not; an external upstream issue before a typed same-repository issue picks the typed one; a context-only brief without a stamp refuses with the #5710 stamp text and with a stamp joins on the canonical repository; #6873 discovery on those plans; the lands-with-product refusal and preflight advisory for a context-only brief; the mismatch message names the repository.\n\n## Acceptance Criteria\n\n- A reference whose type is not exactly `x-xbrief/github-issue`, `x-vbrief/github-issue` or `github-issue` never becomes a brief's story issue, whatever its URI.\n- A brief whose only GitHub issue URLs are context references takes the #5710 PR-only identity: without a `productPullRequest` stamp `scope:complete` refuses with the existing stamp-or-issue-origin text; with a stamp it fetches the PR from the canonical remote's repository.\n- A brief with a typed story issue reference after an external upstream issue reference anchors on the typed one, in the identity join and in #6873 delivery discovery.\n- The merge-commit mismatch refusal names the repository and PR it fetched.\n- Briefs whose story reference is typed `x-xbrief/github-issue` complete as today.\n\n\n",
+      "Constraint": "- Keeping the substring type test `type.includes(\"github-issue\")` (comment 7082413157, finding 1).\n- Preferring or requiring the canonical remote's repository in the resolver, or refusing up front on a repository difference (comment 7082413157, answers 1 and 5).\n- Accepting the PR that landed the brief as an unstamped PR-only identity in this change (comment 7082413157, answer 4 and finding 2).",
+      "Labels": "design-critique:ingest-ready",
+      "UserStory": "As an operator completing a brief that cites an upstream issue for context, I want scope:complete to anchor only on a reference typed as the story's GitHub issue, so that a context link never makes it fetch an unrelated PR from another repository and a merge-commit refusal names the repository it read.",
+      "ImplementationPlan": "1. packages/core/src/scope/delivery-evidence.ts: resolvePlanGithubIssueRef returns the first reference whose type satisfies referenceTypeMatches(type, \"github-issue\") or equals exactly github-issue, and whose URI parses with parseGithubIssueUri (clauses 1, 5). No project root, no repository preference, no caller changes (clause 2).\n2. delivery-evidence.ts: mergeCommitMismatch receives the repository the PR was fetched from and prints PR <owner>/<name>#N merge_commit_sha <sha> on the issue-anchored and PR-only call sites (clauses 3, 8).\n3. Tests as clause 4 lists them, in delivery-evidence.test.ts, delivery-evidence-typed-anchor.test.ts, delivery-evidence-mark-discovery.test.ts, lands-with-product.test.ts, story-issue.test.ts and vbrief-preflight.test.ts (clauses 4, 6, 7, 9).\n4. changelog.d/7025-typed-story-anchor.md.",
+      "Traces": "#7025 clauses 1-9 trace to the accepted lean 7082423429 (synthesis 7082450969): Bound remedy items 1-4 and its five Acceptance Criteria."
+    },
+    "items": [
+      {
+        "title": "Exact typed anchor. `resolvePlanGithubIssueRef` (`packages/core/src/scope/delivery-evidence.ts`) returns the first reference whose type satisfies `referenceTypeMatches(type, \"github-issue\")` or equals exactly `github-issue`, and whose URI parses with `parseGithubIssueUri`. No other reference type, and no substring match, makes a story anchor. The resolver takes no project root and applies no repository preference.",
+        "status": "proposed",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "Exact typed anchor. `resolvePlanGithubIssueRef` (`packages/core/src/scope/delivery-evidence.ts`) returns the first reference whose type satisfies `referenceTypeMatches(type, \"github-issue\")` or equals exactly `github-issue`, and whose URI parses with `parseGithubIssueUri`. No other reference type, and no substring match, makes a story anchor. The resolver takes no project root and applies no repository preference."
+        }
+      },
+      {
+        "title": "One answer for all readers. No caller changes: the identity join, #6873 discovery, the non-delivery stamped-PR check, `story-issue.ts`, `lands-with-product.ts`, `lands-with-product-proof.ts`, `thin-brief.ts`, `finalize-owed.ts` and `vbrief-preflight.ts` read the new result.",
+        "status": "proposed",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "When the identity join, #6873 discovery, the non-delivery stamped-PR check, `story-issue.ts`, `lands-with-product.ts`, `lands-with-product-proof.ts`, `thin-brief.ts`, `finalize-owed.ts` and `vbrief-preflight.ts` resolve the story issue, each reads the new resolver result with no caller change."
+        }
+      },
+      {
+        "title": "Named repository. `mergeCommitMismatch` receives the repository the PR was fetched from and prints `PR <owner>/<name>#N merge_commit_sha <sha>`, on the issue-anchored and the PR-only call sites.",
+        "status": "proposed",
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "When the supplied merge commit does not match, `mergeCommitMismatch` receives the repository the PR was fetched from and prints `PR <owner>/<name>#N merge_commit_sha <sha>`, on the issue-anchored and the PR-only call sites."
+        }
+      },
+      {
+        "title": "Tests: replace the `delivery-evidence.test.ts` assertion that an issue URL under any type anchors with its opposite; canonical, legacy `x-vbrief/` and bare `github-issue` types anchor; `x-xbrief/external`, `x-xbrief/refs` and a type that only contains `github-issue` do not; an external upstream issue before a typed same-repository issue picks the typed one; a context-only brief without a stamp refuses with the #5710 stamp text and with a stamp joins on the canonical repository; #6873 discovery on those plans; the lands-with-product refusal and preflight advisory for a context-only brief; the mismatch message names the repository.",
+        "status": "proposed",
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "When the story's tests run, they cover: the `delivery-evidence.test.ts` assertion that an issue URL under any type anchors, replaced with its opposite; canonical, legacy `x-vbrief/` and bare `github-issue` types anchor; `x-xbrief/external`, `x-xbrief/refs` and a type that only contains `github-issue` do not; an external upstream issue before a typed same-repository issue picks the typed one; a context-only brief without a stamp refuses with the #5710 stamp text and with a stamp joins on the canonical repository; #6873 discovery on those plans; the lands-with-product refusal and preflight advisory for a context-only brief; the mismatch message names the repository."
+        }
+      },
+      {
+        "title": "A reference whose type is not exactly `x-xbrief/github-issue`, `x-vbrief/github-issue` or `github-issue` never becomes a brief's story issue, whatever its URI.",
+        "status": "proposed",
+        "id": "clause.5",
+        "narrative": {
+          "Acceptance": "When a reference's type is not exactly `x-xbrief/github-issue`, `x-vbrief/github-issue` or `github-issue`, it never becomes a brief's story issue, whatever its URI."
+        }
+      },
+      {
+        "title": "A brief whose only GitHub issue URLs are context references takes the #5710 PR-only identity: without a `productPullRequest` stamp `scope:complete` refuses with the existing stamp-or-issue-origin text; with a stamp it fetches the PR from the canonical remote's repository.",
+        "status": "proposed",
+        "id": "clause.6",
+        "narrative": {
+          "Acceptance": "When a brief's only GitHub issue URLs are context references, it takes the #5710 PR-only identity: without a `productPullRequest` stamp `scope:complete` refuses with the existing stamp-or-issue-origin text; with a stamp it fetches the PR from the canonical remote's repository."
+        }
+      },
+      {
+        "title": "A brief with a typed story issue reference after an external upstream issue reference anchors on the typed one, in the identity join and in #6873 delivery discovery.",
+        "status": "proposed",
+        "id": "clause.7",
+        "narrative": {
+          "Acceptance": "When a brief has a typed story issue reference after an external upstream issue reference, it anchors on the typed one, in the identity join and in #6873 delivery discovery."
+        }
+      },
+      {
+        "title": "The merge-commit mismatch refusal names the repository and PR it fetched.",
+        "status": "proposed",
+        "id": "clause.8",
+        "narrative": {
+          "Acceptance": "When the merge commit does not match, the merge-commit mismatch refusal names the repository and PR it fetched."
+        }
+      },
+      {
+        "title": "Briefs whose story reference is typed `x-xbrief/github-issue` complete as today.",
+        "status": "proposed",
+        "id": "clause.9",
+        "narrative": {
+          "Acceptance": "When a brief's story reference is typed `x-xbrief/github-issue`, it completes as today."
+        }
+      }
+    ],
+    "tags": [
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/7025",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #7025: bug(scope): scope:complete's delivery-identity-join rejects the real, GitHub-confirmed merge commit, citing a SHA that doesn't exist"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per harvested lean item (9), in list order (#6333)",
+      "sentences": [
+        "Exact typed anchor. `resolvePlanGithubIssueRef` (`packages/core/src/scope/delivery-evidence.ts`) returns the first reference whose type satisfies `referenceTypeMatches(type, \"github-issue\")` or equals exactly `github-issue`, and whose URI parses with `parseGithubIssueUri`. No other reference type, and no substring match, makes a story anchor. The resolver takes no project root and applies no repository preference.",
+        "One answer for all readers. No caller changes: the identity join, #6873 discovery, the non-delivery stamped-PR check, `story-issue.ts`, `lands-with-product.ts`, `lands-with-product-proof.ts`, `thin-brief.ts`, `finalize-owed.ts` and `vbrief-preflight.ts` read the new result.",
+        "Named repository. `mergeCommitMismatch` receives the repository the PR was fetched from and prints `PR <owner>/<name>#N merge_commit_sha <sha>`, on the issue-anchored and the PR-only call sites.",
+        "Tests: replace the `delivery-evidence.test.ts` assertion that an issue URL under any type anchors with its opposite; canonical, legacy `x-vbrief/` and bare `github-issue` types anchor; `x-xbrief/external`, `x-xbrief/refs` and a type that only contains `github-issue` do not; an external upstream issue before a typed same-repository issue picks the typed one; a context-only brief without a stamp refuses with the #5710 stamp text and with a stamp joins on the canonical repository; #6873 discovery on those plans; the lands-with-product refusal and preflight advisory for a context-only brief; the mismatch message names the repository.",
+        "A reference whose type is not exactly `x-xbrief/github-issue`, `x-vbrief/github-issue` or `github-issue` never becomes a brief's story issue, whatever its URI.",
+        "A brief whose only GitHub issue URLs are context references takes the #5710 PR-only identity: without a `productPullRequest` stamp `scope:complete` refuses with the existing stamp-or-issue-origin text; with a stamp it fetches the PR from the canonical remote's repository.",
+        "A brief with a typed story issue reference after an external upstream issue reference anchors on the typed one, in the identity join and in #6873 delivery discovery.",
+        "The merge-commit mismatch refusal names the repository and PR it fetched.",
+        "Briefs whose story reference is typed `x-xbrief/github-issue` complete as today."
+      ],
+      "admitted_source_sentences": [
+        "Exact typed anchor. `resolvePlanGithubIssueRef` (`packages/core/src/scope/delivery-evidence.ts`) returns the first reference whose type satisfies `referenceTypeMatches(type, \"github-issue\")` or equals exactly `github-issue`, and whose URI parses with `parseGithubIssueUri`. No other reference type, and no substring match, makes a story anchor. The resolver takes no project root and applies no repository preference.",
+        "One answer for all readers. No caller changes: the identity join, #6873 discovery, the non-delivery stamped-PR check, `story-issue.ts`, `lands-with-product.ts`, `lands-with-product-proof.ts`, `thin-brief.ts`, `finalize-owed.ts` and `vbrief-preflight.ts` read the new result.",
+        "Named repository. `mergeCommitMismatch` receives the repository the PR was fetched from and prints `PR <owner>/<name>#N merge_commit_sha <sha>`, on the issue-anchored and the PR-only call sites.",
+        "Tests: replace the `delivery-evidence.test.ts` assertion that an issue URL under any type anchors with its opposite; canonical, legacy `x-vbrief/` and bare `github-issue` types anchor; `x-xbrief/external`, `x-xbrief/refs` and a type that only contains `github-issue` do not; an external upstream issue before a typed same-repository issue picks the typed one; a context-only brief without a stamp refuses with the #5710 stamp text and with a stamp joins on the canonical repository; #6873 discovery on those plans; the lands-with-product refusal and preflight advisory for a context-only brief; the mismatch message names the repository.",
+        "A reference whose type is not exactly `x-xbrief/github-issue`, `x-vbrief/github-issue` or `github-issue` never becomes a brief's story issue, whatever its URI.",
+        "A brief whose only GitHub issue URLs are context references takes the #5710 PR-only identity: without a `productPullRequest` stamp `scope:complete` refuses with the existing stamp-or-issue-origin text; with a stamp it fetches the PR from the canonical remote's repository.",
+        "A brief with a typed story issue reference after an external upstream issue reference anchors on the typed one, in the identity join and in #6873 delivery discovery.",
+        "The merge-commit mismatch refusal names the repository and PR it fetched.",
+        "Briefs whose story reference is typed `x-xbrief/github-issue` complete as today."
+      ],
+      "admitted_source_digest": "d3bf1b5dbaae3a38efccd86e6b2d1e7a658038e5bed8bdf6cc2b7b03e111ef22",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Exact typed anchor. `resolvePlanGithubIssueRef` (`packages/core/src/scope/delivery-evidence.ts`) returns the first reference whose type satisfies `referenceTypeMatches(type, \"github-issue\")` or equals exactly `github-issue`, and whose URI parses with `parseGithubIssueUri`. No other reference type, and no substring match, makes a story anchor. The resolver takes no project root and applies no repository preference.",
+          "artifact_path": "packages/core/src/scope/delivery-evidence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "One answer for all readers. No caller changes: the identity join, #6873 discovery, the non-delivery stamped-PR check, `story-issue.ts`, `lands-with-product.ts`, `lands-with-product-proof.ts`, `thin-brief.ts`, `finalize-owed.ts` and `vbrief-preflight.ts` read the new result.",
+          "artifact_path": "packages/core/src/scope/delivery-evidence-typed-anchor.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Named repository. `mergeCommitMismatch` receives the repository the PR was fetched from and prints `PR <owner>/<name>#N merge_commit_sha <sha>`, on the issue-anchored and the PR-only call sites.",
+          "artifact_path": "packages/core/src/scope/delivery-evidence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Tests: replace the `delivery-evidence.test.ts` assertion that an issue URL under any type anchors with its opposite; canonical, legacy `x-vbrief/` and bare `github-issue` types anchor; `x-xbrief/external`, `x-xbrief/refs` and a type that only contains `github-issue` do not; an external upstream issue before a typed same-repository issue picks the typed one; a context-only brief without a stamp refuses with the #5710 stamp text and with a stamp joins on the canonical repository; #6873 discovery on those plans; the lands-with-product refusal and preflight advisory for a context-only brief; the mismatch message names the repository.",
+          "artifact_path": "packages/core/src/scope/delivery-evidence.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "A reference whose type is not exactly `x-xbrief/github-issue`, `x-vbrief/github-issue` or `github-issue` never becomes a brief's story issue, whatever its URI.",
+          "artifact_path": "packages/core/src/scope/delivery-evidence-typed-anchor.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "A brief whose only GitHub issue URLs are context references takes the #5710 PR-only identity: without a `productPullRequest` stamp `scope:complete` refuses with the existing stamp-or-issue-origin text; with a stamp it fetches the PR from the canonical remote's repository.",
+          "artifact_path": "packages/core/src/scope/delivery-evidence-typed-anchor.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "A brief with a typed story issue reference after an external upstream issue reference anchors on the typed one, in the identity join and in #6873 delivery discovery.",
+          "artifact_path": "packages/core/src/scope/delivery-evidence-typed-anchor.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "The merge-commit mismatch refusal names the repository and PR it fetched.",
+          "artifact_path": "packages/core/src/scope/delivery-evidence-typed-anchor.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Briefs whose story reference is typed `x-xbrief/github-issue` complete as today.",
+          "artifact_path": "packages/core/src/scope/delivery-evidence.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: triage\n```\n\nStop 1 — Gate (arc 7025; no-ingest)\n\nmechanism-shaped: true\ndesign-critique: warranted, because the fix changes how every reader of `resolvePlanGithubIssueRef` picks a brief's story issue (the `scope:complete` identity join, #6873 delivery discovery, the non-delivery stamp check, the closing-keywords story line, lands-with-product, thin-brief, finalize-owed and preflight), and #5710 recorded the type-blind choice as a stated limit; a wrong change either leaves cross-repository mis-anchoring in place or turns working briefs issue-less.\n\nTarget-digest: sha256:ba830fc0782582b1784f425cd0033350b6ea75c40142a83aa1660a4578f3f2db\ndispatch-sha: df13b026ecb8f7bf9a504de1f8d111044add0f14\ndest: C:/Repos/deft/wt/arc-7025 (pinKind origin-default, process-only-no-install)\narc-mode: no-ingest\nyolo-standing: on\ncharter: open critique\nrefutation-target: the wrong anchor comes only from the type-blind reference pick, so making the resolver honour the reference type is enough\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\nspend-why: one resolver function with a closed set of callers, an existing type predicate reused, no new verb, gate, flag or constant; one critic of a different model family, then pain audits. The operator's words for this issue: \"arc it\".\nmateriality-bar: open\ntarget-kind: issue\nceiling-kind: comment-id\nverification-path: pin-read git show df13b026ecb8f7bf9a504de1f8d111044add0f14: + dest cwd-without-occupy\npain: P1, P2\n\n## In plain English\nThe issue reports that `scope:complete --merge-commit <sha> --pr 90` in a consumer repository refused the real merge commit and named an \"expected\" SHA that does not exist in that repository. The issue guesses that Directive predicts the squash commit locally. It does not.\n\nWhat happens: the consumer brief has no story issue of its own. Its references are the consumer PR and, under type `x-xbrief/external`, an upstream Directive issue (#6780) cited for context. `resolvePlanGithubIssueRef` returns the first reference whose URI parses as a GitHub issue URL and ignores the reference type, so it picks the upstream issue. The identity join then treats the brief as anchored on `deftai/directive#6780`, fetches PR #90 from `deftai/directive` (an unrelated March 2026 docs PR with the same number) and compares the supplied SHA with that PR's merge commit. The refusal text says \"PR #90\" without the repository, so the SHA it prints looks invented.\n\nProposed fix: the resolver only takes references whose type names a GitHub issue; context references (`external`, `refs`, `context` and the rest) never become the story anchor. Every caller gets the same answer, including #6873 discovery, which uses the same function. The mismatch message names the repository it queried. A brief like the consumer one becomes issue-less and takes the existing #5710 PR-only path; that path still needs a `productPullRequest` stamp and says so.\n\n## Pains\n- P1 — A brief that cites another repository's issue under a non-story reference type gets that issue as its story anchor, so the `scope:complete` identity join (and #6873 discovery) reads the same-numbered PR in the wrong repository and refuses the real merge commit.\n- P2 — The merge-commit mismatch refusal names \"PR #N\" but not the repository it fetched, so the SHA it cites looks like it does not exist and the reader has no lead to the cause.\n\n## Constraints (not pains)\n- No new verb, gate, refusal class, policy flag or constant.\n- #3675 identity rules stay: the merge commit must equal the PR's `merge_commit_sha`; `--repo` stays a matching assertion only.\n- #5710 PR-only identity is unchanged: an issue-less brief still needs `plan.metadata.productPullRequest`.\n- Briefs whose story reference is typed `x-xbrief/github-issue` (everything ingest writes) behave as today.\n\n## Evidence (parent-measured, read-only)\n- `gh api repos/deftai/directive/pulls/90` returns `merge_commit_sha` `20c409e9777ba6ca990409d33ec28b98d4611cde` (merged 2026-03-20, a docs PR): the exact SHA the refusal printed. The consumer PR #90 returns the SHA the operator supplied.\n- The consumer brief at the consumer PR's merge commit has two references: `x-xbrief/external` with the consumer PR URL, then `x-xbrief/external` with `https://github.com/deftai/directive/issues/6780`. No `x-xbrief/github-issue` reference and no `productPullRequest` stamp. The brief landed in the product PR itself.\n- In this repository's `xbrief/` tree: 2108 briefs with references; 2002 carry an `x-xbrief/github-issue` or `x-vbrief/github-issue` reference; 11 carry issue URLs only under another type (bare `github-issue` or `x-xbrief/refs`), all 11 in `completed/`.\n\n## Anchors at the dispatch SHA\n- `packages/core/src/scope/delivery-evidence.ts` 393-414: `resolvePlanGithubIssueRef`; 407 computes `fromType` and 408-410 return any parsed issue URI whatever the type, so the type test has no effect.\n- `packages/core/src/scope/delivery-evidence.ts` 2689-2746: `verifyStoryPrMergeIdentity`; 2692 takes `expected` from the resolver; 2717 fetches the PR from `expected.repository`; 2721-2724 call `mergeCommitMismatch`.\n- `packages/core/src/scope/delivery-evidence.ts` 2054-2066: `mergeCommitMismatch` prints `PR #${prNumber}` with no repository. `fetchMergedPayload` 2010-2041 already names the repository in its own refusals.\n- `packages/core/src/scope/delivery-evidence.ts` 4142-4149 and 4207-4262: #6873 delivery discovery takes `expected` from the same resolver for the stamped-PR fetch, the closing-PR search and the `deft-story` mark scan. 3163-3164: the non-delivery stamped-PR check uses it too.\n- `packages/core/src/scope/delivery-evidence.ts` 1928-1952 and 2145-2197: `resolvePrOnlyDeliveryIdentity` / `verifyPrOnlyIdentity`, the #5710 issue-less path (canonical remote plus stamped `productPullRequest`).\n- Existing typed predicate: `packages/types/src/reference.ts` 59-64 `referenceTypeMatches`; used for github-issue by `collectGithubRefs` (`packages/core/src/orphan-active/refs.ts` 147-200) and `countPlanGithubIssueReferences` (`packages/core/src/swarm/finalize-owed.ts` 304-325).\n- Other callers of the resolver: `packages/core/src/pr-closing-keywords/story-issue.ts` 51, 328; `packages/core/src/scope/lands-with-product.ts` 145, 340; `packages/core/src/lifecycle/lands-with-product-proof.ts` 137; `packages/core/src/intake/thin-brief.ts` 184; `packages/core/src/swarm/finalize-owed.ts` 289; `packages/runtime/src/vbrief-preflight.ts` 37.\n- `packages/core/src/scope/delivery-evidence.test.ts` 2476-2481 locks \"an issue URL under any reference type makes the brief issue-anchored\". #5710 recorded that as a stated limit (\"first reference whose URI parses as a GitHub issue URL regardless of type\"), comments 6816464114 and 6817282070.\n\n## Recommended mechanism (the thing to critique)\n- K1. Typed anchor. `resolvePlanGithubIssueRef` returns the first reference whose type names a GitHub issue (the function's own `fromType` test, which also admits legacy `x-vbrief/` and bare `github-issue`) and whose URI parses. A parsable issue URL under any other type is not the story anchor. No caller changes; all get the new answer.\n- K2. Named repository. `mergeCommitMismatch` names the repository it fetched: `PR <owner>/<name>#N merge_commit_sha …`.\n- K3. Not changed: the #5710 PR-only path and its stamp requirement, `--repo` as a matching assertion, the #3675 association bases.\n- K4. Tests: replace the 2476-2481 assertion with its opposite; an `x-xbrief/external` upstream issue before no typed reference yields null and the PR-only path; an external upstream issue before a typed same-repo issue picks the typed one; #6873 discovery on the same plans; the mismatch message names the repository.\n\nQuestions for the critic:\n1. Is the reference type the right discriminator, or must the resolver also prefer (or require) the canonical remote's repository among typed references? The resolver takes no project root today.\n2. K1 keeps bare `github-issue` (the existing `fromType` test) where `collectGithubRefs` uses `referenceTypeMatches`. Which predicate should win, given 11 completed briefs here use bare `github-issue` or `x-xbrief/refs`?\n3. Which of the eight other callers change behaviour for a brief whose only issue URLs are context references, and does any of them need that brief to stay issue-anchored?\n4. After K1 the consumer brief is issue-less and unstamped, so `scope:complete --pr 90` refuses with the #5710 \"stamp productPullRequest or add an issue origin\" text. Is that acceptable for this change, or must the PR-only path accept the PR whose diff landed the brief?\n5. Should the join also refuse up front, with both names, when the anchor's repository is not the canonical remote, since the delivery check reads the local `origin` delivery branch?\n\n",
+          "id": 7082372945,
+          "html_url": "https://github.com/deftai/directive/issues/7025#issuecomment-7082372945",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T16:49:48Z",
+          "updated_at": "2026-11-22T16:49:48Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 1\ninput-ceiling: 7082382361\nseat: codex launcher: codex (exec --ephemeral --sandbox read-only -C dest)\n\ncharter: open critique\nspend: N=1\narc-mode: no-ingest\nmateriality-bar: open\ndispatch-sha: df13b026ecb8f7bf9a504de1f8d111044add0f14\ndest: C:/Repos/deft/wt/arc-7025\nverification-path: pin-read git show df13b026ecb8f7bf9a504de1f8d111044add0f14: + dest cwd-without-occupy\naudit-targets: none\nStop 1 cite: comment 7082372945\n\n## Launch posture (disclosed)\n- The parent is Claude Code (claude-opus-5-5). The one critic seat is Codex, a different model family, run with a read-only launcher against the dest. The launch probe for that argv returned `pong` in this session; that proves launchability only.\n- The Codex seat has no GitHub access. It reads a parent-written thread snapshot (issue body, thread up to the ceiling, this deposit, linked issue bodies) and reads code with `git show <dispatch-sha>:<path>`. The parent posts the critic's final message verbatim.\n- The issue body names a consumer repository with restricted visibility. The snapshot replaces that repository name with `<consumer-repo>`; nothing else in the body is changed.\n- This deposit was created and then edited once, only to record its own comment id as the input ceiling.\n\n",
+          "id": 7082382361,
+          "html_url": "https://github.com/deftai/directive/issues/7025#issuecomment-7082382361",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T16:50:32Z",
+          "updated_at": "2026-11-22T16:50:33Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\n\nThe pinned code supports the proposed explanation: a contextual issue link can select the wrong repository, and the error hides that repository’s name. The code fetches the merge SHA; it does not predict a squash commit.\n\nK1–K4 are a sensible small fix, with one blocking correction: K1’s proposed existing type test is a substring match, not an exact reference-type check. It can still turn context into story identity.\n\nThis fix also will not make the reported command succeed immediately. The consumer brief, as described in the snapshot, has no PR stamp. After correcting the anchor, completion will require the existing `productPullRequest` repair. State that limitation explicitly rather than adding another delivery-identity mechanism here.\n\nThe consumer observations and repository census remain parent-reported evidence; I verified the code paths, not those measurements.\n\nShort answers to the five questions:\n\n1. **Use reference type, with exact matching.** Keep the resolver independent of the project root. Do not silently prefer a local issue over an explicitly typed foreign issue: that changes declared identity based on checkout context.\n\n2. **Use `referenceTypeMatches(type, \"github-issue\")`, plus an explicit `type === \"github-issue\"` compatibility exception if retaining bare references.** Do not reuse `includes`. Bare `github-issue` and `x-xbrief/refs` are different cases; the latter declares context. The combined count of 11 does not justify treating both as identity or changing the shared predicate globally.\n\n3. **The eight other call sites behave as follows for context-only issue URLs:**\n   - `story-issue.ts:51`: no single story anchor; retains its documented per-issue behavior.\n   - `story-issue.ts:328`: omits the brief from shared-story-anchor detection.\n   - `lands-with-product.ts:145,340`: refuses issue-less in-PR completion.\n   - `lands-with-product-proof.ts:137`: refuses the issue-less landing proof.\n   - `thin-brief.ts:184`: keeps the full brief rather than manufacturing a thin brief anchored on context.\n   - `finalize-owed.ts:289`: permits consideration as PR-only when stamped; its additional typed-origin checks remain.\n   - `vbrief-preflight.ts:37`: emits the existing issue-less advisory for code-bearing scopes.\n\n   None needs contextual links promoted into identity. The lands-with-product changes nevertheless affect compatibility and deserve explicit coverage. Within delivery evidence, discovery and the non-delivery stamped-PR check switch to the canonical repository where applicable.\n\n4. **The existing stamp requirement is acceptable for this bounded fix, provided the remaining repair is disclosed.** Do not automatically admit an unstamped PR merely because it landed a matching brief filename. That would expand the PR-only identity contract, not just correct reference selection.\n\n5. **Do not add an unconditional canonical-repository refusal here.** The existing issue path derives identity from the issue repository, while local ancestry separately establishes delivery. Repository inequality alone does not prove invalid delivery—for example, shared history can exist across forks. A strict same-repository policy needs its own supported-topology decision. Keep K2’s repository-qualified diagnostic.\n\n### 1. blocks-the-design — K1’s substring test still accepts context as identity\n\n**Evidence:** At the pin, `packages/core/src/scope/delivery-evidence.ts:403–410` uses `type.includes(\"github-issue\")`. The existing exact predicate is at `packages/types/src/reference.ts:59–64`.\n\n**Failure mode:** A reference typed `x-xbrief/github-issue-comment` with a parsable issue URI, or a custom type containing `github-issue`, still becomes the anchor under K1 as written. An upstream contextual link can therefore select the same-numbered PR in the wrong repository again. This is an authority-selection problem even without malicious input.\n\n**Disposition consequence:** Revise K1 before binding: exact canonical/legacy matches, optionally the exact bare compatibility spelling. Extend K4 with negative substring-type cases, alongside positive canonical, legacy and bare cases. This replaces the ineffective selection condition; it adds no gate or operator step.\n\n### 2. sharpens-framing — Correcting the lookup does not complete the reported brief\n\n**Evidence:** `delivery-evidence.ts:2692–2694` routes a null issue anchor to PR-only verification. Lines `1928–1951` require a stamp and canonical repository; lines `2145–2152` propagate the missing-stamp refusal.\n\n**Failure mode:** With the consumer brief described in Stop 1, rerunning the original command after K1 still fails, now for an actionable reason. Describing this as an automatic completion fix would overstate the outcome.\n\n**Disposition consequence:** K3 can stand. Describe P1 relief as eliminating false anchoring, and name the remaining stamp repair. K4 should distinguish an unstamped context-only brief that refuses from a stamped equivalent that successfully uses the canonical repository.\n\nThe strongest alternative would eliminate that repair by accepting the PR that introduced the brief. However, the existing `proveBriefInPrDiff` at `delivery-evidence.ts:2205–2230` supplies an association basis inside an already selected repository; it is not presently an unstamped PR-only identity resolver. A separately specified, durable brief-to-PR identity proof could change this verdict.\n\n### 3. sharpens-framing — Caller compatibility needs explicit expectations\n\n**Evidence:** The null-anchor branches at `scope/lands-with-product.ts:145,340` and `lifecycle/lands-with-product-proof.ts:137` refuse; `intake/thin-brief.ts:184` retains full shape. `swarm/finalize-owed.ts:289–325` combines this resolver with separate exact typed-reference checks.\n\n**Failure mode:** A context-only legacy brief previously admitted to lands-with-product can now fail its completion proof. Conversely, preserving bare types only in this resolver does not make bare references uniformly recognized by finalize and orphan readers.\n\n**Disposition consequence:** Keep the shared-resolver change, but document these outcomes and cover representative caller branches in K4. Do not promise universal compatibility from the completed-brief census, and do not broaden all reference readers merely to make their predicates identical.\n\n### 4. footnote — K2 and the main causal anchors check out\n\n`delivery-evidence.ts:2010–2041` obtains the SHA from the fetched PR payload. Lines `2717–2723` fetch from the resolved issue repository and compare it. Lines `2054–2066` omit the repository from the mismatch message. K2 should pass the actual queried repository through both issue-anchored and PR-only call sites.\n\nExisting mechanisms inventoried include exact reference matching, PR-only stamp identity, matching-only `--repo`, merge-SHA equality, issue association proofs, discovery, non-delivery protection, preflight advice and lands-with-product proof. None requires a new verb or gate for this correction.\n\nVerification method: read-only `git show df13b026ecb8f7bf9a504de1f8d111044add0f14:<path>` inspection plus the supplied ceiling-bounded snapshot; no working-tree code reads, builds, tests, writes or network access.",
+          "id": 7082413157,
+          "html_url": "https://github.com/deftai/directive/issues/7025#issuecomment-7082413157",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T16:53:00Z",
+          "updated_at": "2026-11-22T16:53:00Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** first successor lean under Stop 1 7082372945 (round 1: 1 of 1 critic posted, comment 7082413157)\n\n## In plain English\nProblem: in a consumer repository, `scope:complete --merge-commit <sha> --pr 90` refused the real merge commit and printed an \"expected\" SHA that does not exist there. Directive does not predict squash commits. The brief had no story issue of its own; it cited an upstream Directive issue (#6780) for context under reference type `x-xbrief/external`. `resolvePlanGithubIssueRef` picks the first reference whose URL looks like a GitHub issue and ignores the type, so it took the upstream issue as the story. The identity join then fetched PR #90 from `deftai/directive`, an unrelated PR with the same number, and compared against its merge commit. The refusal said \"PR #90\" without the repository, so the SHA looked invented.\n\nWhat the critic found: the cause is confirmed in the code. The proposed type test is a substring match (`type.includes(\"github-issue\")`), so a type that merely contains that text could still promote a context link to the story; the match must be exact. The fix does not by itself complete the consumer brief: once the upstream link stops counting, the brief has no story issue and no `productPullRequest` stamp, so completion refuses with the existing #5710 \"stamp productPullRequest or add an issue origin\" text. That is an honest refusal with a remedy, and widening the PR-only identity is a separate design. The other readers of the resolver (closing-keyword story line, lands-with-product and its proof, thin-brief, finalize-owed, preflight) treat a context-only brief as issue-less, which is correct but needs test coverage. The resolver should not prefer or require the local repository.\n\nSolution this lean proposes: the resolver accepts only references whose type is exactly a GitHub issue type (`x-xbrief/github-issue`, legacy `x-vbrief/github-issue`, or the legacy bare `github-issue`) and whose URL parses. Everything else, including `x-xbrief/refs`, `x-xbrief/external` and any type that only contains the words, is context. Every caller gets that answer with no caller change, including #6873 discovery. The merge-commit mismatch refusal names the repository it queried, on both the issue path and the PR-only path. Briefs that ingest writes carry `x-xbrief/github-issue` and behave as today.\n\nWhat it does not do:\n- It does not change the #5710 PR-only path: an issue-less brief still needs a `productPullRequest` stamp, and the consumer brief will need that stamp (or a story issue reference) to complete.\n- It does not prefer, require or refuse on the canonical remote's repository.\n- It does not accept the PR that landed the brief as an identity.\nIf confirmed, the synthesis would assert this design. No leftover next-build.\n\nTarget-digest: sha256:ba830fc0782582b1784f425cd0033350b6ea75c40142a83aa1660a4578f3f2db\n**Spec-path:** Bound remedy on this lean\nSupersedes: Stop 1 write-back, comment 7082372945. Sibling count: 1 (comment 7082413157). Panel deposit: comment 7082382361.\n\nrelieves: P1\nrelieves: P2\n\n## Bound remedy\n1. Exact typed anchor. `resolvePlanGithubIssueRef` (`packages/core/src/scope/delivery-evidence.ts`) returns the first reference whose type satisfies `referenceTypeMatches(type, \"github-issue\")` or equals exactly `github-issue`, and whose URI parses with `parseGithubIssueUri`. No other reference type, and no substring match, makes a story anchor. The resolver takes no project root and applies no repository preference.\n2. One answer for all readers. No caller changes: the identity join, #6873 discovery, the non-delivery stamped-PR check, `story-issue.ts`, `lands-with-product.ts`, `lands-with-product-proof.ts`, `thin-brief.ts`, `finalize-owed.ts` and `vbrief-preflight.ts` read the new result.\n3. Named repository. `mergeCommitMismatch` receives the repository the PR was fetched from and prints `PR <owner>/<name>#N merge_commit_sha <sha>`, on the issue-anchored and the PR-only call sites.\n4. Tests: replace the `delivery-evidence.test.ts` assertion that an issue URL under any type anchors with its opposite; canonical, legacy `x-vbrief/` and bare `github-issue` types anchor; `x-xbrief/external`, `x-xbrief/refs` and a type that only contains `github-issue` do not; an external upstream issue before a typed same-repository issue picks the typed one; a context-only brief without a stamp refuses with the #5710 stamp text and with a stamp joins on the canonical repository; #6873 discovery on those plans; the lands-with-product refusal and preflight advisory for a context-only brief; the mismatch message names the repository.\n\n## Acceptance Criteria\n- A reference whose type is not exactly `x-xbrief/github-issue`, `x-vbrief/github-issue` or `github-issue` never becomes a brief's story issue, whatever its URI.\n- A brief whose only GitHub issue URLs are context references takes the #5710 PR-only identity: without a `productPullRequest` stamp `scope:complete` refuses with the existing stamp-or-issue-origin text; with a stamp it fetches the PR from the canonical remote's repository.\n- A brief with a typed story issue reference after an external upstream issue reference anchors on the typed one, in the identity join and in #6873 delivery discovery.\n- The merge-commit mismatch refusal names the repository and PR it fetched.\n- Briefs whose story reference is typed `x-xbrief/github-issue` complete as today.\n\n## Reject\n- Keeping the substring type test `type.includes(\"github-issue\")` (comment 7082413157, finding 1).\n- Preferring or requiring the canonical remote's repository in the resolver, or refusing up front on a repository difference (comment 7082413157, answers 1 and 5).\n- Accepting the PR that landed the brief as an unstamped PR-only identity in this change (comment 7082413157, answer 4 and finding 2).\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 7082413157 | 1. K1's substring test still accepts context as identity | blocks-the-design | accept-into-contract (item 1: exact `referenceTypeMatches` or exact bare `github-issue`; item 4 adds the substring negative case) |\n| comment 7082413157 | 2. Correcting the lookup does not complete the reported brief | sharpens-framing | accept-into-contract (summary and second criterion: the context-only unstamped brief refuses with the #5710 stamp text; item 4 covers stamped and unstamped) |\n| comment 7082413157 | 3. Caller compatibility needs explicit expectations | sharpens-framing | accept-into-contract (item 2 names every caller; item 4 covers the lands-with-product and preflight branches) |\n| comment 7082413157 | 4. K2 and the main causal anchors check out | footnote | accept-into-contract (item 3: both call sites pass the queried repository) |\n\naudit:A1 sha=df13b026ecb8f7bf9a504de1f8d111044add0f14 pointer=packages/core/src/intake/issue-ingest.ts:1817-1823 reading=measured\n\nNon-self-arbitration: the parent wrote the Stop 1 write-back, the recommended mechanism and this lean. The `relieves` cites stay open until a later critic targets them. Marker A1 records the premise behind the last criterion: issue ingest writes the story reference as `x-xbrief/github-issue` (also `thin-brief.ts` 155-161), so ingested briefs keep their anchor under item 1. The marker stays unresolved until a later critic targets it.\n\n",
+          "id": 7082423429,
+          "html_url": "https://github.com/deftai/directive/issues/7025#issuecomment-7082423429",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T16:53:49Z",
+          "updated_at": "2026-11-22T16:53:49Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, A1\nfinding-classes: none\nharvest-changed: false\nharvest-digest: sha256:2f45516ffeb7885d06f429c71e97f10b742bcaa6e1a50083cacf3267beed1073\n\n## In plain English\n\nThe successor lean addresses both named pains. Exact reference-type matching prevents a contextual issue link from selecting the wrong repository. Including the queried repository in the mismatch message explains where the unexpected SHA came from.\n\nThe remaining stamp requirement is explicitly disclosed: the consumer repo’s unstamped brief will still refuse completion, but it will no longer be assigned an unrelated story. The design preserves the existing delivery checks and adds no gate or operator step.\n\nA1 is supported by the pinned code: issue ingest writes the canonical reference type that the revised resolver accepts. I found no reason this lean cannot bind as written.\n\npain-P1: holds - The proposed exact predicate excludes context and substring types while preserving canonical, legacy and bare issue types. The identity join and discovery both consume the same resolver, so the correction removes their shared false anchor.\n\npain-P2: holds - Both mismatch call sites already know which repository they queried; passing that repository into the diagnostic supplies the missing explanation without changing verification.\n\nA1: holds - `packages/core/src/intake/issue-ingest.ts:1817–1823` emits `x-xbrief/github-issue` when the issue URL is nonempty. `packages/core/src/intake/thin-brief.ts:156–161` emits the same type.\n\nNo findings.\n\nThe supporting code at the pin is:\n\n- `packages/types/src/reference.ts:59–64` performs exact canonical/legacy comparisons. Combined with exact bare `github-issue`, it implements the lean’s stated allowlist.\n- `packages/core/src/scope/delivery-evidence.ts:393–414` contains the current type-blind selection; `2692–2694` routes a null anchor to PR-only verification; `4142–4162` uses the canonical repository for stamped issue-less discovery.\n- `delivery-evidence.ts:1928–1951` preserves the missing-stamp and unresolved-remote refusals. Lines `2153–2187` preserve repository assertion, PR-stamp equality, merged-state and merge-SHA checks. Context links therefore lose identity authority without supplying a fallback around those checks.\n- `delivery-evidence.ts:2054–2066`, `2181–2185` and `2717–2721` establish the diagnostic defect and the repository available at each affected call site.\n\nVerification method: static pin-read using `git show df13b026ecb8f7bf9a504de1f8d111044add0f14:<path>` and the supplied thread snapshot through comment 7082423429; no tests, builds, writes or network access. Consumer observations remain parent-reported.",
+          "id": 7082442944,
+          "html_url": "https://github.com/deftai/directive/issues/7025#issuecomment-7082442944",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T16:55:23Z",
+          "updated_at": "2026-11-22T16:55:23Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nBound lean: comment 7082423429. Dispatch SHA: df13b026ecb8f7bf9a504de1f8d111044add0f14. Non-self-arbitration: the parent wrote the Stop 1 write-back, the recommended mechanism and the lean. Each row names who read the source at the pin (`git show <sha>:<path>`) or what the parent measured. No tests were run against the new design. Both critic posts are from one family (Codex), so agreement between them is not counted as extra confirmation.\n\n| # | Claim | Status | Method |\n|---|---|---|---|\n| 1 | `resolvePlanGithubIssueRef` returns the first reference whose URI parses as a GitHub issue URL, whatever its type; its `fromType` test has no effect | verified | parent read of `packages/core/src/scope/delivery-evidence.ts` 393-414; critic 7082413157 finding 1; `delivery-evidence.test.ts` 2476-2481 locks the type-blind behaviour |\n| 2 | The identity join fetches the PR from the resolver's repository and compares the supplied SHA with that PR's `merge_commit_sha`; it does not predict a squash commit | verified | parent read of `delivery-evidence.ts` 2010-2041, 2689-2746; critic 7082413157 finding 4 |\n| 3 | `deftai/directive` PR #90 has `merge_commit_sha` `20c409e9777ba6ca990409d33ec28b98d4611cde`, the SHA the refusal printed; the consumer PR #90 has the SHA the operator supplied | verified (parent measurement) | parent `gh api repos/<repo>/pulls/90` on both repositories; critics could not re-read (no network) |\n| 4 | The consumer brief's references are two `x-xbrief/external` entries (the consumer PR and `deftai/directive#6780`), with no `x-xbrief/github-issue` reference and no `productPullRequest` stamp | verified (parent measurement) | parent read of the brief at the consumer PR's merge commit via `gh api .../contents`; critics could not re-read |\n| 5 | `mergeCommitMismatch` names the PR number but not the repository | verified | parent read of `delivery-evidence.ts` 2054-2066; critic 7082413157 finding 4; audit 7082442944 |\n| 6 | #6873 delivery discovery and the non-delivery stamped-PR check use the same resolver | verified | parent read of `delivery-evidence.ts` 3163-3164, 4142-4262; audit 7082442944 |\n| 7 | `referenceTypeMatches` is an exact canonical/legacy match, already used for github-issue by `collectGithubRefs` and `countPlanGithubIssueReferences` | verified | parent read of `packages/types/src/reference.ts` 59-64, `orphan-active/refs.ts` 147-200, `swarm/finalize-owed.ts` 304-325; audit 7082442944 |\n| 8 | With no typed issue reference, an unstamped brief takes the #5710 PR-only path and refuses with the stamp-or-issue-origin text | verified | parent read of `delivery-evidence.ts` 1928-1952, 2145-2197, 2692-2694; critic 7082413157 finding 2; audit 7082442944 |\n| 9 | Issue ingest and thin-brief write the story reference as `x-xbrief/github-issue` (marker A1) | verified | parent read of `intake/issue-ingest.ts` 1817-1823, `intake/thin-brief.ts` 155-161; audit 7082442944 (`A1: holds`) |\n| 10 | In this repository 11 of 2108 briefs with references carry issue URLs only under another type (bare `github-issue` or `x-xbrief/refs`), all in `completed/` | verified (parent measurement) | parent node scan of `xbrief/` in the primary checkout; not re-run by a critic |\n| 11 | The new resolver, caller outcomes and message behave as designed | endorsed, not verified | the new behaviour was not executed; the implementer covers it with the tests the Acceptance Criteria name |\n\n",
+          "id": 7082449358,
+          "html_url": "https://github.com/deftai/directive/issues/7025#issuecomment-7082449358",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T16:55:53Z",
+          "updated_at": "2026-11-22T16:55:53Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nProblem: in a consumer repository, `scope:complete --merge-commit <sha> --pr 90` refused the real merge commit and printed an \"expected\" SHA that does not exist there. Directive did not predict a squash commit. The brief had no story issue of its own; it cited an upstream Directive issue for context under reference type `x-xbrief/external`. `resolvePlanGithubIssueRef` took the first reference whose URL looked like a GitHub issue, whatever its type, so the upstream issue became the story. The identity join then fetched PR #90 from `deftai/directive`, an unrelated PR with the same number, and compared against its merge commit. The refusal named \"PR #90\" without the repository, so the SHA looked invented.\n\nAccepted solution: the resolver accepts only references whose type is exactly a GitHub issue type (`x-xbrief/github-issue`, legacy `x-vbrief/github-issue`, or the legacy bare `github-issue`) and whose URL parses. Context references, and types that only contain those words, never become the story. Every reader of the resolver gets the same answer with no caller change, including #6873 delivery discovery. The merge-commit mismatch refusal names the repository and PR it fetched.\n\nLimits accepted: a brief whose only issue links are context becomes issue-less and takes the existing #5710 PR-only path, so the consumer brief still needs a `productPullRequest` stamp or a story issue reference to complete; the refusal says so. The resolver does not prefer, require or refuse on the local repository, and the PR that landed a brief is not accepted as an identity. Briefs written by issue ingest carry `x-xbrief/github-issue` and behave as today. No new verb, gate, flag or constant. The design was checked by reading the source at the pinned commit; no code was run. No leftover next-build.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 7082423429.\nverified-claims table 7082449358\n\nConfirm conjunct: yolo standing (Stop 1 7082372945, `yolo-standing: on`) on the operator's launch of this arc, \"arc it\". Round-1 critic: comment 7082413157, posted by the parent verbatim as disclosed on panel-deposit 7082382361; its three classified findings and its footnote are accepted on the lean. Pain audit 7082442944 targeted `pain-P1`, `pain-P2` and `A1`, found all three hold, and returned no findings. Critic posts used: 2 of 6.\n\n",
+          "id": 7082450969,
+          "html_url": "https://github.com/deftai/directive/issues/7025#issuecomment-7082450969",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T16:56:01Z",
+          "updated_at": "2026-11-22T16:56:01Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n\n`scope:complete --merge-commit <sha> --pr <n>` refuses a correct, GitHub-confirmed merge commit, citing an \"expected\" SHA that doesn't exist anywhere in the repository.\n\n## Environment\n\n- `deft --version`: `launcher 0.131.0 · project pins 0.131.0 (installed (metadata verified))` — launcher and pin match, so this is not the #7008 stale-shadow-binary case.\n- Repo: consumer repo, PR #90, squash-merged to `main`.\n\n## Steps\n\n```\n$ gh api repos/consumer repo/pulls/90 --jq '.merge_commit_sha'\nf8dc4e9a28a8de57d6816d5f0eb8ff892779df4d\n\n$ git fetch origin main && git rev-parse origin/main\nf8dc4e9a28a8de57d6816d5f0eb8ff892779df4d\n\n$ deft scope:complete -- xbrief/active/2026-11-22-fix-grok-hook-upgrade-fallout.xbrief.json \\\n    --merge-commit f8dc4e9a28a8de57d6816d5f0eb8ff892779df4d --pr 90\nError: Delivery identity join failed: supplied merge commit f8dc4e9a28a8de57d6816d5f0eb8ff892779df4d\ndoes not equal PR #90 merge_commit_sha 20c409e9777ba6ca990409d33ec28b98d4611cde\n(identity, not reachability) (#3675).\n```\n\n## The cited \"expected\" SHA does not exist\n\n```\n$ gh api repos/consumer repo/commits/20c409e9777ba6ca990409d33ec28b98d4611cde\n{\"message\":\"No commit found for SHA: 20c409e9777ba6ca990409d33ec28b98d4611cde\", \"status\":\"422\"}\n\n$ git cat-file -t 20c409e9777ba6ca990409d33ec28b98d4611cde\nfatal: git cat-file: could not get object info\n```\n\nGitHub's own API, `git fetch`, and the actual `origin/main` tip all agree the real merge commit is `f8dc4e9a28a8de57d6816d5f0eb8ff892779df4d` — the exact value I passed. The SHA the error claims as \"PR #90 merge_commit_sha\" (`20c409e9...`) is not a real object in this repository at all, on GitHub or locally. Retrying the identical command reproduced the identical bogus SHA, so it isn't simple API staleness.\n\n## Hypothesis\n\nThis looks like the identity-join check locally *predicting* what the squash-merge commit SHA should be (from local tree/diff state) rather than *fetching* GitHub's actual `merge_commit_sha`, then comparing the operator-supplied real SHA against that unreproducible local prediction. A git commit hash is content-addressed over exact tree + parents + author/committer identity + timestamp + message, so a local simulation of GitHub's server-side squash commit can't be expected to match bit-for-bit — any such comparison will spuriously refuse real, correct merges.\n\n## Impact\n\nBlocks the documented completion step for any squash-merged PR on this engine/pin combination (0.131.0/0.131.0, so not the already-filed #7008 shadow-binary case). Low severity — the underlying scope's work was already shipped and merged; only the bookkeeping `scope:complete` step is blocked, left as `active` instead of `completed`.\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6540119175,
+        "origin": "deftai/directive#7025",
+        "id": "github.issue.6540119175"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "ba830fc0782582b1784f425cd0033350b6ea75c40142a83aa1660a4578f3f2db"
+      },
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 7025,
+        "leanCommentId": 7082423429,
+        "harvestDigest": "2f45516ffeb7885d06f429c71e97f10b742bcaa6e1a50083cacf3267beed1073",
+        "slice": null
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/scope/delivery-evidence.ts",
+          "packages/core/src/scope/delivery-evidence.test.ts",
+          "packages/core/src/scope/delivery-evidence-typed-anchor.test.ts",
+          "packages/core/src/scope/delivery-evidence-mark-discovery.test.ts",
+          "packages/core/src/scope/lands-with-product.test.ts",
+          "packages/core/src/pr-closing-keywords/story-issue.test.ts",
+          "packages/runtime/src/vbrief-preflight.test.ts",
+          "changelog.d/7025-typed-story-anchor.md",
+          "docs/RULE-MAP.md",
+          "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "xbrief/evaluator-surface-disposition.json",
+          "xbrief/.audit/spec-drift/github.issue.6540119175.json"
+        ],
+        "verify_commands": [
+          "npx vitest run packages/core/src/scope/delivery-evidence.test.ts packages/core/src/scope/delivery-evidence-typed-anchor.test.ts packages/core/src/scope/delivery-evidence-mark-discovery.test.ts",
+          "npx vitest run packages/core/src/scope/lands-with-product.test.ts packages/core/src/pr-closing-keywords/story-issue.test.ts packages/runtime/src/vbrief-preflight.test.ts"
+        ],
+        "size": "small",
+        "file_scope_confidence": "high",
+        "depends_on": [],
+        "expected_outputs": [
+          "resolvePlanGithubIssueRef selects only references typed exactly x-xbrief/github-issue, legacy x-vbrief/github-issue or bare github-issue whose URI parses",
+          "context-only briefs take the #5710 PR-only identity in the join and in #6873 discovery; no caller changes",
+          "the merge-commit mismatch refusal names the repository and PR it fetched on the issue and PR-only paths",
+          "one changelog fragment changelog.d/7025-typed-story-anchor.md"
+        ],
+        "conflict_group": "scope-delivery-evidence",
+        "model_tier": "high",
+        "acceptance_criteria_justification": "The 9 clauses are the 4 Bound-remedy items and 5 Acceptance Criteria of the accepted design-critique lean 7082423429 (synthesis 7082450969), harvested and digest-pinned by issue:ingest; they cannot be merged or dropped without breaking the admitted-source pin."
+      }
+    },
+    "id": "github.issue.6540119175",
+    "updated": "2026-11-23T05:07:07Z"
+  }
+}
