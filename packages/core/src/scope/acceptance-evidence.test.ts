@@ -4242,6 +4242,15 @@ describe("hidden strict axes and declared rows (#6591)", () => {
     expect(preflight.at(-1)).toMatch(/Advisory only; exit code unchanged\.$/);
   });
 
+  it("#7099: with two rows the preflight grant names one row, never both", () => {
+    const plan = { items: [item(DEPLOY), item(SMOKE, { id: "clause.2" })] };
+    const last = strictAxisAdvisoryLines(plan, "xbrief:preflight").at(-1) ?? "";
+    expect(last).toContain("--story-ids <itemId> --disposition not_applicable");
+    expect(last).toContain("Name the one row to clear (clause.1, clause.2).");
+    expect(last).not.toContain("clause.1,clause.2");
+    expect(last).toMatch(/Advisory only; exit code unchanged\.$/);
+  });
+
   it("item 7: a plan with only declared rows prints a zero count and the rows", () => {
     const lines = strictAxisAdvisoryLines(
       { items: [item(DEPLOY, { [ACCEPTANCE_REQUIRES_KEY]: "merge" })] },

@@ -616,6 +616,8 @@ export function explainTextStrictAxes(item: Record<string, unknown>): StrictAxis
     StrictAcceptanceAxis,
     { start: number; end: number; s: number; e: number }[]
   >();
+  // Start positions already listed per axis; two patterns can match at one place.
+  const seenStarts = new Map<StrictAcceptanceAxis, Set<number>>();
   for (const { axis, source, pattern } of STRICT_AXIS_PATTERNS) {
     const mapped = sources[source];
     for (const hit of mapped.text.matchAll(new RegExp(pattern.source, `${pattern.flags}g`))) {
@@ -626,8 +628,12 @@ export function explainTextStrictAxes(item: Record<string, unknown>): StrictAxis
       const start = (offsets[s] as number) + (mapped.index[at] as number);
       let end = (offsets[e] as number) + (mapped.index[last] as number) + 1;
       if (/[\uD800-\uDBFF]/.test(original[end - 1] ?? "")) end += 1;
+      const seen = seenStarts.get(axis) ?? new Set<number>();
+      if (seen.has(start)) continue;
+      seen.add(start);
+      seenStarts.set(axis, seen);
       const rows = byAxis.get(axis) ?? [];
-      if (!rows.some((row) => row.start === start)) rows.push({ start, end, s, e });
+      rows.push({ start, end, s, e });
       byAxis.set(axis, rows);
     }
   }
@@ -920,11 +926,14 @@ function strictAxisAdvisoryLastLine(
     return `  ${tail}`;
   }
   const ids = [...new Set(required.flatMap((req) => (req.id === null ? [] : [req.id])))];
+  // One row per grant: a command naming every row would clear them all.
+  const target = ids.length === 1 ? ids : ["<itemId>"];
+  const choose = ids.length > 1 ? ` Name the one row to clear (${ids.join(", ")}).` : "";
   return (
     "  After activation an operator can clear a row with a not_applicable grant, which " +
     "disposes of the whole criterion and replaces its evidence (#7127 tracks a correction " +
-    `that keeps test evidence): ${formatAcceptanceDispositionCommand(planId, ids, null, "not_applicable")}. ` +
-    tail
+    `that keeps test evidence): ${formatAcceptanceDispositionCommand(planId, target, null, "not_applicable")}.` +
+    `${choose} ${tail}`
   );
 }
 
