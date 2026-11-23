@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #7203",
-    "updated": "2026-11-23T14:46:49Z"
+    "updated": "2026-11-23T15:43:01Z"
   },
   "plan": {
     "title": "test(windows): coverage-report symlink-swap test assumes O_NOFOLLOW (#7199 D)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "The controller.test.ts test 'symlink swap at the read (mocked lstatSync, no production hook): exit 4 row refused' fails on Windows because readCoverageReportNoFollow (packages/core/src/pre-pr-controller/coverage-report.ts) has no O_NOFOLLOW there and falls back to lstat presence plus an fstat check, which the mocked lstat passes. This story decides the Windows behavior for a symlink swap at the coverage-report read, writes that decision in coverage-report.ts or the test, and makes the test pass on the nightly Windows lane by a platform skip with a reason or by a product fallback that refuses the swap, while the Linux nightly and the merge gate stay green.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/7203",
@@ -19,26 +19,47 @@
     "items": [
       {
         "title": "The Windows behavior for a symlink swap at the coverage-report read is decided, and the decision is written in `coverage-report.ts` or the test.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "When the story ships, then the Windows behavior for a symlink swap at the coverage-report read is decided, and the decision is written in coverage-report.ts or the test."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8e827031d5dcc3a92da09f91055acacfe18411fe",
+          "recorded_at": "2026-11-23T15:43:01Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "The test passes on the nightly Windows lane, by a platform skip with a reason or by a product fallback that refuses the swap.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "When the nightly Windows lane runs controller.test.ts, then the symlink-swap test passes, by a platform skip with a reason or by a product fallback that refuses the swap."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8e827031d5dcc3a92da09f91055acacfe18411fe",
+          "recorded_at": "2026-11-23T15:43:01Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "The Linux nightly and the merge gate stay green.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "When the story merges, then the Linux nightly and the merge gate stay green."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "8e827031d5dcc3a92da09f91055acacfe18411fe",
+          "recorded_at": "2026-11-23T15:43:01Z",
+          "recorded_by": "scope:complete"
         }
       }
     ],
@@ -141,9 +162,38 @@
         ],
         "conflict_group": "pre-pr-coverage-report-read",
         "model_tier": "high"
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "08aa37f967184e8cd56790cf28ef77415f74233e",
+        "prNumber": 7208,
+        "prBase": "master",
+        "mergeCommit": "8e827031d5dcc3a92da09f91055acacfe18411fe",
+        "deliveryBranch": "master",
+        "deliveryCommit": "8e827031d5dcc3a92da09f91055acacfe18411fe",
+        "verifiedAt": "2026-11-23T15:43:01Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:OWEwZDY5MDktOTZkNS00NjFiLWIzMTUtODg5ZjNlZjFkNTI0",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          7205
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-23T15:43:01Z",
+      "completedSessionId": "host:claude:v1:OWEwZDY5MDktOTZkNS00NjFiLWIzMTUtODg5ZjNlZjFkNTI0",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-23T15:43:01Z"
       }
     },
     "id": "github.issue.6561559785",
-    "updated": "2026-11-23T14:46:49Z"
+    "updated": "2026-11-23T15:43:01Z"
   }
 }
