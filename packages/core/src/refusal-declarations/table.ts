@@ -121,7 +121,7 @@ export const REFUSAL_DECLARATION_ROWS: readonly RawRefusalDeclaration[] = /* ref
   },
   {
     "id": "acceptance-cwd-dependency",
-    "gate": "scope:activate, xbrief:activate and verify:ac: an acceptance command cwd with a node_modules or leading-dot segment (#7223)",
+    "gate": "verify:ac (activation prints the would-refuse line): an acceptance command cwd with a node_modules or leading-dot segment (#7223)",
     "mode": "enforce",
     "remedy": ["deft verify:ac --capture-only"],
     "exception": "an acceptance command must not run from installed dependencies or a dot folder",
