@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import type { EnvironmentContext } from "../platform/shell-context.js";
 import { selectCeremonyDepth } from "../policy/ceremony-dial.js";
 import type { ResolveUserMdResult } from "../user-config/resolve-user-md.js";
+import { useCleanHostEnv } from "./__tests__/clean-host-env.js";
 import type { ApplyOccupancyInput, OccupancyDecision } from "./occupancy.js";
 import { persistTrustedSessionPosture, sessionPosturePath } from "./posture.js";
 import { ritualStatePath } from "./ritual-sentinel.js";
@@ -15,6 +16,8 @@ import {
   REQUIREMENTS_RESULT_MESSAGE,
   runSessionStart,
 } from "./session-start.js";
+
+useCleanHostEnv();
 
 /** Full ceremony — fat-path assertions must not use two-stage cold rapid default. */
 const STANDARD_DIAL = selectCeremonyDepth({

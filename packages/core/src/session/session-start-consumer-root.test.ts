@@ -3,7 +3,10 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { useCleanHostEnv } from "./__tests__/clean-host-env.js";
 import { ritualStatePath, runSessionStart } from "./session-start.js";
+
+useCleanHostEnv();
 
 const temps: string[] = [];
 afterEach(() => {

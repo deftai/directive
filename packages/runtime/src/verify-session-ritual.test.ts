@@ -3,7 +3,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { VerifyResult } from "@deftai/directive-core/session";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { useCleanHostEnv } from "./__tests__/clean-host-env.js";
 import { parseArgs, run } from "./verify-session-ritual.js";
+
+useCleanHostEnv();
 
 const cliTemps: string[] = [];
 afterEach(() => {

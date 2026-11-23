@@ -3,6 +3,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { useCleanHostEnv } from "./__tests__/clean-host-env.js";
 import type { GitRunner } from "./git.js";
 import { defaultGitRunner, type GitRunResult } from "./git.js";
 import { buildContext, evaluate, parse, ResumeGrammarError } from "./resume-conditions.js";
@@ -15,6 +16,8 @@ import {
 } from "./ritual-sentinel.js";
 import { defaultBranchSync, runSessionStart } from "./session-start.js";
 import { inspectSessionRitual, verifySessionRitual } from "./verify-session-ritual.js";
+
+useCleanHostEnv();
 
 const sharedTemps: string[] = [];
 let sharedRepo: { root: string; head: string; branch: string } | null = null;

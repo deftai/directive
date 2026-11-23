@@ -4,7 +4,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ProbeScmReadinessOptions, ScmReadinessReport } from "../scm/readiness.js";
+import { useCleanHostEnv } from "./__tests__/clean-host-env.js";
 import type { SessionStartOptions } from "./session-start.js";
+
+useCleanHostEnv();
 
 /**
  * #2182: fixture repo with a private-scope registry configuration. Read-only
