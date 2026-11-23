@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #7138",
-    "updated": "2026-11-22T23:29:03Z"
+    "updated": "2026-11-23T03:30:12Z"
   },
   "plan": {
     "title": "[framework-gap] xbrief:preflight hard-refuses active briefs after any comment on the origin issue (slice origin-content-compare)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "xbrief:preflight no longer refuses an active brief only because its origin issue's updated_at moved. On drift it compares what the brief holds from the authoritative origin (stored body, stored comment thread, or Spec-path source) with the live origin, refuses on a requirement change, and warns on other activity. This brief is the single slice origin-content-compare of #7007; its contract is the accepted lean 7087466393.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/7138",
@@ -19,106 +19,197 @@
     "items": [
       {
         "title": "Authoritative origin and baseline. A Spec-path brief (one with a `readSpecPathSourceRecord` record) uses the record's issue, the parent for a slice. A body-route brief (one with an ingest `plan.narratives.Origin` and no Spec-path refused-body record) uses the issue named in that Origin; its body baseline is `plan.narratives.Overview`, or an empty body when ingest wrote no `Overview`. Any other brief has no baseline. `evaluateOriginFreshness` checks the authoritative origin's `updated_at` first; no drift means pass, as today.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "When the origin updated_at is not newer than the brief stamp, preflight returns a pass as today; on drift it uses the authoritative origin: the recorded source issue (the parent for a slice) for a Spec-path brief, the Origin issue for a body-route brief, and no baseline for any other brief."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4c51fea55f539a2e3ae751cec6cc734516c1585a",
+          "recorded_at": "2026-11-23T03:30:12Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Body compare. On drift for a body-route brief, preflight compares `scan(<live body>).transformed_content` (the transform ingest used) with the body baseline, ignoring trailing whitespace. Different: refuse with the reason \"origin body changed\".",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "When the authoritative origin of a body-route brief drifts and its scanned live body differs from the stored body baseline (trailing whitespace ignored), preflight rejects with the reason origin body changed."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4c51fea55f539a2e3ae751cec6cc734516c1585a",
+          "recorded_at": "2026-11-23T03:30:12Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Comment compare (body-route brief, whose stored thread was read from its authoritative issue). On drift, preflight reads the live thread with `fetchIssueComments`. A comment is unread when its id is not in `plan.metadata.issueCommentThread` or its `updated_at` is newer than the stored entry; a brief with no stored thread treats every comment newer than its stamp as unread. An unread comment refuses when it starts with the design-critique comment lead (`model:` then `role:`), when it is the comment `selectIngestCurrentShape` selects, or when it carries an `## Acceptance Criteria` list (`criteriaListUnits`) and its author is the issue author, or `hasWritePermission` says the author may write, or `hasWritePermission` cannot answer. The same three shape tests also run on each stored comment (its scanned body in `issueCommentThread`, author checked the same way): a stored comment that had a requirement shape refuses when the live thread no longer has its id or has it with a newer `updated_at`, whatever its live shape. Every other unread comment goes into one `WARN:` line with count, ids and URLs, never comment text, telling the agent to read them before implementing (#2143). A failed or incomplete thread read refuses.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "When a body-route brief's origin drifts, preflight rejects an unread comment with a requirement shape (design-critique lead, selected Current shape, or Acceptance Criteria list by the issue author, a writer, or an author of unknown permission), a stored requirement-shaped comment that was edited or deleted, and a failed thread read; every other unread comment shows only in one WARN line with count, ids and URLs."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4c51fea55f539a2e3ae751cec6cc734516c1585a",
+          "recorded_at": "2026-11-23T03:30:12Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Spec-path compare. On drift for a Spec-path brief, preflight runs `fetchSpecPathLiveIdentities` on the recorded source and compares the digest with the brief's pin, as `verify:ac` does. Mismatch or unavailable: refuse. A body change on that issue is a `WARN:` line (the lean is the contract). Its thread is read with `fetchIssueComments` without the stored thread (which, for a slice, belongs to the child issue): an unread comment is one with `updated_at` newer than the brief stamp, judged by item 3's live shape tests; a requirement shape or unknown author permission refuses, other comments go into the `WARN:` line, and a failed read refuses. An edit or delete of the recorded lean or criteria record, or a later arc, is caught by the source resolver itself (harvest digest and completed-arc read), since that record, not the rest of the thread, is a Spec-path brief's contract.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "When a Spec-path brief's origin drifts, preflight rejects a changed or unavailable source digest and a newer source-issue comment with a requirement shape or unknown author permission, and emits a WARN line for a body change or other newer comments."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4c51fea55f539a2e3ae751cec6cc734516c1585a",
+          "recorded_at": "2026-11-23T03:30:12Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Warn-only cases. Every origin other than the authoritative one (including a slice's child issue) prints a `WARN:` line naming it and never refuses, including when its fetch fails. A closed authoritative origin prints a `WARN:` line; closure alone never refuses, and it never stops items 2-4 or a failed fetch of the authoritative origin from refusing. A brief with no baseline keeps today's timestamp refusal.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "Preflight emits a WARN line and never rejects for a referenced origin (even when its fetch fails) or for a closed authoritative origin alone, and still rejects drift on a brief with no baseline."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4c51fea55f539a2e3ae751cec6cc734516c1585a",
+          "recorded_at": "2026-11-23T03:30:12Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Recovery text. The reject names its reason (body changed, requirement comment, Spec-path source changed, author permission unknown, no baseline, origin unavailable) and prints the block/unblock pair and the usage line with `formatFrameworkCommand` (`deft scope:block -- <path>`, `deft xbrief:preflight -- <path>`), keeps the #3857 pointer, and keeps \"restore `gh` access\" for the unavailable cases. The sync and refinement skills (pack source, regenerated) describe this rule instead of a refusal on any newer `updated_at`. CHANGELOG line.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "narrative": {
           "Acceptance": "When preflight rejects on origin drift, the output names the reason and shows the deft block/unblock pair and usage line, the #3857 pointer, and the restore gh access hint for the unavailable cases; the sync and refinement skills and a CHANGELOG line describe the rule."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4c51fea55f539a2e3ae751cec6cc734516c1585a",
+          "recorded_at": "2026-11-23T03:30:12Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Tests: a plain comment, a label, a close and a same-content body edit pass with the WARN; a changed body, a Constraints-only body change, a changed body on a closed origin, an edited old comment that adds an Acceptance Criteria list, an Acceptance Criteria comment whose author permission read fails, an ingest-time Acceptance Criteria comment edited to plain text, the same comment deleted, a new design-critique record and a changed Spec-path lean refuse; an issue ingested with an empty body passes a plain comment and refuses a new body; a slice is checked against its parent issue, and a slice with a non-empty child thread, an unchanged parent lean and a plain parent comment or label passes with the WARN, while a newer Acceptance Criteria comment by a writer on the parent refuses; a referenced origin's drift or fetch failure warns; a failed thread read refuses; a brief with no baseline refuses on drift; the WARN never contains comment text; the printed recovery strings are exact, and the printed `deft` commands resolve through the CLI router.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
         "narrative": {
           "Acceptance": "The tests assert that each pass case listed in Bound remedy item 7 returns a pass with the WARN and each listed refuse case fails, that the WARN never contains comment text, that the recovery strings are exact, and that the printed deft commands resolve through the CLI router."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4c51fea55f539a2e3ae751cec6cc734516c1585a",
+          "recorded_at": "2026-11-23T03:30:12Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "For a brief with a baseline (a body-route brief ingested from an issue, or a Spec-path brief with a source record), a comment with no requirement shape, a label, a close and a same-content body edit on the authoritative origin no longer make `xbrief:preflight` refuse; it passes with one `WARN:` line naming the new comments by id and URL, without their text.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.8",
         "narrative": {
           "Acceptance": "When the authoritative origin of a brief with a baseline gets a comment with no requirement shape, a label, a close or a same-content body edit, xbrief:preflight returns a pass with one WARN line naming the new comments by id and URL, without their text."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4c51fea55f539a2e3ae751cec6cc734516c1585a",
+          "recorded_at": "2026-11-23T03:30:12Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "A changed body (also on a closed origin), a new or edited comment with a design-critique comment lead, a selected Current shape comment, or an Acceptance Criteria list whose author is the issue author, a writer, or of unknown permission, a comment that had one of those shapes at ingest and is now edited or deleted, and a changed Spec-path source still refuse.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.9",
         "narrative": {
           "Acceptance": "xbrief:preflight still rejects a changed body (also on a closed origin), a new or edited requirement-shaped comment (design-critique lead, selected Current shape, or Acceptance Criteria list by the issue author, a writer or an author of unknown permission), such a comment edited or deleted since ingest, and a changed Spec-path source."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4c51fea55f539a2e3ae751cec6cc734516c1585a",
+          "recorded_at": "2026-11-23T03:30:12Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "A Spec-path brief is compared through its recorded source issue and lean, the parent issue for a slice; its newer comments are judged by live shape, never against the child's stored thread, so harmless parent activity on a slice with a child thread passes.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.10",
         "narrative": {
           "Acceptance": "For a Spec-path brief, preflight validates against the recorded source issue and lean (the parent for a slice) and judges newer comments by live shape, so harmless parent activity on a slice with a child thread returns a pass."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4c51fea55f539a2e3ae751cec6cc734516c1585a",
+          "recorded_at": "2026-11-23T03:30:12Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "A referenced origin other than the authoritative one only warns, including on a fetch failure; a failed or incomplete thread read of the authoritative origin refuses; a brief with no baseline keeps today's timestamp refusal.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.11",
         "narrative": {
           "Acceptance": "Preflight only warns for a referenced origin other than the authoritative one, even when its fetch fails, and rejects a failed or incomplete thread read of the authoritative origin and drift on a brief with no baseline."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4c51fea55f539a2e3ae751cec6cc734516c1585a",
+          "recorded_at": "2026-11-23T03:30:12Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "The reject names its reason and prints `deft scope:block -- <path>`, `deft scope:unblock -- <path>` and `deft xbrief:preflight -- <path>`, which resolve through the CLI router.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.12",
         "narrative": {
           "Acceptance": "When preflight rejects on origin drift, the output names its reason and shows deft scope:block -- <path>, deft scope:unblock -- <path> and deft xbrief:preflight -- <path>, and each of those commands resolves through the CLI router."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4c51fea55f539a2e3ae751cec6cc734516c1585a",
+          "recorded_at": "2026-11-23T03:30:12Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "The sync and refinement skills describe the new rule, with a CHANGELOG line.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.13",
         "narrative": {
           "Acceptance": "The deft-directive-sync and deft-directive-refinement skills describe when preflight warns and when it rejects on origin drift, and a CHANGELOG line records the change."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4c51fea55f539a2e3ae751cec6cc734516c1585a",
+          "recorded_at": "2026-11-23T03:30:12Z",
+          "recorded_by": "scope:complete"
         }
       }
     ],
@@ -216,7 +307,36 @@
         "harvestDigest": "a7ccef05b776c7df3485a6f3ebf40c95c2708822899104a3c02d9de18d381d9d",
         "slice": "origin-content-compare"
       },
-      "kind": "story"
+      "kind": "story",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "d1d397dd9c2b025101edf2a0a2aee9c9c259245f",
+        "prNumber": 7163,
+        "prBase": "master",
+        "mergeCommit": "4c51fea55f539a2e3ae751cec6cc734516c1585a",
+        "deliveryBranch": "master",
+        "deliveryCommit": "d347ddbe68a76f8b00b63cf925916dd373c9a2e7",
+        "verifiedAt": "2026-11-23T03:30:12Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:OWEwZDY5MDktOTZkNS00NjFiLWIzMTUtODg5ZjNlZjFkNTI0",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          7140
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-23T03:30:12Z",
+      "completedSessionId": "host:claude:v1:OWEwZDY5MDktOTZkNS00NjFiLWIzMTUtODg5ZjNlZjFkNTI0",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-23T03:30:12Z"
+      }
     },
     "acceptance": {
       "commands": [],
@@ -350,6 +470,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.6549189652",
-    "updated": "2026-11-22T23:29:03Z"
+    "updated": "2026-11-23T03:30:12Z"
   }
 }
