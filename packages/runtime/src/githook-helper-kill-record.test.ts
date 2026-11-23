@@ -23,7 +23,14 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { DIRECTIVE_GIT_HOOK_BODIES } from "./setup-wiring.js";
 
 const HELPER_REL = ".githooks/_directive-run.sh";
-const HELPER = join(process.cwd(), HELPER_REL);
+// The deposited body, not this repository's own copy: the repository applies
+// its deposit with the next pin (#6740), so the tests run the current body.
+const HELPER_DIR = mkdtempSync(join(tmpdir(), "w6740c1-helper-body-"));
+const HELPER = join(HELPER_DIR, "_directive-run.sh");
+writeFileSync(HELPER, DIRECTIVE_GIT_HOOK_BODIES[HELPER_REL] ?? "");
+afterAll(() => {
+  rmSync(HELPER_DIR, { recursive: true, force: true });
+});
 
 function findSh(): string | null {
   if (process.platform !== "win32") return existsSync("/bin/sh") ? "/bin/sh" : null;
@@ -57,7 +64,7 @@ function runHelper(root: string, pathEnv: string, body: string) {
 }
 
 describe("git-hook helper deposit (#6740)", () => {
-  it("the committed helper equals the deposited body and carries the reader marker", () => {
+  it("the deposited body carries the reader marker", () => {
     const body = DIRECTIVE_GIT_HOOK_BODIES[HELPER_REL];
     expect(readFileSync(HELPER, "utf8")).toBe(body);
     expect(body?.split("\n")).toContain(KILL_SWITCH_GITHOOK_MARKER);

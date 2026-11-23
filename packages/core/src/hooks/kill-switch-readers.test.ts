@@ -22,6 +22,7 @@ import { dirname, join } from "node:path";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { isDisableFlagActive as launcherReader } from "../../../cli/src/entry-guard.js";
 import { run as hookDispatchRun } from "../../../runtime/src/hook-dispatch.js";
+import { DIRECTIVE_GIT_HOOK_BODIES } from "../../../runtime/src/setup-wiring.js";
 import { cmdDoctor } from "../doctor/main.js";
 import { hostHookOuterSource } from "../init-deposit/host-hook-outer.js";
 import type { CheapInSyncResult } from "../install-health/types.js";
@@ -61,7 +62,14 @@ const CASES = (
 const engineInvoke = createRequire(import.meta.url)(join(REPO, "tasks", "engine-invoke.cjs")) as {
   killRecordVerdict: (root: string) => string;
 };
-const HELPER = join(REPO, ".githooks", "_directive-run.sh");
+// The deposited git-hook helper body, not this repository's own copy: the
+// repository applies its deposit with the next pin (#6740).
+const HELPER_DIR = mkdtempSync(join(tmpdir(), "w6740c1-readers-helper-"));
+const HELPER = join(HELPER_DIR, "_directive-run.sh");
+writeFileSync(HELPER, DIRECTIVE_GIT_HOOK_BODIES[".githooks/_directive-run.sh"] ?? "");
+afterAll(() => {
+  rmSync(HELPER_DIR, { recursive: true, force: true });
+});
 const WARNING_PREFIX = "Directive warning:";
 
 function findSh(): string | null {

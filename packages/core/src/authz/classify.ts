@@ -1331,29 +1331,6 @@ function hasAuthzMutatingCli(tokens: readonly string[]): boolean {
 }
 
 /**
- * Detect `kill-switch:on` / `kill-switch on` (#6740): the verb that turns
- * enforcement off by writing the kill record. Classified as **settings**, like
- * the authz mutators; the verb also refuses under UAT and runs the terminal
- * mint. `kill-switch:off` re-enables (tightens) and stays unclassified (#5980).
- */
-function hasKillSwitchOnCli(tokens: readonly string[]): boolean {
-  for (let i = 0; i < tokens.length; i++) {
-    const t = normalizeToken(tokens[i] as string);
-    if (t === "kill-switch:on") return true;
-    const isKillSwitchBin =
-      t === "kill-switch" ||
-      t.endsWith("/kill-switch") ||
-      t.endsWith("\\kill-switch") ||
-      t.endsWith("/kill-switch.js") ||
-      t.endsWith("\\kill-switch.js");
-    if (!isKillSwitchBin) continue;
-    const next = tokens[i + 1] !== undefined ? normalizeToken(tokens[i + 1] as string) : "";
-    if (next === "on") return true;
-  }
-  return false;
-}
-
-/**
  * Detect `policy:allow-bot-merge` / `policy allow-direct-commits` / peers (#3186).
  * O(n) token walk — no nested-quantifier regex on untrusted input.
  */
@@ -5661,7 +5638,6 @@ export function classifyShellAuthzOps(command: string): AuthzClassifiedOp[] {
   // The #6681 mention rule is added after those classes are known.
   if (hasKillSwitchShellWriteInner(cmd, tokens)) found.add("settings");
   if (hasPolicyAuthorityMutator(tokens)) found.add("settings");
-  if (hasKillSwitchOnCli(tokens)) found.add("settings");
   // Split path write: `cd .deft && echo x > authz/state.json` OR `cd .deft/authz && echo x > state.json`
   // OR `cd .deft/authz && cp … grants/x` (write bin without redirect).
   // When the command cds into an authz path, any write shape is settings (relative dest has no "authz" text).

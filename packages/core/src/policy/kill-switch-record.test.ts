@@ -16,6 +16,7 @@ import {
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import { DIRECTIVE_GIT_HOOK_BODIES } from "../../../runtime/src/setup-wiring.js";
 import { detectDeftDirectiveDisable, resolveAbsoluteGitDir } from "./deft-directive-disable.js";
 import {
   evaluateKillSwitchRecordText,
@@ -104,7 +105,14 @@ function findSh(): string | null {
   return null;
 }
 
-const HELPER = join(process.cwd(), ".githooks", "_directive-run.sh");
+// The deposited git-hook helper body, not this repository's own copy: the
+// repository applies its deposit with the next pin (#6740).
+const HELPER_DIR = mkdtempSync(join(tmpdir(), "w6740c1-record-helper-"));
+const HELPER = join(HELPER_DIR, "_directive-run.sh");
+writeFileSync(HELPER, DIRECTIVE_GIT_HOOK_BODIES[".githooks/_directive-run.sh"] ?? "");
+afterAll(() => {
+  rmSync(HELPER_DIR, { recursive: true, force: true });
+});
 const SH = findSh();
 
 /** Shell reader verdict: the git-hook helper's `_directive_kill_record`. */
