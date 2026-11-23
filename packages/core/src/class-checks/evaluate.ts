@@ -2,7 +2,8 @@
  * verify:class-checks (#4980 / #3145 class).
  *
  * Fail-closed, diff-scoped class gate independent of file_scope digests and of
- * verify:test-boundary warn mode. Remediation is move or remove the path.
+ * verify:test-boundary warn mode. Remediation is move or remove the path; a
+ * class 1 hit may instead be declared in the base-ref test-boundary policy.
  */
 
 import { spawnSync } from "node:child_process";
@@ -13,6 +14,9 @@ import { classifyDirectiveOwnedChange } from "../install-health/owned-paths.js";
 import { isLifecycleArtifactPath } from "../layout/resolve.js";
 import { unquoteGitPath } from "../scope-provenance/evaluate.js";
 import {
+  CO_LOCATED_TEST_EXTENSIONS,
+  CO_LOCATED_TEST_STEMS,
+  isCoLocatedTestName,
   isRecognizedTestBasename,
   matchesRootGlob,
   matchesTestFilePattern,
@@ -77,6 +81,67 @@ export interface ClassCheckOptions {
 }
 
 const MOVE_OR_REMOVE = "Move or remove the path. Class checks have no approve, skip, or phrase.";
+
+/**
+ * Class 1 remediation (#6668): move the path, or declare it in the test-boundary
+ * policy read from the base ref. Names only the file when the base ref has one.
+ */
+function testUnderSourceRootRemediation(baseTb: TestBoundaryPolicy): string {
+  const where =
+    baseTb.source === "file"
+      ? "the base-ref .deft/test-boundary.policy.json"
+      : "the base-ref test-boundary policy (.deft/test-boundary.policy.json when the base ref has " +
+        "that file, else plan.policy.testBoundary in xbrief/PROJECT-DEFINITION.xbrief.json)";
+  return (
+    `Move the path under a test root, or declare it in ${where}, preferably as a narrow ` +
+    "allow entry with a reason. An authored testRoots list replaces every default root, so " +
+    "repeat the defaults you still need. The policy is read from the base ref, so land the " +
+    "policy change in an earlier PR. See content/docs/test-boundary.md (#6668)."
+  );
+}
+
+/**
+ * True when a module specifier's last path segment is `<name>.test` or
+ * `<name>.spec`, optionally followed by one co-located extension (#6668).
+ * No module resolution.
+ */
+function isCoLocatedTestModuleSpecifier(specifier: string): boolean {
+  const lower = (specifier.replace(/\\/g, "/").split("/").pop() ?? "").toLowerCase();
+  const ext = CO_LOCATED_TEST_EXTENSIONS.find((e) => lower.endsWith(`.${e}`));
+  const stem = ext === undefined ? lower : lower.slice(0, -(ext.length + 1));
+  return CO_LOCATED_TEST_STEMS.some((s) => stem.endsWith(s) && stem.length > s.length);
+}
+
+/** Quoted string on one line; the body excludes quotes and newlines (linear scan). */
+const QUOTED_SPECIFIER_RE = /(["'`])([^"'`\n]*)\1/g;
+
+/**
+ * Module specifiers on one source line (#6668 class 2 import rule): `import …
+ * from`, `export … from`, a continuation `} from`, bare `import "x"`,
+ * `import("x")` and `require("x")`. Comment lines and other strings are not
+ * specifiers.
+ */
+function moduleSpecifiersOnLine(line: string): string[] {
+  const trimmed = line.trimStart();
+  if (trimmed.startsWith("//") || trimmed.startsWith("/*") || trimmed.startsWith("*")) {
+    return [];
+  }
+  const startsStatement = /^(?:import|export|from)\b/.test(trimmed) || trimmed.startsWith("}");
+  const out: string[] = [];
+  for (const m of line.matchAll(QUOTED_SPECIFIER_RE)) {
+    const before = line.slice(0, m.index ?? 0).trimEnd();
+    const spec = m[2] ?? "";
+    if (spec.length === 0) continue;
+    if (startsStatement && /(?:^|[\s}*])from$/.test(before)) {
+      out.push(spec);
+    } else if (/^import$/.test(before.trimStart())) {
+      out.push(spec);
+    } else if (/(?:^|[^\w$.])(?:import|require)\s*\($/.test(before)) {
+      out.push(spec);
+    }
+  }
+  return out;
+}
 
 const TEST_BOUNDARY_POLICY_PATHS = [
   ".deft/test-boundary.policy.json",
@@ -641,7 +706,8 @@ function scanProductionReferences(
 ): ClassCheckFinding | null {
   if (
     matchesTestFilePattern(relPath, policy.testFilePatterns) ||
-    isRecognizedTestBasename(relPath)
+    isRecognizedTestBasename(relPath) ||
+    isCoLocatedTestName(relPath)
   ) {
     return null;
   }
@@ -697,6 +763,16 @@ function scanProductionReferences(
           remediation: MOVE_OR_REMOVE,
         };
       }
+    }
+    // A production file must not import a co-located test module (#6668).
+    const spec = moduleSpecifiersOnLine(text).find(isCoLocatedTestModuleSpecifier);
+    if (spec !== undefined) {
+      return {
+        path: relPath,
+        kind: "production-references-test-root",
+        detail: `imports co-located test module '${spec}' on line ${lineNo} (class 2)`,
+        remediation: MOVE_OR_REMOVE,
+      };
     }
   }
   return null;
@@ -1005,32 +1081,35 @@ export function evaluateClassChecks(
     // Class 1: test artifact under non-test root (name or contents).
     let isTest =
       matchesTestFilePattern(posix, baseTb.testFilePatterns) || isRecognizedTestBasename(posix);
-    const underSource = isUnderAnyRoot(posix, baseTb.sourceRoots);
+    // A co-located test name (#6668) is never a class 1 finding, by name or by
+    // content. It is not a test root: classes 2 to 4 still see the path.
+    const class1Candidate =
+      isUnderAnyRoot(posix, baseTb.sourceRoots) && !isCoLocatedTestName(posix);
     const protectedPath = isProtected(posix, classPolicy.protectedGlobs);
 
     // Skip binary-ish for content scans
     if (isBinaryLikePath(posix)) {
-      if (isTest && underSource && isAllowListed(posix, baseTb.allow) === null) {
+      if (isTest && class1Candidate && isAllowListed(posix, baseTb.allow) === null) {
         findings.push({
           path: posix,
           kind: "test-under-source-root",
           detail: "test-only artifact under a non-test root (class 1)",
-          remediation: MOVE_OR_REMOVE,
+          remediation: testUnderSourceRootRemediation(baseTb),
         });
       }
       continue;
     }
 
     const content = readContent(root, posix, options.fileContents);
-    if (!isTest && underSource && content !== undefined && contentMarksTestOnly(content)) {
+    if (!isTest && class1Candidate && content !== undefined && contentMarksTestOnly(content)) {
       isTest = true;
     }
-    if (isTest && underSource && isAllowListed(posix, baseTb.allow) === null) {
+    if (isTest && class1Candidate && isAllowListed(posix, baseTb.allow) === null) {
       findings.push({
         path: posix,
         kind: "test-under-source-root",
         detail: "test-only artifact under a non-test root (class 1)",
-        remediation: MOVE_OR_REMOVE,
+        remediation: testUnderSourceRootRemediation(baseTb),
       });
     }
     if (content === undefined) continue;

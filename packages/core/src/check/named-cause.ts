@@ -86,7 +86,8 @@ const GATE_REMEDIES: Readonly<Record<string, string>> = {
     "Move tests to the allowed placement or update plan.policy test-boundary allowlist",
   "verify:sanctioned-skip-count-baseline":
     "Keep the committed baseline equal to the citation-shaped sanctioned-skip count; raise only via a shape-(B) hotfix with a same-PR baseline bump equal to #6071-authorized net-new skips (#6072)",
-  "verify:class-checks": "Move or remove the path; class checks have no approve, skip, or phrase",
+  "verify:class-checks":
+    "Follow each finding's remediation: move or remove the path; a class 1 test-under-source-root path may instead be declared in the base-ref test-boundary policy",
   "verify:scope-provenance": "Record approved scope provenance for the failing paths",
   "verify:consumer-check-contract": "Align consumer Taskfile includes with the required gate graph",
   "verify:evaluator-surface":

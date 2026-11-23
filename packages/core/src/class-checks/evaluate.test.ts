@@ -13,6 +13,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { writeAgentHookDeposit } from "../init-deposit/agent-hooks.js";
+import { classifyExtraPath } from "../scope-provenance/extra-path-admission.js";
 import { evaluateTestBoundary } from "../test-boundary/evaluate.js";
 import {
   DEFAULT_TEST_ROOTS,
@@ -20,6 +21,7 @@ import {
   type TestBoundaryPolicy,
 } from "../test-boundary/policy.js";
 import {
+  type ClassCheckOptions,
   contentMarksTestOnly,
   evaluateClassChecks,
   parseClassChecksFromProjectDefinition,
@@ -125,7 +127,7 @@ describe("evaluateClassChecks (#4980)", () => {
     expect(result.exitCode).toBe(1);
     expect(result.findings.some((f) => f.kind === "test-under-source-root")).toBe(true);
     expect(result.message).not.toMatch(/scope:record-approved-scope/);
-    expect(result.message).toMatch(/Move or remove/);
+    expect(result.message).toMatch(/Move the path under a test root, or declare it/);
   });
 
   it("fails class 2: production reference to test root", () => {
@@ -1181,5 +1183,130 @@ describe("class 2 scans only added lines (#7077)", () => {
       addedLines: new Map([["src/gate.ts", new Set([2])]]),
     });
     expect(result.exitCode).toBe(1);
+  });
+});
+
+describe("co-located tests and the class 2 import rule (#6668)", () => {
+  const classPolicy = defaultClassChecksPolicy();
+  const suite = "describe('a', () => {\n  it('b', () => {\n    expect(1).toBe(1);\n  });\n});\n";
+  const run = (files: Record<string, string>, extra: Partial<ClassCheckOptions> = {}) =>
+    evaluateClassChecks("/tmp/proj", {
+      baseRef: "origin/master",
+      changedFiles: Object.keys(files),
+      baseTestBoundaryPolicy: baseTb(),
+      classChecksPolicy: classPolicy,
+      fileContents: new Map(Object.entries(files)),
+      ...extra,
+    });
+  const kinds = (r: ReturnType<typeof run>, path: string) =>
+    r.findings.filter((f) => f.path === path).map((f) => f.kind);
+
+  it("reports no class 1 finding for added and edited co-located Vitest files", () => {
+    const result = run({
+      "src/ui/A.plan-wide.test.tsx": suite,
+      "src/ui/B.test.ts": suite,
+    });
+    expect(result.findings).toEqual([]);
+    expect(result.exitCode).toBe(0);
+  });
+
+  it("reports neither class 1 nor class 2 for a .test.mjs that names a fixture", () => {
+    const result = run({
+      "src/shared/c.test.mjs": `${suite}const f = readFileSync("tests/fixtures/x.json");\n`,
+    });
+    expect(result.findings).toEqual([]);
+  });
+
+  it("still reports a neutral-named helper with suite content, naming the policy route", () => {
+    const result = run({ "src/helpers/smoke.ts": suite });
+    expect(kinds(result, "src/helpers/smoke.ts")).toEqual(["test-under-source-root"]);
+    const remediation = result.findings[0]?.remediation ?? "";
+    expect(remediation).toMatch(/\.deft\/test-boundary\.policy\.json/);
+    expect(remediation).toMatch(/plan\.policy\.testBoundary/);
+    expect(remediation).toMatch(/narrow allow entry/);
+    expect(remediation).toMatch(/testRoots list replaces every default root/);
+    expect(remediation).toMatch(/read from the base ref/);
+    expect(remediation).not.toMatch(/no approve, skip, or phrase/);
+    expect(result.message).not.toMatch(/scope:record-approved-scope/);
+  });
+
+  it("names only the policy file when the base ref has one", () => {
+    const result = run(
+      { "src/helpers/smoke.ts": suite },
+      { baseTestBoundaryPolicy: baseTb({ source: "file" }) },
+    );
+    const remediation = result.findings[0]?.remediation ?? "";
+    expect(remediation).toMatch(/base-ref \.deft\/test-boundary\.policy\.json/);
+    expect(remediation).not.toMatch(/plan\.policy\.testBoundary/);
+  });
+
+  it("still reports Python test names under a source root", () => {
+    const result = run({
+      "src/test_helpers.py": "x = 1\n",
+      "infra/scripts/test_release.py": "print('hi')\n",
+    });
+    expect(kinds(result, "src/test_helpers.py")).toEqual(["test-under-source-root"]);
+    expect(kinds(result, "infra/scripts/test_release.py")).toEqual(["test-under-source-root"]);
+  });
+
+  it("passes class 1 but keeps class 3 for a test-named infra file", () => {
+    const path = "infra/smoke/prod-health.spec.ts";
+    const result = run({ [path]: `${suite}const identity = { name: "smoke-test-identity" };\n` });
+    expect(kinds(result, path)).toEqual(["test-identity-in-infra"]);
+  });
+
+  it.each([
+    ['import { Fake } from "./fakeGateway.test";', "./fakeGateway.test"],
+    ['const x = require("./x.spec.js");', "./x.spec.js"],
+    ['const y = await import("./y.test.mjs");', "./y.test.mjs"],
+    ['} from "../shared/z.spec";', "../shared/z.spec"],
+    ['import "./side-effect.test.ts";', "./side-effect.test.ts"],
+    ["export * from './w.TEST.tsx';", "./w.TEST.tsx"],
+  ])("class 2 reports a production line importing a test module: %s", (line, spec) => {
+    const content = `export const a = 1;\n${line}\n`;
+    const result = run(
+      { "src/payments/index.ts": content },
+      { addedLines: new Map([["src/payments/index.ts", new Set([2])]]) },
+    );
+    expect(result.findings).toHaveLength(1);
+    expect(result.findings[0]?.kind).toBe("production-references-test-root");
+    expect(result.findings[0]?.detail).toBe(
+      `imports co-located test module '${spec}' on line 2 (class 2)`,
+    );
+  });
+
+  it("does not report an unchanged import line", () => {
+    const content = 'import { Fake } from "./fakeGateway.test";\nexport const a = 1;\n';
+    const result = run(
+      { "src/payments/index.ts": content },
+      { addedLines: new Map([["src/payments/index.ts", new Set([2])]]) },
+    );
+    expect(result.findings).toEqual([]);
+  });
+
+  it.each([
+    '// import { Fake } from "./fakeGateway.test";',
+    ' * see require("./x.spec.js")',
+    'const s = "./a.test";',
+    'const t = readFileSync("./a.test.ts", "utf8");',
+    "const u = \"import x from './a.test'\";",
+    'import { latest } from "./latest";',
+    'import { spec } from "./spec";',
+  ])("class 2 ignores a line that is not a test-module import: %s", (line) => {
+    const result = run({ "src/payments/index.ts": `${line}\n` });
+    expect(result.findings).toEqual([]);
+  });
+
+  it("leaves Directive's own co-located package tests unchanged", () => {
+    const result = run(
+      { "packages/core/src/x/y.test.ts": suite },
+      { baseTestBoundaryPolicy: baseTb() },
+    );
+    expect(result.findings).toEqual([]);
+    expect(DEFAULT_TEST_ROOTS).toContain("packages/*/src/**/*.test.*");
+  });
+
+  it("keeps the scope and write fences classing a co-located test as production", () => {
+    expect(classifyExtraPath("src/ui/A.test.tsx")).toBe("production");
   });
 });

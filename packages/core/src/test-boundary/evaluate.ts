@@ -212,6 +212,42 @@ export function isRecognizedTestBasename(relPath: string): boolean {
   return false;
 }
 
+/**
+ * JS/TS extensions a co-located `<name>.test.<ext>` / `<name>.spec.<ext>` file
+ * may carry (#6668). Owned by the class-checks co-located test name only; it
+ * does not feed DEFAULT_TEST_FILE_PATTERNS or the default test roots.
+ */
+export const CO_LOCATED_TEST_EXTENSIONS: readonly string[] = [
+  "ts",
+  "tsx",
+  "js",
+  "jsx",
+  "mjs",
+  "cjs",
+  "mts",
+  "cts",
+];
+
+/** Stems a co-located test module name ends in, before its extension (#6668). */
+export const CO_LOCATED_TEST_STEMS: readonly string[] = [".test", ".spec"];
+
+/**
+ * Co-located test name (#6668): the basename ends in `.test.<ext>` or
+ * `.spec.<ext>` with `<ext>` in CO_LOCATED_TEST_EXTENSIONS (case-insensitive),
+ * or in `_test.go`. Class checks never report such a file as class 1, and
+ * class 2 skips it as a test file. It is not a test root: every other gate
+ * sees the path as before.
+ */
+export function isCoLocatedTestName(relPath: string): boolean {
+  // String checks avoid CodeQL js/polynomial-redos on .+ quantifiers.
+  const lower = basename(relPath.replace(/\\/g, "/")).toLowerCase();
+  if (lower.endsWith("_test.go")) return lower.length > "_test.go".length;
+  const ext = CO_LOCATED_TEST_EXTENSIONS.find((e) => lower.endsWith(`.${e}`));
+  if (ext === undefined) return false;
+  const stem = lower.slice(0, -(ext.length + 1));
+  return CO_LOCATED_TEST_STEMS.some((s) => stem.endsWith(s) && stem.length > s.length);
+}
+
 function productionReferenceRemediation(): string {
   return (
     "Move the reference under a declared test root, add a narrow allow entry " +

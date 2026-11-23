@@ -482,3 +482,16 @@ describe("named-cause gate failures (#3282)", () => {
     expect(msg.remedy).not.toContain("rename landed");
   });
 });
+
+describe("verify:class-checks remedy (#6668)", () => {
+  it("reads correctly for every class and names the class 1 policy route", () => {
+    const remedy = remedyForGate(
+      "verify:class-checks",
+      "verify_class_checks: 1 class violation(s)",
+    );
+    expect(remedy).toMatch(/move or remove the path/);
+    expect(remedy).toMatch(/class 1 test-under-source-root/);
+    expect(remedy).toMatch(/base-ref test-boundary policy/);
+    expect(remedy).not.toMatch(/no approve, skip, or phrase/);
+  });
+});
