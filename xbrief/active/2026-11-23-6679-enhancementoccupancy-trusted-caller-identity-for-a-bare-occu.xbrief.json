@@ -1,0 +1,760 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6679",
+    "updated": "2026-11-23T02:07:56Z"
+  },
+  "plan": {
+    "title": "enhancement(occupancy): trusted caller identity for a bare occupancy:release outside the hook path",
+    "status": "running",
+    "narratives": {
+      "Description": "occupancy:release and session:end free a lease on this checkout only for its owner, whether the lease is live, heartbeat-stale or age-capped. A bare release no longer takes its identity from DEFT_SESSION_ID, which a child process inherits, and keeps the Grok host owner only when Grok is the only declared host. Refusals name the owner and tell the caller to leave a quiet lease in place, and the runtime help, README and design-critique contract stop teaching the copy-from-file recipe.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6679",
+      "Overview": "\n1. Owner-only release. `releaseOccupancy` in `packages/core/src/session/occupancy.ts` frees a lease recorded for this checkout only when the presented id equals its `session_id`, whether the lease is live, heartbeat-stale or age-capped. A record that names a different checkout stays clearable, as today. This extends the #6274 owner-only rule of `releaseOwnedOccupancyOnSessionEnd` to the manual verb; that function's comment stops saying the manual path is unchanged.\n2. Bare identity. When no `--session-id` is passed, `releaseOccupancy` does not read `DEFT_SESSION_ID`. It uses `ambientHostSessionOwner` only when `detectDeclaredIdentityHosts` on the same environment returns exactly `grok`; otherwise the caller presents no identity. This covers `session:end`, which runs the same module. Explicit `--session-id` is unchanged, and so is the hook rewrite. Other occupancy verbs, claim and swarm close-out keep `resolvePresentedIdentity`.\n3. Non-owner refusal. Exit 1, the lease file untouched. The message names the owner and the lease's liveness and says only that session may present that id. For a non-live lease it says that the lease blocks no write, that its owner can re-claim it, and to leave it in place and work read-only or in its own worktree. It prints no `occupancy:steal` command and no command filled with the owner's id; the rerun line stays `formatReleaseRerunLine` on the caller's own presented id.\n4. Bare refusal. When a bare release presents no identity and a lease exists, the message says that `DEFT_SESSION_ID` is not used for a bare release because child processes inherit it, or that more than one host is declared (naming the hosts and, when Grok is one of them, the canonical id `GROK_SESSION_ID` maps to, as a note), and prints the `<your-session-id>` template line.\n5. Recovery copy. `formatOccupancyReleaseHelp`, `ABANDONED_OCCUPANCY_LEASE_RECOVERY` in `packages/runtime/src/occupancy-release.ts` and `README.md` line 141 say that only the owner releases its lease, that a quiet lease blocks no write and is claimed over by the next `session:start`, and that a lease's `session_id` is never copied into a release command. None names `occupancy:steal`. The tests that lock the old recipe move with the text.\n6. Contract. `content/contracts/design-critique.md` line 65 becomes: parent-unclaimed is its own MUST: `session:start --read-only`, or, if this session holds the mutation lease, release of its own lease (`session:end`). A lease held by another session is not this session's to release; a refused release leaves it in place, and the parent stays read-only.\n7. Residuals, unchanged and named: the `deft doctor` recovery copy (`packages/core/src/doctor/main.ts` 148-182) still names the copy-from-file recipe (polfer's area, for his digest); a release with no lease still clears an abandoned applying-host record (#6143).\n8. One PR: `occupancy.ts` and its tests, `packages/runtime/src/occupancy-release.ts` and its tests, `README.md`, the contract line, and one `changelog.d/` fragment. No change under `packages/core/src/hooks/` or `packages/core/src/doctor/`.\n\n## Acceptance Criteria\n\n- [ ] Given a heartbeat-stale lease and an age-capped lease owned by session A on this checkout, when session B runs `occupancy:release --session-id=B` or `session:end --session-id=B`, then each exits 1, the lease file is unchanged, and the message names A and the liveness, says the lease blocks no write, and contains no `occupancy:steal` command and no command filled with A's id.\n- [ ] Given session A's own heartbeat-stale or age-capped lease, when A runs `occupancy:release --session-id=A`, then it exits 0 and the lease is removed.\n- [ ] Given a live lease owned by A and an environment with `DEFT_SESSION_ID=A` and no host variables, when a bare `occupancy:release` runs, then it exits 1, the lease stays, and the message says `DEFT_SESSION_ID` is not used for a bare release and prints the `<your-session-id>` template line.\n- [ ] Given a lease claimed under `GROK_SESSION_ID` in an environment with only Grok markers, when a bare `occupancy:release` or a bare `session:end` runs in that environment, then it exits 0 and the lease is removed.\n- [ ] Given that lease and an environment that carries `GROK_SESSION_ID` plus a Claude Code or Codex host marker, when a bare release runs, then it exits 1, the lease stays, and the message names the declared hosts; with `--session-id` set to the canonical Grok id it exits 0.\n- [ ] Given no lease, a bare release exits 0 and reports already-free; given a record that names a different checkout, a release by any caller still clears it.\n- [ ] The child-occupancy release, swarm close-out and launch-rollback release tests pass unchanged.\n- [ ] The runtime help, `ABANDONED_OCCUPANCY_LEASE_RECOVERY` and `README.md` no longer contain `<id from .deft/occupancy.json>` or `occupancy:steal`; the doctor copy and its test are unchanged.\n- [ ] Contract line 65 names this session's own lease, says a refused release of another session's lease leaves it in place, still contains `session:start --read-only`, and the design-critique content-contract test passes.\n\n\n",
+      "Constraint": "- Dropping every environment source from a bare release, including the Grok host owner (comment 7089166266 finding 1 option (b); comment 7089233769 finding 1): it refuses every Grok owner's own release, since Grok's hook never rewrites.\n- Reading R2 of the Stop 1 write-back as meeting the issue's first criterion (comments 7089166018 finding 1, 7089166266 finding 5, 7089233769 Q1): split to #7146.\n- A way for a non-owner to delete residue without becoming the owner (comments 7089166018 Q2, 7089233769 road not taken): a quiet lease blocks no write, and the residue is the owner's re-claim token.\n- Naming `occupancy:steal` or a primary-claim exception in the release refusal (comment 7089166266 finding 3; comment 7089233769 finding 5): steal does not check `--occupant` on a quiet lease, and on the primary checkout both paths refuse a caller beside live sibling leases.\n- Process ancestry as the caller identity in this PR (comment 7089166266 road not taken): split to #7146.",
+      "Labels": "enhancement, design-critique:ingest-ready",
+      "UserStory": "As a session that shares a checkout with other sessions, I want occupancy:release and session:end to free only my own lease, so that a child process or a sibling cannot delete a parent's or peer's lease, live or quiet.",
+      "ImplementationPlan": "1. packages/core/src/session/occupancy.ts: releaseOccupancy frees a lease on this checkout only for its owner, live or quiet; a bare release stops reading DEFT_SESSION_ID and keeps the Grok host owner only when Grok alone is declared; new non-owner and bare refusal copy; the releaseOwnedOccupancyOnSessionEnd comment is updated (Bound remedy items 1-4). Tests in occupancy.test.ts, occupancy-rerun-command.test.ts and occupancy-session-end.test.ts move with the behavior.\n2. packages/runtime/src/occupancy-release.ts: formatOccupancyReleaseHelp and ABANDONED_OCCUPANCY_LEASE_RECOVERY drop the copy-from-file recipe and occupancy:steal; occupancy-release.test.ts asserts the new text (item 5).\n3. README.md line 141 gets the same recovery wording (item 5).\n4. content/contracts/design-critique.md line 65 names this session's own lease (item 6).\n5. One changelog.d fragment; regenerate RULE-MAP, PROJECT-DEFINITION, evaluator-surface-disposition and the spec-drift row only where gates require.\n6. No change under packages/core/src/hooks/ or packages/core/src/doctor/ (item 7 residuals stay named).",
+      "Traces": "#6679 accepted design-critique arc: bound lean 7089293224, synthesis 7089348126, verified-claims table 7089345955. Leftover split: #7146. Related: #6647, #6274, #6143, #3954."
+    },
+    "items": [
+      {
+        "title": "Owner-only release. `releaseOccupancy` in `packages/core/src/session/occupancy.ts` frees a lease recorded for this checkout only when the presented id equals its `session_id`, whether the lease is live, heartbeat-stale or age-capped. A record that names a different checkout stays clearable, as today. This extends the #6274 owner-only rule of `releaseOwnedOccupancyOnSessionEnd` to the manual verb; that function's comment stops saying the manual path is unchanged.",
+        "status": "proposed",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "When the presented id differs from the session_id of the lease on this checkout, occupancy:release leaves the lease file in place whether the lease is live, heartbeat-stale or age-capped; when it matches, the lease is removed; a record that names a different checkout is still cleared; the releaseOwnedOccupancyOnSessionEnd comment no longer says the manual path is unchanged."
+        }
+      },
+      {
+        "title": "Bare identity. When no `--session-id` is passed, `releaseOccupancy` does not read `DEFT_SESSION_ID`. It uses `ambientHostSessionOwner` only when `detectDeclaredIdentityHosts` on the same environment returns exactly `grok`; otherwise the caller presents no identity. This covers `session:end`, which runs the same module. Explicit `--session-id` is unchanged, and so is the hook rewrite. Other occupancy verbs, claim and swarm close-out keep `resolvePresentedIdentity`.",
+        "status": "proposed",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "With no --session-id, releaseOccupancy does not read DEFT_SESSION_ID; it presents ambientHostSessionOwner only when detectDeclaredIdentityHosts on the same environment returns exactly grok, and otherwise presents no identity; session:end behaves the same; explicit --session-id, the hook rewrite, claim, swarm close-out and the other occupancy verbs keep resolvePresentedIdentity."
+        }
+      },
+      {
+        "title": "Non-owner refusal. Exit 1, the lease file untouched. The message names the owner and the lease's liveness and says only that session may present that id. For a non-live lease it says that the lease blocks no write, that its owner can re-claim it, and to leave it in place and work read-only or in its own worktree. It prints no `occupancy:steal` command and no command filled with the owner's id; the rerun line stays `formatReleaseRerunLine` on the caller's own presented id.",
+        "status": "proposed",
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "A non-owner release exits 1 and leaves the lease file unchanged; the message names the owner and the lease liveness and says only that session may present that id; for a non-live lease it says the lease blocks no write, that its owner can re-claim it, and to leave it in place and work read-only or in its own worktree; it contains no occupancy:steal command and no command filled with the owner's id, and its rerun line is formatReleaseRerunLine on the caller's presented id."
+        }
+      },
+      {
+        "title": "Bare refusal. When a bare release presents no identity and a lease exists, the message says that `DEFT_SESSION_ID` is not used for a bare release because child processes inherit it, or that more than one host is declared (naming the hosts and, when Grok is one of them, the canonical id `GROK_SESSION_ID` maps to, as a note), and prints the `<your-session-id>` template line.",
+        "status": "proposed",
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "A bare release that presents no identity while a lease exists exits 1 with a message that says DEFT_SESSION_ID is not used for a bare release because child processes inherit it, or that more than one host is declared (naming the hosts, and when Grok is one of them the canonical id GROK_SESSION_ID maps to as a note), and that prints the <your-session-id> template line."
+        }
+      },
+      {
+        "title": "Recovery copy. `formatOccupancyReleaseHelp`, `ABANDONED_OCCUPANCY_LEASE_RECOVERY` in `packages/runtime/src/occupancy-release.ts` and `README.md` line 141 say that only the owner releases its lease, that a quiet lease blocks no write and is claimed over by the next `session:start`, and that a lease's `session_id` is never copied into a release command. None names `occupancy:steal`. The tests that lock the old recipe move with the text.",
+        "status": "proposed",
+        "id": "clause.5",
+        "narrative": {
+          "Acceptance": "The formatOccupancyReleaseHelp output, ABANDONED_OCCUPANCY_LEASE_RECOVERY in packages/runtime/src/occupancy-release.ts and README.md line 141 say that only the owner releases its lease, that a quiet lease blocks no write and is claimed over by the next session:start, and that a lease's session_id is never copied into a release command; none names occupancy:steal, and the tests that locked the old recipe assert the new text."
+        }
+      },
+      {
+        "title": "Contract. `content/contracts/design-critique.md` line 65 becomes: parent-unclaimed is its own MUST: `session:start --read-only`, or, if this session holds the mutation lease, release of its own lease (`session:end`). A lease held by another session is not this session's to release; a refused release leaves it in place, and the parent stays read-only.",
+        "status": "proposed",
+        "id": "clause.6",
+        "narrative": {
+          "Acceptance": "When an arc parent reads content/contracts/design-critique.md line 65, it shows that parent-unclaimed is its own MUST: session:start --read-only, or, if this session holds the mutation lease, release of its own lease (session:end); it says a lease held by another session is not this session's to release, and that a refused release leaves it in place and the parent stays read-only."
+        }
+      },
+      {
+        "title": "Residuals, unchanged and named: the `deft doctor` recovery copy (`packages/core/src/doctor/main.ts` 148-182) still names the copy-from-file recipe (polfer's area, for his digest); a release with no lease still clears an abandoned applying-host record (#6143).",
+        "status": "proposed",
+        "id": "clause.7",
+        "narrative": {
+          "Acceptance": "When the change lands, the deft doctor recovery copy in packages/core/src/doctor/main.ts and its test are unchanged, and a release with no lease still deletes an abandoned applying-host record (#6143)."
+        }
+      },
+      {
+        "title": "One PR: `occupancy.ts` and its tests, `packages/runtime/src/occupancy-release.ts` and its tests, `README.md`, the contract line, and one `changelog.d/` fragment. No change under `packages/core/src/hooks/` or `packages/core/src/doctor/`.",
+        "status": "proposed",
+        "id": "clause.8",
+        "narrative": {
+          "Acceptance": "When the change lands, it is one PR whose product edits are occupancy.ts and its tests, packages/runtime/src/occupancy-release.ts and its tests, README.md, the contract line and one changelog.d/ fragment, with no file changed under packages/core/src/hooks/ or packages/core/src/doctor/."
+        }
+      },
+      {
+        "title": "Given a heartbeat-stale lease and an age-capped lease owned by session A on this checkout, when session B runs `occupancy:release --session-id=B` or `session:end --session-id=B`, then each exits 1, the lease file is unchanged, and the message names A and the liveness, says the lease blocks no write, and contains no `occupancy:steal` command and no command filled with A's id.",
+        "status": "proposed",
+        "id": "clause.9",
+        "narrative": {
+          "Acceptance": "Given a heartbeat-stale lease and an age-capped lease owned by session A on this checkout, when session B runs occupancy:release --session-id=B or session:end --session-id=B, then each exits 1, leaves the lease file unchanged, and prints a message that names A and the liveness, says the lease blocks no write, and contains no occupancy:steal command and no command filled with A's id."
+        }
+      },
+      {
+        "title": "Given session A's own heartbeat-stale or age-capped lease, when A runs `occupancy:release --session-id=A`, then it exits 0 and the lease is removed.",
+        "status": "proposed",
+        "id": "clause.10",
+        "narrative": {
+          "Acceptance": "Given session A's own heartbeat-stale or age-capped lease, when A runs occupancy:release --session-id=A, then it exits 0 and deletes the lease file."
+        }
+      },
+      {
+        "title": "Given a live lease owned by A and an environment with `DEFT_SESSION_ID=A` and no host variables, when a bare `occupancy:release` runs, then it exits 1, the lease stays, and the message says `DEFT_SESSION_ID` is not used for a bare release and prints the `<your-session-id>` template line.",
+        "status": "proposed",
+        "id": "clause.11",
+        "narrative": {
+          "Acceptance": "Given a live lease owned by A and an environment with DEFT_SESSION_ID=A and no host variables, when a bare occupancy:release runs, then it exits 1, the lease stays, and the message says DEFT_SESSION_ID is not used for a bare release and prints the <your-session-id> template line."
+        }
+      },
+      {
+        "title": "Given a lease claimed under `GROK_SESSION_ID` in an environment with only Grok markers, when a bare `occupancy:release` or a bare `session:end` runs in that environment, then it exits 0 and the lease is removed.",
+        "status": "proposed",
+        "id": "clause.12",
+        "narrative": {
+          "Acceptance": "Given a lease claimed under GROK_SESSION_ID and an environment with only Grok markers, when a bare occupancy:release or a bare session:end runs there, then it exits 0 and deletes the lease file."
+        }
+      },
+      {
+        "title": "Given that lease and an environment that carries `GROK_SESSION_ID` plus a Claude Code or Codex host marker, when a bare release runs, then it exits 1, the lease stays, and the message names the declared hosts; with `--session-id` set to the canonical Grok id it exits 0.",
+        "status": "proposed",
+        "id": "clause.13",
+        "narrative": {
+          "Acceptance": "Given that Grok lease and an environment that carries GROK_SESSION_ID plus a Claude Code or Codex host marker, when a bare release runs, then it exits 1, the lease stays and the message names the declared hosts; with --session-id set to the canonical Grok id it exits 0."
+        }
+      },
+      {
+        "title": "Given no lease, a bare release exits 0 and reports already-free; given a record that names a different checkout, a release by any caller still clears it.",
+        "status": "proposed",
+        "id": "clause.14",
+        "narrative": {
+          "Acceptance": "Given no lease, when a bare release runs, then it exits 0 and reports already-free; given a record that names a different checkout, when any caller releases, then the record is deleted."
+        }
+      },
+      {
+        "title": "The child-occupancy release, swarm close-out and launch-rollback release tests pass unchanged.",
+        "status": "proposed",
+        "id": "clause.15",
+        "narrative": {
+          "Acceptance": "When the existing child-occupancy release, swarm close-out and launch-rollback release tests run with no edits, then they pass."
+        }
+      },
+      {
+        "title": "The runtime help, `ABANDONED_OCCUPANCY_LEASE_RECOVERY` and `README.md` no longer contain `<id from .deft/occupancy.json>` or `occupancy:steal`; the doctor copy and its test are unchanged.",
+        "status": "proposed",
+        "id": "clause.16",
+        "narrative": {
+          "Acceptance": "When the runtime help, ABANDONED_OCCUPANCY_LEASE_RECOVERY and README.md are read, then none contains <id from .deft/occupancy.json> or occupancy:steal, and the doctor recovery copy and its test are unchanged."
+        }
+      },
+      {
+        "title": "Contract line 65 names this session's own lease, says a refused release of another session's lease leaves it in place, still contains `session:start --read-only`, and the design-critique content-contract test passes.",
+        "status": "proposed",
+        "id": "clause.17",
+        "narrative": {
+          "Acceptance": "When contract line 65 is read, then it names this session's own lease, says a refused release of another session's lease leaves it in place and still contains session:start --read-only, and the design-critique content-contract test passes."
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6679",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6679: enhancement(occupancy): trusted caller identity for a bare occupancy:release outside the hook path"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6647",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6647"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per harvested lean item (17), in list order (#6333)",
+      "sentences": [
+        "Owner-only release. `releaseOccupancy` in `packages/core/src/session/occupancy.ts` frees a lease recorded for this checkout only when the presented id equals its `session_id`, whether the lease is live, heartbeat-stale or age-capped. A record that names a different checkout stays clearable, as today. This extends the #6274 owner-only rule of `releaseOwnedOccupancyOnSessionEnd` to the manual verb; that function's comment stops saying the manual path is unchanged.",
+        "Bare identity. When no `--session-id` is passed, `releaseOccupancy` does not read `DEFT_SESSION_ID`. It uses `ambientHostSessionOwner` only when `detectDeclaredIdentityHosts` on the same environment returns exactly `grok`; otherwise the caller presents no identity. This covers `session:end`, which runs the same module. Explicit `--session-id` is unchanged, and so is the hook rewrite. Other occupancy verbs, claim and swarm close-out keep `resolvePresentedIdentity`.",
+        "Non-owner refusal. Exit 1, the lease file untouched. The message names the owner and the lease's liveness and says only that session may present that id. For a non-live lease it says that the lease blocks no write, that its owner can re-claim it, and to leave it in place and work read-only or in its own worktree. It prints no `occupancy:steal` command and no command filled with the owner's id; the rerun line stays `formatReleaseRerunLine` on the caller's own presented id.",
+        "Bare refusal. When a bare release presents no identity and a lease exists, the message says that `DEFT_SESSION_ID` is not used for a bare release because child processes inherit it, or that more than one host is declared (naming the hosts and, when Grok is one of them, the canonical id `GROK_SESSION_ID` maps to, as a note), and prints the `<your-session-id>` template line.",
+        "Recovery copy. `formatOccupancyReleaseHelp`, `ABANDONED_OCCUPANCY_LEASE_RECOVERY` in `packages/runtime/src/occupancy-release.ts` and `README.md` line 141 say that only the owner releases its lease, that a quiet lease blocks no write and is claimed over by the next `session:start`, and that a lease's `session_id` is never copied into a release command. None names `occupancy:steal`. The tests that lock the old recipe move with the text.",
+        "Contract. `content/contracts/design-critique.md` line 65 becomes: parent-unclaimed is its own MUST: `session:start --read-only`, or, if this session holds the mutation lease, release of its own lease (`session:end`). A lease held by another session is not this session's to release; a refused release leaves it in place, and the parent stays read-only.",
+        "Residuals, unchanged and named: the `deft doctor` recovery copy (`packages/core/src/doctor/main.ts` 148-182) still names the copy-from-file recipe (polfer's area, for his digest); a release with no lease still clears an abandoned applying-host record (#6143).",
+        "One PR: `occupancy.ts` and its tests, `packages/runtime/src/occupancy-release.ts` and its tests, `README.md`, the contract line, and one `changelog.d/` fragment. No change under `packages/core/src/hooks/` or `packages/core/src/doctor/`.",
+        "Given a heartbeat-stale lease and an age-capped lease owned by session A on this checkout, when session B runs `occupancy:release --session-id=B` or `session:end --session-id=B`, then each exits 1, the lease file is unchanged, and the message names A and the liveness, says the lease blocks no write, and contains no `occupancy:steal` command and no command filled with A's id.",
+        "Given session A's own heartbeat-stale or age-capped lease, when A runs `occupancy:release --session-id=A`, then it exits 0 and the lease is removed.",
+        "Given a live lease owned by A and an environment with `DEFT_SESSION_ID=A` and no host variables, when a bare `occupancy:release` runs, then it exits 1, the lease stays, and the message says `DEFT_SESSION_ID` is not used for a bare release and prints the `<your-session-id>` template line.",
+        "Given a lease claimed under `GROK_SESSION_ID` in an environment with only Grok markers, when a bare `occupancy:release` or a bare `session:end` runs in that environment, then it exits 0 and the lease is removed.",
+        "Given that lease and an environment that carries `GROK_SESSION_ID` plus a Claude Code or Codex host marker, when a bare release runs, then it exits 1, the lease stays, and the message names the declared hosts; with `--session-id` set to the canonical Grok id it exits 0.",
+        "Given no lease, a bare release exits 0 and reports already-free; given a record that names a different checkout, a release by any caller still clears it.",
+        "The child-occupancy release, swarm close-out and launch-rollback release tests pass unchanged.",
+        "The runtime help, `ABANDONED_OCCUPANCY_LEASE_RECOVERY` and `README.md` no longer contain `<id from .deft/occupancy.json>` or `occupancy:steal`; the doctor copy and its test are unchanged.",
+        "Contract line 65 names this session's own lease, says a refused release of another session's lease leaves it in place, still contains `session:start --read-only`, and the design-critique content-contract test passes."
+      ],
+      "admitted_source_sentences": [
+        "Owner-only release. `releaseOccupancy` in `packages/core/src/session/occupancy.ts` frees a lease recorded for this checkout only when the presented id equals its `session_id`, whether the lease is live, heartbeat-stale or age-capped. A record that names a different checkout stays clearable, as today. This extends the #6274 owner-only rule of `releaseOwnedOccupancyOnSessionEnd` to the manual verb; that function's comment stops saying the manual path is unchanged.",
+        "Bare identity. When no `--session-id` is passed, `releaseOccupancy` does not read `DEFT_SESSION_ID`. It uses `ambientHostSessionOwner` only when `detectDeclaredIdentityHosts` on the same environment returns exactly `grok`; otherwise the caller presents no identity. This covers `session:end`, which runs the same module. Explicit `--session-id` is unchanged, and so is the hook rewrite. Other occupancy verbs, claim and swarm close-out keep `resolvePresentedIdentity`.",
+        "Non-owner refusal. Exit 1, the lease file untouched. The message names the owner and the lease's liveness and says only that session may present that id. For a non-live lease it says that the lease blocks no write, that its owner can re-claim it, and to leave it in place and work read-only or in its own worktree. It prints no `occupancy:steal` command and no command filled with the owner's id; the rerun line stays `formatReleaseRerunLine` on the caller's own presented id.",
+        "Bare refusal. When a bare release presents no identity and a lease exists, the message says that `DEFT_SESSION_ID` is not used for a bare release because child processes inherit it, or that more than one host is declared (naming the hosts and, when Grok is one of them, the canonical id `GROK_SESSION_ID` maps to, as a note), and prints the `<your-session-id>` template line.",
+        "Recovery copy. `formatOccupancyReleaseHelp`, `ABANDONED_OCCUPANCY_LEASE_RECOVERY` in `packages/runtime/src/occupancy-release.ts` and `README.md` line 141 say that only the owner releases its lease, that a quiet lease blocks no write and is claimed over by the next `session:start`, and that a lease's `session_id` is never copied into a release command. None names `occupancy:steal`. The tests that lock the old recipe move with the text.",
+        "Contract. `content/contracts/design-critique.md` line 65 becomes: parent-unclaimed is its own MUST: `session:start --read-only`, or, if this session holds the mutation lease, release of its own lease (`session:end`). A lease held by another session is not this session's to release; a refused release leaves it in place, and the parent stays read-only.",
+        "Residuals, unchanged and named: the `deft doctor` recovery copy (`packages/core/src/doctor/main.ts` 148-182) still names the copy-from-file recipe (polfer's area, for his digest); a release with no lease still clears an abandoned applying-host record (#6143).",
+        "One PR: `occupancy.ts` and its tests, `packages/runtime/src/occupancy-release.ts` and its tests, `README.md`, the contract line, and one `changelog.d/` fragment. No change under `packages/core/src/hooks/` or `packages/core/src/doctor/`.",
+        "Given a heartbeat-stale lease and an age-capped lease owned by session A on this checkout, when session B runs `occupancy:release --session-id=B` or `session:end --session-id=B`, then each exits 1, the lease file is unchanged, and the message names A and the liveness, says the lease blocks no write, and contains no `occupancy:steal` command and no command filled with A's id.",
+        "Given session A's own heartbeat-stale or age-capped lease, when A runs `occupancy:release --session-id=A`, then it exits 0 and the lease is removed.",
+        "Given a live lease owned by A and an environment with `DEFT_SESSION_ID=A` and no host variables, when a bare `occupancy:release` runs, then it exits 1, the lease stays, and the message says `DEFT_SESSION_ID` is not used for a bare release and prints the `<your-session-id>` template line.",
+        "Given a lease claimed under `GROK_SESSION_ID` in an environment with only Grok markers, when a bare `occupancy:release` or a bare `session:end` runs in that environment, then it exits 0 and the lease is removed.",
+        "Given that lease and an environment that carries `GROK_SESSION_ID` plus a Claude Code or Codex host marker, when a bare release runs, then it exits 1, the lease stays, and the message names the declared hosts; with `--session-id` set to the canonical Grok id it exits 0.",
+        "Given no lease, a bare release exits 0 and reports already-free; given a record that names a different checkout, a release by any caller still clears it.",
+        "The child-occupancy release, swarm close-out and launch-rollback release tests pass unchanged.",
+        "The runtime help, `ABANDONED_OCCUPANCY_LEASE_RECOVERY` and `README.md` no longer contain `<id from .deft/occupancy.json>` or `occupancy:steal`; the doctor copy and its test are unchanged.",
+        "Contract line 65 names this session's own lease, says a refused release of another session's lease leaves it in place, still contains `session:start --read-only`, and the design-critique content-contract test passes."
+      ],
+      "admitted_source_digest": "8e9d1b9e9a83c0019f9fda4a464467a798547cdd8c17e3fd8c7c451e02db7a96",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Owner-only release. `releaseOccupancy` in `packages/core/src/session/occupancy.ts` frees a lease recorded for this checkout only when the presented id equals its `session_id`, whether the lease is live, heartbeat-stale or age-capped. A record that names a different checkout stays clearable, as today. This extends the #6274 owner-only rule of `releaseOwnedOccupancyOnSessionEnd` to the manual verb; that function's comment stops saying the manual path is unchanged.",
+          "artifact_path": "packages/core/src/session/occupancy.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Bare identity. When no `--session-id` is passed, `releaseOccupancy` does not read `DEFT_SESSION_ID`. It uses `ambientHostSessionOwner` only when `detectDeclaredIdentityHosts` on the same environment returns exactly `grok`; otherwise the caller presents no identity. This covers `session:end`, which runs the same module. Explicit `--session-id` is unchanged, and so is the hook rewrite. Other occupancy verbs, claim and swarm close-out keep `resolvePresentedIdentity`.",
+          "artifact_path": "packages/core/src/session/occupancy.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Non-owner refusal. Exit 1, the lease file untouched. The message names the owner and the lease's liveness and says only that session may present that id. For a non-live lease it says that the lease blocks no write, that its owner can re-claim it, and to leave it in place and work read-only or in its own worktree. It prints no `occupancy:steal` command and no command filled with the owner's id; the rerun line stays `formatReleaseRerunLine` on the caller's own presented id.",
+          "artifact_path": "packages/core/src/session/occupancy-rerun-command.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Bare refusal. When a bare release presents no identity and a lease exists, the message says that `DEFT_SESSION_ID` is not used for a bare release because child processes inherit it, or that more than one host is declared (naming the hosts and, when Grok is one of them, the canonical id `GROK_SESSION_ID` maps to, as a note), and prints the `<your-session-id>` template line.",
+          "artifact_path": "packages/core/src/session/occupancy-rerun-command.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Recovery copy. `formatOccupancyReleaseHelp`, `ABANDONED_OCCUPANCY_LEASE_RECOVERY` in `packages/runtime/src/occupancy-release.ts` and `README.md` line 141 say that only the owner releases its lease, that a quiet lease blocks no write and is claimed over by the next `session:start`, and that a lease's `session_id` is never copied into a release command. None names `occupancy:steal`. The tests that lock the old recipe move with the text.",
+          "artifact_path": "packages/runtime/src/occupancy-release.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Contract. `content/contracts/design-critique.md` line 65 becomes: parent-unclaimed is its own MUST: `session:start --read-only`, or, if this session holds the mutation lease, release of its own lease (`session:end`). A lease held by another session is not this session's to release; a refused release leaves it in place, and the parent stays read-only.",
+          "artifact_path": "content/contracts/design-critique.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Residuals, unchanged and named: the `deft doctor` recovery copy (`packages/core/src/doctor/main.ts` 148-182) still names the copy-from-file recipe (polfer's area, for his digest); a release with no lease still clears an abandoned applying-host record (#6143).",
+          "artifact_path": "packages/core/src/session/occupancy.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "One PR: `occupancy.ts` and its tests, `packages/runtime/src/occupancy-release.ts` and its tests, `README.md`, the contract line, and one `changelog.d/` fragment. No change under `packages/core/src/hooks/` or `packages/core/src/doctor/`.",
+          "artifact_path": "packages/core/src/session/occupancy.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Given a heartbeat-stale lease and an age-capped lease owned by session A on this checkout, when session B runs `occupancy:release --session-id=B` or `session:end --session-id=B`, then each exits 1, the lease file is unchanged, and the message names A and the liveness, says the lease blocks no write, and contains no `occupancy:steal` command and no command filled with A's id.",
+          "artifact_path": "packages/core/src/session/occupancy.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Given session A's own heartbeat-stale or age-capped lease, when A runs `occupancy:release --session-id=A`, then it exits 0 and the lease is removed.",
+          "artifact_path": "packages/core/src/session/occupancy.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Given a live lease owned by A and an environment with `DEFT_SESSION_ID=A` and no host variables, when a bare `occupancy:release` runs, then it exits 1, the lease stays, and the message says `DEFT_SESSION_ID` is not used for a bare release and prints the `<your-session-id>` template line.",
+          "artifact_path": "packages/core/src/session/occupancy.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "Given a lease claimed under `GROK_SESSION_ID` in an environment with only Grok markers, when a bare `occupancy:release` or a bare `session:end` runs in that environment, then it exits 0 and the lease is removed.",
+          "artifact_path": "packages/core/src/session/occupancy.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "Given that lease and an environment that carries `GROK_SESSION_ID` plus a Claude Code or Codex host marker, when a bare release runs, then it exits 1, the lease stays, and the message names the declared hosts; with `--session-id` set to the canonical Grok id it exits 0.",
+          "artifact_path": "packages/core/src/session/occupancy.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "Given no lease, a bare release exits 0 and reports already-free; given a record that names a different checkout, a release by any caller still clears it.",
+          "artifact_path": "packages/core/src/session/occupancy.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "The child-occupancy release, swarm close-out and launch-rollback release tests pass unchanged.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "The runtime help, `ABANDONED_OCCUPANCY_LEASE_RECOVERY` and `README.md` no longer contain `<id from .deft/occupancy.json>` or `occupancy:steal`; the doctor copy and its test are unchanged.",
+          "artifact_path": "README.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 17,
+          "text": "Contract line 65 names this session's own lease, says a refused release of another session's lease leaves it in place, still contains `session:start --read-only`, and the design-critique content-contract test passes.",
+          "artifact_path": "content/contracts/design-critique.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "Consumer reproduction, wider than the bare case (internal benchmark evidence (private), Directive 0.131.2, Claude Code, Bash tool on Windows).\n\nSetup: a parent Claude Code session A held the mutation lease in the primary checkout. A child session B (started from A, different host session id) held leases only in linked worktrees.\n\nIn session B, from the primary checkout, as a simple command:\n\n```text\ndeft occupancy:release --session-id=host:claude:v1:<B>\n```\n\nOutput:\n\n```text\noccupancy released session host:claude:v1:<A> (occupancyFile=<primary>\\.deft\\occupancy.json)\n```\n\n`.deft/occupancy.json` in the primary checkout was deleted. Session B named its own id explicitly, and the verb released session A's lease. Run from B's own linked worktree, the same command released B's lease as expected.\n\nSo the second acceptance criterion here (\"a bare release never frees a lease the caller does not own\") is not enough: an explicit `--session-id` that does not match the checkout's owner also frees the owner's lease. Expected: release refuses (non-zero exit, names the owner) when the given or resolved caller id is not the lease owner, unless an explicit steal/force path is used.\n\nTrigger: the design-critique contract tells a `no-ingest` arc parent to do \"an explicit occupancy release if a mutation lease is already held\", so an agent following the contract can free another session's lease in a shared checkout.\n\n",
+          "id": 7088864265,
+          "html_url": "https://github.com/deftai/directive/issues/6679#issuecomment-7088864265",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-23T01:05:18Z",
+          "updated_at": "2026-11-23T01:05:18Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: triage\n```\n\nStop 1 — Gate (arc 6679; no-ingest)\n\nmechanism-shaped: true\ndesign-critique: warranted, because the fix changes who may delete a shared occupancy lease: which presented identity `occupancy:release` trusts, and whether a caller that is not the owner may free a lease that is no longer live. A wrong choice either lets one session free another session's lease or strands an owner that cannot prove who it is outside the hook path.\n\nTarget-digest: sha256:f8fa422bbd37336dc37eb054edc6c9d7582ff2bf40a466f132501cb1e8ed4ef0\ndispatch-sha: 114bf4bf461e99523a2646c54b00b566ceca5f6e\ndest: C:/Repos/deft/wt/arc-6679 (pinKind origin-default, guarded-prep)\narc-mode: no-ingest\nyolo-standing: on\ncharter: open critique\nspend-recommend: N≥3\nspend: N≥3\nspend-ask: resolved\nspend-why: resolved by `deft design-critique:spend-resolve` on the issue's own words (no `n=` or `panel` token) with the parent recommend N≥3. Stop 2 panel permission applies: the target changes identity and authority over shared state used by every session and swarm worker, and the issue's first criterion may have no available mechanism, so the solution space is open.\ncritic-post cap: 3 round-1 posts (contract default for an N=3 panel), no default retry\ndual-stop-reserved: first post-lean pain-audit of asserted coverage in-cap via evaluateDualStopParentPath; raise after reserved spent\nmateriality-bar: open\ntarget-kind: issue\nceiling-kind: comment-id\nverification-path: pin-read git show 114bf4bf461e99523a2646c54b00b566ceca5f6e: + dest cwd-without-occupy\npain: P1, P2\n\n## In plain English\n`deft occupancy:release` deletes the occupancy lease that tells other sessions \"this checkout is in use\". It is meant to delete only the caller's own lease. Two gaps let it delete someone else's.\n\nFirst, a bare `occupancy:release` (no `--session-id`) run outside the hook path decides who the caller is from `DEFT_SESSION_ID`, or from a host variable such as `GROK_SESSION_ID`. A child process inherits both from its parent, so a child's bare release presents the parent's id and frees the parent's live lease. That is the issue body.\n\nSecond, the release frees any lease that is no longer live (no heartbeat for 20 minutes, or claimed more than 24 hours ago), whoever asks. In the consumer repo a child session ran `occupancy:release --session-id=<its own id>` in the shared primary checkout. The parent's lease there had gone quiet, so the command freed the parent's lease, exited 0 and printed \"occupancy released session <parent>\". That is comment 7088864265. The design-critique contract tells an arc parent to do \"an explicit occupancy release if a mutation lease is already held\", so an agent that follows the contract in a shared checkout can do this.\n\nThe recommended fix makes release check ownership and adds no ceremony: release frees a lease on this checkout only for its owner, live or not. A bare release takes its identity only from the hook, which already appends the hook-resolved owner to a bare command; outside the hook path it presents no identity and refuses with the existing template line. Anyone else is told who owns the lease and pointed at the paths that already exist: let a non-live lease be claimed over by `session:start`, or take it with `occupancy:steal --occupant <owner> --confirm`.\n\nThe issue's first criterion asks for a default \"through an identity source a child process cannot inherit\". The parent found no such source outside the hook payload; every environment variable is inherited. The recommendation reads that criterion as \"the default comes only from the hook\". The critics are asked whether that reading is honest or whether the criterion needs a split.\n\n## Pains\n- P1 — A bare `occupancy:release` outside the hook path takes its identity from `DEFT_SESSION_ID` or a host variable that child processes inherit, so a child can free its parent's live lease (#6679 body; #6647 critic comment 6987280321 finding 1).\n- P2 — A release that names a session other than the owner frees the owner's lease when that lease is not live, exits 0 and reports the owner's session as released. The owner loses its own-residue reclaim on the primary checkout (#5413), and a contract-following arc parent can do this in a shared checkout (comment 7088864265; contract line 65).\n\n## Out of scope (named, not pains)\n- Hook refusal and deny text, and the hook dispatcher's lifecycle rewrite (`packages/core/src/hooks/`): polfer's area. The rewrite is used as it is.\n- `deft doctor` recovery copy (`packages/core/src/doctor/main.ts` 148-182): polfer's area. It already names an explicit `--session-id` and keeps working.\n- `session:end`, `occupancy:heartbeat`, `occupancy:grant`, claim and swarm close-out keep the shared identity lookup (`resolvePresentedIdentity`).\n- A native subagent whose hook payload carries the parent session id is the same host session to Directive; the parent did not verify that payload shape.\n- Typed impersonation: a caller that types the owner's id is treated as the owner (cooperative bearer model, #3755).\n\n## Evidence\n- Parent probe (scratch `tsx` script outside the repo, importing the primary checkout's `packages/core/src/session/occupancy.ts`, which is byte-identical to the dispatch SHA under `packages/core/src/session/`; pure functions only, no lease file touched):\n  - `occupancyLiveness`: heartbeat 5 min ago gives `live`; heartbeat 21 min ago gives `heartbeat-stale`; claimed 25 h ago with heartbeat 1 min ago gives `age-capped`. Both dead states make `isOccupancyExpired` true. TTL 20 min, cap 24 h.\n  - `resolvePresentedIdentity`: with no `--session-id`, env `DEFT_SESSION_ID=parent-id` gives `{sessionId:\"parent-id\", source:\"environment\"}`; env `GROK_SESSION_ID=parentgrok` gives `{source:\"host\"}` with the canonical grok id; env `CLAUDE_CODE_SESSION_ID` alone gives `{sessionId:\"\", source:\"none\"}` (print companion, excluded); explicit `B` with env `A` gives `B`.\n- Reading of the consumer repro (not reproduced): `releaseOccupancy` admits a caller that is not the owner only when `expired` is true (occupancy.ts 2675-2677). The hook path denies a lifecycle command whose `--session-id` differs from the host owner (dispatcher.ts 4410-4416), so session B presented its own id and passed. The parent's lease was therefore heartbeat-stale or age-capped. Owner liveness renews only on hook events (owner-liveness.ts 1-52), so a parent that waits more than 20 minutes on a child without tool calls goes stale.\n- What a non-live lease still does: the write gate fails open on it for everyone (occupancy.ts 3481-3491), and claim-over admits a new owner. What it still gives its owner: `matchingOwnerExpiredResidue` lets the owner re-claim the primary checkout past the live-sibling fence (occupancy.ts 1970-1981, 1990-2001). Releasing the residue removes that.\n- Callers that pass the owner explicitly and stay unaffected by an owner-only rule: child-occupancy release (`child-occupancy.ts` 390-398, checks the owner first), swarm close-out (`complete-cohort.ts` 979, cohort owner id from the launch record), launch rollback (`launch.ts` 2072-2075, the id it just claimed).\n- Existing tests that lock today's behaviour: occupancy.test.ts \"clears expired residue without ownership (#3604)\" (about line 1310) and \"releases under the owner the running host published (#3954)\" (about line 1260, a bare release on `GROK_SESSION_ID`).\n\n## Anchors at the dispatch SHA\n- `packages/runtime/src/occupancy-release.ts` 17-35 (help: \"owner live, or expired residue\"; `ABANDONED_OCCUPANCY_LEASE_RECOVERY` says to read `session_id` from the lease file), 99-102.\n- `packages/core/src/session/occupancy.ts`: 123 and 158 (TTL, cap); 1179-1190 `liveOccupancyOnTree` (other-tree record is residue); 1227-1251 liveness; 1639-1645 `formatReleaseRerunLine` (#6647); 1728-1751 `resolvePresentedIdentity`; 1970-2001 own-residue reclaim and primary fence; 2622-2754 `releaseOccupancy`; 2402-2620 `stealOccupancy`; 3850-3881 `releaseSwarmOccupancy`.\n- `packages/core/src/session/host-session-owner.ts` 191-198 `ambientHostSessionOwner`; 215-229 print companions excluded because children inherit them.\n- `packages/core/src/hooks/classify/host-session-identity.ts` 1044-1081 `rewriteExactLifecycleCommand`; `packages/core/src/hooks/dispatcher.ts` 4396-4464 (read only; out of scope).\n- `content/contracts/design-critique.md` 65.\n- History: #3954 (owner-only live release, shared lookup chain), #3604 (expired residue clearable by anyone), #4667 (abandoned-lease recovery copy), #5413 (own-residue reclaim), #6647 (rerun line; the inherited-identity finding that filed this issue), #5278 (`subagent:pre-cancel` query-before-cancel pattern).\n\n## Recommended mechanism (the thing to critique)\n- R1. Owner-only release. `releaseOccupancy` frees a lease recorded for this checkout only when the presented id equals its `session_id`, whether the lease is live, heartbeat-stale or age-capped. Otherwise it exits 1 and names the owner, the lease's liveness, and the paths that already exist: the owner's own release; for a non-live lease, claim-over by `session:start`; for any lease, `occupancy:steal --occupant <owner> --confirm`. A record that names a different checkout stays clearable as residue, as today. No new flag or verb.\n- R2. Bare release identity. When `--session-id` is not passed, `occupancy:release` does not take its identity from `DEFT_SESSION_ID` or a host variable, because child processes inherit both. In the hook path a bare command already arrives with the hook owner appended, so nothing changes there. Outside it, a bare release presents no identity: with no lease it still reports already-free; with a lease it refuses through R1 and prints the #6647 template line. It may say which ids the environment carries, as a note and not as a filled command. Other occupancy verbs keep the shared lookup.\n- R3. Contract. `content/contracts/design-critique.md` line 65 names the parent's own lease and the explicit form: \"... or release of the parent's own mutation lease (`occupancy:release --session-id=<the parent's own id>`) if one is already held ...\". Content-contract tests that lock that sentence move with it.\n- R4. Help. `formatOccupancyReleaseHelp` says it releases the caller's own lease on this checkout, live or not, and that a lease owned by another session is refused. `ABANDONED_OCCUPANCY_LEASE_RECOVERY` in the runtime points at claim-over for a non-live lease and at `occupancy:steal` for a live abandoned one, instead of telling the reader to copy `session_id` from the lease file. The doctor copy is not changed (polfer).\n- R5. Tests: a caller that is not the owner on a heartbeat-stale lease and on an age-capped lease gets exit 1, the lease stays, and the message names the owner; the owner releases its own non-live lease; a bare release with `DEFT_SESSION_ID` set to the owner and no hook refuses and leaves the lease; a bare release with `GROK_SESSION_ID` refuses the same way; already-free stays exit 0; an other-checkout record is still cleared; child-occupancy, swarm close-out and launch-rollback release tests stay green. The #3604 and #3954 bare-release tests change to the new expectations.\n- R6. One PR: `packages/core/src/session/occupancy.ts`, `packages/runtime/src/occupancy-release.ts`, their tests, the contract line and its content-contract test, and one `changelog.d/` fragment.\n\nQuestions for the critics:\n1. Is there an identity source outside the hook payload that a child process cannot inherit, which a bare CLI release could use? If not, is R2 an honest reading of the issue's first criterion, or does that criterion need a split?\n2. Does R1 lose anything that #3604 (residue hygiene by any session) or #4667 (abandoned-lease recovery) still needs, given claim-over and `occupancy:steal`? Is `occupancy:steal` the right explicit path, or does a non-owner need a way to free residue without becoming the owner?\n3. Does R2 strand a real owner? In particular on Grok, where the CLI reads `GROK_SESSION_ID` and the hook may not rewrite, and in swarm workers launched with `DEFT_SESSION_ID`.\n4. Does R1 plus R2 relieve P2 for an arc parent that follows contract line 65 in a shared checkout? Is R3 the right wording?\n5. Does this fit one PR, with the hook and doctor carve-outs?\n\n",
+          "id": 7089037823,
+          "html_url": "https://github.com/deftai/directive/issues/6679#issuecomment-7089037823",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-23T01:18:19Z",
+          "updated_at": "2026-11-23T01:18:19Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 3\ninput-ceiling: 7089049835\nseat: claude launcher: claude-code-native-subagent (model opus)\nseat: codex launcher: codex (exec --ephemeral --skip-git-repo-check --sandbox read-only -C dest -o outfile)\nseat: grok launcher: grok (--cwd dest --prompt-file --permission-mode auto --disable-web-search --no-subagents --output-format plain)\n\ncharter: open critique\nspend: N≥3\narc-mode: no-ingest\nmateriality-bar: open\ndispatch-sha: 114bf4bf461e99523a2646c54b00b566ceca5f6e\ndest: C:/Repos/deft/wt/arc-6679\nverification-path: pin-read git show 114bf4bf461e99523a2646c54b00b566ceca5f6e: + dest cwd-without-occupy\naudit-targets: none\nStop 1 cite: comment 7089037823\n\n## Launch posture (disclosed)\n- The parent is Claude Code (claude-opus-5-5), running as a dispatched arc worker. It does not use the playbook's bypass critic argv. Each seat uses a read-only launcher against the dest.\n- Launch probe under the argv actually used: codex `--sandbox read-only` returned `pong` rc 0; grok `--permission-mode auto` returned `pong` rc 0. The Claude seat is a native subagent spawn with no CLI argv. The probe proves launchability only, not method.\n- No seat has GitHub access. Each reads the same parent-written thread snapshot (issue body, thread up to and including this deposit) and reads code with `git show <dispatch-sha>:<path>` from the dest. The parent posts each critic's final message verbatim, with no edits; Grok plain output may print progress narration before the body, which the parent strips and discloses.\n- Critic-post cap for this arc: 3 round-1 posts, no default retry; the first post-lean pain-audit of asserted coverage uses the Dual-stop reserved slot.\n- No seat and no parent step releases, steals or writes an occupancy lease during this arc.\n- This deposit was created and then edited once, only to record its own comment id as the input ceiling.\n\n",
+          "id": 7089049835,
+          "html_url": "https://github.com/deftai/directive/issues/6679#issuecomment-7089049835",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-23T01:19:14Z",
+          "updated_at": "2026-11-23T01:19:15Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\n\nA release command can currently delete another session’s lease by inheriting its identity or by naming a different identity after the lease expires. The proposed ownership check and removal of implicit environment identity address those two paths.\n\nI support that direction, but the recommendation cannot bind as fulfillment of the original first acceptance criterion: refusing a bare command outside hooks is different from securely identifying its caller. The recovery claims also need narrower wording, and the unchanged doctor guidance remains a route to accidental impersonation.\n\n## Answers to the five Stop 1 questions\n\n1. **No suitable source was found in the inspected implementation.** That is not proof that no host integration could supply one. R2 is a reasonable fail-closed replacement, not an honest reading of the existing criterion. Split secure automatic identification from this release-safety change, or explicitly amend the criterion.\n\n2. **R1 intentionally removes non-owner cleanup without acquisition.** Claim-over and steal preserve some recovery, but neither is universally available: primary-checkout sibling fences apply, and live grant members cannot steal. Those restrictions should remain. I found no demonstrated requirement for a new non-owner deletion verb.\n\n3. **R2 breaks existing bare-release convenience for real owners.** The Grok environment-only behavior is explicitly tested today. Explicit owner identity remains usable; swarm’s `releaseSwarmOccupancy` resolves identity before passing it explicitly. This supports keeping that wrapper unchanged, but does not establish that every worker cleanup path remains functional. Recovery must distinguish a caller’s own recorded identity from an inherited parent identity.\n\n4. **Yes, for the reported case where B explicitly presents B and the stale lease belongs to A.** R1 denies that release. R3 should additionally say that a foreign lease is left untouched and that an unknown parent identity is not recovered by copying the lease owner’s ID. Explicit syntax alone does not establish ownership.\n\n5. **One PR is plausible for the bounded safety change.** Hook implementation can remain outside scope with compatibility checks. The doctor carve-out can remain only as an explicitly acknowledged residual; it cannot accompany a claim that recovery guidance no longer encourages copying another owner’s ID.\n\n## Findings\n\n### 1. blocks-the-design — R2 replaces the requested capability rather than delivering it\n\n**Evidence:** At `114bf4bf461e99523a2646c54b00b566ceca5f6e`, `packages/core/src/session/occupancy.ts:1728–1751` accepts explicit identity, then `DEFT_SESSION_ID`, then ambient host identity. `packages/runtime/src/occupancy-release.ts:99–102` supplies argv identity and environment. The hook rewrite in `packages/core/src/hooks/classify/host-session-identity.ts:1044–1081` appends an ordinary `--session-id`; the release API receives no separate authenticated provenance.\n\n**Failure mode:** R2 can prevent automatic inherited-identity release, but a hookless owner’s bare command now refuses. Calling this fulfillment of “defaults to the caller’s own session through an identity source a child process cannot inherit” records a capability the change does not provide. Explicit identity remains a cooperative bearer assertion.\n\n**Disposition consequence:** Amend or split the first acceptance criterion before binding. The bounded remedy can promise refusal without explicit identity and owner-ID matching regardless of liveness. Trusted hookless caller identification remains separately unresolved.\n\n### 2. sharpens-framing — Existing recovery paths are conditional, not substitutes available to every non-owner\n\n**Evidence:** `occupancy.ts:1970–2001` preserves matching-owner expired residue as an exception to the primary-checkout sibling fence. `stealOccupancy` applies that fence at `2402–2441` and denies live grant members at `2474–2487`.\n\n**Failure mode:** In the shared-primary scenario, a different session can be refused both ordinary claim-over and steal while linked siblings remain live. The proposed “for any lease, steal” guidance can send that session into a predictable refusal. Deleting the original residue would also discard the original owner’s reclaim exception.\n\n**Disposition consequence:** Keep R1, but describe claim-over and steal as subject to their existing admission rules. For a process-only arc, leaving foreign residue untouched is a valid outcome. No new cleanup authority is justified by the supplied evidence.\n\n### 3. sharpens-framing — The doctor carve-out preserves an accidental-impersonation recipe\n\n**Evidence:** `packages/core/src/doctor/main.ts:148–182` tells the reader to recover with `occupancy:release --session-id=<id from .deft/occupancy.json>`. `resolvePresentedIdentity` accepts explicit identity first, and `releaseOccupancy` compares that presented value with the stored owner.\n\n**Failure mode:** A child following doctor’s recipe can explicitly present the parent’s stored ID and pass the proposed owner check. This is not merely a malicious caller inventing an ID; existing product guidance supplies the instruction.\n\n**Disposition consequence:** Either coordinate the doctor-copy correction or retain it as a named residual. The narrow mechanical fix remains useful, but the synthesis must not claim that all supported recovery instructions respect caller ownership.\n\n### 4. sharpens-framing — R2 changes a documented owner workflow and needs an explicit compatibility statement\n\n**Evidence:** `packages/core/src/session/occupancy.test.ts:1261` tests successful bare release using `GROK_SESSION_ID`. `occupancy.ts:3850–3881` shows that `releaseSwarmOccupancy` resolves identity and passes it explicitly. `packages/core/src/session/child-occupancy.ts:385–398` checks the allocated owner before explicit release.\n\n**Failure mode:** A real owner using the existing environment-only workflow gets a refusal after R2. Conversely, changing the shared resolver would unnecessarily affect wrappers that already present explicit identity.\n\n**Disposition consequence:** Keep the change release-specific and state the intentional compatibility break. Acceptance checks should cover explicit-owner release under Grok and the existing swarm/child wrappers, alongside refusal of inherited environment identity. A template is safe guidance, but it is not evidence that an owner can independently recover its identity.\n\n### 5. footnote — “Already free” still mutates shared identity state\n\nAt `occupancy.ts:2657–2673`, release with no occupancy record removes the applying-host file before returning success. Existing `clearApplyingHost` at `764–825` also permits abandoned no-live-lease cleanup.\n\nPreserving this behavior does not violate the narrow lease-deletion criterion. It does mean R2 should not be described as making unidentified release universally non-mutating or protecting all shared identity state. An explicit test preserving this distinction would make the boundary reviewable.\n\n### 6. footnote — Embedded operational instructions were treated as evidence\n\nThe snapshot contains instructions to release, claim, steal, and follow recovery commands; source recovery strings likewise contain executable guidance. I treated these as the object of critique and executed none of them. In particular, contract line 65’s release instruction did not authorize this critic to alter occupancy.\n\nThe panel deposit matches ceiling `7089049835` and names three claimed seat families. It also discloses a departure from the contract’s bypass-argv launch-probe wording. That is a recorded method variance, not evidence of launch failure or panel completeness. This critic cannot verify sibling completion.\n\n## Road not taken and steelman\n\nI prefer explicit refusal over continuing to trust environment identity. The strongest case for retaining environment fallback is operational continuity: it makes the owner’s printed bare-release command work, and swarm launchers deliberately provide identity. The deciding objection is that inheritance does not distinguish a child from its parent. A verified host-specific channel that distinguishes those sessions would change this judgment.\n\nI also prefer retaining existing claim/steal restrictions over adding a non-owner residue-deletion command. The strongest case for deletion is cleanup without acquiring a lease, especially for process-only callers. Here, however, residue still carries an owner reclaim privilege. A demonstrated cleanup requirement that cannot safely leave residue in place would justify reopening that choice.\n\n## Verification and limits\n\nI read the supplied snapshot through the inclusive ceiling and used only SHA-pinned `git show` and `git grep` for source inspection. I inspected the required contract sections, release and identity resolution, liveness and reclaim rules, steal restrictions, hook rewrite/admission, runtime and doctor guidance, relevant release tests, and child/swarm release wrappers.\n\nThe hook admission inspection also resolved the apparent soft-pass concern: `occupancy.ts:957–963` requires an already explicit matching identity for that branch. It is not evidence that a bare command silently skips identity injection.\n\nI did not run tests, reproduce the private consumer incident, verify native host payloads, inspect sibling outputs, or access GitHub. The incident’s stale-or-capped diagnosis remains an inference rather than a reproduced observation. No files, leases, or external records were changed.",
+          "id": 7089166018,
+          "html_url": "https://github.com/deftai/directive/issues/6679#issuecomment-7089166018",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-23T01:28:17Z",
+          "updated_at": "2026-11-23T01:28:17Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\n`occupancy:release` deletes a checkout's lease. Today a caller can delete a lease it does not own in two ways. A bare release can take the caller's identity from an inherited environment variable. Any caller can also free a lease that is no longer live. R1 (owner-only release, live or not) is right. The code already applies that rule at host SessionEnd (#6274). R2 rests on a false premise for one of the three host families. Grok's hook never rewrites lifecycle commands, so on Grok a bare release or `session:end` gets its identity only from `GROK_SESSION_ID` in the CLI. R2 as written would refuse every Grok owner's own bare release, and it reverses a deliberate #3954 fix without naming it. My verdict: the lean cannot bind as written. R2 must be restated (finding 1). Five smaller corrections change the scope and the copy (findings 2 to 6).\n\n## Answers to the Stop 1 questions\n1. **Non-inheritable identity source outside the hook payload?** I found none that is usable. Every environment variable is inherited. The only candidate is process ancestry (the nearest host-process ancestor), and the lease records no PID (see the road not taken). R2 does not satisfy criterion 1 as written: it defaults to *nothing* outside the hook. That is a change to the criterion, not a reading of it. Split it (finding 5).\n2. **Does R1 lose what #3604 / #4667 need?** Almost nothing. A non-live lease blocks nobody's write: the write gate fails open when `liveness !== \"live\"` (`occupancy.ts` 3478-3491). Claim-over admits a new owner. So non-owner \"hygiene\" was only cosmetic. The cost is the recovery paths R1 names. In the motivating case they refuse, and naming steal conflicts with a standing rule (finding 3). A non-owner does not need a way to free residue. It needs a denial that tells it to leave the residue.\n3. **Does R2 strand a real owner?** Yes, on Grok, every time (finding 1). Swarm workers that hold a `DEFT_SESSION_ID`-bound (minted or opaque) lease and run outside a rewriting hook lose bare release and bare `session:end`. They must type `--session-id`. That is acceptable if the refusal says so. Swarm close-out and child-occupancy release pass the owner explicitly and are unaffected (`complete-cohort.ts` 902-903 releases only when `liveSession === session`; `child-occupancy.ts` 390-398 checks the owner, then passes `env: {}`).\n4. **Do R1 and R2 relieve P2 for a contract-following arc parent?** R1 alone relieves it: a parent that is not the owner is refused whatever id it presents. R3's wording should name *who holds* the lease, not *how to type an id* (finding 6).\n5. **One PR?** Yes, if the scope grows by small items. Add `README.md:141`, the `session:end` alias in tests (finding 2), and the #6274 doc comment. If finding 1's option (a) is taken, also add one predicate in `host-session-owner.ts` or `occupancy.ts`. The hook and doctor carve-outs hold, because nothing in finding 1 touches `packages/core/src/hooks/`.\n\n## Findings\n\n### 1. blocks-the-design: R2's \"in the hook path nothing changes\" is false on Grok\n- Evidence (pin-read): `dispatcher.ts` 4065 has `UPDATED_INPUT_WIRE_HOSTS = [\"codex\", \"claude\", \"cursor\"]`. `attachLifecycleIdentityRewrite` returns early with `if (!hostAcceptsUpdatedInput(input.host)) return decision;` (4188). The doc comment at 4057-4064 says a host outside that list \"binds its claim in the CLI instead\". So no Grok lifecycle command reaches the CLI with `--session-id` appended. `releaseOccupancy`'s own doc comment (2622-2634) records the #3954 decision: \"on a host that publishes an owner ... a bare `occupancy:release` is the occupant\". Test \"releases under the owner the running host published (#3954)\" (`occupancy.test.ts` 1261) locks exactly that Grok path. Claim binds from the same variable: `resolveOccupancySessionClaim` (1792 onward) through `resolvePresentedIdentity` → `ambientHostSessionOwner`. `commands.md` 504 says Grok \"publishes a different id into each agent session\".\n- Failure mode: under R2 every Grok session's bare `deft session:end` / `occupancy:release` on its own lease exits 1. Claim trusts `GROK_SESSION_ID` but release distrusts it, so the same id is good enough to take a lease and not good enough to give it back. The owner must type `host:grok:v1:<base64url>` by hand. R5 lists the Grok test as a changed expectation, not as the main Grok release path.\n- What is real: the P1 hazard for `GROK_SESSION_ID` is cross-host. A Claude or Codex child started from a Grok parent's shell inherits the parent's `GROK_SESSION_ID`, and its bare release presents the Grok parent.\n- Disposition consequence: restate R2. Choose one option and record the choice:\n  - (a) Drop `DEFT_SESSION_ID` from bare release. Keep `GROK_SESSION_ID` only when `detectDeclaredIdentityHosts(env)` names grok alone. Refuse when another declared host's markers are also present (`CLAUDECODE` etc., `host-session-owner.ts` 243-248).\n  - (b) Drop all environment sources and state the Grok cost: every Grok release types an explicit id. The refusal then needs a reachable way to get that id.\n  \n  Either way, R2's hook-path premise sentence must go.\n\n### 2. sharpens-framing: `session:end` is the same command, so it is in scope\n- Evidence: `packages/runtime/src/dispatch.ts` 556 has `\"session:end\": \"occupancy-release\"`. Its help at 3287-3288 says \"(same as occupancy:release)\". The write-back's out-of-scope line lists `session:end` among the verbs that \"keep the shared identity lookup\".\n- Failure mode: a builder who honours that line must split the runtime module to keep `session:end` on the old lookup. That leaves P1 and P2 open on the verb that the release skill (`deft-directive-release/SKILL.md` 92) and `commands.md` 500 tell agents to run.\n- Disposition consequence: move `session:end` into scope for R1, R2 and R4. Add a `session:end` alias case to R5. Leave host `SessionEnd` (#6274) as it is.\n\n### 3. sharpens-framing: R1's recovery copy points at paths that refuse in the motivating case\n- Evidence: `stealOccupancy` calls `primaryCheckoutClaimBlocked` before confirm and again under the lock (2428-2441, 2510-2522). The claim path uses the same predicate. It blocks a non-owner on the primary whenever any linked worktree holds a live lease (`primaryCheckoutHasLiveSiblingLease`, 1955-1961). `matchingOwnerExpiredResidue` admits only the owner (1968-1981). In the repro, session B held live leases in linked worktrees, so both \"claim-over by `session:start`\" and \"`occupancy:steal --occupant <owner> --confirm`\" refuse for B on the primary. Separately, `commands.md` 500 (#4410) says a refused party is pointed at isolation, read-only, grant and occupant release, \"not a steal argv\", and steal \"is not named as recovery in a denial\". (The #6143 copy at `occupancy.ts` 804 and 845 already breaks that rule, so the rule and the code disagree today.)\n- Failure mode: this is the #3954 \"printed recovery is unreachable\" class again. The refused agent runs the named command, is refused again, and then tries the one thing that works: typing the owner's id, which the denial just printed.\n- Disposition consequence: for a non-live foreign lease, R1's denial says three things. It blocks no write (write gate fails open). Its owner can reclaim it (#5413). Leave it and work in your own worktree. On the primary, the only takeover is `session:start --primary-claim-exception=operator-default-branch` from CLI argv. Drop the steal argv from the release denial and from R4's `ABANDONED_OCCUPANCY_LEASE_RECOVERY`. For a live abandoned lease, keep \"wait for heartbeat-stale (20 min)\", which that constant already says.\n\n### 4. sharpens-framing: R1 already exists for host SessionEnd (#6274); inventory it\n- Evidence: `releaseOwnedOccupancyOnSessionEnd` (`occupancy.ts` 2771-2846) \"Removes the lease only when `ownerSessionId` ... equals the recorded owner, live or expired\". Its comment ends \"The manual `occupancy:release` / `session:end` path is unchanged.\"\n- Failure mode: without the citation, R1 reads as a new authority rule. Reviewers then re-argue owner-only safety that #6274 already settled, and the stale \"manual path is unchanged\" comment stays.\n- Disposition consequence: state R1 as \"extend the #6274 owner-only rule to the manual verb\". Update that doc comment in the same PR.\n\n### 5. sharpens-framing: criterion 1 needs a split, not a reading\n- Evidence: the body asks that a bare release \"defaults to the caller's own session through an identity source a child process cannot inherit\". R2 outside the hook defaults to no identity. On Grok (finding 1) there is no hook default at all.\n- Failure mode: a completion check against the original text cannot pass honestly. A later reader will take \"satisfied\" to mean that an identity mechanism exists.\n- Disposition consequence: propose replacement text for the operator.\n  - (1a) A bare release that the host hook rewrites acts as the hook owner (payload hosts).\n  - (1b) A bare release with no hook-delivered owner takes no identity from `DEFT_SESSION_ID`. Add a `GROK_SESSION_ID` clause per finding 1's choice.\n  - (1c) Add the comment-7088864265 criterion: a non-owner release refuses, live or not.\n\n### 6. sharpens-framing: R3 wording, and doc scope that R6 misses\n- Evidence: R3 asks for `--session-id=<the parent's own id>`. On a Claude Code parent the hook rewrites a bare release, so the explicit form is not needed. The one place where an agent reliably finds an id is `.deft/occupancy.json`. `README.md:141` still prints \"`occupancy:release --session-id=<id from .deft/occupancy.json>`\". Under R1 that line is the recipe for typed impersonation: it is still admitted, and it releases the owner's lease. R6's file list omits `README.md`.\n- Failure mode: a contract-following parent in a shared checkout reads the id from the lease file, which holds the *owner's* id, and P2 comes back through R1's typed-id path.\n- Disposition consequence: change line 65 to name ownership, for example \"...or, if **this session** holds the mutation lease, `session:end`; a lease held by another session is not yours to release: stay `session:start --read-only`\". Add `README.md:141` (and check `commands.md` 500) to R6, with the same copy as R4.\n\n### 7. footnote: the R1 denial prints the owner's id in prose\nThat id becomes the impersonation input. The model is cooperative (#3755, out of scope). The copy should still say that only that session may present it. No deterministic control exists; this is a residual, not something a reviewer can close.\n\n### 8. footnote: copy written for live leases\n`formatOccupancyRemediation` and `membershipOwnerDenial` are written for live leases. R1 sends non-live records into them, so the builder needs non-live wording.\n\n### 9. footnote: one existing test changes shape under R2\n\"names the host owner when DEFT_SESSION_ID disagrees\" (`occupancy.test.ts` 1295) changes shape too: with no identity presented there is nothing to disagree with. Add it to R5's moved tests.\n\n### 10. footnote: the repro inference is sound but unverified\nNon-owner admission happens only when `liveOccupancyOnTree` is null, that is, not live or other-tree (`occupancy.ts` 1179-1190, 2675-2677). Path matching is realpath plus a case-fold on win32 (1155-1161), so a spelling mismatch on Windows is unlikely. Why the hook's applying-host foreign-owner branch (`dispatcher.ts` 4383-4392) did not deny B was not checked.\n\n### 11. footnote: the title says \"trusted\"\nNothing in this design authenticates the caller. \"Non-inherited\" is the accurate word.\n\n## Road not taken and steelman\n- **Process ancestry as identity (for criterion 1).** I rejected it. The lease would have to record a host PID plus start time, PID reuse needs defending, the Windows process-tree walk is costly, and the CLI would have to recognise host binaries. The verdict would flip if leases already recorded `{host pid, start time}` and a cheap cross-platform nearest-host-ancestor lookup existed.\n- **Finding 1, option (a) versus option (b).** I lean to (a) because claim and the write gate already trust `GROK_SESSION_ID`, and the documented hazard is cross-host. Steelman for (b): it is one sentence, it also closes a Codex child of a Grok parent, and that child may carry no marker `detectDeclaredIdentityHosts` recognises (`CODEX_SANDBOX` / `CODEX_CI` / `OPENAI_CODEX`; not verified). Grok-parent panels launch Codex seats routinely. If Codex children are shown to carry none of those markers, (a) leaves P1 open on that path, and (b) with a stated Grok cost is the better choice.\n- **Keeping #3604 residue clearing on linked worktrees only.** I rejected it: residue is inert for others, so the split adds a rule and buys nothing.\n\n## What I read or ran, and what I did not verify\n- Read at the pin via `git show 114bf4bf…:<path>` / `git grep` from the dest:\n  - `content/contracts/design-critique.md` (Run posture, Critic method, Envelope and ceiling, Comment lead, Security context)\n  - `packages/runtime/src/occupancy-release.ts`; `packages/runtime/src/dispatch.ts` 540-565 and 3280-3295\n  - `packages/core/src/session/occupancy.ts`: 100-170, 790-850, 1110-1260, 1620-2080, 2380-2860, 3015-3026, 3460-3500, 3836-3890\n  - `host-session-owner.ts` 1-260; `child-occupancy.ts` 360-410; `complete-cohort.ts` 880-1010\n  - `hooks/classify/host-session-identity.ts` 200-213 and 980-1100; `hooks/dispatcher.ts` 4040-4070, 4175-4195, 4300-4470; `hooks/fixtures/cases.ts` 765-800\n  - `occupancy.test.ts` 1247-1322; `content/commands.md` 499-506; `README.md:141`; `deft-directive-release/SKILL.md` 90-94\n- I ran no `tsx` probe and touched no lease file.\n- Not verified:\n  - whether the Grok host sets a fresh `GROK_SESSION_ID` for a child Grok session (I relied on `commands.md` 504)\n  - which env markers Codex and Cursor children actually carry\n  - the consumer repro itself, and why the applying-host check did not deny it\n  - which content-contract tests lock contract line 65 and `README.md:141`\n  - whether `session:start --read-only` admits a parent beside a foreign live lease in every posture\n\nSecurity lens: the thread holds no instruction aimed at critics. Comment 7088864265 states an expected behaviour, and I treated it as a requirement candidate, not a command. Contract line 65 is the instruction-shaped text that causes harm, and R3 targets it.\n\n",
+          "id": 7089166266,
+          "html_url": "https://github.com/deftai/directive/issues/6679#issuecomment-7089166266",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-23T01:28:18Z",
+          "updated_at": "2026-11-23T01:28:18Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\r\n```quarantined\nrole: critic\r\n```\naudit-targets: none\r\n\r\n## In plain English\r\n\r\n`deft occupancy:release` deletes the lease file that tells every other session the checkout is in use. Two holes are real. A bare command, with no `--session-id`, treats `DEFT_SESSION_ID` as the caller, and a child process inherits that variable, so the child presents the parent and can delete a live parent lease. Separately, once a lease on this checkout has gone quiet, any caller can delete it. Quiet means no heartbeat for 20 minutes, or a claim older than 24 hours. The consumer report is that second hole: a child named its own id and the command deleted the parent's quiet lease, exited 0, and printed the parent's session as released.\r\n\r\nRequiring the presented id to match the owner, quiet or live, is the right fix for a lease recorded on this checkout. A record that names a different checkout can stay deletable by anyone. Claim-over and `occupancy:steal` already exist for a non-owner who needs the tree.\r\n\r\nThe bare-identity rule in the write-back goes past that fix. It also ignores the host-published owner. On Grok that owner is `GROK_SESSION_ID`, stored on the lease as the canonical `host:grok:v1:…` id. That is how a Grok session releases its own lease when no hook rewrites the command. The raw variable is not the stored id, so a refusal that will not fill the canonical id leaves that owner with no working flag. The same CLI entry implements `session:end`. A change to bare `occupancy:release` is a change to bare `session:end`. The write-back says `session:end` stays on today's lookup. Those two statements have no implementation.\r\n\r\nThis target changes who may delete shared occupancy state. A child process and an arc parent following the contract are both callers.\r\n\r\nVerdict: owner-only release for a same-checkout lease can bind. The bare-identity change can bind only as a refusal to treat inherited `DEFT_SESSION_ID` as the caller, on both `occupancy:release` and `session:end`, while the host-published owner still counts. The issue's first acceptance criterion asks for a default identity a child cannot inherit. No such source exists for a bare CLI outside the hook, so that criterion has to be replaced with the narrower rule above before anyone cites it as met.\r\n\r\n## Stop 1 questions\r\n\r\n1. No identity source outside the hook is both \"this process's own session\" and impossible for a child to inherit. The hook payload is not visible to a bare CLI. `GROK_SESSION_ID` is inherited by child processes, and the identity table still defines it as the occupancy owner, not as a print companion. `DEFT_SESSION_ID` is the inherited printed id, and the shared lookup reads it before the host owner. R2 is a replacement of the first acceptance criterion, not a reading in which that criterion is already met. The honest split is: on the hook path the existing rewrite remains the default; outside the hook, a bare release ignores `DEFT_SESSION_ID` and still accepts the single host-published owner.\r\n\r\n2. R1 drops anonymous delete of a quiet same-checkout lease (#3604). It does not drop the owner's own release of that lease, so the #5413 reclaim token stays until the owner clears it or a new owner claim-overs. Claim-over already replaces a quiet lease. `occupancy:steal` is the explicit takeover for a live lease: it demands `--confirm`, a presented writer id, and an `--occupant` that matches the live owner. On a quiet lease, steal does not check `--occupant` against the stale id; it writes the caller as the new owner. That is claim-over under another name. A non-owner does not need a third path that deletes the file without becoming the owner. That path is the hole in P2. Writes already proceed when the lease is not live.\r\n\r\n3. R2 as written strands a real Grok owner outside the hook. Inside the hook, `occupancy:release` is an exact lifecycle verb: a bare command is rewritten with the canonical owner, and a shape the rewriter will not touch is denied with that same id filled into the recovery line. Swarm library close-out is not stranded: cohort close-out, launch rollback, and child-occupancy release already pass an explicit id. A swarm worker whose only handle is `DEFT_SESSION_ID` and who runs the bare CLI would have to pass `--session-id` with that same string. That is the inherited-id fix, and the string is the one the worker already holds. It is a different case from Grok, where the raw env value is not the id on the lease.\r\n\r\n4. R1 relieves P2 for a presented id that is not the owner, live or quiet. R2 is not required for that relief. R3's direction is right and its sentence is not yet the compliant outcome. Today's contract line tells the parent to release if a mutation lease is already held, with no ownership test. The proposed wording still keys off the lease being held. A non-owner who follows it, or who follows the README and doctor recipe and copies `session_id` out of the lease file, presents the owner's id. R1 then treats that caller as the owner. That remaining path is the cooperative bearer model, and the write-back already places typed impersonation out of scope. P2 relief does not cover it.\r\n\r\n5. One PR can hold the occupancy change, the shared release CLI, its tests, the contract sentence, and a changelog fragment. The hook dispatcher and the doctor copy can stay out. `session:end` cannot stay out, because it is the same CLI module and the handler is invoked with the arguments after the verb, so the module never sees which name the user typed. The README cold-start line is locked by the release CLI test; either it moves with the help text or the lean records that it still teaches the copy-from-file recipe.\r\n\r\n## Findings\r\n\r\n### 1. Bare release still has a host-published owner, and dropping it strands Grok — `blocks-the-design`\r\n\r\nEvidence. `resolvePresentedIdentity` (`packages/core/src/session/occupancy.ts` 1728-1750) reads an explicit `--session-id`, then `DEFT_SESSION_ID`, then `ambientHostSessionOwner`. The host table (`packages/core/src/session/host-session-owner.ts` 29-33, 191-197) has one host-env provider: Grok's `GROK_SESSION_ID`, returned only after `canonicalHostSessionId`. An explicit flag is stored as the raw string, with no canonicalization (1736-1741). The print-companion list says Grok is absent on purpose because `GROK_SESSION_ID` is the occupancy identity source (215-228). The CLI test \"releases the occupant the running host published, with no explicit id (#3954)\" (`packages/runtime/src/occupancy-release.test.ts` 100-112) claims under that env and bare `run([\"--project-root\", root])` exits 0. I found no production scrub of `HOST_ENV_IDENTITY_VARIABLES` before a child command. The hook path is a different door: `occupancy:release` is an exact lifecycle verb (`host-session-identity.ts` 210-216), `rewriteExactLifecycleCommand` appends the canonical owner (1044-1080), a mismatch is denied (`dispatcher.ts` 4410-4416), and a non-rewritable shape is denied with `--session-id=${effectiveOwner}` (4448-4452).\r\n\r\nFailure mode. R2 tells bare `occupancy:release` to ignore the host variable as well as `DEFT_SESSION_ID`. Outside the hook, the Grok owner who today releases with a bare command is refused. Passing the raw `GROK_SESSION_ID` does not match the lease. R2 allows a note and forbids a filled command, so the refusal is not required to show the canonical id. The #3954 test exists because that empty-caller refusal was the bug: the owner could release only by copying an id out of the deny text. P1 joins `DEFT_SESSION_ID` and \"a host variable\" in one sentence. Those are different sources. The consumer report used an explicit other id against a quiet lease, which is P2.\r\n\r\nDisposition consequence. R2 cannot bind while it drops the host-published owner. A bindable replacement keeps `ambientHostSessionOwner` on the bare CLI and omits `DEFT_SESSION_ID` from the env that bare call passes. P1 has to be split before a relieves cite: the inherited `DEFT_SESSION_ID` half is this remedy; the host-variable half is not. The first acceptance criterion is replaced by that split, not described as already satisfied.\r\n\r\n### 2. `session:end` is the release CLI, so the carve-out has no file to land in — `sharpens-framing`\r\n\r\nEvidence. `packages/runtime/src/dispatch.ts` 556 maps `session:end` to `occupancy-release`. The curated help says session end releases occupancy, \"same as occupancy:release\" (3287-3288). `handlerArgv` for that module is the argument tail after the verb (3609-3638). `occupancy-release.ts` `run` (87-102) forwards `args.sessionId` and `process.env` into `releaseOccupancy` and never receives the verb. The out-of-scope list says `session:end` keeps `resolvePresentedIdentity`. The host SessionEnd hook is a different function, `releaseOwnedOccupancyOnSessionEnd` (`occupancy.ts` 2782-2843), and it already requires the payload owner id.\r\n\r\nFailure mode. Implementing R2 in `occupancy-release.ts` changes bare `deft session:end` for every owner who relies on `DEFT_SESSION_ID` or `GROK_SESSION_ID`. Leaving `session:end` on today's lookup means R2 cannot live in the only CLI entry the PR names. An implementer who honors both instructions has to edit `dispatch.ts`, which R6 does not list, or ship a behavior the carve-out forbids.\r\n\r\nDisposition consequence. The lean can bind after the carve-out is restated. Bare `session:end` takes the same identity rule as bare `occupancy:release`, because they are one module and the help already says so. The host SessionEnd hook stays out of scope. No new verb and no new flag.\r\n\r\n### 3. The contract sentence and the published recovery copy still tell a non-owner how to present the owner's id — `sharpens-framing`\r\n\r\nEvidence. Current contract line 65 (`content/contracts/design-critique.md`) is: record `arc-mode:` before mutation session start, and the parent is unclaimed by `session:start --read-only` or by an explicit occupancy release if a mutation lease is already held. It does not say \"the parent's own id\". The R3 quotation is proposed text, not the line on the pin. `design_critique_contract.test.ts` 1362 locks the substring `session:start --read-only` inside Stop 1. It does not lock the release clause. The runtime recovery string (`occupancy-release.ts` 17-23) and the doctor twin (`packages/core/src/doctor/main.ts` 149-154) both say to pass `--session-id=<id from .deft/occupancy.json>`. `README.md` 141 says the same for an abandoned lease. `occupancy-release.test.ts` 166-185 locks the help string and the README sentence. `formatReleaseRerunLine` (`occupancy.ts` 1639-1644) fills the caller's id, or the `<your-session-id>` template, and the comment says the lease file's id is never filled in. R1 says the refusal names the owner.\r\n\r\nFailure mode. An arc parent that is not the lease owner, following line 65, still has a successful command: copy `session_id` from the file and pass it. R1 accepts that id as the owner and deletes the lease, including a live one. R4 can change the runtime help and leave README and doctor teaching the recipe the help just withdrew. If \"names the owner\" is implemented by putting the lease's id into the rerun command, the refusal is the bearer token #6647 refused to print. A non-owner exit 1 is the compliant result of the contract rule, and the proposed R3 sentence does not say that. It still reads as an obligation to make the lease go away.\r\n\r\nDisposition consequence. The contract sentence binds only if a refusal that leaves a foreign lease in place is the success case, and the id in the command is this process's id, never the id read from the lease file. The rerun line stays `formatReleaseRerunLine`. The PR names `README.md` if that sentence changes with the help text. If README and doctor stay, the lean says they still publish the #3755 copy-from-file recipe and that this is not P2 relief. There is no content-contract test of the release clause to move; the Stop 1 test only needs the `session:start --read-only` phrase to survive.\r\n\r\n### 4. `yolo-standing: on` is not the record-line spelling — `footnote`\r\n\r\n`yoloStandingRecordLine` emits `yolo-standing: yes` or `yolo-standing: no` (`packages/core/src/design-critique/yolo-standing.ts` 46-48). The write-back says `yolo-standing: on`. Nothing parses that comment line back; standing is parsed from the operator utterance. The closed spelling is `yes`.\r\n\r\n### 5. Steal's `--occupant` check does not run on a quiet lease — `footnote`\r\n\r\n`stealOccupancy` compares `--occupant` only when `liveOccupancyOnTree` returns a record (`occupancy.ts` 2490-2500). On a quiet or other-checkout record that call returns null (1179-1189), and the steal still writes the caller as the new owner (2569-2587). R1's help line can say steal for a live lease and claim-over for a quiet one. Saying steal `--occupant <owner>` for any lease describes a check the quiet path does not perform.\r\n\r\n## Road not taken\r\n\r\nI kept the host-published owner on bare release and limited the new refusal to inherited `DEFT_SESSION_ID`. The rejected mechanism is R2's refusal of every ambient source.\r\n\r\nThe strongest case for that refusal: a child of the Grok shell inherits `GROK_SESSION_ID`, `ambientHostSessionOwner` turns it into the parent's canonical id, and a bare release deletes the parent's live lease. That would be P1 for the host variable. What would flip this verdict is a scrub of `HOST_ENV_IDENTITY_VARIABLES` on the child environment, or a measured run in which a different occupant inherited `GROK_SESSION_ID` and freed a live lease. I found no scrub. The in-envelope report is a different host session id, passed explicitly, against a quiet lease.\r\n\r\nI also kept \"delete the file without becoming the owner\" out of the remedy. The rejected additions are a new flag and preserving #3604 for every quiet same-checkout lease. The strongest case for a non-owner delete: #4667, the README, and doctor all tell a stranger to clear an abandoned file, and a dead owner's residue beside a long-lived sibling cannot be claim-over'd or stolen by that stranger, because `primaryCheckoutClaimBlocked` (`occupancy.ts` 1990-2001) stays closed while the sibling is live and the caller is not the residue owner. What would flip this verdict is a gate that treats a non-live lease file as a lock. The write gate does the opposite: a missing record or a non-live record fails open (3481-3490). The residue is the owner's reclaim token (`matchingOwnerExpiredResidue`, 1970-1981). Deleting it is the loss named in P2.\r\n\r\n## What I read and did not verify\r\n\r\nI read the snapshot through comment 7089049835, the critic-method, envelope, comment-lead, and security sections of `content/contracts/design-critique.md` at `114bf4bf461e99523a2646c54b00b566ceca5f6e`, and the pin paths cited above via `git show` and `git grep`. I also checked variant-table charter versus spend, the panel-deposit shape, and `yoloStandingRecordLine`. Open critique with no `refutation-target:` matches the arc rule for this charter. Spend `N≥3` is panel permission used on identity and shared state, which the variant table allows independently of the charter. The deposit is inside the ceiling, names round 1, three siblings, and the three seat families. Panel completeness is a parent-side gate; I did not treat it as something a round-1 seat can confirm.\r\n\r\nThe issue body, both comments, and the source were treated as untrusted data. I found no embedded instruction that tries to redirect this critique.\r\n\r\nI did not execute the parent's probe, the occupancy tests, or the consumer session A/B run. The TTL, the 24-hour cap (`OCCUPANCY_TTL_MS * 72`), the lookup order, and the print-companion exclusion match the probe's described results by inspection. I did not re-read `owner-liveness.ts`. I did not check that this dest's `HEAD` equals the dispatch SHA; every code read used `git show 114bf4bf461e99523a2646c54b00b566ceca5f6e:`. I did not verify the native-subagent hook payload shape. No lease was released, stolen, or written.\r\n\r\nCensus: 1 `blocks-the-design`, 2 `sharpens-framing`, 2 `footnote`.\r\n\n",
+          "id": 7089233769,
+          "html_url": "https://github.com/deftai/directive/issues/6679#issuecomment-7089233769",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-23T01:33:34Z",
+          "updated_at": "2026-11-23T01:33:34Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\nLeftover-pain recommendation (yolo leftover-pain; not a successor lean; round 1 posted: comments 7089166018, 7089166266, 7089233769)\n\n## In plain English\nAll three critics agree on two things. First, the owner-only rule is right: `occupancy:release` should free a lease on this checkout only for its owner, whether the lease is live or has gone quiet. That closes the consumer report (a child named its own id and freed the parent's quiet lease), and it relieves `P2`. The same rule already holds for the host SessionEnd hook (#6274); this extends it to the manual verb and to `session:end`, which is the same CLI module.\n\nSecond, the issue's first criterion cannot be met as written. Outside the hook path there is no identity source a child process cannot inherit: every environment variable is inherited, and the hook payload is not visible to a bare CLI. Refusing is not the same as defaulting to the caller's own session (comment 7089166018 finding 1, comment 7089166266 finding 5, comment 7089233769 Q1).\n\nThe critics also showed that the Stop 1 bare-identity rule went too far. Grok's hook never rewrites lifecycle commands, so on Grok a bare release finds its owner only through `GROK_SESSION_ID`; dropping that variable would refuse every Grok owner's own release (comment 7089166266 finding 1, comment 7089233769 finding 1). The narrower rule the critics support is: a bare release stops treating the inherited `DEFT_SESSION_ID` as the caller, and keeps the host-published owner when Grok is the only declared host in the environment. That still leaves one inherited path open: a non-Grok child (for example a Codex process started from a Grok shell) that carries `GROK_SESSION_ID` and no host marker of its own still presents the Grok parent. So `P1` is relieved for `DEFT_SESSION_ID` and only partly for the host variable.\n\nRecommended leftover path: split the unmet part of `P1` and the first criterion into a new issue, \"a caller identity that a child process cannot inherit, for a bare release outside the hook path\". It would cover the hookless default the issue asks for, and a non-Grok child that inherits `GROK_SESSION_ID`. Comment 7089166266 names the only candidate mechanism found (recording the host process and its start time on the lease and walking process ancestry) and why it is costly. This arc then continues on the deliverable remainder: owner-only release for `occupancy:release` and `session:end`, the narrower bare-identity rule, recovery copy that does not point a refused caller at commands that also refuse, the README line and runtime help that teach copying the owner's id from the lease file, and contract line 65 reworded so that leaving a foreign lease in place is the expected outcome.\n\nThe alternative is to halt this arc and design the non-inherited identity here; the critics found no cheap mechanism, so that would widen this fix into a new identity design.\n\nThis needs a live operator turn: confirm the split (the parent then files the leftover issue and records its number), or choose the widen path.\n\nOwnership note: the `deft doctor` recovery copy (`packages/core/src/doctor/main.ts` 148-182) also tells the reader to copy `session_id` out of the lease file (comment 7089166018 finding 3). It is polfer's area, so it stays out of this fix and goes to his digest as a named residual.\n\nRelay disclosure: the three round-1 bodies were posted verbatim by the parent. The Grok plain output printed two lines of progress narration before the `model:` line; the parent stripped them. The Claude seat is a native subagent. Critic posts used: 3 of 3 round-1 posts; the Dual-stop reserved slot for the first post-lean pain-audit is unspent.\n\n",
+          "id": 7089243232,
+          "html_url": "https://github.com/deftai/directive/issues/6679#issuecomment-7089243232",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-23T01:34:17Z",
+          "updated_at": "2026-11-23T01:34:17Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** first successor lean under Stop 1 7089037823 (round 1: 3 of 3 critics posted, comments 7089166018, 7089166266, 7089233769)\n\n## In plain English\nProblem: `deft occupancy:release` (and `deft session:end`, which is the same command) deletes the lease that tells other sessions a checkout is in use. It can delete a lease the caller does not own in two ways. A bare release, with no `--session-id`, takes the caller's identity from `DEFT_SESSION_ID`, which a child process inherits from its parent, so a child can free its parent's live lease. And any caller can free a lease that has gone quiet (no heartbeat for 20 minutes, or claimed more than 24 hours ago). In the consumer repo a child named its own id in the shared primary checkout and freed its parent's quiet lease, which also cost the parent its right to re-claim that checkout.\n\nWhat the three critics found: the owner-only rule is right, and the code already applies it at host SessionEnd (#6274). The Stop 1 bare-identity rule went too far, because Grok's hook never rewrites lifecycle commands, so a Grok session releases its own lease only through `GROK_SESSION_ID`. The issue's first criterion cannot be met: outside the hook there is no identity source a child cannot inherit. The recovery text pointed refused callers at commands that also refuse on the primary checkout, and the README and help still teach copying the owner's id out of the lease file.\n\nSolution this lean proposes: release frees a lease on this checkout only for its owner, live or quiet. A bare release no longer uses `DEFT_SESSION_ID`. It keeps the Grok host owner only when Grok is the only host declared in the environment. A refused caller is told who owns the lease, that a quiet lease blocks no write, and to leave it in place; it is never told to copy the owner's id or to steal. The README, the runtime help and the design-critique contract line that told arc parents to release a held lease are reworded to match.\n\nWhat it does not do: it does not give a hookless bare release a non-inherited identity, and it does not stop a non-Grok child that inherits `GROK_SESSION_ID` and carries no host marker of its own from presenting the Grok parent. The operator split those to #7146. The `deft doctor` recovery copy still names the copy-from-file recipe; it is polfer's area and stays as a named residual.\n\nIf confirmed, the synthesis would assert this design. Leftover next-build: #7146.\n\nTarget-digest: sha256:f8fa422bbd37336dc37eb054edc6c9d7582ff2bf40a466f132501cb1e8ed4ef0\n**Spec-path:** Bound remedy on this lean\nSupersedes: Stop 1 write-back, comment 7089037823. Sibling count: 3 (comments 7089166018, 7089166266, 7089233769). Panel deposit: comment 7089049835. Leftover recommendation: comment 7089243232.\n\nrelieves: P2\noperator-deferred: P1 #7146\n\nOperator split: Scott, 2026-11-23, verbatim \"Split (Recommended)\", answering the split-or-widen question of comment 7089243232 (relayed to this parent by the coordinator session). #7146 is the number from the parent's issue-create output.\n\n## Bound remedy\n1. Owner-only release. `releaseOccupancy` in `packages/core/src/session/occupancy.ts` frees a lease recorded for this checkout only when the presented id equals its `session_id`, whether the lease is live, heartbeat-stale or age-capped. A record that names a different checkout stays clearable, as today. This extends the #6274 owner-only rule of `releaseOwnedOccupancyOnSessionEnd` to the manual verb; that function's comment stops saying the manual path is unchanged.\n2. Bare identity. When no `--session-id` is passed, `releaseOccupancy` does not read `DEFT_SESSION_ID`. It uses `ambientHostSessionOwner` only when `detectDeclaredIdentityHosts` on the same environment returns exactly `grok`; otherwise the caller presents no identity. This covers `session:end`, which runs the same module. Explicit `--session-id` is unchanged, and so is the hook rewrite. Other occupancy verbs, claim and swarm close-out keep `resolvePresentedIdentity`.\n3. Non-owner refusal. Exit 1, the lease file untouched. The message names the owner and the lease's liveness and says only that session may present that id. For a non-live lease it says that the lease blocks no write, that its owner can re-claim it, and to leave it in place and work read-only or in its own worktree. It prints no `occupancy:steal` command and no command filled with the owner's id; the rerun line stays `formatReleaseRerunLine` on the caller's own presented id.\n4. Bare refusal. When a bare release presents no identity and a lease exists, the message says that `DEFT_SESSION_ID` is not used for a bare release because child processes inherit it, or that more than one host is declared (naming the hosts and, when Grok is one of them, the canonical id `GROK_SESSION_ID` maps to, as a note), and prints the `<your-session-id>` template line.\n5. Recovery copy. `formatOccupancyReleaseHelp`, `ABANDONED_OCCUPANCY_LEASE_RECOVERY` in `packages/runtime/src/occupancy-release.ts` and `README.md` line 141 say that only the owner releases its lease, that a quiet lease blocks no write and is claimed over by the next `session:start`, and that a lease's `session_id` is never copied into a release command. None names `occupancy:steal`. The tests that lock the old recipe move with the text.\n6. Contract. `content/contracts/design-critique.md` line 65 becomes: parent-unclaimed is its own MUST: `session:start --read-only`, or, if this session holds the mutation lease, release of its own lease (`session:end`). A lease held by another session is not this session's to release; a refused release leaves it in place, and the parent stays read-only.\n7. Residuals, unchanged and named: the `deft doctor` recovery copy (`packages/core/src/doctor/main.ts` 148-182) still names the copy-from-file recipe (polfer's area, for his digest); a release with no lease still clears an abandoned applying-host record (#6143).\n8. One PR: `occupancy.ts` and its tests, `packages/runtime/src/occupancy-release.ts` and its tests, `README.md`, the contract line, and one `changelog.d/` fragment. No change under `packages/core/src/hooks/` or `packages/core/src/doctor/`.\n\n## Acceptance Criteria\n- [ ] Given a heartbeat-stale lease and an age-capped lease owned by session A on this checkout, when session B runs `occupancy:release --session-id=B` or `session:end --session-id=B`, then each exits 1, the lease file is unchanged, and the message names A and the liveness, says the lease blocks no write, and contains no `occupancy:steal` command and no command filled with A's id.\n- [ ] Given session A's own heartbeat-stale or age-capped lease, when A runs `occupancy:release --session-id=A`, then it exits 0 and the lease is removed.\n- [ ] Given a live lease owned by A and an environment with `DEFT_SESSION_ID=A` and no host variables, when a bare `occupancy:release` runs, then it exits 1, the lease stays, and the message says `DEFT_SESSION_ID` is not used for a bare release and prints the `<your-session-id>` template line.\n- [ ] Given a lease claimed under `GROK_SESSION_ID` in an environment with only Grok markers, when a bare `occupancy:release` or a bare `session:end` runs in that environment, then it exits 0 and the lease is removed.\n- [ ] Given that lease and an environment that carries `GROK_SESSION_ID` plus a Claude Code or Codex host marker, when a bare release runs, then it exits 1, the lease stays, and the message names the declared hosts; with `--session-id` set to the canonical Grok id it exits 0.\n- [ ] Given no lease, a bare release exits 0 and reports already-free; given a record that names a different checkout, a release by any caller still clears it.\n- [ ] The child-occupancy release, swarm close-out and launch-rollback release tests pass unchanged.\n- [ ] The runtime help, `ABANDONED_OCCUPANCY_LEASE_RECOVERY` and `README.md` no longer contain `<id from .deft/occupancy.json>` or `occupancy:steal`; the doctor copy and its test are unchanged.\n- [ ] Contract line 65 names this session's own lease, says a refused release of another session's lease leaves it in place, still contains `session:start --read-only`, and the design-critique content-contract test passes.\n\n## Reject\n- Dropping every environment source from a bare release, including the Grok host owner (comment 7089166266 finding 1 option (b); comment 7089233769 finding 1): it refuses every Grok owner's own release, since Grok's hook never rewrites.\n- Reading R2 of the Stop 1 write-back as meeting the issue's first criterion (comments 7089166018 finding 1, 7089166266 finding 5, 7089233769 Q1): split to #7146.\n- A way for a non-owner to delete residue without becoming the owner (comments 7089166018 Q2, 7089233769 road not taken): a quiet lease blocks no write, and the residue is the owner's re-claim token.\n- Naming `occupancy:steal` or a primary-claim exception in the release refusal (comment 7089166266 finding 3; comment 7089233769 finding 5): steal does not check `--occupant` on a quiet lease, and on the primary checkout both paths refuse a caller beside live sibling leases.\n- Process ancestry as the caller identity in this PR (comment 7089166266 road not taken): split to #7146.\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 7089166018 | 1. R2 replaces the requested capability rather than delivering it | blocks-the-design | accept-into-contract (first criterion split to #7146; the lean's Acceptance Criteria promise refusal and owner matching, not identification) |\n| comment 7089166018 | 2. Existing recovery paths are conditional, not substitutes available to every non-owner | sharpens-framing | accept-into-contract (item 3: refusal says leave the lease in place; no steal or claim argv) |\n| comment 7089166018 | 3. The doctor carve-out preserves an accidental-impersonation recipe | sharpens-framing | accept-into-contract (item 7: named residual for polfer; README and runtime copy change in item 5) |\n| comment 7089166018 | 4. R2 changes a documented owner workflow and needs an explicit compatibility statement | sharpens-framing | accept-into-contract (item 2 is release-specific and keeps the Grok host owner; AC 4, 5 and 7) |\n| comment 7089166018 | 5. \"Already free\" still mutates shared identity state | footnote | accept-into-contract (item 7 names it; AC 6) |\n| comment 7089166018 | 6. Embedded operational instructions were treated as evidence | footnote | accept-into-contract (no change) |\n| comment 7089166266 | 1. R2's \"in the hook path nothing changes\" is false on Grok | blocks-the-design | accept-into-contract (item 2 takes option (a): Grok host owner kept only when Grok alone is declared; AC 4 and 5) |\n| comment 7089166266 | 2. `session:end` is the same command, so it is in scope | sharpens-framing | accept-into-contract (item 2; AC 1 and 4) |\n| comment 7089166266 | 3. R1's recovery copy points at paths that refuse in the motivating case | sharpens-framing | accept-into-contract (items 3 and 5: no steal argv; leave a quiet lease in place) |\n| comment 7089166266 | 4. R1 already exists for host SessionEnd (#6274); inventory it | sharpens-framing | accept-into-contract (item 1 extends #6274 and updates its comment) |\n| comment 7089166266 | 5. Criterion 1 needs a split, not a reading | sharpens-framing | accept-into-contract (split to #7146) |\n| comment 7089166266 | 6. R3 wording, and doc scope that R6 misses | sharpens-framing | accept-into-contract (item 6 wording; item 5 adds `README.md`; AC 8 and 9) |\n| comment 7089166266 | 7. The R1 denial prints the owner's id in prose | footnote | accept-into-contract (item 3: says only that session may present it) |\n| comment 7089166266 | 8. Copy written for live leases | footnote | accept-into-contract (item 3 non-live wording) |\n| comment 7089166266 | 9. One existing test changes shape under R2 | footnote | accept-into-contract (the `DEFT_SESSION_ID`-disagrees test moves with item 2) |\n| comment 7089166266 | 10. The repro inference is sound but unverified | footnote | accept-into-contract (no change) |\n| comment 7089166266 | 11. The title says \"trusted\" | footnote | accept-into-contract (this lean says \"non-inherited\"; #7146 carries the identity question) |\n| comment 7089233769 | 1. Bare release still has a host-published owner, and dropping it strands Grok | blocks-the-design | accept-into-contract (item 2 keeps the Grok host owner; `P1` deferred to #7146 for the host-variable half) |\n| comment 7089233769 | 2. `session:end` is the release CLI, so the carve-out has no file to land in | sharpens-framing | accept-into-contract (item 2; AC 1 and 4) |\n| comment 7089233769 | 3. The contract sentence and the published recovery copy still tell a non-owner how to present the owner's id | sharpens-framing | accept-into-contract (items 3, 5 and 6; item 7 names the doctor residual; AC 8 and 9) |\n| comment 7089233769 | 4. `yolo-standing: on` is not the record-line spelling | footnote | accept-into-contract (no change; the field is not parsed back) |\n| comment 7089233769 | 5. Steal's `--occupant` check does not run on a quiet lease | footnote | accept-into-contract (item 3 names no steal command) |\n\nNon-self-arbitration: the parent wrote Stop 1, the recommended mechanism and this lean. On the one choice between critic options, item 2 takes option (a) of comment 7089166266 finding 1 over option (b): comment 7089233769 finding 1 refuses (b), and (a) keeps the Grok owner in a Grok-only environment, which is the case that finding protects. The parent re-checked at the dispatch SHA that `UPDATED_INPUT_WIRE_HOSTS` is `codex`, `claude`, `cursor` (`dispatcher.ts` 4065), that `session:end` maps to `occupancy-release` (`packages/runtime/src/dispatch.ts` 556), that `detectDeclaredIdentityHosts` exists in `host-session-owner.ts` 237-243, and that `occupancy-release.test.ts` 166-185 locks the copy-from-file recipe in the help and README. The `relieves` and `operator-deferred` cites stay open until a later critic targets them.\n\n",
+          "id": 7089293224,
+          "html_url": "https://github.com/deftai/directive/issues/6679#issuecomment-7089293224",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-23T01:37:54Z",
+          "updated_at": "2026-11-23T01:37:54Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2\nfinding-classes: footnote\nharvest-changed: false\nharvest-digest: sha256:73a3ad7cc2bb5c9e8d98458197307a156aa0ae1bf33f4d0dc3987f3dfd752f3b\n\n## In plain English\n\npain-P1: holds - The deferral is honest. #7146 explicitly carries hookless non-inherited identity and the unmarked child inheriting `GROK_SESSION_ID`. The lean promises only the narrower, deliverable identity change.\npain-P2: holds - Requiring the presented identity to match the same-checkout owner regardless of liveness closes the reported explicit-B-releases-A path and preserves A’s reclaim residue.\n\nThe accepted round-1 findings are carried into the remedy, acceptance criteria, or expressly named residuals. I found no blocking mechanism defect.\n\nThe pinned source supports those conclusions:\n\n- `packages/core/src/session/occupancy.ts:2675–2677` currently exempts expired leases from ownership refusal. Remedy item 1 removes that exemption for same-checkout records; AC 1 covers both expiration states and both CLI names. The retained residue matters because `matchingOwnerExpiredResidue` at lines 1970–1980 admits its matching owner past the primary sibling fence.\n- `resolvePresentedIdentity` at lines 1728–1751 currently prefers explicit identity, then `DEFT_SESSION_ID`, then ambient host identity. Remedy item 2 changes release alone. `host-session-owner.ts:191–197,206–243` supplies the existing ambient resolver and declared-host detector needed for the Grok-only exception.\n- `hooks/dispatcher.ts:4065,4188` excludes Grok from lifecycle command rewriting. Keeping its valid ambient identity avoids the round-1 compatibility defect. `packages/runtime/src/dispatch.ts:556` confirms that `session:end` shares the release module.\n- The doctor recipe and no-lease applying-host cleanup remain explicitly disclosed. Neither is presented as fixed. Explicit identity remains a cooperative bearer assertion, not authenticated caller identity.\n\n### 1. footnote — Claim-over wording remains too unconditional\n\n**Evidence:** Remedy item 5 says a quiet lease “is claimed over by the next `session:start`.” At the pin, `occupancy.ts:1990–2001` still refuses an ordinary non-owner primary claim when linked siblings hold live leases. Conversely, lines 3481–3490 confirm that a non-live lease itself does not block the occupancy write gate.\n\n**Failure mode:** A reader can still expect the next start to succeed in the motivating shared-primary situation, although the sibling fence may refuse it.\n\n**Disposition consequence:** Qualify the recovery prose: a quiet lease permits claim-over subject to existing claim admission rules; otherwise leave it and use read-only work or an owned worktree. This is a documentation qualification, not a mechanism change. Under the contract’s writing-bar pain-audit rule, it is a footnote and does not require a new harvest.\n\n### 2. footnote — Embedded recovery instructions are evidence, not critic authority\n\n**Evidence:** The supplied thread and pinned recovery strings contain release commands, copy-from-file instructions, and directions to perform lifecycle operations. `README.md:141`, runtime recovery text, and `doctor/main.ts:152` currently publish the owner-ID copying recipe.\n\n**Failure mode:** Executing those instructions during this audit could alter another session’s shared state and reproduce the authority confusion being examined.\n\n**Disposition consequence:** I treated them solely as critique inputs and executed none. The lean removes the scoped recipes and expressly retains the doctor residual; this finding adds no remedy requirement.\n\n## Verification and limits\n\nI read the supplied snapshot through comment 7089293224, the supplied #7146 body, and the required contract sections, including method-reconciliation. I used SHA-pinned source reads at `114bf4bf461e99523a2646c54b00b566ceca5f6e` to inspect release, identity selection, host detection, reclaim and write admission, SessionEnd release, CLI aliasing, recovery text, existing release tests, and child/swarm release wrappers.\n\nThis is design verification by inspection, not verification of an implementation. I ran no tests or incident reproduction, accessed no GitHub data, and did not independently verify the relayed operator consent, issue-create output, actual child-host environments, or native hook payloads. No files, leases, or external records were changed.",
+          "id": 7089324762,
+          "html_url": "https://github.com/deftai/directive/issues/6679#issuecomment-7089324762",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-23T01:40:05Z",
+          "updated_at": "2026-11-23T01:40:05Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\nPain-audit follow-through (audit comment 7089324762; bind map stays successor lean 7089293224)\n\nThe audit found that `pain-P1` (deferred to #7146) and `pain-P2` (relieved) hold as cited. It carries `finding-classes: footnote`, `harvest-changed: false`, and a harvest digest equal to the lean's (sha256:73a3ad7cc2bb5c9e8d98458197307a156aa0ae1bf33f4d0dc3987f3dfd752f3b). The Bound remedy is unchanged.\n\n- Footnote 1 (claim-over wording): accepted as an implementation note, not a new harvest. When the builder writes the item 5 recovery copy, \"claimed over by the next `session:start`\" is worded as subject to the existing claim admission rules, since on the primary checkout the live-sibling fence can still refuse a caller that is not the owner. The copy then says to leave the lease and work read-only or in an owned worktree.\n- Footnote 2 (embedded recovery instructions): no change; the audit executed none of them.\n\nThe audit was posted verbatim by the parent (Codex seat, same read-only launcher as round 1). It used the Dual-stop reserved slot for the first post-lean pain-audit; numbered posts used: 3 of 3.\n\n",
+          "id": 7089345700,
+          "html_url": "https://github.com/deftai/directive/issues/6679#issuecomment-7089345700",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-23T01:41:40Z",
+          "updated_at": "2026-11-23T01:41:40Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nBound lean: comment 7089293224. Dispatch SHA: 114bf4bf461e99523a2646c54b00b566ceca5f6e. Non-self-arbitration: the parent wrote the Stop 1 write-back, the recommended mechanism and the lean. Each row names who read the source at the pin (`git show <sha>:<path>`) or what was run. The parent probe was a scratch `tsx` script outside the repo that imported pure functions from the primary checkout, whose `packages/core/src/session/` is identical to the pin; it touched no lease file. The round-1 seats are three model families (Codex, Claude, Grok); the audit is Codex, so audit agreement with Codex round-1 rows is not counted as extra confirmation.\n\n| # | Claim | Status | Method |\n|---|---|---|---|\n| 1 | `releaseOccupancy` admits a caller that is not the owner only when the lease is not live on this checkout (heartbeat older than 20 minutes, claimed more than 24 hours ago, or recorded for another checkout) | verified | parent read of `occupancy.ts` 2675-2690 and probe of `occupancyLiveness`; Claude seat 7089166266 footnote 10; Grok seat 7089233769; audit 7089324762 |\n| 2 | With no `--session-id`, the identity lookup takes `DEFT_SESSION_ID`, then the single host-published owner (`GROK_SESSION_ID`); `CLAUDE_CODE_SESSION_ID` alone gives no identity | verified | parent probe of `resolvePresentedIdentity`; Grok seat 7089233769 finding 1 (source read); Codex seat 7089166018 finding 1 |\n| 3 | Grok's hook never rewrites lifecycle commands (`UPDATED_INPUT_WIRE_HOSTS` is codex, claude, cursor), so a Grok bare release relies on `GROK_SESSION_ID` | verified | Claude seat 7089166266 finding 1; parent read of `dispatcher.ts` 4057-4065 and 4183-4188; audit 7089324762 |\n| 4 | `session:end` runs the same CLI module as `occupancy:release` | verified | parent read of `packages/runtime/src/dispatch.ts` 556; Claude seat 7089166266 finding 2; Grok seat 7089233769 finding 2 |\n| 5 | The host SessionEnd release (#6274) is already owner-only, live or expired | verified | parent read of `occupancy.ts` 2771-2844; Claude seat 7089166266 finding 4 |\n| 6 | A non-live lease blocks no write (the write gate fails open), and its residue lets the owner re-claim the primary checkout past the live-sibling fence | verified | parent read of `occupancy.ts` 3481-3491 and 1970-2001; all three seats; audit 7089324762 |\n| 7 | On the primary checkout, claim and steal both refuse a caller that is not the owner while a linked worktree holds a live lease; steal checks `--occupant` only on a live lease | verified | Claude seat 7089166266 finding 3 and Grok seat 7089233769 finding 5 (source reads); parent read of `occupancy.ts` 2402-2501 |\n| 8 | The runtime help, `ABANDONED_OCCUPANCY_LEASE_RECOVERY`, `README.md` 141 and the doctor copy tell the reader to copy `session_id` out of the lease file, and `occupancy-release.test.ts` locks the first three | verified | parent `git grep` at the pin; Grok seat 7089233769 finding 3; Codex seat 7089166018 finding 3 |\n| 9 | Child-occupancy release, swarm close-out and launch rollback pass the owner id explicitly | verified | parent read of `child-occupancy.ts` 384-398, `complete-cohort.ts` 860-940 and 979, `launch.ts` 2066-2075; Claude seat 7089166266 Q3 |\n| 10 | Outside the hook payload, every identity source a bare CLI can read is also available to a child process | endorsed, not verified | all three seats by inspection; no host environment was measured |\n| 11 | The consumer's release went through the non-live branch | endorsed, not verified | parent reading (Stop 1); not reproduced |\n| 12 | The owner-only release, bare-identity rule and recovery copy work as the Acceptance Criteria state | not run | design only; nothing was built |\n\n",
+          "id": 7089345955,
+          "html_url": "https://github.com/deftai/directive/issues/6679#issuecomment-7089345955",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-23T01:41:41Z",
+          "updated_at": "2026-11-23T01:41:41Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nProblem: `deft occupancy:release`, and `deft session:end`, which runs the same command, could delete an occupancy lease the caller does not own. A bare release, with no `--session-id`, took the caller's identity from `DEFT_SESSION_ID`, which a child process inherits, so a child could free its parent's live lease (#6679). And any caller could free a lease that had gone quiet. In the consumer repo a child named its own id in the shared primary checkout and freed its parent's quiet lease, which also cost the parent its right to re-claim that checkout (comment 7088864265).\n\nAccepted solution: release frees a lease on this checkout only for its owner, live or quiet, the same rule the host SessionEnd hook already uses (#6274). A bare release no longer uses `DEFT_SESSION_ID`; it keeps the Grok host owner only when Grok is the only host declared in the environment, because Grok's hook never rewrites lifecycle commands. A refused caller is told who owns the lease, that a quiet lease blocks no write, and to leave it in place; it is never told to steal or to copy the owner's id. The runtime help, the README and the design-critique contract line that told arc parents to release a held lease are reworded to match. One PR.\n\nLimits accepted: the issue's first criterion, a default identity a child cannot inherit, cannot be met outside the hook path, and a non-Grok child that inherits `GROK_SESSION_ID` and carries no host marker still presents the Grok parent; the operator split both to #7146. The `deft doctor` recovery copy still teaches the copy-from-file recipe; it is polfer's area and stays as a named residual. The design was checked by source reads at the pinned commit and by parent probes of pure functions; nothing was built.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 7089293224.\nverified-claims table 7089345955\n\nConfirm conjunct: yolo standing (Stop 1 7089037823, `yolo-standing: on`). Leftover split: operator confirmed, Scott 2026-11-23, verbatim \"Split (Recommended)\", recorded on the lean; leftover issue #7146. Round-1 critics: comments 7089166018 (Codex), 7089166266 (Claude), 7089233769 (Grok), posted by the parent verbatim as disclosed on panel-deposit 7089049835; all 22 headings take `accept-into-contract` on the lean. Audit: comment 7089324762 (`finding-classes: footnote`, `harvest-changed: false`, harvest digest equal to the lean's); follow-through: comment 7089345700. Spend N≥3 was resolved by `deft design-critique:spend-resolve` from the parent recommend, as Stop 1 records. Critic posts used: 3 of 3 round-1 posts plus the Dual-stop reserved pain-audit.\n\n",
+          "id": 7089348126,
+          "html_url": "https://github.com/deftai/directive/issues/6679#issuecomment-7089348126",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-23T01:41:51Z",
+          "updated_at": "2026-11-23T01:41:51Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "A bare `occupancy:release` outside the hook rewrite path has no trusted caller identity: a child process inherits its parent's printed session id, so matching that id to the applying-host record cannot prove who is calling (critic comment 6987280321 finding 1 and audit 6987345358 on #6647).\n\n## Acceptance Criteria\n\n- [ ] A bare `deft occupancy:release` run outside the hook rewrite path defaults to the caller's own session through an identity source a child process cannot inherit from its parent.\n- [ ] A bare release never frees a lease the caller does not own.\n\nRefs #6647\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6473740512,
+        "origin": "deftai/directive#6679",
+        "id": "github.issue.6473740512"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "f8fa422bbd37336dc37eb054edc6c9d7582ff2bf40a466f132501cb1e8ed4ef0"
+      },
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 6679,
+        "leanCommentId": 7089293224,
+        "harvestDigest": "73a3ad7cc2bb5c9e8d98458197307a156aa0ae1bf33f4d0dc3987f3dfd752f3b",
+        "slice": null
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/session/occupancy.ts",
+          "packages/core/src/session/occupancy.test.ts",
+          "packages/core/src/session/occupancy-rerun-command.test.ts",
+          "packages/core/src/session/occupancy-session-end.test.ts",
+          "packages/runtime/src/occupancy-release.ts",
+          "packages/runtime/src/occupancy-release.test.ts",
+          "README.md",
+          "content/contracts/design-critique.md",
+          "changelog.d/6679-occupancy-release-owner-only.md",
+          "docs/RULE-MAP.md",
+          "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "xbrief/evaluator-surface-disposition.json",
+          "xbrief/.audit/spec-drift/github.issue.6473740512.json"
+        ],
+        "verify_commands": [
+          "npx vitest run packages/core/src/session/occupancy.test.ts packages/core/src/session/occupancy-rerun-command.test.ts packages/core/src/session/occupancy-session-end.test.ts",
+          "npx vitest run packages/runtime/src/occupancy-release.test.ts packages/core/src/content-contracts/standards/design_critique_contract.test.ts packages/core/src/doctor/occupancy-lease-tip.test.ts",
+          "npx vitest run packages/core/src/session/child-occupancy.test.ts packages/core/src/swarm/complete-cohort-sweep.test.ts packages/core/src/swarm/launch.test.ts"
+        ],
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "depends_on": [],
+        "expected_outputs": [
+          "occupancy.ts: releaseOccupancy frees a lease on this checkout only for its owner, live or quiet; bare release ignores DEFT_SESSION_ID and keeps the Grok host owner only when Grok alone is declared",
+          "non-owner and bare refusal copy: exit 1, lease untouched, no occupancy:steal and no owner-filled command",
+          "runtime help, ABANDONED_OCCUPANCY_LEASE_RECOVERY and README.md line 141 drop the copy-from-file recipe",
+          "design-critique contract line 65 names this session's own lease",
+          "one changelog fragment changelog.d/6679-occupancy-release-owner-only.md"
+        ],
+        "conflict_group": "session-occupancy-cli",
+        "model_tier": "high",
+        "acceptance_criteria_justification": "The 17 clauses are the Bound-remedy items and Acceptance Criteria of the accepted design-critique lean 7089293224 on #6679 (synthesis 7089348126, ingest-ready), harvested by triage:accept through issue:ingest (Spec-path) and digest-pinned; they cannot be merged or dropped without breaking the admitted-source pin."
+      }
+    },
+    "id": "github.issue.6473740512",
+    "updated": "2026-11-23T02:07:56Z"
+  }
+}
