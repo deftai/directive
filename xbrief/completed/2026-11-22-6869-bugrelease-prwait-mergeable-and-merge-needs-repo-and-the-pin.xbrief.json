@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6869",
-    "updated": "2026-11-22T22:12:47Z"
+    "updated": "2026-11-23T01:51:02Z"
   },
   "plan": {
     "title": "bug(release): pr:wait-mergeable-and-merge needs --repo, and the pin bump leaves a lockfile pnpm refuses",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(release): pr:wait-mergeable-and-merge needs --repo, and the pin bump leaves a lockfile pnpm refuses",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6869",
@@ -17,63 +17,147 @@
     "items": [
       {
         "title": "Resolution order. In `runWaitMergeable` (`packages/core/src/pr-wait-mergeable/main.ts`), `projectRoot` (`--project-root`, else the working directory) is resolved before the repository. The repository is `--repo`, then `GH_REPO`, then the inference of item 2. A non-empty `--repo` or `GH_REPO` is used as today, with no inference and no new output.",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9a75597b4b3b37487121e8157a63b45b1e74e0b7",
+          "recorded_at": "2026-11-23T01:51:02Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Inference. Read `git -C <projectRoot> remote get-url origin`. Parse it only with the anchored `githubOwnerRepoFromRemoteUrl` (`release/closed-verb-gate.ts`), which accepts `https://github.com/<owner>/<name>[.git]` (or `http://`) and `git@github.com:<owner>/<name>[.git]` and nothing else; a bare `owner/name`, a relative or local path, another host or extra path segments give no repository. Then read `repos/<owner>/<name>` once through REST. When `fork` is `false`, use that repository and print to stderr, before any other GitHub read or merge, `pr_wait_mergeable: repo=<owner/name> (from origin)`. The git read and the repository read are one injectable seam on `RunWaitMergeableOptions`.",
-        "status": "proposed",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9a75597b4b3b37487121e8157a63b45b1e74e0b7",
+          "recorded_at": "2026-11-23T01:51:02Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Refusal. When `origin` is missing or unreadable, does not parse under item 2, the repository is a fork, or the repository read fails, exit 2 (`EXIT_CONFIG_ERROR`) before any merge-path call, with `Error: --repo OWNER/REPO is required (or set $GH_REPO, or run in a clone whose origin is a non-fork github.com repository); origin: <reason>`, where the reason names the inferred repository when there is one.",
-        "status": "proposed",
-        "id": "clause.3"
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9a75597b4b3b37487121e8157a63b45b1e74e0b7",
+          "recorded_at": "2026-11-23T01:51:02Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Release next step. The release pipeline's next-step text (`release/pipeline.ts`, release-PR branch) prints `task pr:wait-mergeable-and-merge -- <N> --repo <config.repo> --wait`.",
-        "status": "proposed",
-        "id": "clause.4"
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9a75597b4b3b37487121e8157a63b45b1e74e0b7",
+          "recorded_at": "2026-11-23T01:51:02Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Tests. The existing \"main without repo exits two\" and `cmdPrWaitMergeable` delegation tests drive the item 2 seam (no origin) so they do not read the checkout's own remote. New tests use raw remote strings, not pre-parsed slugs.",
-        "status": "proposed",
-        "id": "clause.5"
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9a75597b4b3b37487121e8157a63b45b1e74e0b7",
+          "recorded_at": "2026-11-23T01:51:02Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "One PR. No new verb, flag, env, policy field or refusal.",
-        "status": "proposed",
-        "id": "clause.6"
+        "status": "completed",
+        "id": "clause.6",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9a75597b4b3b37487121e8157a63b45b1e74e0b7",
+          "recorded_at": "2026-11-23T01:51:02Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given no `--repo`, no `GH_REPO` and `origin` `https://github.com/acme/project.git` (or `git@github.com:acme/project.git`) for a repository that is not a fork, then the verb uses `acme/project` and prints `pr_wait_mergeable: repo=acme/project (from origin)` before any merge-path call.",
-        "status": "proposed",
-        "id": "clause.7"
+        "status": "completed",
+        "id": "clause.7",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9a75597b4b3b37487121e8157a63b45b1e74e0b7",
+          "recorded_at": "2026-11-23T01:51:02Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given `--repo` or `GH_REPO`, then the verb uses it, does not read `origin` and prints no inference line.",
-        "status": "proposed",
-        "id": "clause.8"
+        "status": "completed",
+        "id": "clause.8",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9a75597b4b3b37487121e8157a63b45b1e74e0b7",
+          "recorded_at": "2026-11-23T01:51:02Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given an `origin` of `acme/project.git`, `../project`, a local path, `https://gitlab.com/acme/project.git` or `https://github.com/acme/project/extra`, then the verb exits 2 with the item 3 message and makes no GitHub call.",
-        "status": "proposed",
-        "id": "clause.9"
+        "status": "completed",
+        "id": "clause.9",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9a75597b4b3b37487121e8157a63b45b1e74e0b7",
+          "recorded_at": "2026-11-23T01:51:02Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given an `origin` whose repository is a fork, or whose repository read fails, then the verb exits 2 with the item 3 message naming that repository and makes no merge-path call.",
-        "status": "proposed",
-        "id": "clause.10"
+        "status": "completed",
+        "id": "clause.10",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9a75597b4b3b37487121e8157a63b45b1e74e0b7",
+          "recorded_at": "2026-11-23T01:51:02Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given no `origin` remote, then the verb exits 2 with the item 3 message.",
-        "status": "proposed",
-        "id": "clause.11"
+        "status": "completed",
+        "id": "clause.11",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9a75597b4b3b37487121e8157a63b45b1e74e0b7",
+          "recorded_at": "2026-11-23T01:51:02Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given a release cut that opens a release PR, then the next-step text includes `--repo <owner/name>` for the configured release repository.",
-        "status": "proposed",
-        "id": "clause.12"
+        "status": "completed",
+        "id": "clause.12",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9a75597b4b3b37487121e8157a63b45b1e74e0b7",
+          "recorded_at": "2026-11-23T01:51:02Z",
+          "recorded_by": "scope:complete"
+        }
       }
     ],
     "tags": [
@@ -389,6 +473,35 @@
         "leanCommentId": 7052407015,
         "harvestDigest": "84fa370befd769b4cc1916b25c0a2e5ea2aadc45e76b68825aacb7b37136576d",
         "slice": null
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "f6f3937f855e4be939576001b8213ba9b0fd155f",
+        "prNumber": 7128,
+        "prBase": "master",
+        "mergeCommit": "9a75597b4b3b37487121e8157a63b45b1e74e0b7",
+        "deliveryBranch": "master",
+        "deliveryCommit": "e3e72a43cce3b79bf0aaf05462ad804ba951de01",
+        "verifiedAt": "2026-11-23T01:51:02Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:OWEwZDY5MDktOTZkNS00NjFiLWIzMTUtODg5ZjNlZjFkNTI0",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          7111
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-23T01:51:02Z",
+      "completedSessionId": "host:claude:v1:OWEwZDY5MDktOTZkNS00NjFiLWIzMTUtODg5ZjNlZjFkNTI0",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-23T01:51:02Z"
       }
     },
     "acceptance": {
@@ -514,6 +627,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.6516776509",
-    "updated": "2026-11-22T22:12:47Z"
+    "updated": "2026-11-23T01:51:02Z"
   }
 }
