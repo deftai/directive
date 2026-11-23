@@ -1,0 +1,143 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #7172",
+    "updated": "2026-11-23T04:46:21Z"
+  },
+  "plan": {
+    "title": "Nightly lane red: Nightly full suite (Windows)",
+    "status": "running",
+    "narratives": {
+      "Description": "Nightly lane red: Nightly full suite (Windows)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/7172",
+      "Overview": "<!-- deft-nightly-lane: windows -->\nThis issue tracks the **Nightly full suite (Windows)** lane of the nightly workflow (`.github/workflows/nightly.yml`). The workflow reopens it and comments when the lane is red, and comments and closes it when the lane passes. Release readiness reuses a lane only when its latest attempt succeeded on the release tree (docs/RELEASING.md).\n\n## Acceptance Criteria\n\n- [ ] `packages/runtime/scripts/pack-staged-runtime.mjs` runs its four tar calls (extract, repack, `-xOf`, `-tzf`) in the tarball's folder with the archive file name only, and uses System32 bsdtar on win32, the same way `tasks/materialize.cjs` does (#6703).\n- [ ] A test proves the win32 tar invocation: System32 `tar.exe`, the tarball's folder as cwd, and a bare archive name with no drive letter.\n\n"
+    },
+    "items": [
+      {
+        "title": "`packages/runtime/scripts/pack-staged-runtime.mjs` runs its four tar calls (extract, repack, `-xOf`, `-tzf`) in the tarball's folder with the archive file name only, and uses System32 bsdtar on win32, the same way `tasks/materialize.cjs` does (#6703).",
+        "status": "proposed",
+        "id": "clause.1"
+      },
+      {
+        "title": "A test proves the win32 tar invocation: System32 `tar.exe`, the tarball's folder as cwd, and a bare archive name with no drive letter.",
+        "status": "proposed",
+        "id": "clause.2"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/7172",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #7172: Nightly lane red: Nightly full suite (Windows)"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per sentence-list entry (2), in order (#6333)",
+      "sentences": [
+        "`packages/runtime/scripts/pack-staged-runtime.mjs` runs its four tar calls (extract, repack, `-xOf`, `-tzf`) in the tarball's folder with the archive file name only, and uses System32 bsdtar on win32, the same way `tasks/materialize.cjs` does (#6703).",
+        "A test proves the win32 tar invocation: System32 `tar.exe`, the tarball's folder as cwd, and a bare archive name with no drive letter."
+      ],
+      "admitted_source_sentences": [
+        "`packages/runtime/scripts/pack-staged-runtime.mjs` runs its four tar calls (extract, repack, `-xOf`, `-tzf`) in the tarball's folder with the archive file name only, and uses System32 bsdtar on win32, the same way `tasks/materialize.cjs` does (#6703).",
+        "A test proves the win32 tar invocation: System32 `tar.exe`, the tarball's folder as cwd, and a bare archive name with no drive letter."
+      ],
+      "admitted_source_digest": "9ba642c41cdc10d76ad3a554d49ee1143f5e67fb5ba3b3e2b7e65dd87d2f751f",
+      "admitted_source_extractor": 2,
+      "clauses": [
+        {
+          "id": 1,
+          "text": "`packages/runtime/scripts/pack-staged-runtime.mjs` runs its four tar calls (extract, repack, `-xOf`, `-tzf`) in the tarball's folder with the archive file name only, and uses System32 bsdtar on win32, the same way `tasks/materialize.cjs` does (#6703).",
+          "artifact_path": "packages/runtime/scripts/pack-staged-runtime.mjs",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "A test proves the win32 tar invocation: System32 `tar.exe`, the tarball's folder as cwd, and a bare archive name with no drive letter.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "<!-- deft-nightly-run: windows 45108664348 1 -->\n**Nightly full suite (Windows)**: setup-failure\n\n- SHA: ff8e3ee6519527e7c6e30ed4f96ba1b306c9e587\n- Run: 45108664348 attempt 1\n- Run URL: https://github.com/deftai/directive/actions/runs/45108664348/attempts/1\n- Failing test files: unknown (no test report)\n\n",
+          "id": 7091306144,
+          "html_url": "https://github.com/deftai/directive/issues/7172#issuecomment-7091306144",
+          "user": {
+            "login": "github-actions[bot]",
+            "id": 41898282,
+            "node_id": "MDM6Qm90NDE4OTgyODI=",
+            "avatar_url": "https://avatars.githubusercontent.com/in/15368?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/github-actions%5Bbot%5D",
+            "html_url": "https://github.com/apps/github-actions",
+            "followers_url": "https://api.github.com/users/github-actions%5Bbot%5D/followers",
+            "following_url": "https://api.github.com/users/github-actions%5Bbot%5D/following{/other_user}",
+            "gists_url": "https://api.github.com/users/github-actions%5Bbot%5D/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/github-actions%5Bbot%5D/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/github-actions%5Bbot%5D/subscriptions",
+            "organizations_url": "https://api.github.com/users/github-actions%5Bbot%5D/orgs",
+            "repos_url": "https://api.github.com/users/github-actions%5Bbot%5D/repos",
+            "events_url": "https://api.github.com/users/github-actions%5Bbot%5D/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/github-actions%5Bbot%5D/received_events",
+            "type": "Bot",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-23T04:08:06Z",
+          "updated_at": "2026-11-23T04:08:06Z",
+          "author_association": "NONE"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6552055724,
+        "origin": "deftai/directive#7172",
+        "id": "github.issue.6552055724"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/runtime/scripts/pack-staged-runtime.mjs",
+          "packages/runtime/src/pack-staged-runtime-tar.test.ts",
+          "packages/runtime/src/stage-bundle-ac13.test.ts",
+          "changelog.d/7172-pack-staged-runtime-win-tar.md",
+          "changelog.d/7172-lifecycle-complete.md",
+          "docs/RULE-MAP.md",
+          "xbrief/evaluator-surface-disposition.json",
+          "xbrief/.audit/spec-drift/github.issue.6552055724.json"
+        ],
+        "verify_commands": [
+          "npx vitest run packages/runtime/src/pack-staged-runtime-tar.test.ts packages/runtime/src/stage-bundle-ac13.test.ts"
+        ],
+        "size": "small",
+        "file_scope_confidence": "high",
+        "depends_on": [],
+        "expected_outputs": [
+          "pack-staged-runtime.mjs: exported runTar(flag, tgz, rest, opts, deps) uses tarCommand from tasks/materialize.cjs, cwd = dirname(tgz), archive = basename(tgz); the four tar calls go through it; main runs only when invoked directly",
+          "pack-staged-runtime-tar.test.ts: win32 cases assert System32 tar.exe, tarball folder cwd and a bare archive name for -xzf, -czf, -xOf and -tzf; linux uses plain tar",
+          "stage-bundle-ac13.test.ts: its own tar reads use the tarball folder and a bare name",
+          "one changelog fragment changelog.d/7172-pack-staged-runtime-win-tar.md; tasks/materialize.cjs unchanged"
+        ],
+        "conflict_group": "pack-staged-runtime",
+        "model_tier": "high"
+      }
+    },
+    "id": "github.issue.6552055724",
+    "updated": "2026-11-23T04:46:21Z"
+  }
+}
