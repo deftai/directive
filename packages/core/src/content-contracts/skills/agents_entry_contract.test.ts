@@ -907,7 +907,10 @@ describe("test_agents_entry_contract", () => {
     const rest = templateManaged.slice(start);
     const next = rest.indexOf("\n## ", 3);
     const section = next === -1 ? rest : rest.slice(0, next);
-    const ruleLines = section.split("\n").filter((line) => line.trim().length > 0).slice(1);
+    const ruleLines = section
+      .split("\n")
+      .filter((line) => line.trim().length > 0)
+      .slice(1);
     // One rule line only: the kernel rides the existing #2143 line.
     expect(ruleLines).toHaveLength(1);
     expect(ruleLines[0]).toContain("issues/<N>/comments");
