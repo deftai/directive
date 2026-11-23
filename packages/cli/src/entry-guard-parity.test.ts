@@ -17,6 +17,7 @@ import { matchPinMismatchRecoveryCommand } from "../../core/src/install-health/r
 import { DEFT_DIRECTIVE_DISABLE_ONE_LINE } from "../../core/src/policy/deft-directive-disable.js";
 import {
   KILL_SWITCH_BARE_FLAG_NAME,
+  KILL_SWITCH_NAMESPACE,
   KILL_SWITCH_OFF_VERB,
   KILL_SWITCH_ON_VERB,
   KILL_SWITCH_RECORD_GIT_DIR_PREFIX,
@@ -90,7 +91,7 @@ describe("entry-guard table parity (core ↔ launcher copy)", () => {
     expect(cli.KILL_RECORD_GIT_DIR_PREFIX).toBe(KILL_SWITCH_RECORD_GIT_DIR_PREFIX);
     expect(cli.DISABLE_FLAG_NAME).toBe(KILL_SWITCH_BARE_FLAG_NAME);
     expect([...cli.KILL_SWITCH_LAUNCHER_COMMANDS].sort()).toEqual(
-      [KILL_SWITCH_OFF_VERB, KILL_SWITCH_ON_VERB].sort(),
+      [KILL_SWITCH_OFF_VERB, KILL_SWITCH_ON_VERB, KILL_SWITCH_NAMESPACE].sort(),
     );
   });
 });

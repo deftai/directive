@@ -166,6 +166,18 @@ describe("kill-switch:off (#6740)", () => {
     expect(existsSync(join(root, RECORD))).toBe(true);
   });
 
+  it("on and off from a subfolder act on the checkout root's record", () => {
+    const root = repo();
+    const sub = join(root, "packages", "app");
+    mkdirSync(sub, { recursive: true });
+    const c = capture();
+    expect(run(["on", "--confirm", "--project-root", sub], operator(c))).toBe(0);
+    expect(existsSync(join(root, RECORD))).toBe(true);
+    expect(existsSync(join(sub, RECORD))).toBe(false);
+    expect(run(["off", "--confirm", "--project-root", sub], operator(c))).toBe(0);
+    expect(existsSync(join(root, RECORD))).toBe(false);
+  });
+
   it("is a no-op when there is no record", () => {
     const root = repo();
     const c = capture();

@@ -25,6 +25,7 @@ import {
   removeKillSwitchRecord,
   writeKillSwitchRecord,
 } from "@deftai/directive-core/dist/policy/kill-switch-record.js";
+import { worktreePathOrNull } from "@deftai/directive-core/dist/session/git.js";
 import { isDirectEntrypoint } from "./entrypoint.js";
 import {
   type HumanPresenceMintSeams,
@@ -36,6 +37,8 @@ import {
 
 export interface KillSwitchSeams extends HumanPresenceMintSeams {
   readonly absoluteGitDir?: AbsoluteGitDirResolver;
+  /** Checkout root (`git rev-parse --show-toplevel`) for a folder, or null. */
+  readonly checkoutRoot?: (dir: string) => string | null;
   readonly now?: () => Date;
   readonly writeOut?: (text: string) => void;
   readonly writeErr?: (text: string) => void;
@@ -106,6 +109,15 @@ export function parseArgs(argv: readonly string[]): ParsedArgs {
   return { action, confirm, projectRoot, help: false };
 }
 
+/**
+ * The record lives at the checkout root, where every reader looks, so a run
+ * from a subfolder resolves to that root (a linked worktree keeps its own).
+ */
+function recordRoot(projectRoot: string, seams: KillSwitchSeams): string {
+  const dir = resolve(projectRoot);
+  return (seams.checkoutRoot ?? ((d: string) => worktreePathOrNull(d)))(dir) ?? dir;
+}
+
 function isoSeconds(date: Date): string {
   return date.toISOString().replace(/\.\d{3}Z$/, "Z");
 }
@@ -117,7 +129,7 @@ function runOn(
   writeOut: (text: string) => void,
   writeErr: (text: string) => void,
 ): number {
-  const projectRoot = resolve(args.projectRoot);
+  const projectRoot = recordRoot(args.projectRoot, seams);
   const uatBlocked = refuseMintWhileUatActive(KILL_SWITCH_ON_VERB, projectRoot);
   if (uatBlocked !== null) return uatBlocked;
   const resolved = resolveHumanPresenceMintSeams(seams);
@@ -162,6 +174,7 @@ function runOn(
 
 function runOff(
   args: ParsedArgs,
+  seams: KillSwitchSeams,
   writeOut: (text: string) => void,
   writeErr: (text: string) => void,
 ): number {
@@ -171,7 +184,7 @@ function runOff(
     );
     return 2;
   }
-  const projectRoot = resolve(args.projectRoot);
+  const projectRoot = recordRoot(args.projectRoot, seams);
   const result = removeKillSwitchRecord(projectRoot);
   if (!result.ok) {
     writeErr(`${KILL_SWITCH_OFF_VERB}: could not remove ${result.path}: ${result.error}\n`);
@@ -202,7 +215,7 @@ export function run(argv: string[], seams: KillSwitchSeams = {}): number {
   }
   return args.action === "on"
     ? runOn(argv, args, seams, writeOut, writeErr)
-    : runOff(args, writeOut, writeErr);
+    : runOff(args, seams, writeOut, writeErr);
 }
 
 if (isDirectEntrypoint(import.meta.url)) {

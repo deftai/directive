@@ -17,7 +17,8 @@ import {
   checkKillSwitchReaderMarkers,
   KILL_SWITCH_READER_REDEPOSIT,
 } from "../install-health/wiring.js";
-import { KILL_SWITCH_GITHOOK_MARKER } from "../policy/kill-switch-record.js";
+import { resolveAbsoluteGitDir } from "../policy/deft-directive-disable.js";
+import { KILL_SWITCH_GITHOOK_MARKER, writeKillSwitchRecord } from "../policy/kill-switch-record.js";
 import { cmdDoctor } from "./main.js";
 
 const roots: string[] = [];
@@ -129,5 +130,30 @@ describe("doctor kill-switch reader findings (#6740)", () => {
       ".githooks/_directive-run.sh",
     ]);
     for (const f of readers) expect(f.message).toContain(KILL_SWITCH_READER_REDEPOSIT);
+  });
+
+  it("still names old readers when a valid record has Directive off", () => {
+    const root = project();
+    writeHelper(root, "#!/usr/bin/env sh\n");
+    writeKillSwitchRecord(root, {
+      gitDir: resolveAbsoluteGitDir(root) ?? "",
+      mintedAt: "2026-11-22T00:00:00Z",
+      mintedVia: "kill-switch:on",
+    });
+    const out: string[] = [];
+    vi.spyOn(process.stdout, "write").mockImplementation(((c: string | Uint8Array) => {
+      out.push(String(c));
+      return true;
+    }) as typeof process.stdout.write);
+    expect(cmdDoctor(["--project-root", root, "--json"])).toBe(0);
+    const payload = JSON.parse(out.join("")) as {
+      disabled: boolean;
+      old_kill_switch_readers: string[];
+      message: string;
+    };
+    expect(payload.disabled).toBe(true);
+    expect(payload.old_kill_switch_readers).toHaveLength(1);
+    expect(payload.old_kill_switch_readers[0]).toContain(KILL_SWITCH_READER_REDEPOSIT);
+    expect(payload.message).toContain(KILL_SWITCH_READER_REDEPOSIT);
   });
 });

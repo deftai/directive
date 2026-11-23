@@ -166,11 +166,12 @@ export const KILL_RECORD_GIT_DIR_PREFIX = "gitDir=";
 
 /**
  * Kill record verbs (#6740) pass the step-1 stop, so `deft kill-switch:off`
- * can remove a valid record.
+ * (or the namespace form `deft kill-switch off`) can remove a valid record.
  */
 export const KILL_SWITCH_LAUNCHER_COMMANDS: ReadonlySet<string> = new Set([
   "kill-switch:on",
   "kill-switch:off",
+  "kill-switch",
 ]);
 
 /** One-line notice for passthrough commands (core `DEFT_DIRECTIVE_DISABLE_ONE_LINE`). */

@@ -677,7 +677,9 @@ export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): num
       ...(provenance !== null ? [provenance] : []),
     ].join("\n");
     const noticeLines = collectKillSwitchSessionStartNoticeLines(projectRoot, seams);
-    const fullMessage = noticeLines.length > 0 ? `${message}\n${noticeLines.join("\n")}` : message;
+    // Old readers ignore the record and keep enforcing; say so with the redeposit.
+    const oldReaders = checkKillSwitchReaderMarkers(projectRoot).map((f) => f.message);
+    const fullMessage = [message, ...noticeLines, ...oldReaders].join("\n");
     if (jsonMode) {
       const payload = {
         status: DEFT_DIRECTIVE_DISABLE_STATUS,
@@ -692,6 +694,7 @@ export function cmdDoctor(args: readonly string[], seams: DoctorSeams = {}): num
         deposit_present: killSwitch.depositPresent,
         tracked_by_git: false,
         permanent_opt_out_also_present: optOutAlso.present,
+        old_kill_switch_readers: oldReaders,
         message: fullMessage,
       };
       process.stdout.write(`${pythonJsonDump(withExtraJson(payload, seams))}\n`);

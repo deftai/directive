@@ -424,6 +424,18 @@ describe("runtime-pinned project (AC10.11)", () => {
       nothingElseRan(root);
     });
 
+    it.each([
+      [["kill-switch:off", "--confirm"]],
+      [["kill-switch", "off", "--confirm"]],
+    ])("deft %j passes the stop so the record can be removed", (argv) => {
+      const root = newRepo(true);
+      writeFileSync(join(root, RUNTIME_DIR, "dist", "bin.js"), recorderSource("runtime-bin"));
+      disable(root);
+      const result = run(root, argv, { entry: "deft" });
+      expect(result.stderr).not.toContain(DISABLE_ONE_LINE);
+      expect(marker(root, "runtime-bin")?.argv).toEqual(argv);
+    });
+
     it("a bare root flag does not stop anything (#6740)", () => {
       const root = newRepo(false);
       expect(spawnSync("git", ["init", "-q"], { cwd: root }).status).toBe(0);

@@ -252,6 +252,33 @@ describe("kill record write and removal (#6740)", () => {
     expect(detectDeftDirectiveDisable(second).active).toBe(false);
     expect(detectDeftDirectiveDisable(second).warning).toContain("git-dir-mismatch");
   });
+
+  it.for([
+    ".deft",
+    ".deft/authz",
+  ])("refuses to write or remove through a linked %s into another checkout", (linked, ctx) => {
+    const victim = gitRepo("w6740c1-victim-");
+    const attacker = gitRepo("w6740c1-linked-");
+    writeKillSwitchRecord(victim, { gitDir: gitDirOf(victim), mintedAt: "t", mintedVia: "v" });
+    const victimRecord = readFileSync(killSwitchRecordPath(victim), "utf8");
+    const target = linked === ".deft" ? join(victim, ".deft") : join(victim, ".deft", "authz");
+    const link = join(attacker, ...linked.split("/"));
+    mkdirSync(dirname(link), { recursive: true });
+    try {
+      symlinkSync(target, link, "junction");
+    } catch {
+      ctx.skip();
+      return;
+    }
+    const wrote = writeKillSwitchRecord(attacker, {
+      gitDir: gitDirOf(attacker),
+      mintedAt: "t",
+      mintedVia: "v",
+    });
+    expect(wrote.ok).toBe(false);
+    expect(removeKillSwitchRecord(attacker).ok).toBe(false);
+    expect(readFileSync(killSwitchRecordPath(victim), "utf8")).toBe(victimRecord);
+  });
 });
 
 describe("bare flag (#6740)", () => {

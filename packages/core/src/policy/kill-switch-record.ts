@@ -30,15 +30,17 @@
  */
 
 import {
+  existsSync,
   lstatSync,
   mkdirSync,
   readFileSync,
+  realpathSync,
   renameSync,
   rmSync,
   unlinkSync,
   writeFileSync,
 } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 
 /** Record schema line (exact whole line). */
 export const KILL_SWITCH_RECORD_SCHEMA = "deft.kill-switch.v1";
@@ -52,6 +54,8 @@ export const KILL_SWITCH_RECORD_REL = ".deft/authz/kill-switch.disable";
 /** Verbs that write and remove the record. */
 export const KILL_SWITCH_ON_VERB = "kill-switch:on";
 export const KILL_SWITCH_OFF_VERB = "kill-switch:off";
+/** Namespace form (`deft kill-switch on|off`) the runtime also accepts. */
+export const KILL_SWITCH_NAMESPACE = "kill-switch";
 
 /** Root flag file name that no longer turns anything off (#3039 → #6740). */
 export const KILL_SWITCH_BARE_FLAG_NAME = ".deft-directive-disable";
@@ -90,9 +94,11 @@ export function killSwitchRecordPath(projectRoot: string): string {
   return resolve(projectRoot, KILL_SWITCH_RECORD_REL);
 }
 
-/** Strip trailing newlines only, as sh `$(...)` does. */
+/** Strip trailing newlines only, as sh `$(...)` does (linear scan, no regex). */
 export function trimGitOutput(text: string): string {
-  return text.replace(/\n+$/, "");
+  let end = text.length;
+  while (end > 0 && text.charCodeAt(end - 1) === 10) end -= 1;
+  return text.slice(0, end);
 }
 
 function displayValue(lines: readonly string[], key: string): string | null {
@@ -177,20 +183,58 @@ export type KillSwitchRecordIoResult =
   | { readonly ok: false; readonly path: string; readonly error: string };
 
 /**
+ * Why the record's parent folders cannot be used, or null when they can: a
+ * link at `.deft` or `.deft/authz`, or a parent that resolves outside the
+ * checkout, would let `on` / `off` change another checkout's record.
+ */
+export function killSwitchRecordParentProblem(projectRoot: string): string | null {
+  const root = resolve(projectRoot);
+  const deftDir = join(root, ".deft");
+  const authzDir = dirname(killSwitchRecordPath(root));
+  for (const dir of [deftDir, authzDir]) {
+    try {
+      const lst = lstatSync(dir);
+      if (lst.isSymbolicLink()) return `${dir} is a link; the record must stay in this checkout`;
+      if (!lst.isDirectory()) return `${dir} is not a folder`;
+    } catch {
+      // Missing folders are created below; nothing to follow.
+    }
+  }
+  try {
+    const realRoot = realpathSync(root);
+    const existing = [authzDir, deftDir].find((d) => existsSync(d));
+    if (existing !== undefined) {
+      const real = realpathSync(existing);
+      const rel = relative(realRoot, real);
+      if (rel.startsWith("..") || isAbsolute(rel)) {
+        return `${existing} resolves outside this checkout (${real})`;
+      }
+    }
+  } catch (err) {
+    return `cannot resolve the record folder: ${String(err)}`;
+  }
+  return null;
+}
+
+/**
  * Atomically publish the record: write a temp file beside it, then rename it
- * over the record path.
+ * over the record path. Refuses linked or escaping parent folders.
  */
 export function writeKillSwitchRecord(
   projectRoot: string,
   fields: KillSwitchRecordFields,
 ): KillSwitchRecordIoResult {
   const path = killSwitchRecordPath(projectRoot);
+  const before = killSwitchRecordParentProblem(projectRoot);
+  if (before !== null) return { ok: false, path, error: before };
   const temp = join(
     dirname(path),
     `.kill-switch.disable.${process.pid}.${Date.now().toString(36)}.tmp`,
   );
   try {
     mkdirSync(dirname(path), { recursive: true });
+    const after = killSwitchRecordParentProblem(projectRoot);
+    if (after !== null) return { ok: false, path, error: after };
     writeFileSync(temp, formatKillSwitchRecord(fields), { encoding: "utf8", flag: "wx" });
     renameSync(temp, path);
     return { ok: true, path, changed: true };
@@ -203,6 +247,8 @@ export function writeKillSwitchRecord(
 /** Remove only the record file; `changed` is false when there was none. */
 export function removeKillSwitchRecord(projectRoot: string): KillSwitchRecordIoResult {
   const path = killSwitchRecordPath(projectRoot);
+  const problem = killSwitchRecordParentProblem(projectRoot);
+  if (problem !== null) return { ok: false, path, error: problem };
   try {
     lstatSync(path);
   } catch {
