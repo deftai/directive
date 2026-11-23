@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -63,6 +63,20 @@ function seams(overrides: Partial<HookPolicySeams> = {}): HookPolicySeams {
     authzAudit: false,
     ...overrides,
   };
+}
+
+// A release cut folds changelog.d fragments into CHANGELOG.md and deletes them,
+// so read the fragment while it exists and the folded #6981 entry after that.
+const FRAGMENT_6981 = "changelog.d/6981-powershell-monitor-shell-tools.md";
+
+function changelogEntry6981(root: string): string {
+  const fragment = join(root, FRAGMENT_6981);
+  if (existsSync(fragment)) return readFileSync(fragment, "utf8");
+  const lines = readFileSync(join(root, "CHANGELOG.md"), "utf8")
+    .split(/\r?\n/)
+    .filter((line) => /\(#6981\)\.?\s*$/.test(line));
+  if (lines.length === 0) throw new Error(`no #6981 entry in ${FRAGMENT_6981} or CHANGELOG.md`);
+  return lines.join("\n");
 }
 
 function ownerRoot(): string {
@@ -166,16 +180,37 @@ describe("PowerShell and Monitor are shell tools (#6981)", () => {
 
   it("states the repair step, the two tools and the #7050 pointer in the docs and changelog", () => {
     const doc = readFileSync(join(REPO_ROOT, "content/docs/deft-directive-disable.md"), "utf8");
-    const fragment = readFileSync(
-      join(REPO_ROOT, "changelog.d/6981-powershell-monitor-shell-tools.md"),
-      "utf8",
-    );
-    for (const text of [doc, fragment]) {
+    const entry = changelogEntry6981(REPO_ROOT);
+    for (const text of [doc, entry]) {
       expect(text).toContain("`PowerShell`");
       expect(text).toContain("`Monitor`");
       expect(text).toContain("directive install --repair");
       expect(text).toContain("#7050");
     }
     expect(doc).toMatch(/file-writing cmdlets and their aliases, program runners/);
+  });
+
+  it("reads the folded CHANGELOG.md entry once a release cut removes the fragment", () => {
+    const bullet = changelogEntry6981(REPO_ROOT)
+      .split(/\r?\n/)
+      .find((line) => line.startsWith("- ") && line.includes("(#6981)"));
+    expect(bullet).toBeDefined();
+    const root = mkdtempSync(join(tmpdir(), "changelog-6981-"));
+    temps.push(root);
+    writeFileSync(
+      join(root, "CHANGELOG.md"),
+      "# Changelog\n\n- Complete #6981 after merge of #7084.\n",
+    );
+    expect(() => changelogEntry6981(root)).toThrow(/no #6981 entry/);
+    writeFileSync(
+      join(root, "CHANGELOG.md"),
+      ["# Changelog", "", "### Fixed", "- Complete #6981 after merge of #7084.", bullet, ""].join(
+        "\n",
+      ),
+    );
+    expect(changelogEntry6981(root)).toBe(bullet);
+    mkdirSync(join(root, "changelog.d"));
+    writeFileSync(join(root, FRAGMENT_6981), "fragment wins while it exists\n");
+    expect(changelogEntry6981(root)).toBe("fragment wins while it exists\n");
   });
 });
