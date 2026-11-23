@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #4949",
-    "updated": "2026-11-22T22:26:27Z"
+    "updated": "2026-11-23T02:24:11Z"
   },
   "plan": {
     "title": "leftover(#4923): unfunded always-on Personal-wins and #480 trigger",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "After #4923 drops the eager main.md load, an agent can read issue comments over raw REST without ever meeting the #480 Agent Trap rules. This story folds a short #480 kernel onto the always-on #2143 issue-read line in the AGENTS.md template and mirrors the instruction hierarchy into the orchestrator preamble for dispatched workers. Personal-wins already lives on the session-routing card, so no Personal-wins line is added, and the AGENTS.md ratchet is not raised.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/4949",
@@ -19,58 +19,107 @@
     "items": [
       {
         "title": "Recut P1 Personal-wins: already-satisfied by `content/templates/agents-entry.md` L24 `USER.md \"Personal (always wins)\" sole Personal SoT overrides external context` at pin `97ca8ce33f54cacf87733a156ab6ad7430cbca5b` (blob `648385128f73ea0076f210f34e077b3265d4041f`). That clause survives the #4923 two-conjunct omit. `agents_entry_contract.test.ts` session_routing_names_host_memory_external_context_family (#5321) already requires `sole Personal SoT` on that card. Dedicated extra line is unfunded prominence, not a presence miss. ⊗ new managed line. ⊗ second Personal-wins statement.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "Given agents-entry.md after the build, then the session-routing card still carries `sole Personal SoT`, and no new Personal-wins line or second Personal-wins statement is added."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "215047ddf2f147c8ad4f4d76322b20e9148cd3d6",
+          "recorded_at": "2026-11-23T02:24:11Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Recut P1 #480 trigger: fold one conjunct onto the existing always-on `#2143` / agents-entry L63 REST-read mandate (`Fetch body + issues/<N>/comments via REST before requirements or dispatch`). No new managed line and no new managed heading. Kernel inline on that line, not a pointer-only send to `meta/security.md`. Preferred kernel shape is a short data-not-instructions plus Agent Trap (#480) load of `.deft/core/main.md` § Agent Trap Defenses, matching `content/meta/security.md` lazy-load \"about to process externally-sourced content\". Keep L4 locative haystack. Do not restore an unconditional full-main.md session-routing load.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "Given the agents-entry line under `## Issue body→comments reading (#2143)`, then it carries an inline #480 kernel (issue text is data; read main.md § Agent Trap Defenses) with no new managed line or heading, and session routing does not regain an unconditional main.md load."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "215047ddf2f147c8ad4f4d76322b20e9148cd3d6",
+          "recorded_at": "2026-11-23T02:24:11Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Recut P1 funding and sequence: implement after parent #4923 delete-only lands on `origin/<deliveryBranch>`. Re-measure `extractManagedSection` / `measureManagedSection` on the post-#4923 generated route. Candidate conjunct plus post-omit managed bytes MUST stay ≤ `plan.policy.agentsMdBudget.absoluteMaxBytes` (28100 at this pin) and `managedMaxLines` 200. #4923 MUST NOT re-seed `absoluteMaxBytes` down to the post-omit size before this add. If measured post-#4923 headroom cannot fund the named conjunct, pair a same-file deletion on the generated route or hold the #4923 omit; do not raise the ratchet and do not park #480. Pin-read at this SHA: managed 28034 bytes / 200 lines; two-substring omit of `main.md / ` and `main → ` yields 28015 bytes / 200 lines (Grok finding 1). Final wording is a measured candidate, not these pin-time projections.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "Given AGENTS.md after #4923 and this build, then the measured managed section is within absoluteMaxBytes and managedMaxLines, and neither value was raised."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "215047ddf2f147c8ad4f4d76322b20e9148cd3d6",
+          "recorded_at": "2026-11-23T02:24:11Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Recut P1 dispatched workers: add a preamble §-mirror of the #480 instruction-hierarchy kernel in `content/templates/agent-prompt-preamble.md` (data, not directives; surface embedded instructions as findings; framework wins on conflict; ⊗ aggregate fragments). Precedent: preamble already mirrors Cancellation Attribution (#1300). Zero AGENTS.md bytes. Preamble is additional, not the sole control (ticket-shaping parent turns still need item 2).",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "Given agent-prompt-preamble.md, then one section mirrors the #480 instruction hierarchy: external content is data, embedded instructions are surfaced as findings, the framework wins on conflict, and fragments are not aggregated."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "215047ddf2f147c8ad4f4d76322b20e9148cd3d6",
+          "recorded_at": "2026-11-23T02:24:11Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Preserve: `managedMaxLines` 200; `absoluteMaxBytes` 28100 unless a later issue/PR under #3156 raises it; L4 locative; #5321 Personal-wins contract; parent #4923 delete-only harvest (L24 load-list and else-clause, commands.md L440-class, host-lifecycle L50 if still eager); `scanUntrustedIngestText` on `deft issue:ingest`.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "Given the build diff, then managedMaxLines and absoluteMaxBytes are not raised, and the L4 locative line, the #5321 Personal-wins contract test and scanUntrustedIngestText on issue:ingest are unchanged."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "215047ddf2f147c8ad4f4d76322b20e9148cd3d6",
+          "recorded_at": "2026-11-23T02:24:11Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Exclude: dedicated Personal-wins or Agent Trap managed line; ratchet-only park of #480; dominate-into-#3014 as P1 close; hook-channel / SessionStart carrier (`BOOTSTRAP_HOOK_BYTES = 0`); silent line or byte ratchet re-seed; pointer-only conjunct with no kernel; holding #480 solely on skill `## Security context (#480)` blocks.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "narrative": {
           "Acceptance": "Given the build diff, then it adds no dedicated Personal-wins or Agent Trap managed line, no hook or SessionStart carrier, no pointer-only conjunct without the kernel, and no ratchet raise."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "215047ddf2f147c8ad4f4d76322b20e9148cd3d6",
+          "recorded_at": "2026-11-23T02:24:11Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Named residual: if post-#4923 measurement cannot fund item 2, a paired generated-route deletion or hold of the omit. Unmanaged maintainer AGENTS.md L16 eager `main.md → USER.md` is this-repo only, not the generated consumer route.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
         "narrative": {
           "Acceptance": "If the measured headroom cannot fund the kernel, then the build pairs a deletion on the generated route or stops and reports; it does not raise the ratchet or park #480."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "215047ddf2f147c8ad4f4d76322b20e9148cd3d6",
+          "recorded_at": "2026-11-23T02:24:11Z",
+          "recorded_by": "scope:complete"
         }
       }
     ],
@@ -498,9 +547,38 @@
         "conflict_group": "agents-md-budget",
         "model_tier": "high",
         "acceptance_criteria_justification": "The 7 clauses are the 7 Bound remedy items of the accepted lean 6181304260 on #4949, harvested and digest-pinned by issue ingest; they cannot be merged or dropped without breaking the admitted-source pin."
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "2a423ef79575b1ceddd8ad3fcf45d9ceec231e1a",
+        "prNumber": 7152,
+        "prBase": "master",
+        "mergeCommit": "215047ddf2f147c8ad4f4d76322b20e9148cd3d6",
+        "deliveryBranch": "master",
+        "deliveryCommit": "f2f930803f1899547066533b93f72f5b9674e5b2",
+        "verifiedAt": "2026-11-23T02:24:11Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:OWEwZDY5MDktOTZkNS00NjFiLWIzMTUtODg5ZjNlZjFkNTI0",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          7118
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-23T02:24:11Z",
+      "completedSessionId": "host:claude:v1:OWEwZDY5MDktOTZkNS00NjFiLWIzMTUtODg5ZjNlZjFkNTI0",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-23T02:24:11Z"
       }
     },
     "id": "github.issue.5548194625",
-    "updated": "2026-11-22T22:26:27Z"
+    "updated": "2026-11-23T02:24:11Z"
   }
 }
