@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6899",
-    "updated": "2026-11-22T22:09:53Z"
+    "updated": "2026-11-22T23:06:29Z"
   },
   "plan": {
     "title": "orphan-active: bound the pending lifecycle-PR scan by the run deadline (#6896 follow-up)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Bound the pending lifecycle-PR scan in verify:orphan-active by the run deadline it already has (startedMs + budgetMs on the existing clock), with no new constant. Once the deadline is reached the scan starts no new forge request, keeps every shipped verdict (exit 1) and prints one line saying the scan was cut short.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6899",
@@ -20,90 +20,167 @@
     "items": [
       {
         "title": "Inputs. `findPendingLifecyclePrs` (`packages/core/src/orphan-active/evaluate.ts`) takes `deadlineMs` and `nowMs`. `evaluate()` passes `startedMs + budgetMs` and the `clock` it already uses. No new constant.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "Given evaluate() runs the pending scan, then findPendingLifecyclePrs receives deadlineMs = startedMs + budgetMs and the run's clock as nowMs, and no new constant is added."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "208d6397264a8f53cb2efbdf41db6ec8f39dc7fb",
+          "recorded_at": "2026-11-22T23:06:29Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Admission check. Before each forge request in the scan (each open-PR list page and each changed-files page), the scan reads `nowMs()`. When `nowMs() >= deadlineMs`, it starts no further request and returns a failed result whose error says the scan was cut short at the run deadline, names the budget, and says how many same-repository open PRs it had read in full.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "Given nowMs() >= deadlineMs before a forge request in the scan, then that request is not started and the scan returns a failed result naming the cut at the run deadline, the budget and the count of same-repository open PRs read in full."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "208d6397264a8f53cb2efbdf41db6ec8f39dc7fb",
+          "recorded_at": "2026-11-22T23:06:29Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Fail closed, all or nothing. The caller handles that result as it handles any failed scan today: every shipped verdict is kept (exit 1), including a brief whose lifecycle PR was already found before the cut. The `pendingNote` line reads `pending lifecycle check cut short at the run deadline, shipped verdicts kept: …`.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "Given the scan is cut short, then every shipped verdict is kept (exit 1), including a brief whose lifecycle PR was already found, and the output carries the line 'pending lifecycle check cut short at the run deadline, shipped verdicts kept: ...'."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "208d6397264a8f53cb2efbdf41db6ec8f39dc7fb",
+          "recorded_at": "2026-11-22T23:06:29Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Scope of the guarantee. The guarantee is: once the deadline is reached, the pending scan starts no new request. A request already running may end after the deadline, and the reads before and after the scan are not changed. The doc comment of `findPendingLifecyclePrs` says so.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "Given the findPendingLifecyclePrs doc comment, then it says the scan starts no new request once the deadline is reached, that a running request may end after the deadline, and that reads before and after the scan are unchanged."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "208d6397264a8f53cb2efbdf41db6ec8f39dc7fb",
+          "recorded_at": "2026-11-22T23:06:29Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "A scan that completes before the deadline behaves exactly as today.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "Given a scan that finishes before the deadline, then its result is the same as before this change."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "208d6397264a8f53cb2efbdf41db6ec8f39dc7fb",
+          "recorded_at": "2026-11-22T23:06:29Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given an already expired deadline when the pending scan starts, then the scan makes no forge request, the run exits 1 with the shipped verdict, and the output carries the cut-short line.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "narrative": {
           "Acceptance": "Given an expired deadline when the scan starts, then no forge request is made, the run exits 1 with the shipped verdict and the output has the cut-short line."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "208d6397264a8f53cb2efbdf41db6ec8f39dc7fb",
+          "recorded_at": "2026-11-22T23:06:29Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given a clock equal to the deadline before a request, then that request is not started.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
         "narrative": {
           "Acceptance": "Given a clock equal to the deadline before a request, then that request is not started."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "208d6397264a8f53cb2efbdf41db6ec8f39dc7fb",
+          "recorded_at": "2026-11-22T23:06:29Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given many open same-repository PRs and a clock that passes the deadline during one request, then no further request starts after that request, the run exits 1 with the shipped verdict, and the output carries the cut-short line.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.8",
         "narrative": {
           "Acceptance": "Given many open same-repository PRs and a clock that passes the deadline during one request, then no further request starts, the run exits 1 with the shipped verdict and the output has the cut-short line."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "208d6397264a8f53cb2efbdf41db6ec8f39dc7fb",
+          "recorded_at": "2026-11-22T23:06:29Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given two shipped briefs, when the first brief's lifecycle PR is read in full and the deadline passes before the second is found, then both briefs keep the shipped verdict.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.9",
         "narrative": {
           "Acceptance": "Given two shipped briefs where the first brief's lifecycle PR is read in full and the deadline passes before the second is found, then both briefs keep the shipped verdict."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "208d6397264a8f53cb2efbdf41db6ec8f39dc7fb",
+          "recorded_at": "2026-11-22T23:06:29Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given a scan that finishes before the deadline, then pending results and output are the same as today.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.10",
         "narrative": {
           "Acceptance": "Given a scan that finishes before the deadline, then pending results and output match the behavior before this change."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "208d6397264a8f53cb2efbdf41db6ec8f39dc7fb",
+          "recorded_at": "2026-11-22T23:06:29Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "No new constant is added for the bound.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.11",
         "narrative": {
           "Acceptance": "Given the diff, then no new constant is added for the bound; the deadline comes from the existing budgetMs and clock."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "208d6397264a8f53cb2efbdf41db6ec8f39dc7fb",
+          "recorded_at": "2026-11-22T23:06:29Z",
+          "recorded_by": "scope:complete"
         }
       }
     ],
@@ -397,7 +474,34 @@
         "harvestDigest": "2af4f2f4ced135c146d5620b80c0a1e3293b1d71ba91297c20389d24259a7022",
         "slice": null
       },
-      "kind": "story"
+      "kind": "story",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "1bdd997ed53d1c8bd8341be060133bd8b15fea8d",
+        "prNumber": 7121,
+        "prBase": "master",
+        "mergeCommit": "208d6397264a8f53cb2efbdf41db6ec8f39dc7fb",
+        "deliveryBranch": "master",
+        "deliveryCommit": "29e26fcc365df4368c20344c0ad4eeb460d539aa",
+        "verifiedAt": "2026-11-22T23:06:29Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          7109
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-22T23:06:29Z",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-22T23:06:29Z"
+      }
     },
     "acceptance": {
       "commands": [],
@@ -513,6 +617,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.6519484545",
-    "updated": "2026-11-22T22:09:53Z"
+    "updated": "2026-11-22T23:06:29Z"
   }
 }
