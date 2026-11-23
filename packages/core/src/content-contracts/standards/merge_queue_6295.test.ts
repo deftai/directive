@@ -61,9 +61,30 @@ describe("merge_group PR-context skips (#6295 item 2)", () => {
     ["packages/runtime/src/verify-intent-constraint.ts", "verify:intent-constraint"],
     // #6296 item 6: the merge-base changelog check joins the PR-context checks.
     ["packages/runtime/src/changelog-check.ts", "verify:changelog-unreleased"],
+    // #7147: class checks judge a change set, so they skip the group commit too.
+    ["packages/runtime/src/verify-class-checks.ts", "verify:class-checks"],
   ])("%s skips itself on merge_group", (path, check) => {
     const src = readText(path);
     expect(src).toContain(`mergeGroupSkip("${check}", env)`);
+  });
+
+  it("scm/github.md names all five skipped checks, the change-set reason and the give-up (#7147)", () => {
+    const doc = readText("scm/github.md");
+    const bullet = doc.split("\n").find((line) => line.startsWith("- ! On `merge_group`, "));
+    expect(bullet).toBeDefined();
+    for (const check of [
+      "verify:closing-keywords",
+      "verify:scope-provenance",
+      "verify:intent-constraint",
+      "verify:changelog-unreleased",
+      "verify:class-checks",
+    ]) {
+      expect(bullet).toContain(`\`${check}\``);
+    }
+    expect(bullet).toContain("on a group commit the change set holds every PR queued ahead");
+    expect(bullet).toContain("What the queue no longer re-checks");
+    expect(bullet).toContain("All other checks run on the group commit.");
+    expect(bullet).not.toMatch(/already ran/);
   });
 });
 

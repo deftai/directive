@@ -75,7 +75,7 @@ task materialize:clear-cut-context
 
 ! **Release line.** The release writes `- [release-line] v<version>` under the fresh `[Unreleased]`, so master's merge gate stays green after a cut and the pin-bump PR merges with no `hotfix` label. `verify:changelog-unreleased` judges a change set that adds a release line by the release rule only (release files only, matching heading, the line alone, no fragment, no note lost line by line).
 
-! **Merge-queue skip.** `verify:changelog-unreleased` skips itself on `merge_group` with the PR-context skip notice. What is given up: on a merge-queue commit nothing re-checks the changelog; the entry requirement and the release rule were judged on the PR at its last CI run.
+! **Merge-queue skip.** `verify:changelog-unreleased` skips itself on `merge_group` with the change-set skip notice (#7147): on a group commit the change set holds every PR queued ahead, so the check runs on the PR head instead. What is given up: on a merge-queue commit nothing re-checks the changelog; the entry requirement and the release rule were judged on the PR at its last CI run.
 
 ! **Changes that land ahead.** A note that merges to the base before the release PR's check fails the release rule: close the release PR, delete the release branch, run the cut again from a fresh branch. A note queued ahead that lands first is seen by no check; the finish step refuses and names it.
 
