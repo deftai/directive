@@ -1,0 +1,195 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #7223",
+    "updated": "2026-11-23T20:55:32Z"
+  },
+  "plan": {
+    "title": "fix(literal-acceptance): refuse acceptance cwd and npm --prefix inside node_modules",
+    "status": "running",
+    "narratives": {
+      "Description": "This story adds refusals to the literal acceptance cwd and npm --prefix checks. A cwd or --prefix value with a node_modules segment or a leading-dot segment is refused at grammar time, and a resolved real path with a node_modules segment is refused at run time. Acceptance commands then run only from the repo's own directories, never from installed dependencies.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/7223",
+      "Overview": "## Acceptance Criteria\n\n- [ ] A literal acceptance command whose record cwd has a `node_modules` path segment or a leading-dot segment is refused at grammar time (`evaluateAcceptanceCwdGrammar`).\n- [ ] An `npm --prefix` value with a `node_modules` segment or a leading-dot segment is refused (`evaluateCommandSafety`).\n- [ ] `evaluateAcceptanceCwdContainment` refuses a resolved real path that contains a `node_modules` segment, for both the cwd and the `--prefix` directory.\n- [ ] Regression tests in `packages/core/src/literal-acceptance/` cover each refusal, and the brief-command survey reports how many existing brief commands change verdict.\n- [ ] `content/docs/plan-acceptance.md` states that acceptance commands run only from the repo's own directories, never from installed dependencies.\n\nRefs #7175, #7220\n\n",
+      "UserStory": "As a maintainer whose briefs carry literal acceptance commands, I want activation and verify:ac to refuse an acceptance cwd or npm --prefix inside node_modules or a dot folder, so that an acceptance run never executes code from installed dependencies.",
+      "ImplementationPlan": "1. In packages/core/src/literal-acceptance/safety.ts, make evaluateAcceptanceCwdGrammar refuse (not warn) a cwd with a node_modules segment or a leading-dot segment, with its own refusal id and reason; other non-grammar cwds keep today's warning.\n2. In evaluateCommandSafety, refuse an npm --prefix value (both --prefix <dir> and --prefix=<dir>) with a node_modules segment or a leading-dot segment.\n3. In packages/core/src/literal-acceptance/run.ts, make evaluateAcceptanceCwdContainment refuse a resolved real path that has a node_modules segment relative to the real project root; evaluateRunContainment applies it to the cwd and to the --prefix directory.\n4. Carry the new grammar refusal through the record verdict consumers (product-first-done-gate evaluate.ts, the activation acceptance gate, runtime verify-ac.ts) and declare the refusal id in refusal-declarations/table.ts.\n5. Add regression tests under packages/core/src/literal-acceptance/ for each refusal; run a one-off survey of existing brief acceptance commands and report in the PR how many change verdict.\n6. Update content/docs/plan-acceptance.md to state that acceptance commands run only from the repo's own directories, never from installed dependencies; add one changelog.d fragment; regenerate RULE-MAP, PROJECT-DEFINITION, evaluator-surface disposition and the spec-drift row only if the build changes them.",
+      "Traces": "#7223; found by the #7175 design-critique arc (critic finding; fix shape settled there); Refs #7175, #7220. No arc on #7223: decision record xbrief/decisions/2026-11-23-design-critique-not-warranted-for-7223-because-the-fix-is-a-narr.decision.json."
+    },
+    "items": [
+      {
+        "title": "A literal acceptance command whose record cwd has a `node_modules` path segment or a leading-dot segment is refused at grammar time (`evaluateAcceptanceCwdGrammar`).",
+        "status": "proposed",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "Given a literal acceptance record whose cwd has a node_modules segment or a leading-dot segment, when evaluateAcceptanceCwdGrammar runs at activation or verify:ac, then the record is refused at grammar time and nothing is spawned."
+        }
+      },
+      {
+        "title": "An `npm --prefix` value with a `node_modules` segment or a leading-dot segment is refused (`evaluateCommandSafety`).",
+        "status": "proposed",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "Given an npm acceptance command whose --prefix value has a node_modules segment or a leading-dot segment, when evaluateCommandSafety runs, then the command is refused."
+        }
+      },
+      {
+        "title": "`evaluateAcceptanceCwdContainment` refuses a resolved real path that contains a `node_modules` segment, for both the cwd and the `--prefix` directory.",
+        "status": "proposed",
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "Given a cwd or --prefix directory whose resolved real path contains a node_modules segment, when evaluateAcceptanceCwdContainment runs before a spawn, then it refuses for the cwd and for the --prefix directory."
+        }
+      },
+      {
+        "title": "Regression tests in `packages/core/src/literal-acceptance/` cover each refusal, and the brief-command survey reports how many existing brief commands change verdict.",
+        "status": "proposed",
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "When the build lands, then regression tests in packages/core/src/literal-acceptance/ cover each refusal, and the PR reports how many existing brief acceptance commands change verdict under the brief-command survey."
+        }
+      },
+      {
+        "title": "`content/docs/plan-acceptance.md` states that acceptance commands run only from the repo's own directories, never from installed dependencies.",
+        "status": "proposed",
+        "id": "clause.5",
+        "narrative": {
+          "Acceptance": "When the build lands, then content/docs/plan-acceptance.md states that acceptance commands run only from the repo's own directories, never from installed dependencies."
+        }
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/7223",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #7223: fix(literal-acceptance): refuse acceptance cwd and npm --prefix inside node_modules"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/7175",
+        "type": "x-xbrief/refs",
+        "title": "Issue #7175"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per sentence-list entry (5), in order (#6333)",
+      "sentences": [
+        "A literal acceptance command whose record cwd has a `node_modules` path segment or a leading-dot segment is refused at grammar time (`evaluateAcceptanceCwdGrammar`).",
+        "An `npm --prefix` value with a `node_modules` segment or a leading-dot segment is refused (`evaluateCommandSafety`).",
+        "`evaluateAcceptanceCwdContainment` refuses a resolved real path that contains a `node_modules` segment, for both the cwd and the `--prefix` directory.",
+        "Regression tests in `packages/core/src/literal-acceptance/` cover each refusal, and the brief-command survey reports how many existing brief commands change verdict.",
+        "`content/docs/plan-acceptance.md` states that acceptance commands run only from the repo's own directories, never from installed dependencies."
+      ],
+      "admitted_source_sentences": [
+        "A literal acceptance command whose record cwd has a `node_modules` path segment or a leading-dot segment is refused at grammar time (`evaluateAcceptanceCwdGrammar`).",
+        "An `npm --prefix` value with a `node_modules` segment or a leading-dot segment is refused (`evaluateCommandSafety`).",
+        "`evaluateAcceptanceCwdContainment` refuses a resolved real path that contains a `node_modules` segment, for both the cwd and the `--prefix` directory.",
+        "Regression tests in `packages/core/src/literal-acceptance/` cover each refusal, and the brief-command survey reports how many existing brief commands change verdict.",
+        "`content/docs/plan-acceptance.md` states that acceptance commands run only from the repo's own directories, never from installed dependencies."
+      ],
+      "admitted_source_digest": "d88b757e8080bff551fa35499ec3aa5423813e378f1c2c708ccab9386a948f52",
+      "admitted_source_extractor": 2,
+      "clauses": [
+        {
+          "id": 1,
+          "text": "A literal acceptance command whose record cwd has a `node_modules` path segment or a leading-dot segment is refused at grammar time (`evaluateAcceptanceCwdGrammar`).",
+          "artifact_path": "packages/core/src/literal-acceptance/safety.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "An `npm --prefix` value with a `node_modules` segment or a leading-dot segment is refused (`evaluateCommandSafety`).",
+          "artifact_path": "packages/core/src/literal-acceptance/safety.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "`evaluateAcceptanceCwdContainment` refuses a resolved real path that contains a `node_modules` segment, for both the cwd and the `--prefix` directory.",
+          "artifact_path": "packages/core/src/literal-acceptance/run.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Regression tests in `packages/core/src/literal-acceptance/` cover each refusal, and the brief-command survey reports how many existing brief commands change verdict.",
+          "artifact_path": "packages/core/src/literal-acceptance/dependency-cwd-refusal.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "`content/docs/plan-acceptance.md` states that acceptance commands run only from the repo's own directories, never from installed dependencies.",
+          "artifact_path": "content/docs/plan-acceptance.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6568541569,
+        "origin": "deftai/directive#7223",
+        "id": "github.issue.6568541569"
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": false,
+        "file_scope": [
+          "packages/core/src/literal-acceptance/safety.ts",
+          "packages/core/src/literal-acceptance/run.ts",
+          "packages/core/src/literal-acceptance/index.ts",
+          "packages/core/src/literal-acceptance/types.ts",
+          "packages/core/src/product-first-done-gate/evaluate.ts",
+          "packages/core/src/product-first-done-gate/index.ts",
+          "packages/core/src/refusal-declarations/table.ts",
+          "packages/core/src/scope/acceptance-activate-gate.ts",
+          "packages/runtime/src/verify-ac.ts",
+          "content/docs/plan-acceptance.md",
+          "packages/core/src/literal-acceptance/dependency-cwd-refusal.test.ts",
+          "packages/core/src/literal-acceptance/safety-branches.test.ts",
+          "packages/core/src/literal-acceptance/prefix-containment.test.ts",
+          "packages/core/src/literal-acceptance/closed-argument-grammar.test.ts",
+          "packages/core/src/literal-acceptance/literal-acceptance.test.ts",
+          "packages/core/src/product-first-done-gate/acceptance-command-records.test.ts",
+          "packages/core/src/refusal-declarations/table.test.ts",
+          "packages/core/src/refusal-declarations/remedy-runs.test.ts",
+          "packages/core/src/scope/acceptance-activate-gate.test.ts",
+          "packages/runtime/src/verify-ac.test.ts",
+          "changelog.d/7223-literal-acceptance-dependency-cwd.md",
+          "docs/RULE-MAP.md",
+          "xbrief/evaluator-surface-disposition.json",
+          "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "xbrief/.audit/spec-drift/github.issue.6568541569.json"
+        ],
+        "verify_commands": [
+          "npx vitest run packages/core/src/literal-acceptance/dependency-cwd-refusal.test.ts packages/core/src/literal-acceptance/safety-branches.test.ts packages/core/src/literal-acceptance/prefix-containment.test.ts packages/core/src/literal-acceptance/closed-argument-grammar.test.ts packages/core/src/literal-acceptance/literal-acceptance.test.ts",
+          "npx vitest run packages/core/src/product-first-done-gate/acceptance-command-records.test.ts packages/core/src/refusal-declarations/table.test.ts packages/core/src/refusal-declarations/remedy-runs.test.ts packages/core/src/scope/acceptance-activate-gate.test.ts packages/runtime/src/verify-ac.test.ts"
+        ],
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "depends_on": [],
+        "expected_outputs": [
+          "safety.ts refuses a cwd or npm --prefix value with a node_modules or leading-dot segment; run.ts containment refuses a real path with a node_modules segment for the cwd and the --prefix directory",
+          "regression tests under packages/core/src/literal-acceptance/ for each refusal, and a brief-command survey count in the PR body",
+          "content/docs/plan-acceptance.md states acceptance commands run only from the repo's own directories; one fragment changelog.d/7223-literal-acceptance-dependency-cwd.md"
+        ],
+        "conflict_group": "literal-acceptance-cwd",
+        "model_tier": "high"
+      }
+    },
+    "id": "github.issue.6568541569",
+    "updated": "2026-11-23T20:55:32Z"
+  }
+}
