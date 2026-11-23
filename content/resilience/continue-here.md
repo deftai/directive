@@ -51,6 +51,14 @@ Persist to `./xbrief/continue.xbrief.json` in xBRIEF format (legacy `./vbrief/co
 - ! Scope xBRIEFs (`./xbrief/{proposed,pending,active,completed,cancelled}/`; legacy `./vbrief/` read-accepted) are **durable** — they persist across sessions and are shared between agents; do not conflate them with ephemeral continue checkpoints
 - ⊗ Accumulate stale continue checkpoints — clean up after resume
 
+## Write hook admission (#6914)
+
+- ! The host write hook admits a Write, Edit or patch whose every target is exactly `xbrief/continue.xbrief.json` or `vbrief/continue.vbrief.json` as a process-owned path (allow code `write-checkpoint-ready`), with or without an active story. It spends no story extra-path allowance.
+- ! The admission is for checkpoint storage only. Checkpoint narratives authorize no product change.
+- ! Authz, project runtime-authority deny paths, the session ritual and occupancy still apply.
+- ⊗ Write the checkpoint through a `..` path part, a whitespace-padded spelling, a link on any path part, or an existing file with more than one hard link — the hook does not admit it.
+- ~ Write the checkpoint on its own. A write that also names another path is not admitted by this rule.
+
 ## Not the interview phase/approval carrier (#5352 Prefer-A Bound)
 
 ! Interview phase and approval scope after a planning draft live on

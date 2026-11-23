@@ -170,6 +170,92 @@ describe("resolveStoryWriteAllow (#6221)", () => {
     expect(d.reason).toContain("packages/core/src/new.test.ts");
   });
 
+  describe("continue checkpoint refusal text (#6914)", () => {
+    const SPLIT = "Split the extra paths to a follow-up story";
+
+    it("names a refused checkpoint with no split or widen remedy", () => {
+      const { root, sha } = repo(BASE);
+      for (const cp of ["xbrief/continue.xbrief.json", "vbrief/continue.vbrief.json"]) {
+        const d = resolveStoryWriteAllow({
+          projectRoot: root,
+          fence: fence(sha, ["packages/core/src/a.ts"]),
+          targets: [cp],
+        });
+        expect(d.kind).toBe("refuse");
+        if (d.kind !== "refuse") continue;
+        expect(d.reason).toContain("extra-path-not-admitted");
+        expect(d.reason).toContain(`\`${cp}\` is the continue checkpoint`);
+        expect(d.reason).toContain("Write the checkpoint separately");
+        expect(d.reason).not.toContain(SPLIT);
+        expect(d.reason).not.toContain("widened concrete brief");
+      }
+    });
+
+    it("keeps the shared remedy for the other refused paths in a mixed write", () => {
+      const { root, sha } = repo(BASE);
+      const d = resolveStoryWriteAllow({
+        projectRoot: root,
+        fence: fence(sha, ["packages/core/src/a.ts"]),
+        targets: ["xbrief/continue.xbrief.json", "docs/notes.md"],
+      });
+      expect(d.kind).toBe("refuse");
+      if (d.kind !== "refuse") return;
+      expect(d.reason).toContain("is the continue checkpoint");
+      expect(d.reason).toContain(`For the other paths: ${SPLIT}`);
+    });
+
+    it("leaves a non-checkpoint refusal unchanged, including a case variant", () => {
+      const { root, sha } = repo(BASE);
+      for (const target of ["docs/notes.md", "XBRIEF/continue.xbrief.json"]) {
+        const d = resolveStoryWriteAllow({
+          projectRoot: root,
+          fence: fence(sha, ["packages/core/src/a.ts"]),
+          targets: [target],
+        });
+        expect(d.kind).toBe("refuse");
+        if (d.kind !== "refuse") continue;
+        expect(d.reason).toContain(SPLIT);
+        expect(d.reason).not.toContain("continue checkpoint");
+      }
+    });
+
+    it("never counts a saved checkpoint in the inventory, even under sourceRoots **", () => {
+      const { root, sha } = repo(BASE);
+      const input = {
+        projectRoot: root,
+        fence: fence(sha, ["packages/core/src/a.ts"]),
+        targets: ["packages/core/src/c.ts"],
+        roots: { sourceRoots: ["**"] },
+      };
+      write(root, "packages/core/src/b.ts", "b\n");
+      write(root, "xbrief/continue.xbrief.json", "{}\n");
+      write(root, "vbrief/continue.vbrief.json", "{}\n");
+      // b.ts and c.ts spend the allowance of 2; the checkpoints spend nothing.
+      const d = resolveStoryWriteAllow(input);
+      expect(d.kind).toBe("scope");
+      if (d.kind === "scope") {
+        expect(d.assessment?.spent).toEqual(["packages/core/src/b.ts", "packages/core/src/c.ts"]);
+      }
+      // Control: any other untracked path under ** does spend.
+      write(root, "xbrief/notes.json", "{}\n");
+      expect(resolveStoryWriteAllow(input).kind).toBe("refuse");
+    });
+
+    it("uses the checkpoint text on a declared enforce-mode refusal", () => {
+      const { root, sha } = repo(BASE);
+      const d = resolveStoryWriteAllow({
+        projectRoot: root,
+        fence: fence(sha, ["xbrief/**"]),
+        targets: ["xbrief/continue.xbrief.json"],
+        refusalRows: loadRefusalDeclarations().map((row) => ({ ...row, mode: "enforce" as const })),
+      });
+      expect(d.kind).toBe("refuse");
+      if (d.kind !== "refuse") return;
+      expect(d.reason).toContain("is the continue checkpoint");
+      expect(d.reason).not.toContain(SPLIT);
+    });
+  });
+
   it("refuses other-class undeclared paths", () => {
     const { root, sha } = repo(BASE);
     const d = resolveStoryWriteAllow({

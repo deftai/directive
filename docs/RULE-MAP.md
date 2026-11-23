@@ -33,7 +33,7 @@ Three layers: **Rules** (lazy-loaded guidance under `content/`), **Tasks** (the 
 | patterns | Reusable design/interaction patterns for agent work. | 12 | 81 | 42 | 140 | 3 | 5 |
 | platforms | Platform-specific guidance. | 2 | 94 | 63 | 19 | 16 | 12 |
 | references | External references and citations backing the guidance. | 4 | 19 | 1 | 19 | 0 | 0 |
-| resilience | Failure handling, recovery, and robustness rules. | 2 | 16 | 14 | 15 | 1 | 2 |
+| resilience | Failure handling, recovery, and robustness rules. | 2 | 19 | 15 | 16 | 1 | 2 |
 | scm | Source-control conventions and Git/GitHub workflow rules. | 3 | 122 | 35 | 40 | 1 | 3 |
 | skills | Packaged multi-step agent workflows (build, release, interview, triage, review…). | 42 | 642 | 121 | 748 | 0 | 19 |
 | strategies | Higher-order approaches: interviewing, decomposition, planning, research, refactoring. | 17 | 342 | 97 | 157 | 0 | 15 |

@@ -37,6 +37,10 @@ import {
   type KillHostStatus,
 } from "../orchestration/subagent-kill-attestation.js";
 import {
+  isEligibleContinueCheckpointTarget,
+  payloadHasPaddedCheckpointPath,
+} from "../policy/continue-checkpoint-path.js";
+import {
   detectDeftDirectiveDisable,
   formatDeftDirectiveDisableMessage,
   isDeftDirectiveDisableActive,
@@ -389,6 +393,8 @@ export type HookDecisionCode =
   | "write-propose-ready"
   /** Completed-record correction under the proposed/ all-targets exemption (#4422). */
   | "write-completed-ready"
+  /** Write whose every target is an eligible continue checkpoint path (#6914). */
+  | "write-checkpoint-ready"
   /** Allowlisted assist/scratch write without active xBRIEF (#1802). */
   | "write-assist-scratch-ready"
   /** Direct write whose every target is outside every checkout (#6376). */
@@ -2980,7 +2986,7 @@ function inspectMutationGates(
     // authz, runtimeAuthority, and occupancy rechecks (#4422 / #3614).
     const allowExemptLifecycleWrite = (
       allTargetsMatch: boolean,
-      code: "write-propose-ready" | "write-completed-ready",
+      code: "write-propose-ready" | "write-completed-ready" | "write-checkpoint-ready",
       message: string,
     ): HookDecision | null => {
       if (!allTargetsMatch) return null;
@@ -3027,6 +3033,17 @@ function inspectMutationGates(
         "(record correction; active scope not required).",
     );
     if (completedAllow !== null) return completedAllow;
+    // #6914: the continue checkpoint is process-owned storage. No story is
+    // selected and no extra-path allowance is read or spent. The harvest trims
+    // paths, so a whitespace-padded raw spelling declines here.
+    const checkpointAllow = allowExemptLifecycleWrite(
+      !payloadHasPaddedCheckpointPath(input.payload) &&
+        allMutationTargetsMatch(effectiveRoot, input.payload, isEligibleContinueCheckpointTarget),
+      "write-checkpoint-ready",
+      `Directive write gate allowed ${toolName} for the continue checkpoint ` +
+        "(process-owned storage; active scope not required; #6914).",
+    );
+    if (checkpointAllow !== null) return checkpointAllow;
   }
 
   let scope: ActiveScopeInspection;

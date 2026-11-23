@@ -91,6 +91,7 @@ Agents, host adapters, and tests **must** key permission outcomes off `HookDecis
 | `scope-not-ready` | deny | No active running scope for in-root write |
 | `write-propose-ready` | allow | Write to proposed lifecycle path allowed |
 | `write-completed-ready` | allow | Write to completed lifecycle path allowed (all-targets, #4422) |
+| `write-checkpoint-ready` | allow | Write whose every target is an eligible continue checkpoint path; no story, no extra-path spend (#6914) |
 | `write-assist-scratch-ready` | allow | Allowlisted assist/scratch write without active xBRIEF (#1802) |
 | `write-outside-every-checkout-ready` | allow | Direct write whose every target is outside every checkout; no occupancy or ritual (#6376) |
 | `write-ready` | allow | Direct write allowed under ready gates |
