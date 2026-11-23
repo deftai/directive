@@ -1103,3 +1103,55 @@ describe("one-path complete recut (#4060)", () => {
     expect(executions).toBe(2);
   });
 });
+
+describe("negated literal set aside keeps verified-pass banking (#7170)", () => {
+  it("a mixed clause whose checked span is present resolves verified-pass and banks with no executable run", () => {
+    const root = mkdtempSync(join(tmpdir(), "deft-7170-mixed-"));
+    mkdirSync(join(root, "src"), { recursive: true });
+    writeFileSync(
+      join(root, "src", "view.tsx"),
+      'const name = author.startsWith("apikey:") ? "DEFT Team" : author;\n',
+      "utf8",
+    );
+    const plan: Record<string, unknown> = {
+      id: "7170-mixed",
+      title: "mixed negated clause",
+      status: "running",
+      acceptance: {
+        commands: [],
+        none_stated: true,
+        source_rung: "derived",
+        ambiguity_attestation: "none_found",
+        clauses: [
+          {
+            id: 1,
+            text: "The docs view shows a person, org or 'DEFT Team' name, never 'apikey:…'.",
+            artifact_path: "src/view.tsx",
+            ambiguous: false,
+          },
+        ],
+      },
+      metadata: { swarm: { file_scope: ["src/view.tsx"] } },
+    };
+    const brief = writeBrief(root, plan);
+    const verified = evaluateVerifyAcFromPath(brief, {
+      projectRoot: root,
+      captureFromNarratives: false,
+      env: { DEFT_SESSION_ID: "sess-7170-mixed" },
+      productPaths: ["src/view.tsx"],
+      hasSuiteFloor: true,
+    });
+    expect(verified.ok).toBe(true);
+    expect(verified.resolution).toBe("verified-pass");
+    expect(verified.runs).toEqual([]);
+    const row = verified.clauseOutcomes?.[0];
+    expect(row?.outcome).toBe("verified");
+    expect(row?.detail).toContain('checked "DEFT Team"');
+    expect(row?.detail).toContain('set aside, not checked: "apikey:…"');
+    // The AC pass bank accepts the zero-run verified-pass as today.
+    const bank = JSON.parse(readFileSync(acPassBankPath(root, "7170-mixed"), "utf8")) as {
+      runs?: unknown[];
+    };
+    expect(bank.runs ?? []).toEqual([]);
+  });
+});

@@ -2210,3 +2210,190 @@ describe("quoted-token removal polarity (#6269)", () => {
     expect(walkAcceptanceClauses(bound.clauses, root, { declaredScope: [DOC] }).ok).toBe(false);
   });
 });
+
+describe("negated quoted literals are set aside (#7170)", () => {
+  const VIEW = "web/view.tsx";
+
+  function rootWithView(body: string): string {
+    const root = mkdtempSync(join(tmpdir(), "clause-7170-"));
+    mkdirSync(join(root, "web"), { recursive: true });
+    writeFileSync(join(root, VIEW), body, "utf8");
+    return root;
+  }
+
+  function clause(text: string) {
+    return { id: 1, text, artifact_path: VIEW, ambiguous: false };
+  }
+
+  function walkText(text: string, body: string) {
+    const report = walkAcceptanceClauses([clause(text)], rootWithView(body), {
+      declaredScope: [VIEW],
+    });
+    const row = report.clauses[0];
+    if (row === undefined) {
+      throw new Error("no row");
+    }
+    return row;
+  }
+
+  const SOURCE = 'const name = author.startsWith("apikey:") ? "DEFT Team" : author;\n';
+
+  it("verifies the issue clause on the name literal and names the set-aside literal", () => {
+    const text =
+      "A docs article by an API key shows a person, org or 'DEFT Team' name, never 'apikey:…'.";
+    const row = walkText(text, SOURCE);
+    expect(row.outcome).toBe("verified");
+    expect(row.adjudicable).toBe(true);
+    expect(row.detail).toContain('checked "DEFT Team"');
+    expect(row.detail).toContain('set aside, not checked: "apikey:…" (negated by "never")');
+  });
+
+  const NEGATED = [
+    ["The view never 'apikey:' for an API-key author.", "never"],
+    ["The view prints the name, not 'apikey:'.", "not"],
+    ["The view cannot show 'apikey:' to readers.", "cannot show"],
+    ["The view doesn't show 'apikey:' to readers.", "doesn't show"],
+    ["The view does not show 'apikey:' to readers.", "not show"],
+    ["The view never contains 'apikey:' in its output.", "never contains"],
+    ["The label 'apikey:' is never shown to readers.", "is never shown"],
+    ["The string 'apikey:' must not appear in the output.", "must not appear"],
+  ] as const;
+
+  for (const [text, cue] of NEGATED) {
+    it(`sets aside a negated literal: ${text}`, () => {
+      expect(classifyQuotedTokenPolarity(clause(text))).toEqual({
+        kind: "none",
+        setAside: [{ token: "apikey:", cue }],
+      });
+      for (const body of [SOURCE, "nothing\n"]) {
+        const row = walkText(text, body);
+        expect(row.outcome).not.toBe("failed");
+        expect(row.outcome).toBe("unverifiable");
+        expect(row.adjudicable).toBe(false);
+        expect(row.detail).toContain(`"apikey:" (negated by "${cue}")`);
+      }
+    });
+  }
+
+  const KEPT = [
+    "The view not only prints 'DEFT Team' but also logs it.",
+    "There is no change to 'DEFT Team'.",
+    "It works without breaking 'DEFT Team'.",
+    "Never omit 'DEFT Team'.",
+    "It never fails to show 'DEFT Team'.",
+    "The gate does not block, 'DEFT Team'.",
+    "The gate does not block: 'DEFT Team'.",
+  ];
+
+  for (const text of KEPT) {
+    it(`keeps the presence check: ${text}`, () => {
+      expect(classifyQuotedTokenPolarity(clause(text))).toEqual({
+        kind: "presence",
+        present: ["DEFT Team"],
+      });
+      expect(walkText(text, SOURCE).outcome).toBe("verified");
+      const missing = walkText(text, "nothing\n");
+      expect(missing.outcome).toBe("failed");
+      expect(missing.detail).toContain("no removal or negation cue governs these literals");
+    });
+  }
+
+  it("sets aside both literals joined by or after never", () => {
+    const text = "The page never shows 'alpha key' or 'bravo key'.";
+    expect(classifyQuotedTokenPolarity(clause(text))).toEqual({
+      kind: "none",
+      setAside: [
+        { token: "alpha key", cue: "never shows" },
+        { token: "bravo key", cue: "never shows" },
+      ],
+    });
+    expect(walkText(text, "nothing\n").outcome).toBe("unverifiable");
+  });
+
+  it("checks the positive literal of a mixed clause and never the negated one", () => {
+    const text = "The page shows 'allowed', never 'forbidden'.";
+    const present = walkText(text, 'label = "allowed"; if (x === "forbidden") return;\n');
+    expect(present.outcome).toBe("verified");
+    expect(present.detail).toContain('checked "allowed"');
+    expect(present.detail).toContain('"forbidden" (negated by "never")');
+    // The negated literal is never checked, present or absent.
+    expect(walkText(text, 'label = "allowed";\n').outcome).toBe("verified");
+    const missing = walkText(text, 'if (x === "forbidden") return;\n');
+    expect(missing.outcome).toBe("failed");
+    expect(missing.detail).toMatch(/expected token\(s\) missing from web\/view\.tsx: allowed \(/);
+    expect(missing.detail).not.toMatch(/missing from web\/view\.tsx: [^(]*forbidden/);
+  });
+
+  it("does not read an absence phrase about no declared path as existence", () => {
+    const text = "The export path exists only in docs; the legacy alias does not exist.";
+    const row = walkText(text, "export const x = 1;\n");
+    expect(row.outcome).toBe("unverifiable");
+    expect(row.adjudicable).toBe(false);
+    expect(row.detail).toMatch(/cannot evaluate behavioral claim/);
+  });
+
+  it("treats an existence word with only set-aside literals as behavioral", () => {
+    const text = "The view exists and never shows 'apikey:' to readers.";
+    const row = walkText(text, SOURCE);
+    expect(row.outcome).toBe("unverifiable");
+    expect(row.adjudicable).toBe(false);
+    expect(row.detail).toContain('"apikey:" (negated by "never shows")');
+    const coverage = evaluateStatementSentenceCoverage({ sentences: [text] }, [clause(text)]);
+    expect(coverage.behavioralClauseCount).toBe(1);
+    // A plain existence claim still counts as an existence clause.
+    const plain = clause("The view exists at its stated path.");
+    expect(evaluateStatementSentenceCoverage({}, [plain]).behavioralClauseCount).toBe(0);
+    expect(walkText(plain.text, SOURCE).outcome).toBe("verified");
+  });
+
+  const DOUBLE = [
+    "The view cannot not show 'DEFT Team'.",
+    "The view can't not show 'DEFT Team'.",
+    "The view doesn't not show 'DEFT Team'.",
+    "The label 'DEFT Team' mustn't not appear.",
+    "The label 'DEFT Team' cannot not appear.",
+  ];
+
+  for (const text of DOUBLE) {
+    it(`keeps the presence check under two negations: ${text}`, () => {
+      expect(classifyQuotedTokenPolarity(clause(text)).kind).toBe("presence");
+      expect(walkText(text, SOURCE).outcome).toBe("verified");
+      expect(walkText(text, "nothing\n").outcome).toBe("failed");
+    });
+  }
+
+  it("keeps the presence check when the cue is inside code or a command-shaped word", () => {
+    for (const text of [
+      "The CLI documents `--not 'archived'` and prints 'DEFT Team'.",
+      "The CLI documents --not 'archived' and prints 'DEFT Team'.",
+      "The task scope:never 'archived' prints 'DEFT Team'.",
+      "The help shows `never` 'archived' and 'DEFT Team'.",
+    ]) {
+      expect(classifyQuotedTokenPolarity(clause(text))).toEqual({
+        kind: "presence",
+        present: ["archived", "DEFT Team"],
+      });
+      expect(walkText(text, SOURCE).outcome).toBe("failed");
+    }
+    // A cue after an opening parenthesis is still a prose cue.
+    expect(classifyQuotedTokenPolarity(clause("Shows the name (never 'apikey:').")).kind).toBe(
+      "none",
+    );
+  });
+
+  it("keeps the presence check after a contracted auxiliary with no not or never", () => {
+    const text = "The label 'DEFT Team' isn't shown.";
+    expect(walkText(text, "nothing\n").outcome).toBe("failed");
+  });
+
+  it("leaves the #6269 removal grammar unchanged", () => {
+    expect(classifyQuotedTokenPolarity(clause('Removes "apikey:" from web/view.tsx'))).toEqual({
+      kind: "absence",
+      absent: ["apikey:"],
+      present: [],
+    });
+    expect(classifyQuotedTokenPolarity(clause('Does not remove "apikey:"')).kind).toBe(
+      "unresolved",
+    );
+  });
+});

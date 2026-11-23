@@ -1293,18 +1293,31 @@ export function extractQuotedSpans(clause: AcceptanceClause): QuotedSpan[] {
   return spans;
 }
 
+/** A quoted literal a negation governs: set aside, not checked (#7170). */
+export interface SetAsideSpan {
+  readonly token: string;
+  /** The negation phrase that governs the literal, as written in the clause. */
+  readonly cue: string;
+}
+
 /**
  * Polarity of a clause's quoted literals (#6269).
  *
- * - `none`: no quoted literal, so no token oracle.
- * - `presence`: no removal wording; every literal must be present (as before).
+ * - `none`: no quoted literal left to check, so no token oracle. `setAside`
+ *   lists negated literals when every literal was set aside (#7170).
+ * - `presence`: no removal wording; every literal must be present, except the
+ *   negated literals in `setAside`, which are not checked (#7170).
  * - `absence`: the clause is one closed removal or replace sentence.
  * - `unresolved`: removal wording outside the closed grammar. The walk returns
  *   adjudicable `unverifiable`, which keeps `ok` false and never verifies.
  */
 export type QuotedTokenPolarity =
-  | { readonly kind: "none" }
-  | { readonly kind: "presence"; readonly present: readonly string[] }
+  | { readonly kind: "none"; readonly setAside?: readonly SetAsideSpan[] }
+  | {
+      readonly kind: "presence";
+      readonly present: readonly string[];
+      readonly setAside?: readonly SetAsideSpan[];
+    }
   | {
       readonly kind: "absence";
       readonly absent: readonly string[];
@@ -1335,6 +1348,84 @@ const REPLACE_FORM = new RegExp(
 const PRESENCE_VERB = /\b(?:adds?|keeps?|retains?|includes?|inserts?)\b/gi;
 const BARE_REPLACE = /\breplac(?:e|es|ed|ing)\b/i;
 const WITH_WORD = /\bwith\b/i;
+
+// #7170 negation operator rule. A literal is set aside (not checked, never
+// inverted) only when a negation is its operator: right before it, one display
+// verb away, or right after it in the `is never shown` / `must not appear` form.
+const NEGATION_CUE =
+  "(?:never|not|no|nor|cannot|without|instead\\s+of|rather\\s+than|[a-z]+n['’]t)";
+const DISPLAY_VERB =
+  "(?:show(?:s|n|ed|ing)?|display(?:s|ed|ing)?|render(?:s|ed|ing)?|print(?:s|ed|ing)?|" +
+  "emit(?:s|ted|ting)?|log(?:s|ged|ging)?|return(?:s|ed|ing)?|contain(?:s|ed|ing)?|" +
+  "include(?:s|d|ing)?|appear(?:s|ed|ing)?|output(?:s|ted|ting)?|say(?:s|ing)?|said|" +
+  "write(?:s)?|writing|wrote|written)";
+const NEGATION_AUX = "(?:is|are|was|were|must|should|does|do|did|will|can|may|[a-z]+n['’]t)";
+/**
+ * A cue is a prose word: it starts the clause or follows whitespace or an
+ * opening parenthesis. `--not`, `scope:never` or a backtick-led word is not one.
+ */
+const NEGATION_CUE_START = "(?:^|[\\s(])";
+/** Text before a span ends in a cue, with at most one display verb between. */
+const NEGATION_BEFORE = new RegExp(
+  `${NEGATION_CUE_START}(${NEGATION_CUE}(?:\\s+${DISPLAY_VERB})?)\\s+$`,
+  "i",
+);
+/** Two negations before a span (`cannot not show`) keep the presence check. */
+const DOUBLE_NEGATION_BEFORE = new RegExp(
+  `${NEGATION_CUE_START}${NEGATION_CUE}\\s+(?:${NEGATION_AUX}\\s+)?${NEGATION_CUE}(?:\\s+${DISPLAY_VERB})?\\s+$`,
+  "i",
+);
+/** Text after a span: optional auxiliary, not or never, optional be, display verb. */
+const NEGATION_AFTER = new RegExp(
+  `^\\s+((?:${NEGATION_AUX}\\s+)?(?:not|never)\\s+(?:(?:be|been)\\s+)?${DISPLAY_VERB})\\b`,
+  "i",
+);
+/** Two negations after a span (`doesn't not appear`) keep the presence check. */
+const DOUBLE_NEGATION_AFTER = /^\s+(?:[a-z]+n['’]t|cannot)\s+(?:not|never)\b/i;
+/** Spans joined only by a comma, or, and, or nor share the earlier cue. */
+const NEGATION_JOIN = /^\s*,?\s*(?:(?:or|and|nor)\s*)?$/i;
+
+/**
+ * Negation cue for each span a negation governs (#7170), by span index. Any
+ * other word, punctuation, quoted span or code span between ends the rule,
+ * so `not only`, `no change to`, `without breaking`, `never omit` and
+ * `never fails to show` keep the presence check.
+ */
+function negationGovernedSpans(text: string, spans: readonly QuotedSpan[]): Map<number, string> {
+  const governed = new Map<number, string>();
+  // A literal inside inline code is part of a code example; no cue governs it.
+  const codeRanges = [...text.matchAll(/`[^`\n]*`/g)].map((m) => ({
+    start: m.index,
+    end: m.index + m[0].length,
+  }));
+  let carried: string | null = null;
+  spans.forEach((span, i) => {
+    if (codeRanges.some((r) => span.start > r.start && span.start < r.end)) {
+      carried = null;
+      return;
+    }
+    const before = text.slice(i === 0 ? 0 : (spans[i - 1]?.end ?? 0), span.start);
+    const after = text.slice(span.end, spans[i + 1]?.start ?? text.length);
+    const pre = NEGATION_BEFORE.exec(before);
+    let cue: string | null = null;
+    if (pre !== null && !DOUBLE_NEGATION_BEFORE.test(before)) {
+      cue = (pre[1] ?? "").replace(/\s+/g, " ");
+    } else if (pre === null && carried !== null && NEGATION_JOIN.test(before)) {
+      cue = carried;
+    }
+    carried = cue;
+    if (cue === null && !DOUBLE_NEGATION_AFTER.test(after)) {
+      const post = NEGATION_AFTER.exec(after);
+      if (post !== null) {
+        cue = (post[1] ?? "").replace(/\s+/g, " ");
+      }
+    }
+    if (cue !== null) {
+      governed.set(i, cue);
+    }
+  });
+  return governed;
+}
 
 /** True when a grammar PATH is the bound artifact path, exactly after normalization. */
 function pathRefNamesArtifact(ref: string, artifactPath: string | null): boolean {
@@ -1402,7 +1493,6 @@ export function classifyQuotedTokenPolarity(clause: AcceptanceClause): QuotedTok
   const objects = spans.filter(
     (span) => !(span.pathLike && pathRefNamesArtifact(span.token, clause.artifact_path)),
   );
-  const present = [...new Set(spans.filter((s) => !s.pathLike).map((s) => s.token))];
   // Removal wording counts only outside quoted literals, inline code, and
   // path- or command-shaped words (`docs/remove-me.md`, `scope:remove`).
   // A colon or period at a word's end is prose punctuation, not a command.
@@ -1410,7 +1500,23 @@ export function classifyQuotedTokenPolarity(clause: AcceptanceClause): QuotedTok
     .replace(/`[^`\n]*`/g, " ")
     .replace(/\S*(?:[/\\]|\w[-.:]\w)\S*/g, " ");
   if (!REMOVAL_WORD.test(masked)) {
-    return present.length > 0 ? { kind: "presence", present } : { kind: "none" };
+    // #7170: a literal whose operator is a negation is set aside, never inverted.
+    const governed = negationGovernedSpans(clause.text, spans);
+    const checked = [
+      ...new Set(spans.filter((s, i) => !s.pathLike && !governed.has(i)).map((s) => s.token)),
+    ];
+    const setAside: SetAsideSpan[] = [];
+    spans.forEach((span, i) => {
+      const cue = governed.get(i);
+      const known = checked.includes(span.token) || setAside.some((s) => s.token === span.token);
+      if (cue !== undefined && !span.pathLike && !known) {
+        setAside.push({ token: span.token, cue });
+      }
+    });
+    const extra = setAside.length > 0 ? { setAside } : {};
+    return checked.length > 0
+      ? { kind: "presence", present: checked, ...extra }
+      : { kind: "none", ...extra };
   }
   const unresolved = (reason: string): QuotedTokenPolarity => ({ kind: "unresolved", reason });
   // One complete sentence: the whole clause, less one trailing period.
@@ -1585,16 +1691,23 @@ function walkOne(
     const absent = polarity.kind === "absence" ? polarity.absent : [];
     const stillPresent = absent.filter((token) => body.includes(token));
     const missing = polarity.present.filter((token) => !body.includes(token));
+    // #7170: name the negated literals that were set aside, and what was checked.
+    const setAsideNote = polarity.kind === "presence" ? describeSetAside(polarity.setAside) : "";
     if (stillPresent.length > 0 || missing.length > 0) {
       const parts = [
         ...(stillPresent.length > 0
           ? [`token(s) the clause removes are still in ${artifactPath}: ${stillPresent.join(", ")}`]
           : []),
         ...(missing.length > 0
-          ? [`expected token(s) missing from ${artifactPath}: ${missing.join(", ")}`]
+          ? [
+              `expected token(s) missing from ${artifactPath}: ${missing.join(", ")}` +
+                (polarity.kind === "presence"
+                  ? " (no removal or negation cue governs these literals)"
+                  : ""),
+            ]
           : []),
       ];
-      return bound("failed", parts.join("; "));
+      return bound("failed", parts.join("; ") + setAsideNote);
     }
     if (absent.length > 0) {
       return bound(
@@ -1603,9 +1716,21 @@ function walkOne(
           (polarity.present.length > 0 ? "; replacement token(s) present" : ""),
       );
     }
-    return bound("verified", `tokens present in shipped artifact ${artifactPath}`);
+    const checkedNote =
+      setAsideNote.length > 0 ? `: checked ${polarity.present.map(quoteToken).join(", ")}` : "";
+    return bound(
+      "verified",
+      `tokens present in shipped artifact ${artifactPath}${checkedNote}${setAsideNote}`,
+    );
   }
-  if (EXISTENCE_CLAIM.test(clause.text)) {
+  // #7170: an absence phrase is not an existence claim, and neither is a clause
+  // whose only literals a negation set aside.
+  const setAside = polarity.setAside ?? [];
+  if (
+    EXISTENCE_CLAIM.test(clause.text) &&
+    !NEGATED_EXISTENCE.test(clause.text) &&
+    setAside.length === 0
+  ) {
     return bound("verified", `shipped artifact exists at ${artifactPath}`);
   }
   // #4240: a declared path is not an oracle for a behavioral claim with no
@@ -1618,9 +1743,24 @@ function walkOne(
     text: clause.text,
     artifact_path: artifactPath,
     outcome: "unverifiable",
-    detail: `cannot evaluate behavioral claim against shipped artifact ${artifactPath}`,
+    detail:
+      `cannot evaluate behavioral claim against shipped artifact ${artifactPath}` +
+      describeSetAside(setAside),
     adjudicable: false,
   };
+}
+
+function quoteToken(token: string): string {
+  return JSON.stringify(token);
+}
+
+/** Row-detail suffix naming each set-aside literal and its cue (#7170). */
+function describeSetAside(setAside: readonly SetAsideSpan[] | undefined): string {
+  if (setAside === undefined || setAside.length === 0) {
+    return "";
+  }
+  const named = setAside.map((s) => `${quoteToken(s.token)} (negated by "${s.cue}")`);
+  return `; set aside, not checked: ${named.join(", ")} (#7170)`;
 }
 
 /**
@@ -1811,10 +1951,17 @@ function readNonEmptyStringList(value: unknown): string[] | null {
 
 function isExistenceOrQuotedTokenClause(clause: AcceptanceClause): boolean {
   // Same span classifier as walkOne (#6269): a removal clause is a token clause.
-  if (classifyQuotedTokenPolarity(clause).kind !== "none") {
+  const polarity = classifyQuotedTokenPolarity(clause);
+  if (polarity.kind !== "none") {
     return true;
   }
-  return EXISTENCE_CLAIM.test(clause.text) && !NEGATED_EXISTENCE.test(clause.text);
+  // #7170: same set-aside guard as walkOne's existence branch.
+  const setAside = polarity.setAside ?? [];
+  return (
+    EXISTENCE_CLAIM.test(clause.text) &&
+    !NEGATED_EXISTENCE.test(clause.text) &&
+    setAside.length === 0
+  );
 }
 
 function countBehavioralClauses(clauses: readonly AcceptanceClause[]): number {
