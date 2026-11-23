@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #7200",
-    "updated": "2026-11-23T15:54:22Z"
+    "updated": "2026-11-23T15:32:55Z"
   },
   "plan": {
     "title": "fix(windows): path identity compares 8.3 short and long spellings in the shared git path helpers (#7199 A)",
@@ -912,6 +912,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.6561558004",
-    "updated": "2026-11-23T15:54:22Z"
+    "updated": "2026-11-23T15:32:55Z"
   }
 }
