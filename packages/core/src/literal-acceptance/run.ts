@@ -14,6 +14,7 @@ import { isInlineProseMention } from "./capture.js";
 import {
   ACCEPTANCE_DEPENDENCY_PATH_REASON,
   DEPENDENCY_DIR_SEGMENT,
+  evaluateAcceptanceCwdGrammar,
   evaluateCommandSafety,
   isExecutableLiteralSource,
   packageManagerPrefixOperand,
@@ -142,13 +143,21 @@ export function evaluateAcceptanceCwdContainment(
 /**
  * Containment for one spawn: the cwd, then the `npm --prefix` directory when the
  * command names one. The grammar checks the prefix spelling only; a symlink or
- * junction can still point outside the repository (GHSA-mq3j-2229-p7xx).
+ * junction can still point outside the repository (GHSA-mq3j-2229-p7xx). The
+ * record cwd as written is checked first, before path resolution drops
+ * segments such as `..`, so every runner refuses a dependency or dot-folder
+ * cwd, not only the verify:ac record list (#7223).
  */
 function evaluateRunContainment(
   projectRoot: string,
+  cmd: LiteralAcceptanceCommand,
   cwd: string,
-  command: string,
 ): AcceptanceCwdContainment {
+  const grammar = evaluateAcceptanceCwdGrammar(cmd.cwd);
+  if (grammar.refused === true) {
+    return { ok: false, reason: grammar.reason ?? ACCEPTANCE_DEPENDENCY_PATH_REASON };
+  }
+  const command = cmd.command;
   const containment = evaluateAcceptanceCwdContainment(projectRoot, cwd);
   if (!containment.ok) {
     return containment;
@@ -237,7 +246,7 @@ export function runLiteralAcceptanceCommand(
       detail: `refused: ${safety.reason ?? "unsafe command"}`,
     };
   }
-  const containment = evaluateRunContainment(options.projectRoot, cwd, cmd.command);
+  const containment = evaluateRunContainment(options.projectRoot, cmd, cwd);
   if (!containment.ok) {
     return containmentRefusalRun(cmd, cwd, containment.reason ?? "cwd outside the repository");
   }
@@ -469,7 +478,7 @@ export function runLiteralAcceptanceCommands(
     const cmd = group.representative;
     if (typeof cmd.command !== "string" || cmd.command.trim().length === 0) continue;
     const cwd = resolveCwd(options.projectRoot, cmd);
-    const containment = evaluateRunContainment(options.projectRoot, cwd, cmd.command);
+    const containment = evaluateRunContainment(options.projectRoot, cmd, cwd);
     if (!containment.ok) {
       containmentRefusals.push(
         containmentRefusalRun(cmd, cwd, containment.reason ?? "cwd outside the repository"),

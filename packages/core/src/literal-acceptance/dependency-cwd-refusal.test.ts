@@ -155,6 +155,27 @@ describe("run-time real-path refusal (#7223)", () => {
     expect(result.runs[0]?.detail).toMatch(/inside installed dependencies/);
   });
 
+  it("refuses a dot-folder or dependency cwd as written in both runners, even when it exists", () => {
+    const root = rootWithDependencyLink();
+    mkdirSync(join(root, ".cache"));
+    mkdirSync(join(root, "web", "inner"));
+    for (const cwd of [".cache", "node_modules/pkg", "web/inner/.."]) {
+      const result = runLiteralAcceptanceCommands(
+        [{ command: "npx vitest run src/app.test.ts", cwd, source: "explicit" }],
+        { projectRoot: root, runner: never },
+      );
+      expect(result.code, cwd).toBe(2);
+      expect(result.message, cwd).toContain("nothing was spawned");
+      expect(result.runs[0]?.detail, cwd).toMatch(/never from installed dependencies/);
+      const single = runLiteralAcceptanceCommand(
+        { command: "npx vitest run src/app.test.ts", cwd, source: "explicit" },
+        { projectRoot: root, runner: never },
+      );
+      expect(single.exitCode, cwd).toBe(2);
+      expect(single.detail, cwd).toMatch(/never from installed dependencies/);
+    }
+  });
+
   it("refuses a linked --prefix into node_modules in both runners", () => {
     const root = rootWithDependencyLink();
     const result = runLiteralAcceptanceCommands(
