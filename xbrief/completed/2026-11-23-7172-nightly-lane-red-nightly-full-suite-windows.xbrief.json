@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #7172",
-    "updated": "2026-11-23T04:46:21Z"
+    "updated": "2026-11-23T13:58:49Z"
   },
   "plan": {
     "title": "Nightly lane red: Nightly full suite (Windows)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Nightly lane red: Nightly full suite (Windows)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/7172",
@@ -15,13 +15,27 @@
     "items": [
       {
         "title": "`packages/runtime/scripts/pack-staged-runtime.mjs` runs its four tar calls (extract, repack, `-xOf`, `-tzf`) in the tarball's folder with the archive file name only, and uses System32 bsdtar on win32, the same way `tasks/materialize.cjs` does (#6703).",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f7539784b87665706d56e869832d07ca8ac21bc3",
+          "recorded_at": "2026-11-23T13:58:49Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "A test proves the win32 tar invocation: System32 `tar.exe`, the tarball's folder as cwd, and a bare archive name with no drive letter.",
-        "status": "proposed",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "f7539784b87665706d56e869832d07ca8ac21bc3",
+          "recorded_at": "2026-11-23T13:58:49Z",
+          "recorded_by": "scope:complete"
+        }
       }
     ],
     "references": [
@@ -135,9 +149,38 @@
         ],
         "conflict_group": "pack-staged-runtime",
         "model_tier": "high"
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "4f2dfe340d20e0c6afc223269f21526534035050",
+        "prNumber": 7191,
+        "prBase": "master",
+        "mergeCommit": "f7539784b87665706d56e869832d07ca8ac21bc3",
+        "deliveryBranch": "master",
+        "deliveryCommit": "f7539784b87665706d56e869832d07ca8ac21bc3",
+        "verifiedAt": "2026-11-23T13:58:49Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:OWEwZDY5MDktOTZkNS00NjFiLWIzMTUtODg5ZjNlZjFkNTI0",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          7176
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-23T13:58:49Z",
+      "completedSessionId": "host:claude:v1:OWEwZDY5MDktOTZkNS00NjFiLWIzMTUtODg5ZjNlZjFkNTI0",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-23T13:58:49Z"
       }
     },
     "id": "github.issue.6552055724",
-    "updated": "2026-11-23T04:46:21Z"
+    "updated": "2026-11-23T13:58:49Z"
   }
 }
