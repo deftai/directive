@@ -739,6 +739,15 @@ function evaluateClosedTrailingArgs(
         return closedGrammarRefusal('"--prefix" may appear once');
       }
       sawPrefix = true;
+      // #7223: the prefix directory is where npm runs the script, so it gets
+      // the same dependency / dot-folder refusal as the record cwd.
+      const refusedSegment = dependencyOrDotSegment(unwrapShellQuotes(value));
+      if (refusedSegment !== null) {
+        return {
+          ok: false,
+          reason: `"--prefix" segment ${JSON.stringify(refusedSegment)} is refused: ${ACCEPTANCE_DEPENDENCY_PATH_REASON}`,
+        };
+      }
     }
   }
   return { ok: true, reason: null };
@@ -1043,19 +1052,52 @@ function isNodeTestFlagValue(kind: NodeTestFlagKind, raw: string): boolean {
 /** One cwd segment: no leading dot, so `.` and `..` never match (#6886 item 1). */
 const CWD_SEGMENT_PATTERN = /^[A-Za-z0-9_][A-Za-z0-9._-]*$/;
 
+/** The installed-dependency folder name; compared without case (#7223). */
+export const DEPENDENCY_DIR_SEGMENT = "node_modules";
+
+/** Refusal table id of the dependency / dot-folder cwd refusal (#7223; enforce). */
+export const ACCEPTANCE_CWD_DEPENDENCY_REFUSAL_ID = "acceptance-cwd-dependency";
+
+/**
+ * Why a dependency or dot-folder path is refused (#7223). Acceptance commands
+ * run only from the repository's own directories, never from installed
+ * dependencies or hidden tool folders.
+ */
+export const ACCEPTANCE_DEPENDENCY_PATH_REASON =
+  "acceptance commands run only from the repository's own directories, " +
+  "never from installed dependencies (node_modules) or a dot folder";
+
+/**
+ * The first segment of `path` that names installed dependencies (`node_modules`,
+ * any case) or starts with a dot, or null (#7223). Splits on `/` and `\`. A
+ * lone `.` segment names the same directory and is not counted.
+ */
+export function dependencyOrDotSegment(path: string): string | null {
+  for (const segment of path.split(/[\\/]/)) {
+    if (segment.length === 0 || segment === ".") continue;
+    if (segment.toLowerCase() === DEPENDENCY_DIR_SEGMENT || segment.startsWith(".")) {
+      return segment;
+    }
+  }
+  return null;
+}
+
 /**
  * Cwd-grammar warning text (#6886 item 1). Every gate prints the same text; a
- * cwd outside the grammar never refuses. verify:ac checks the real directory
- * just before it runs the command, and that check is the only cwd refusal.
+ * cwd outside the grammar warns. verify:ac checks the real directory just
+ * before it runs the command. A dependency or dot-folder cwd is refused
+ * (#7223, `ACCEPTANCE_CWD_DEPENDENCY_REFUSAL_ID`).
  */
 export const ACCEPTANCE_CWD_GRAMMAR_REASON =
   "cwd is not a plain relative path (segments matching [A-Za-z0-9_][A-Za-z0-9._-]* joined by /); " +
   "verify:ac runs the command only when its real directory is inside the repository";
 
 export interface AcceptanceCwdVerdict {
-  /** False when the cwd is outside the grammar (a warning, never a refusal). */
+  /** False when the cwd is outside the grammar (a warning unless `refused`). */
   readonly ok: boolean;
   readonly reason: string | null;
+  /** True when the cwd is refused, not only warned: a dependency or dot-folder segment (#7223). */
+  readonly refused?: boolean;
 }
 
 export interface AcceptanceCommandRecordVerdict {
@@ -1063,7 +1105,11 @@ export interface AcceptanceCommandRecordVerdict {
   readonly cwd: AcceptanceCwdVerdict;
 }
 
-/** Cwd grammar only; reads no file system (#6886 item 1). */
+/**
+ * Cwd grammar only; reads no file system (#6886 item 1). A cwd with a
+ * `node_modules` or leading-dot segment is refused (#7223); any other cwd
+ * outside the grammar warns.
+ */
 export function evaluateAcceptanceCwdGrammar(cwd: string | null | undefined): AcceptanceCwdVerdict {
   if (cwd === null || cwd === undefined) {
     return { ok: true, reason: null };
@@ -1071,6 +1117,14 @@ export function evaluateAcceptanceCwdGrammar(cwd: string | null | undefined): Ac
   const raw = cwd.trim();
   if (raw.length === 0 || raw === ".") {
     return { ok: true, reason: null };
+  }
+  const refusedSegment = dependencyOrDotSegment(raw);
+  if (refusedSegment !== null) {
+    return {
+      ok: false,
+      refused: true,
+      reason: `cwd segment ${JSON.stringify(refusedSegment)} is refused: ${ACCEPTANCE_DEPENDENCY_PATH_REASON}`,
+    };
   }
   const conforms = raw.split("/").every((segment) => CWD_SEGMENT_PATTERN.test(segment));
   return conforms

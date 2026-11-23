@@ -49,11 +49,15 @@ export {
   UNPROMOTED_CAPTURE_REMEDY,
 } from "./run.js";
 export {
+  ACCEPTANCE_CWD_DEPENDENCY_REFUSAL_ID,
   ACCEPTANCE_CWD_GRAMMAR_REASON,
+  ACCEPTANCE_DEPENDENCY_PATH_REASON,
   type AcceptanceCommandRecordVerdict,
   type AcceptanceCwdVerdict,
   CLOSED_ARGUMENT_GRAMMAR_REASON,
   type CommandSafetyResult,
+  DEPENDENCY_DIR_SEGMENT,
+  dependencyOrDotSegment,
   evaluateAcceptanceCommandRecord,
   evaluateAcceptanceCwdGrammar,
   evaluateCommandSafety,

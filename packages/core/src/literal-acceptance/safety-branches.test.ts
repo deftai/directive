@@ -323,25 +323,21 @@ describe("JS workspace acceptance forms (#6886)", () => {
     expect(evaluateCommandSafety("pnpm exec vitest run src/app.test.ts").ok).toBe(true);
   });
 
-  it("cwd grammar: plain relative segments conform, every other form only warns", () => {
+  it("cwd grammar: plain relative segments conform, other forms warn, dot segments refuse", () => {
     for (const cwd of [null, undefined, "", " ", ".", "web", "web/sub", "_a/b.c-d"]) {
       expect(evaluateAcceptanceCwdGrammar(cwd).ok, String(cwd)).toBe(true);
     }
-    for (const cwd of [
-      "../x",
-      "/x",
-      "C:x",
-      "C:/x",
-      "\\\\srv\\share",
-      "web\\sub",
-      "web/../x",
-      "./web",
-      "web/",
-      ".hidden",
-    ]) {
+    for (const cwd of ["/x", "C:x", "C:/x", "\\\\srv\\share", "web\\sub", "./web", "web/"]) {
       const verdict = evaluateAcceptanceCwdGrammar(cwd);
       expect(verdict.ok, cwd).toBe(false);
+      expect(verdict.refused, cwd).toBeUndefined();
       expect(verdict.reason, cwd).toBe(ACCEPTANCE_CWD_GRAMMAR_REASON);
+    }
+    // #7223: a leading-dot segment (including `..`) is refused, not warned.
+    for (const cwd of ["../x", "web/../x", ".hidden"]) {
+      const verdict = evaluateAcceptanceCwdGrammar(cwd);
+      expect(verdict.ok, cwd).toBe(false);
+      expect(verdict.refused, cwd).toBe(true);
     }
   });
 

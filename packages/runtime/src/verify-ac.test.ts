@@ -392,7 +392,7 @@ describe("verify:ac run (#3284)", () => {
         plan: {
           title: "t",
           acceptance: {
-            commands: [{ command: "npx vitest run src/app.test.ts", cwd: "../web" }],
+            commands: [{ command: "npx vitest run src/app.test.ts", cwd: "/abs/web" }],
             none_stated: false,
             source_rung: "stated",
           },
@@ -426,7 +426,7 @@ describe("verify:ac run (#3284)", () => {
     expect(report.count).toBe(2);
     expect(report.rejected.map((r) => r.command)).toEqual(["task web:deploy"]);
     expect(report.cwd_warnings).toEqual([
-      expect.objectContaining({ command: "npx vitest run src/app.test.ts", cwd: "../web" }),
+      expect.objectContaining({ command: "npx vitest run src/app.test.ts", cwd: "/abs/web" }),
     ]);
     expect(err.join("")).toContain("deft gate acceptance-cwd-grammar ");
   });

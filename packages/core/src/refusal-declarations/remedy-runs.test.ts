@@ -248,13 +248,34 @@ const CASES: Readonly<Record<string, RemedyCase>> = {
       const records = resolveAcceptanceCommandRecords({
         metadata: {
           literal_acceptance_commands: [
-            { command: "npx vitest run src/app.test.ts", cwd: "../web", source: "explicit" },
+            { command: "npx vitest run src/app.test.ts", cwd: "/abs/web", source: "explicit" },
           ],
         },
       });
       expect(records.cwdWarnings).toHaveLength(1);
       const warning = records.cwdWarnings[0];
       return warning === undefined ? "" : formatAcceptanceCwdWarningLine(warning);
+    },
+    retry: null,
+  },
+  // #7223: enforce with a named exception; the fix is a brief edit, so the row
+  // is deferred to #7223.
+  "acceptance-cwd-dependency": {
+    refuse: () => {
+      const records = resolveAcceptanceCommandRecords({
+        metadata: {
+          literal_acceptance_commands: [
+            {
+              command: "npx vitest run src/app.test.ts",
+              cwd: "node_modules/pkg",
+              source: "explicit",
+            },
+          ],
+        },
+      });
+      expect(records.commands).toHaveLength(0);
+      expect(records.blocking).toHaveLength(1);
+      return records.blocking[0]?.reason ?? "";
     },
     retry: null,
   },

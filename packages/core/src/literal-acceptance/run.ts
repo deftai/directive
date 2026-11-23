@@ -12,6 +12,9 @@ import { isAbsolute, relative, resolve, sep } from "node:path";
 import { formatDeclaredRefusal } from "../refusal-declarations/print.js";
 import { isInlineProseMention } from "./capture.js";
 import {
+  ACCEPTANCE_DEPENDENCY_PATH_REASON,
+  DEPENDENCY_DIR_SEGMENT,
+  evaluateAcceptanceCwdGrammar,
   evaluateCommandSafety,
   isExecutableLiteralSource,
   packageManagerPrefixOperand,
@@ -84,10 +87,10 @@ function errorText(err: unknown): string {
 }
 
 /**
- * Run-time containment (#6886 item 2), the only cwd enforcement. The real path
- * of `cwd` must be an existing directory that is the project root's real path
- * or inside it. Checked just before a spawn; a directory replaced after the
- * check is not covered.
+ * Run-time containment (#6886 item 2). The real path of `cwd` must be an
+ * existing directory that is the project root's real path or inside it, with
+ * no `node_modules` segment below the root (#7223). Checked just before a
+ * spawn; a directory replaced after the check is not covered.
  */
 export function evaluateAcceptanceCwdContainment(
   projectRoot: string,
@@ -124,19 +127,37 @@ export function evaluateAcceptanceCwdContainment(
       reason: `the working directory ${JSON.stringify(cwd)} resolves outside the repository (${realCwd})`,
     };
   }
+  // #7223: the real path below the root must not pass through installed
+  // dependencies, so a symlink or junction into node_modules is refused too.
+  if (rel.split(sep).some((segment) => segment.toLowerCase() === DEPENDENCY_DIR_SEGMENT)) {
+    return {
+      ok: false,
+      reason:
+        `the working directory ${JSON.stringify(cwd)} resolves inside installed dependencies ` +
+        `(${realCwd}); ${ACCEPTANCE_DEPENDENCY_PATH_REASON}`,
+    };
+  }
   return { ok: true, reason: null };
 }
 
 /**
  * Containment for one spawn: the cwd, then the `npm --prefix` directory when the
  * command names one. The grammar checks the prefix spelling only; a symlink or
- * junction can still point outside the repository (GHSA-mq3j-2229-p7xx).
+ * junction can still point outside the repository (GHSA-mq3j-2229-p7xx). The
+ * record cwd as written is checked first, before path resolution drops
+ * segments such as `..`, so every runner refuses a dependency or dot-folder
+ * cwd, not only the verify:ac record list (#7223).
  */
 function evaluateRunContainment(
   projectRoot: string,
+  cmd: LiteralAcceptanceCommand,
   cwd: string,
-  command: string,
 ): AcceptanceCwdContainment {
+  const grammar = evaluateAcceptanceCwdGrammar(cmd.cwd);
+  if (grammar.refused === true) {
+    return { ok: false, reason: grammar.reason ?? ACCEPTANCE_DEPENDENCY_PATH_REASON };
+  }
+  const command = cmd.command;
   const containment = evaluateAcceptanceCwdContainment(projectRoot, cwd);
   if (!containment.ok) {
     return containment;
@@ -225,7 +246,7 @@ export function runLiteralAcceptanceCommand(
       detail: `refused: ${safety.reason ?? "unsafe command"}`,
     };
   }
-  const containment = evaluateRunContainment(options.projectRoot, cwd, cmd.command);
+  const containment = evaluateRunContainment(options.projectRoot, cmd, cwd);
   if (!containment.ok) {
     return containmentRefusalRun(cmd, cwd, containment.reason ?? "cwd outside the repository");
   }
@@ -457,7 +478,7 @@ export function runLiteralAcceptanceCommands(
     const cmd = group.representative;
     if (typeof cmd.command !== "string" || cmd.command.trim().length === 0) continue;
     const cwd = resolveCwd(options.projectRoot, cmd);
-    const containment = evaluateRunContainment(options.projectRoot, cwd, cmd.command);
+    const containment = evaluateRunContainment(options.projectRoot, cmd, cwd);
     if (!containment.ok) {
       containmentRefusals.push(
         containmentRefusalRun(cmd, cwd, containment.reason ?? "cwd outside the repository"),
@@ -470,7 +491,8 @@ export function runLiteralAcceptanceCommands(
       code: 2,
       message:
         `Literal acceptance-command gate refused (#6886): ${containmentRefusals.length} ` +
-        `command(s) have a working directory that is missing or outside the repository; ` +
+        `command(s) have a working directory that is missing, outside the repository or inside ` +
+        `installed dependencies; ` +
         `nothing was spawned.\n` +
         containmentRefusals.map((r) => `  ✗ ${r.command} — ${r.detail}`).join("\n"),
       commands,
@@ -524,7 +546,8 @@ export function runLiteralAcceptanceCommands(
       code: 2,
       message:
         `Literal acceptance-command gate refused (#6886): ${lateContainment.length} ` +
-        `command(s) had a working directory that was missing or outside the repository ` +
+        `command(s) had a working directory that was missing, outside the repository or inside ` +
+        `installed dependencies ` +
         `when their turn came; those commands were not spawned.\n` +
         runs.map((r) => `  ${r.ok ? "✓" : "✗"} ${r.command} — ${r.detail}`).join("\n"),
       commands,
