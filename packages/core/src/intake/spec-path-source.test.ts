@@ -13,6 +13,7 @@ import {
 import type { CompletedProcess } from "../scm/call.js";
 import { extractBoundRemedyHarvest } from "./markdown-scanners.js";
 import {
+  ALL_ITEMS_SLICED_REASON,
   attachSpecPathSourceRecord,
   fetchPlanAdmittedSourceText,
   fetchSpecPathLiveIdentities,
@@ -158,6 +159,15 @@ describe("harvestSpecPathLean (#6333 items 1 and 2)", () => {
     expect(harvestSpecPathLean(body, { kind: "unlabeled" })).toEqual({
       ok: false,
       reason: "cited successor lean has no Bound-remedy list",
+    });
+  });
+
+  it("#7085: returns the slice labels when every item belongs to a slice", () => {
+    const body = lean("\n## Slices\n- slice-a: B1, A1\n- slice-b: B2, A2\n");
+    expect(harvestSpecPathLean(body, { kind: "unlabeled" })).toEqual({
+      ok: false,
+      reason: ALL_ITEMS_SLICED_REASON,
+      labels: ["slice-a", "slice-b"],
     });
   });
 

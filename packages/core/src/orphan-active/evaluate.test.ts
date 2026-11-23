@@ -1298,7 +1298,197 @@ describe("pending lifecycle PR (#6645 P3)", () => {
       repo: REPO,
       shippedPaths: [BRIEF],
       forge: { fetchPrFilesPage: () => ({ ok: false, error: "x" }) },
+      deadlineMs: Number.POSITIVE_INFINITY,
+      budgetMs: 5_000,
+      nowMs: () => 0,
     });
     expect(result.ok).toBe(false);
+  });
+
+  describe("run deadline (#6899)", () => {
+    const CUT_LINE = "pending lifecycle check cut short at the run deadline, shipped verdicts kept";
+
+    /**
+     * A forge whose every request advances a shared fake clock by `stepMs`.
+     * The clock starts at real now so cached issue ages stay fresh.
+     */
+    function timedForge(opts: {
+      open: readonly OpenPrListNode[];
+      files?: Readonly<Record<number, readonly PrFileEntry[]>>;
+      stepMs: number;
+      startMs?: number;
+    }): {
+      forge: LifecycleForge;
+      clock: () => number;
+      requests: string[];
+      advance: (ms: number) => void;
+    } {
+      let now = opts.startMs ?? Date.now();
+      const requests: string[] = [];
+      return {
+        requests,
+        clock: () => now,
+        advance: (ms) => {
+          now += ms;
+        },
+        forge: {
+          listOpenPrsPage: () => {
+            requests.push("open");
+            now += opts.stepMs;
+            return { ok: true, nodes: [...opts.open], hasNextPage: false, endCursor: null };
+          },
+          fetchPrFilesPage: (_repo, n) => {
+            requests.push(`files:${n}`);
+            now += opts.stepMs;
+            return {
+              ok: true,
+              nodes: [...(opts.files?.[n] ?? [])],
+              hasNextPage: false,
+              endCursor: null,
+            };
+          },
+        },
+      };
+    }
+
+    function openPrs(count: number, first = 100): OpenPrListNode[] {
+      return Array.from({ length: count }, (_, i) => ({
+        number: first + i,
+        body: "",
+        headRepository: REPO,
+      }));
+    }
+
+    it("an already expired deadline makes no forge request and keeps the shipped verdict", () => {
+      const root = shippedRepo();
+      const t = timedForge({ open: openPrs(3), stepMs: 0 });
+      const started = t.clock();
+      let calls = 0;
+      // First read is the run start; every later read is past the 5s scoped budget.
+      const clock = (): number => (calls++ === 0 ? started : started + 5_001);
+      const result = evaluate(root, {
+        repo: REPO,
+        runGh: FAILING_GH,
+        issue: 1001,
+        nowMs: clock,
+        lifecycleForge: t.forge,
+      });
+      expect(t.requests).toEqual([]);
+      expect(result.code).toBe(1);
+      expect(result.orphans[0]?.kind).toBe("shipped");
+      expect(result.pending).toBeUndefined();
+      expect(result.message).toContain(CUT_LINE);
+      expect(result.message).toContain("5s budget, 0 same-repository open PR(s) read in full");
+    });
+
+    it("a clock equal to the deadline does not start the request", () => {
+      const t = timedForge({ open: openPrs(2), stepMs: 0, startMs: 1_000 });
+      const result = findPendingLifecyclePrs({
+        repo: REPO,
+        shippedPaths: [BRIEF],
+        forge: t.forge,
+        deadlineMs: 1_000,
+        budgetMs: 5_000,
+        nowMs: t.clock,
+      });
+      expect(t.requests).toEqual([]);
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.cutShort).toEqual({ readInFull: 0 });
+        expect(result.error).toContain("cut short at the run deadline (5s budget)");
+      }
+    });
+
+    it("many open PRs: no request starts after the one that crosses the deadline", () => {
+      const root = shippedRepo();
+      // 1s per request against the 5s scoped budget: the open list plus four
+      // file reads land on the deadline, so the fifth file read never starts.
+      const t = timedForge({ open: openPrs(20), stepMs: 1_000 });
+      const result = evaluate(root, {
+        repo: REPO,
+        runGh: FAILING_GH,
+        issue: 1001,
+        nowMs: t.clock,
+        lifecycleForge: t.forge,
+      });
+      expect(t.requests).toEqual(["open", "files:100", "files:101", "files:102", "files:103"]);
+      expect(result.code).toBe(1);
+      expect(result.orphans[0]?.kind).toBe("shipped");
+      expect(result.pending).toBeUndefined();
+      expect(result.message).toContain(CUT_LINE);
+      expect(result.message).toContain("4 same-repository open PR(s) read in full");
+    });
+
+    it("a request that crosses the deadline is the last one started", () => {
+      const t = timedForge({ open: openPrs(5), stepMs: 0, startMs: 0 });
+      let reads = 0;
+      const forge: LifecycleForge = {
+        listOpenPrsPage: t.forge.listOpenPrsPage,
+        fetchPrFilesPage: (repo, n, after) => {
+          reads += 1;
+          // The second file read starts before the deadline and ends after it.
+          if (reads === 2) t.advance(2_500);
+          return t.forge.fetchPrFilesPage(repo, n, after);
+        },
+      };
+      const result = findPendingLifecyclePrs({
+        repo: REPO,
+        shippedPaths: [BRIEF],
+        forge,
+        deadlineMs: 2_000,
+        budgetMs: 2_000,
+        nowMs: t.clock,
+      });
+      expect(t.requests).toEqual(["open", "files:100", "files:101"]);
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.cutShort).toEqual({ readInFull: 2 });
+    });
+
+    it("two shipped briefs: a match found before the cut does not survive it", () => {
+      const root = shippedRepo();
+      writeBrief(root, "shipped-second.xbrief.json", {
+        status: "running",
+        references: [
+          { uri: `https://github.com/${REPO}/issues/1002`, type: "x-xbrief/github-issue" },
+        ],
+      });
+      writeCachedIssue(root, REPO, 1002, "closed");
+      const t = timedForge({
+        open: openPrs(10),
+        files: { 100: rename },
+        stepMs: 4_000,
+      });
+      // Sweep budget is 15s: open list, the matching PR #100, then two more
+      // reads reach the deadline before the second brief's PR is found.
+      const result = evaluate(root, {
+        repo: REPO,
+        runGh: FAILING_GH,
+        nowMs: t.clock,
+        lifecycleForge: t.forge,
+      });
+      expect(t.requests).toEqual(["open", "files:100", "files:101", "files:102"]);
+      expect(result.code).toBe(1);
+      expect(result.orphans.map((o) => o.kind)).toEqual(["shipped", "shipped"]);
+      expect(result.pending).toBeUndefined();
+      expect(result.message).toContain(CUT_LINE);
+      expect(result.message).toContain("15s budget, 3 same-repository open PR(s) read in full");
+    });
+
+    it("a scan that ends before the deadline is unchanged", () => {
+      const root = shippedRepo();
+      const t = timedForge({ open: openPrs(3), files: { 102: rename }, stepMs: 100 });
+      const result = evaluate(root, {
+        repo: REPO,
+        runGh: FAILING_GH,
+        issue: 1001,
+        nowMs: t.clock,
+        lifecycleForge: t.forge,
+      });
+      expect(result.code).toBe(0);
+      expect(result.orphans).toEqual([]);
+      expect(result.pending).toEqual([{ path: BRIEF, pr: 102 }]);
+      expect(result.message).toContain(`${BRIEF}: pending lifecycle PR #102`);
+      expect(result.message).not.toContain("cut short");
+    });
   });
 });

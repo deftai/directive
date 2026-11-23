@@ -286,23 +286,37 @@ export class FileBackedPrePrStore implements PrePrExecutionStore {
   }
 }
 
-let defaultStore: PrePrExecutionStore | null = null;
+/**
+ * #6902: one cached file-backed store, keyed by the absolute root resolved at
+ * call time and built from that same absolute root. An injected store
+ * (set/reset) wins for any root until {@link clearDefaultPrePrStore}.
+ */
+let cachedStore: { readonly root: string; readonly store: PrePrExecutionStore } | null = null;
+let injectedStore: PrePrExecutionStore | null = null;
 
 export function getDefaultPrePrStore(projectRoot: string = process.cwd()): PrePrExecutionStore {
-  if (defaultStore === null) {
-    defaultStore = new FileBackedPrePrStore(projectRoot);
+  if (injectedStore !== null) return injectedStore;
+  const root = resolve(projectRoot);
+  if (cachedStore === null || cachedStore.root !== root) {
+    cachedStore = { root, store: new FileBackedPrePrStore(root) };
   }
-  return defaultStore;
+  return cachedStore.store;
 }
 
 export function setDefaultPrePrStore(store: PrePrExecutionStore): void {
-  defaultStore = store;
+  injectedStore = store;
 }
 
 export function resetDefaultPrePrStore(): InProcessPrePrStore {
   const next = new InProcessPrePrStore();
-  defaultStore = next;
+  injectedStore = next;
   return next;
+}
+
+/** Drop the cached root-keyed store and any injected test store (#6902). */
+export function clearDefaultPrePrStore(): void {
+  cachedStore = null;
+  injectedStore = null;
 }
 
 /**

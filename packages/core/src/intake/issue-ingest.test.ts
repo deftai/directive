@@ -3795,6 +3795,25 @@ describe("ingested briefs are launch-ready (#6333)", () => {
       });
     });
 
+    it("#7085: refuses a fully sliced parent and names the deft-slice line for each label", () => {
+      withRoot((root, xbriefDir) => {
+        const full = leanBody({ extra: "\n## Slices\n- slice-a: B1, A1\n- slice-b: B2, A2\n" });
+        const [result, path, message] = ingest(
+          root,
+          xbriefDir,
+          issue(6333, "Parent body.", arc(full)),
+        );
+        expect(result).toBe("refused");
+        expect(path).toBeNull();
+        expect(message).toContain("belongs to a slice label -- nothing written.");
+        expect(message).toContain("Slice labels: slice-a, slice-b.");
+        expect(message).toContain("deft-slice: #6333 slice-a");
+        expect(message).toContain("deft-slice: #6333 slice-b");
+        expect(message).toContain("Keep the #6333 body unedited.");
+        expect(readdirSync(xbriefDir).filter((n) => n.endsWith(".json"))).toEqual([]);
+      });
+    });
+
     it("refuses a malformed slice line, a self parent, an unknown label and an unreadable parent", () => {
       withRoot((root, xbriefDir) => {
         const thread = arc(sliced);

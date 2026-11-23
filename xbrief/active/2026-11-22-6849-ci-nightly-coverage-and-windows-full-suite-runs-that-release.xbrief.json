@@ -1,0 +1,790 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6849",
+    "updated": "2026-11-22T22:18:44Z"
+  },
+  "plan": {
+    "title": "ci: nightly coverage and Windows full-suite runs that release readiness reuses",
+    "status": "running",
+    "narratives": {
+      "Description": "Once a release reuses CI (#6791, S1 of #6845), coverage against the floor and the full Windows suite run nowhere before a release ships. This story adds one scheduled workflow with a Linux coverage lane and a Windows full-suite lane on the same master commit, a reporting job that keeps one durable tracking issue per lane, and a nightly conjunct on the merged Step 5 CI reuse rule that release:run readiness prints and Step 5 re-evaluates. Nothing changes on the PR or merge-queue path and no required check is added.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6849",
+      "Overview": "\n1. Workflow. `.github/workflows/nightly.yml` runs on `schedule` (one cron a day) and `workflow_dispatch`, and on no other event. Every job runs only when the ref is `refs/heads/master`, and each lane checks out `github.sha`, so both lanes of one run test the same commit. `concurrency: nightly` without cancel. Workflow permissions are `contents: read`; only the reporting job gets `issues: write`. Job names do not equal a required check name.\n2. Preparation. Both lanes use the `merge-gate-primary` preparation: Node from `.nvmrc`, corepack pnpm, `pnpm install --frozen-lockfile`, Task, Go, uv and the tip dogfood materialize (which builds the checkout). Windows uses the Windows equivalents of the same steps. Before the tests, each lane fails as a setup failure unless `task --version` succeeds and `packages/cli/dist/bin.js` exists.\n3. Coverage lane, `Nightly coverage (Linux)`, on `ubuntu-latest` with `timeout-minutes: 60`: `pnpm run test` (vitest with `--coverage` and the `vitest.config.ts` floor). No `task check:merge` and no coverage-debt flag. It uploads `coverage/coverage-final.json` when it exists.\n4. Windows lane, `Nightly full suite (Windows)`, on `windows-latest` with `timeout-minutes: 240`: `pnpm exec vitest run` without coverage, both vitest projects. The coverage floor is read on Linux only.\n5. Reporting. A job `if: always()` after both lanes classifies each lane as `passed`, `test-failure`, `setup-failure`, `timed-out-or-cancelled` or `report-unavailable`, from the job and step results. For each lane there is one durable tracking issue, found by its hidden body marker among issues opened by `github-actions[bot]`, open or closed. On a red lane it reopens the issue (or creates it once) and comments with the lane, the outcome class, the SHA, the run id and attempt, the run URL, and the failing test files and the four coverage totals when a report exists; an absent value is written as unknown, never as zero. On a passed lane it comments and closes an open issue. A comment for the same run id and attempt is not posted twice. The issue is assigned to the login in the repository variable `NIGHTLY_OWNER`; when it is unset the run summary says no one was assigned. Neither title nor body contains `coverage-debt`. Test output is written to a file and passed with `--body-file`, never into a shell command. A failure of the reporting job fails the run.\n6. Release reuse. Readiness and Step 5 read the nightly workflow runs. For each lane, the witness is the newest run whose head commit tree equals the clean Step 5 input tree; the lane is reusable only when the latest attempt of that lane in that run concluded `success`. A pending, failed or missing latest attempt is not reusable, and an older success is never used. The #6845 Step 5 reuse also requires both lanes reusable. Readiness prints per lane the status, run URL and head SHA. When a lane is not reusable, readiness says before the mint which lane and why, that the full local Step 5 check will run and about how long, and prints the command to start the workflow on master. Step 5 evaluates the rule again and continues without a prompt either way.\n7. Host boundary. When the local Step 5 fallback runs on a host that is not Windows and the Windows lane is not reusable, readiness and Step 5 print that the Windows suite did not run for this release. No refusal is added.\n8. Docs. The release skill and `docs/RELEASING.md` say where coverage and the Windows suite run, the reuse rule, the fallback, the Windows host boundary and how a red lane is reported.\n9. Build order. One PR, built after #6845 merges.\n\n## Acceptance Criteria\n\n- Given the workflow file, then its only triggers are `schedule` and `workflow_dispatch`, no job name equals `TypeScript (build + lint)` or `Merge gate (task check)`, and only the reporting job has `issues: write`.\n- Given a dispatch on a ref other than master, then no lane runs.\n- Given a lane where Task is missing or `packages/cli/dist/bin.js` is absent, then the lane fails as a setup failure before the tests run.\n- Given a red lane with no tracking issue, then one issue is created; given a closed tracking issue and a new red run, then that issue is reopened and no second issue is created.\n- Given the reporting job runs twice for the same run id and attempt, then only one comment is posted.\n- Given a lane that timed out or failed in setup, then the comment names that outcome class and writes missing totals as unknown.\n- Given a passed lane and an open tracking issue, then the issue gets a comment and is closed.\n- Given a nightly run whose head tree equals the clean Step 5 input tree and whose latest attempt of both lanes succeeded, when the #6845 reuse rule also holds, then Step 5 skips the local check and prints both run URLs.\n- Given a green nightly run on an ancestor whose tree differs from the Step 5 input tree, then Step 5 does not reuse it and runs the full local check.\n- Given a matching run whose latest attempt of a lane failed or is pending, also when an earlier attempt succeeded, then that lane is not reusable.\n- Given a lane is not reusable at readiness, then readiness says before the mint which lane and why, that the full local check will run, and prints the dispatch command.\n- Given the fallback runs on a non-Windows host and the Windows lane is not reusable, then readiness and Step 5 print that the Windows suite did not run.\n- Given the docs, then the release skill and `docs/RELEASING.md` name where coverage and the Windows suite run and the reuse rule.\n\n\n",
+      "Constraint": "- Reusing a nightly result from an ancestor or a different tree, with or without an age limit or a printed commit count (comment 7044533420 finding 1).\n- Setting up the Windows lane like the narrow Windows dispatch job, so tests that need Task or the built CLI return early (comment 7044533420 finding 2).\n- Reporting only failing tests, or writing a missing total as zero (comment 7044533420 finding 3).\n- A new issue for each failure, an unassigned issue with no owner named, or coverage-debt markers on the nightly issue (comment 7044533420 finding 4).\n- Claiming the local fallback tests Windows on a non-Windows host (comment 7044533420 finding 5).\n- Running `task check:merge` in the nightly, any job on `pull_request` or `merge_group`, a new required check, automatic test retries, or a slow-test lane.\n- Skipping a nightly run on an unchanged tree in this version.",
+      "Labels": "design-critique:ingest-ready, framework-gap",
+      "ImplementationPlan": "Build on the merged #6845 release:run surfaces, not planned ones. The #6791 reuse rule shipped in S1 (#6898): packages/core/src/release/ci-reuse.ts (evaluateCiReuse, decideCiReuseFromRuns, RELEASE_CI_REUSE_REQUIRED_CHECKS; its header already names #6849 as the coverage gap closer). Readiness shipped in S3 (#6876, PR #7010): packages/core/src/release/run-readiness.ts (ciReuseAtTip, readinessCiLines, runReleaseReadiness, formatReadiness). Step 5 re-evaluation is evaluateStep5CiReuse in packages/core/src/release/pipeline.ts. S4 (#6877) and S5 (#6878) are merged; S5 rewrote the release skill runbook and docs/RELEASING.md, so the docs edit extends that runbook. Add the nightly lane conjunct in a new nightly-reuse.ts read by ci-reuse.ts, so readiness and Step 5 share one rule. Notes for the build: (1) Go is retired from master (#6863, after the arc): clause 2's 'same preparation as merge-gate-primary' means the current job steps, which have no Go step; do not add setup-go. (2) Collect failing test files with vitest CLI reporter flags (for example --reporter=json --outputFile) rather than editing vitest.config.ts, which is an evaluator surface (#3156) and would need xbrief/evaluator-surface-disposition.json. (3) No change to ci.yml, required checks, branch protection or rulesets. (4) The NIGHTLY_OWNER repository variable is an operator setting.",
+      "UserStory": "As a release operator, I want a daily coverage run and a daily Windows full-suite run that release readiness reuses only on the same tree, so that a release that skips the local Step 5 check still ships code that was measured for coverage and tested on Windows.",
+      "Traces": "#6849 accepted design critique: bound lean 7044552595, synthesis 7044624140, verified-claims table 7044623770. Builds on #6845 S1 (#6791, PR #6898) and S3 to S5 (#6876, #6877, #6878, all closed). Related: #6041 (coverage off the merge path), #6863 (Go retired)."
+    },
+    "items": [
+      {
+        "title": "Workflow. `.github/workflows/nightly.yml` runs on `schedule` (one cron a day) and `workflow_dispatch`, and on no other event. Every job runs only when the ref is `refs/heads/master`, and each lane checks out `github.sha`, so both lanes of one run test the same commit. `concurrency: nightly` without cancel. Workflow permissions are `contents: read`; only the reporting job gets `issues: write`. Job names do not equal a required check name.",
+        "status": "proposed",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "Workflow. `.github/workflows/nightly.yml` runs on `schedule` (one cron a day) and `workflow_dispatch`, and on no other event. Every job runs only when the ref is `refs/heads/master`, and each lane checks out `github.sha`, so both lanes of one run test the same commit. `concurrency: nightly` without cancel. Workflow permissions are `contents: read`; only the reporting job gets `issues: write`. Job names do not equal a required check name."
+        }
+      },
+      {
+        "title": "Preparation. Both lanes use the `merge-gate-primary` preparation: Node from `.nvmrc`, corepack pnpm, `pnpm install --frozen-lockfile`, Task, Go, uv and the tip dogfood materialize (which builds the checkout). Windows uses the Windows equivalents of the same steps. Before the tests, each lane fails as a setup failure unless `task --version` succeeds and `packages/cli/dist/bin.js` exists.",
+        "status": "proposed",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "Preparation. Both lanes use the `merge-gate-primary` preparation: Node from `.nvmrc`, corepack pnpm, `pnpm install --frozen-lockfile`, Task, Go, uv and the tip dogfood materialize (which builds the checkout). Windows uses the Windows equivalents of the same steps. Before the tests, each lane fails as a setup failure unless `task --version` succeeds and `packages/cli/dist/bin.js` exists."
+        }
+      },
+      {
+        "title": "Coverage lane, `Nightly coverage (Linux)`, on `ubuntu-latest` with `timeout-minutes: 60`: `pnpm run test` (vitest with `--coverage` and the `vitest.config.ts` floor). No `task check:merge` and no coverage-debt flag. It uploads `coverage/coverage-final.json` when it exists.",
+        "status": "proposed",
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "Coverage lane, `Nightly coverage (Linux)`, on `ubuntu-latest` with `timeout-minutes: 60`: `pnpm run test` (vitest with `--coverage` and the `vitest.config.ts` floor). No `task check:merge` and no coverage-debt flag. It uploads `coverage/coverage-final.json` when it exists."
+        }
+      },
+      {
+        "title": "Windows lane, `Nightly full suite (Windows)`, on `windows-latest` with `timeout-minutes: 240`: `pnpm exec vitest run` without coverage, both vitest projects. The coverage floor is read on Linux only.",
+        "status": "proposed",
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "Given the nightly workflow, then the Windows lane Nightly full suite (Windows) runs on windows-latest with timeout-minutes 240 and runs pnpm exec vitest run without coverage over both vitest projects; the coverage floor is read on Linux only."
+        }
+      },
+      {
+        "title": "Reporting. A job `if: always()` after both lanes classifies each lane as `passed`, `test-failure`, `setup-failure`, `timed-out-or-cancelled` or `report-unavailable`, from the job and step results. For each lane there is one durable tracking issue, found by its hidden body marker among issues opened by `github-actions[bot]`, open or closed. On a red lane it reopens the issue (or creates it once) and comments with the lane, the outcome class, the SHA, the run id and attempt, the run URL, and the failing test files and the four coverage totals when a report exists; an absent value is written as unknown, never as zero. On a passed lane it comments and closes an open issue. A comment for the same run id and attempt is not posted twice. The issue is assigned to the login in the repository variable `NIGHTLY_OWNER`; when it is unset the run summary says no one was assigned. Neither title nor body contains `coverage-debt`. Test output is written to a file and passed with `--body-file`, never into a shell command. A failure of the reporting job fails the run.",
+        "status": "proposed",
+        "id": "clause.5",
+        "narrative": {
+          "Acceptance": "Reporting. A job `if: always()` after both lanes classifies each lane as `passed`, `test-failure`, `setup-failure`, `timed-out-or-cancelled` or `report-unavailable`, from the job and step results. For each lane there is one durable tracking issue, found by its hidden body marker among issues opened by `github-actions[bot]`, open or closed. On a red lane it reopens the issue (or creates it once) and comments with the lane, the outcome class, the SHA, the run id and attempt, the run URL, and the failing test files and the four coverage totals when a report exists; an absent value is written as unknown, never as zero. On a passed lane it comments and closes an open issue. A comment for the same run id and attempt is not posted twice. The issue is assigned to the login in the repository variable `NIGHTLY_OWNER`; when it is unset the run summary says no one was assigned. Neither title nor body contains `coverage-debt`. Test output is written to a file and passed with `--body-file`, never into a shell command. A failure of the reporting job fails the run."
+        }
+      },
+      {
+        "title": "Release reuse. Readiness and Step 5 read the nightly workflow runs. For each lane, the witness is the newest run whose head commit tree equals the clean Step 5 input tree; the lane is reusable only when the latest attempt of that lane in that run concluded `success`. A pending, failed or missing latest attempt is not reusable, and an older success is never used. The #6845 Step 5 reuse also requires both lanes reusable. Readiness prints per lane the status, run URL and head SHA. When a lane is not reusable, readiness says before the mint which lane and why, that the full local Step 5 check will run and about how long, and prints the command to start the workflow on master. Step 5 evaluates the rule again and continues without a prompt either way.",
+        "status": "proposed",
+        "id": "clause.6",
+        "narrative": {
+          "Acceptance": "Release reuse. Readiness and Step 5 read the nightly workflow runs. For each lane, the witness is the newest run whose head commit tree equals the clean Step 5 input tree; the lane is reusable only when the latest attempt of that lane in that run concluded `success`. A pending, failed or missing latest attempt is not reusable, and an older success is never used. The #6845 Step 5 reuse also requires both lanes reusable. Readiness prints per lane the status, run URL and head SHA. When a lane is not reusable, readiness says before the mint which lane and why, that the full local Step 5 check will run and about how long, and prints the command to start the workflow on master. Step 5 evaluates the rule again and continues without a prompt either way."
+        }
+      },
+      {
+        "title": "Host boundary. When the local Step 5 fallback runs on a host that is not Windows and the Windows lane is not reusable, readiness and Step 5 print that the Windows suite did not run for this release. No refusal is added.",
+        "status": "proposed",
+        "id": "clause.7",
+        "narrative": {
+          "Acceptance": "Host boundary. When the local Step 5 fallback runs on a host that is not Windows and the Windows lane is not reusable, readiness and Step 5 print that the Windows suite did not run for this release. No refusal is added."
+        }
+      },
+      {
+        "title": "Docs. The release skill and `docs/RELEASING.md` say where coverage and the Windows suite run, the reuse rule, the fallback, the Windows host boundary and how a red lane is reported.",
+        "status": "proposed",
+        "id": "clause.8",
+        "narrative": {
+          "Acceptance": "Given docs/RELEASING.md and the release skill, then both name where coverage and the Windows suite run, the reuse rule, the local fallback, the Windows host boundary and how a red lane is reported."
+        }
+      },
+      {
+        "title": "Build order. One PR, built after #6845 merges.",
+        "status": "proposed",
+        "id": "clause.9",
+        "narrative": {
+          "Acceptance": "Given the product change, then it ships as one PR built on the merged #6845 surfaces (S1 ci-reuse.ts from PR #6898; S3 to S5 release:run readiness, all closed)."
+        }
+      },
+      {
+        "title": "Given the workflow file, then its only triggers are `schedule` and `workflow_dispatch`, no job name equals `TypeScript (build + lint)` or `Merge gate (task check)`, and only the reporting job has `issues: write`.",
+        "status": "proposed",
+        "id": "clause.10",
+        "narrative": {
+          "Acceptance": "Given the workflow file, then its only triggers are `schedule` and `workflow_dispatch`, no job name equals `TypeScript (build + lint)` or `Merge gate (task check)`, and only the reporting job has `issues: write`."
+        }
+      },
+      {
+        "title": "Given a dispatch on a ref other than master, then no lane runs.",
+        "status": "proposed",
+        "id": "clause.11",
+        "narrative": {
+          "Acceptance": "Given a dispatch on a ref other than master, then no lane runs."
+        }
+      },
+      {
+        "title": "Given a lane where Task is missing or `packages/cli/dist/bin.js` is absent, then the lane fails as a setup failure before the tests run.",
+        "status": "proposed",
+        "id": "clause.12",
+        "narrative": {
+          "Acceptance": "Given a lane where Task is missing or `packages/cli/dist/bin.js` is absent, then the lane fails as a setup failure before the tests run."
+        }
+      },
+      {
+        "title": "Given a red lane with no tracking issue, then one issue is created; given a closed tracking issue and a new red run, then that issue is reopened and no second issue is created.",
+        "status": "proposed",
+        "id": "clause.13",
+        "narrative": {
+          "Acceptance": "Given a red lane with no tracking issue, then one issue is created; given a closed tracking issue and a new red run, then that issue is reopened and no second issue is created."
+        }
+      },
+      {
+        "title": "Given the reporting job runs twice for the same run id and attempt, then only one comment is posted.",
+        "status": "proposed",
+        "id": "clause.14",
+        "narrative": {
+          "Acceptance": "Given the reporting job runs twice for the same run id and attempt, then only one comment is posted."
+        }
+      },
+      {
+        "title": "Given a lane that timed out or failed in setup, then the comment names that outcome class and writes missing totals as unknown.",
+        "status": "proposed",
+        "id": "clause.15",
+        "narrative": {
+          "Acceptance": "Given a lane that timed out or failed in setup, then the comment names that outcome class and writes missing totals as unknown."
+        }
+      },
+      {
+        "title": "Given a passed lane and an open tracking issue, then the issue gets a comment and is closed.",
+        "status": "proposed",
+        "id": "clause.16",
+        "narrative": {
+          "Acceptance": "Given a passed lane and an open tracking issue, then the issue gets a comment and is closed."
+        }
+      },
+      {
+        "title": "Given a nightly run whose head tree equals the clean Step 5 input tree and whose latest attempt of both lanes succeeded, when the #6845 reuse rule also holds, then Step 5 skips the local check and prints both run URLs.",
+        "status": "proposed",
+        "id": "clause.17",
+        "narrative": {
+          "Acceptance": "Given a nightly run whose head tree equals the clean Step 5 input tree and whose latest attempt of both lanes succeeded, when the #6845 reuse rule also holds, then Step 5 skips the local check and prints both run URLs."
+        }
+      },
+      {
+        "title": "Given a green nightly run on an ancestor whose tree differs from the Step 5 input tree, then Step 5 does not reuse it and runs the full local check.",
+        "status": "proposed",
+        "id": "clause.18",
+        "narrative": {
+          "Acceptance": "Given a green nightly run on an ancestor whose tree differs from the Step 5 input tree, then Step 5 does not reuse it and runs the full local check."
+        }
+      },
+      {
+        "title": "Given a matching run whose latest attempt of a lane failed or is pending, also when an earlier attempt succeeded, then that lane is not reusable.",
+        "status": "proposed",
+        "id": "clause.19",
+        "narrative": {
+          "Acceptance": "Given a matching run whose latest attempt of a lane failed or is pending, also when an earlier attempt succeeded, then that lane is not reusable."
+        }
+      },
+      {
+        "title": "Given a lane is not reusable at readiness, then readiness says before the mint which lane and why, that the full local check will run, and prints the dispatch command.",
+        "status": "proposed",
+        "id": "clause.20",
+        "narrative": {
+          "Acceptance": "Given a lane is not reusable at readiness, then readiness says before the mint which lane and why, that the full local check will run, and prints the dispatch command."
+        }
+      },
+      {
+        "title": "Given the fallback runs on a non-Windows host and the Windows lane is not reusable, then readiness and Step 5 print that the Windows suite did not run.",
+        "status": "proposed",
+        "id": "clause.21",
+        "narrative": {
+          "Acceptance": "Given the fallback runs on a non-Windows host and the Windows lane is not reusable, then readiness and Step 5 print that the Windows suite did not run."
+        }
+      },
+      {
+        "title": "Given the docs, then the release skill and `docs/RELEASING.md` name where coverage and the Windows suite run and the reuse rule.",
+        "status": "proposed",
+        "id": "clause.22",
+        "narrative": {
+          "Acceptance": "Given the docs, then the release skill and `docs/RELEASING.md` name where coverage and the Windows suite run and the reuse rule."
+        }
+      }
+    ],
+    "tags": [
+      "design-critique:ingest-ready",
+      "framework-gap"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6849",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6849: ci: nightly coverage and Windows full-suite runs that release readiness reuses"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6041",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6041"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "concurrency: nightly",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L4"
+        },
+        {
+          "command": "contents: read",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L4"
+        },
+        {
+          "command": "issues: write",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L4"
+        },
+        {
+          "command": "timeout-minutes: 60",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L6"
+        },
+        {
+          "command": "pnpm run test",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L6"
+        },
+        {
+          "command": "vitest.config.ts",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L6"
+        },
+        {
+          "command": "task check:merge",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L6"
+        },
+        {
+          "command": "timeout-minutes: 240",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L7"
+        },
+        {
+          "command": "pnpm exec vitest run",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L7"
+        },
+        {
+          "command": "if: always()",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L8"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          ".github/workflows/nightly.yml",
+          ".github/scripts/nightly-report.mjs",
+          "packages/core/src/release/nightly-reuse.ts",
+          "packages/core/src/release/ci-reuse.ts",
+          "packages/core/src/release/run-readiness.ts",
+          "packages/core/src/release/pipeline.ts",
+          "packages/core/src/release/types.ts",
+          "docs/RELEASING.md",
+          "content/skills/deft-directive-release/SKILL.md",
+          "content/.agents/skills/deft-directive-release/SKILL.md",
+          "content/packs/skills/skills-pack-0.1.json",
+          "docs/RULE-MAP.md",
+          "packages/core/src/release/nightly-reuse.test.ts",
+          "packages/core/src/release/ci-reuse.test.ts",
+          "packages/core/src/release/pipeline-ci-reuse.test.ts",
+          "packages/core/src/release/run-readiness.test.ts",
+          "packages/core/src/content-contracts/standards/nightly_workflow_6849.test.ts",
+          "packages/core/src/content-contracts/standards/nightly_report_6849.test.ts",
+          "packages/core/src/content-contracts/standards/release_run_runbook.test.ts",
+          "changelog.d/6849-nightly-ci.md"
+        ],
+        "verify_commands": [
+          "npx vitest run packages/core/src/release/nightly-reuse.test.ts packages/core/src/release/ci-reuse.test.ts packages/core/src/release/pipeline-ci-reuse.test.ts packages/core/src/release/run-readiness.test.ts",
+          "npx vitest run packages/core/src/content-contracts/standards/nightly_workflow_6849.test.ts packages/core/src/content-contracts/standards/nightly_report_6849.test.ts packages/core/src/content-contracts/standards/release_run_runbook.test.ts packages/core/src/content-contracts/skills/skills.test.ts"
+        ],
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "depends_on": [],
+        "expected_outputs": [
+          ".github/workflows/nightly.yml: schedule (one cron a day) and workflow_dispatch only; master-only jobs; both lanes check out github.sha; concurrency nightly without cancel; contents: read, issues: write on the reporting job only; job names Nightly coverage (Linux), Nightly full suite (Windows) and a reporting job, none equal to a required check name",
+          "both lanes use the current merge-gate-primary preparation (Windows equivalents on windows-latest) and fail as a setup failure unless task --version succeeds and packages/cli/dist/bin.js exists",
+          ".github/scripts/nightly-report.mjs: classifies each lane, keeps one durable tracking issue per lane by hidden body marker (reopen, comment, close on green), dedupes by run id and attempt, writes missing totals as unknown, assigns NIGHTLY_OWNER, never writes coverage-debt",
+          "packages/core/src/release/nightly-reuse.ts: per-lane witness = newest nightly run whose head tree equals the clean Step 5 input tree; reusable only when the latest attempt of that lane concluded success",
+          "the nightly conjunct is added to the merged #6791 rule in ci-reuse.ts, printed by the merged release:run readiness (run-readiness.ts) and re-evaluated at Step 5 (pipeline.ts); a non-reusable lane prints which lane and why, the full-local-check notice and the dispatch command; a non-Windows host prints that the Windows suite did not run",
+          "docs/RELEASING.md and the release skill say where coverage and the Windows suite run, the reuse rule, the fallback, the host boundary and the red-lane reporting",
+          "changelog fragment changelog.d/6849-nightly-ci.md"
+        ],
+        "model_tier": "standard",
+        "conflict_group": "release-verbs",
+        "acceptance_criteria_justification": "The 22 clauses are the 9 Bound remedy items and 13 Acceptance Criteria of the accepted #6849 design critique (bound lean 7044552595, synthesis 7044624140), harvested verbatim by issue:ingest; they cannot be merged or dropped without breaking the recorded harvest digest."
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: triage\n```\n\nStop 1 — Gate (arc 6849; no-ingest)\n\nmechanism-shaped: true\ndesign-critique: warranted, because once a release reuses CI (#6845 / #6791), coverage and the full Windows suite run nowhere before a release, and a weak reuse rule or a noisy red-nightly path would either ship untested bytes or add a stop the operator did not ask for.\n\nTarget-digest: sha256:1126d85181a7fcce1614de8411e39d38fafd6f75b694dad9bda49f54213c40b5\ndispatch-sha: f1b769a4a832c4ef8b223a8e82428741fd6608ec\ndest: C:/Repos/deft/wt/arc-6849 (pinKind origin-default, guarded-prep)\narc-mode: no-ingest\nyolo-standing: on\ncharter: open critique\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\nspend-why: one scheduled workflow, one issue-reporting step and one reader that release readiness consults; the design risk is in the reuse rule, the red-nightly path and flake handling. One critic of a different model family, plus one pain audit.\ncritic-post cap: 4 (set by the operator for this arc)\nmateriality-bar: open\ntarget-kind: issue\nceiling-kind: comment-id\nverification-path: pin-read git show f1b769a4a832c4ef8b223a8e82428741fd6608ec: + dest cwd-without-occupy\npain: P1, P2\n\n## In plain English\nCoverage is no longer measured on pull requests (#6041). Today it is measured only at release Step 5, which runs the whole suite with coverage on the operator's Windows machine and takes up to an hour. The merge gate runs the whole suite on Linux for every PR and queue run, without coverage, and CI runs only a short Windows dispatch check. #6845 (already arced) lets a release reuse the green CI result and skip Step 5 without asking. After that, nothing measures coverage and nothing runs the whole suite on Windows before a release ships.\n\nThe operator wants speed and still wants that testing. The recommended fix moves both runs off the PR path into one scheduled daily workflow on the master tip, reports a red run in one tracking issue per lane, and lets release readiness reuse a recent green run. When the run is missing, old or red, the release takes today's local Step 5 path instead. No PR or merge-queue job changes and no new PR gate is added.\n\n## Operator decisions (Scott, recorded as constraints)\n- In his words: \"task check no longers runs anywhere else anymore? then perhaps we can have it run after a release or once a day. need ideas we want speed but still need testing\". He then asked for options 1 to 3 from that discussion to go into this issue.\n- He wants this in the next release: one PR if possible, split only if it cannot be one.\n- Prefer designs that remove work from the PR path rather than add gates. A release-readiness check is preferred over a new PR gate.\n\n## Pains\n- P1 — Once a release reuses CI (#6845), coverage against the floor is measured nowhere before the release, so a coverage collapse can ship without anyone seeing it.\n- P2 — Once a release reuses CI, the full test suite runs on Windows nowhere before the release, so a Windows-only failure can ship.\n\n## Constraints (not pains)\n- PR and merge-queue time must not change: no new job on `pull_request`, `push` or `merge_group`, and no new required check.\n- No new prompt and no new refusal in the release run. When the scheduled result cannot be reused, the release is no worse than today: it runs the existing local Step 5.\n- A red scheduled run must reach a person without opening a new issue every night.\n\n## Out of scope (named, not pains)\n- #6850, #6851, #6852, #6853, #6854, #6855, #6856: PR and merge-queue speed. This arc changes nothing on the PR path.\n- #6862: the one slow test file in the merge gate. It is arced in parallel. This workflow runs whatever suite exists and adds no slow-test lane or marker (CONTRIBUTING.md § Slow tests still has none).\n- #6845: the `release:run` verb and its CI reuse rule (bound lean item 3: reuse when the clean Step 5 input tree equals the fetched tip tree and the latest required check runs on that tip succeeded). This arc adds a conjunct to that reuse; it does not rebuild it. Its open item, \"a reused cut runs no host coverage\", is what this arc answers.\n- Changing the coverage floor. The issue body says \"85%\"; the floor in `vitest.config.ts` is 75 on all four metrics. The scheduled run uses the config as it is.\n\n## Anchors at the dispatch SHA\n- `.github/workflows/ci.yml` 3-10: triggers are `pull_request`, `push` to master and `merge_group`; no workflow in `.github/workflows/` has a `schedule` trigger. 56-81: the required checks are the two aggregators `TypeScript (build + lint)` and `Merge gate (task check)`; a master push can reuse a passed queue run (#6584, 195-216). 228-277: `merge-gate-primary` installs pnpm, Task, Go and uv, materializes the tip dogfood runtime and runs `task check:merge`. 595-604: the Windows job is a task-dispatch regression, not the suite.\n- `Taskfile.yml` 427-431 and 433-511: `check:merge` is `check:framework-source`: `ts:check-lane` plus about 60 `verify:*` gates.\n- `packages/core/src/ts-check-lane/run-lane.ts` 44-58: the lane runs vitest with `--coverage` only under `DEFT_RELEASE_PREFLIGHT=1` (release Step 5); CI and ordinary runs use `pnpm exec vitest run`.\n- `package.json` 15: `test` is `vitest run --coverage`. `vitest.config.ts` 24-26 and 75-80: coverage floor 75 on lines, functions, branches and statements, the same on win32 and Linux; 287-310: `unit` and `spawn-heavy` projects; win32 timeouts are 240s.\n- `packages/core/src/vitest-runner/coverage-debt.ts` 5-10: `COVERAGE_GOAL` is 85 (the debt-hatch goal, not the floor).\n- `packages/core/src/release/coverage-debt-ledger.ts` 130-170: release Step 5 treats any open issue matching the searches `coverage-debt in:title,body` or `allow-coverage-debt in:body` as open debt, which blocks a second soft-pass.\n- `packages/core/src/release/pipeline.ts` 328-440: Step 5 (skip-ci incident path, suite stamp, host coverage run).\n- `docs/RELEASING.md` 94-104: #6041 decision (merge path is coverage-free; release Step 5 is the host coverage run; Ubuntu is the accepted coverage floor reader for win32 residuals). 149-180: the coverage-debt hatch and ledger.\n- `content/skills/deft-directive-release/SKILL.md` 92: readiness reads the two required checks on the tip.\n- `CONTRIBUTING.md` 200-213: no slow-test lane exists; flaky tests must be fixed, not hidden.\n- The repository is public, so GitHub-hosted standard runners cost nothing; Blacksmith runners are paid.\n\n## Recommended mechanism (the thing to critique)\n- R1. One workflow, `.github/workflows/nightly.yml`, triggered only by `schedule` (one cron a day) and `workflow_dispatch` (no inputs, master only). `concurrency: nightly` with no cancel. Both lanes run on the same `github.sha`, the master tip when the run starts. Job names do not reuse a required check name.\n- R2. Coverage lane, `Nightly coverage (Linux)`, on `ubuntu-latest`: the same setup steps as `merge-gate-primary`, then `pnpm run test` (vitest with coverage and the config floor). It does not run `task check:merge`: the verify gates already ran on that commit in the queue, and several are PR-context gates. It uploads `coverage/coverage-final.json` as an artifact.\n- R3. Windows lane, `Nightly full suite (Windows)`, on `windows-latest`: the same setup steps as the Windows dispatch job, then `pnpm exec vitest run` with no coverage. The floor is read on Linux only (as #6041 already accepts).\n- R4. Red path. A last job with `issues: write` runs per lane after both. On a failed lane it finds the one open issue that carries that lane's hidden body marker and was opened by `github-actions[bot]`; it comments on it, or creates it if none is open. The comment names the SHA, the run URL and the failing test files (and the four coverage totals against the floor for the coverage lane). On a green lane it comments and closes that lane's open issue. No new label. Neither title nor body contains the string `coverage-debt`, so the release coverage-debt ledger does not read it as debt.\n- R5. Flakes. No retries inside the run. A flaky test shows up as an issue that opens and then closes the next night, with the test named. The release fallback in R6 is itself a fresh run.\n- R6. Release readiness. A reader lists the nightly workflow runs, newest first, and takes the newest run whose head commit is the release base B or an ancestor of it. Per lane it reads the latest attempt only. A lane is reusable when that attempt concluded `success` and the run started within 24 hours of readiness. Readiness prints, per lane, the status, run URL, head SHA, age and the number of commits from that head to B. The #6845 Step 5 reuse then also requires both lanes reusable. Otherwise readiness says before the mint which lane is missing, old or red and that the full local Step 5 check will run (with its usual time), and Step 5 runs it as it does today. A pending run is not waited on and an older green run is never used.\n- R7. Docs. The release skill and `docs/RELEASING.md` say where coverage and Windows testing run and how readiness reuses them.\n- R8. Build order. One PR, built after #6845 merges, because the Step 5 reuse it narrows is built there.\n\nQuestions for the critic:\n1. What exactly should each lane run? Is suite-only (`pnpm run test` on Linux, `pnpm exec vitest run` on Windows) right, or must it be `task check` / `task check:merge`, and would those misfire on a `schedule` event? Which setup steps does the suite need (Task, Go, uv, the dogfood runtime) so that tests do not skip or fail for the wrong reason? Should Windows also run with coverage, as release Step 5 does today?\n2. Ref: does one run of one workflow guarantee both lanes test the same commit? Can a nightly job name or result be mistaken by the #6584 queue-reuse lookup, the release readiness check read, or the #6845 latest-check-run rule for a required check on the master tip?\n3. Who sees red: is one issue per lane, found by a hidden marker and closed on green, enough and free of duplicates? Should the coverage lane instead use the release coverage-debt ledger format, as the issue body says, given that an open ledger entry blocks a later release soft-pass?\n4. The reuse rule: is \"newest run on B or an ancestor of B, latest attempt `success`, started within 24 hours\" the right definition, or should it be exact tree equality as in #6791? What does it miss for commits merged after the nightly head, and is printing that count an honest disclosure?\n5. Fallback: when a lane is missing, old or red, is today's local Step 5 the right fallback, or should readiness dispatch the workflow and wait? Does a red lane need to block anything more than reuse?\n6. Cost and runner: GitHub-hosted runners on a public repo, a daily run on an unchanged tree, and timeouts. Should the run skip when the master tree equals the tree of the last green run, and how would that change the 24-hour rule?\n7. Flakes: is \"no retry, the issue shows the flap, the release fallback re-runs\" enough, or does the design need something else?\n8. Can it be one PR, and is building it after #6845 the right order?\n\n",
+          "id": 7044465070,
+          "html_url": "https://github.com/deftai/directive/issues/6849#issuecomment-7044465070",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T16:13:51Z",
+          "updated_at": "2026-11-20T16:13:51Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 1\ninput-ceiling: 7044465540\nseat: codex launcher: codex (exec --ephemeral --sandbox read-only -C dest)\n\ncharter: open critique\nspend: N=1\narc-mode: no-ingest\nmateriality-bar: open\ndispatch-sha: f1b769a4a832c4ef8b223a8e82428741fd6608ec\ndest: C:/Repos/deft/wt/arc-6849\nverification-path: pin-read git show f1b769a4a832c4ef8b223a8e82428741fd6608ec: + dest cwd-without-occupy\naudit-targets: none\nStop 1 cite: comment 7044465070\n\n## Launch posture (disclosed)\n- The parent is Claude Code (claude-opus-5-5). The one critic seat is Codex, a different model family, run with a read-only launcher against the dest. The launch probe for that argv returned `pong` rc 0 in this session; that proves launchability only.\n- The Codex seat has no GitHub access. It reads a parent-written thread snapshot (issue body, thread up to the ceiling, this deposit, linked issue bodies) and reads code with `git show <dispatch-sha>:<path>`. The parent posts the critic's final message verbatim.\n- This deposit was created and then edited once, only to record its own comment id as the input ceiling.\n\n",
+          "id": 7044465540,
+          "html_url": "https://github.com/deftai/directive/issues/6849#issuecomment-7044465540",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T16:13:52Z",
+          "updated_at": "2026-11-20T16:13:53Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\n\nSkipping release Step 5 would remove the remaining coverage run and, on the Windows release host, the remaining full Windows test run. Daily testing is a sensible replacement, but the proposed reuse rule does not establish that the code being released received either test. A green ancestor can precede the very change that breaks Windows or collapses coverage. Printing the number of intervening commits discloses that gap; it does not close it.\n\nMy verdict is to retain the two nightly lanes and local fallback, but require matching input trees for reuse and complete the Windows preparation and failure-reporting contracts.\n\nAnswers to the eight questions:\n\n1. Suite-only is appropriate: Linux with coverage at the configured 75% floor; Windows without coverage. Both Vitest projects remain included. Task and a built checkout matter to integration tests; the narrow Windows job is not a sufficient setup specification. Running the full merge gate adds unrelated process checks.\n2. Both lanes can test one immutable event SHA if checkout is pinned to it. Neither should resolve moving `master` independently. Distinct names avoid required-check collisions; the existing queue lookup also filters by workflow, event and exact SHA.\n3. Separate nightly tracking issues are appropriate. They need repeatable reporting, a named human notification route, and reports for infrastructure failures as well as failing tests. Release debt markers would change release behavior.\n4. Ancestor status plus age is insufficient. Reuse needs equality with the clean Step 5 input tree, alongside #6845’s required-check rule. The decision must be re-evaluated at Step 5.\n5. Existing local Step 5 is a reasonable fallback on the Windows release host. Red nightly results invalidate reuse; existing Step 5 failure handling remains authoritative. Automatic dispatch-and-wait is unnecessary for the first version.\n6. Standard hosted runners fit the proposal. Their current billing terms were not verified in this offline critique. Explicit job timeouts are needed. Initially, rerunning an unchanged tree is simpler than introducing cached-test freshness rules.\n7. No automatic test retries is reasonable. An intermittent failure still needs a retained record and a distinction between test failure, setup failure and timeout.\n8. This can remain one PR after #6845, with the reader, workflow, reporting and documentation together. #6862’s test refactoring remains separate.\n\nAll code evidence below was read at `f1b769a4a832c4ef8b223a8e82428741fd6608ec`. No files were changed and no builds or tests were run.\n\n### 1. blocks-the-design — A recent ancestor does not test the release input\n\n**Evidence:** `packages/core/src/ts-check-lane/run-lane.ts:44–80` selects coverage only for release preflight. `.github/scripts/ci-queue-reuse-lookup.mjs:49–74` requires the exact SHA and latest successful attempt of the correct workflow. `packages/core/src/release/pipeline.ts:383–423` binds existing suite reuse to a clean HEAD and revalidates the named merge gate. Supplied #6845 bound lean item 3 separately requires the clean Step 5 input tree to equal the fetched tip tree.\n\n**Failure mode:** Nightly tests commit A. Commit B then adds uncovered code or a Windows-only regression. Linux merge CI succeeds without coverage. R6 accepts A within 24 hours, while #6845 accepts the matching release input at B. Step 5 is skipped although neither nightly tested B’s changes.\n\n**Disposition consequence:** R6 cannot bind as written. The nightly witness must match the clean Step 5 input tree, directly or through exact tree equality, while retaining #6845’s separate checks. A newer unsuccessful attempt cannot be bypassed by selecting an older success. Freshness and latest-attempt state must be checked again when Step 5 decides to skip.\n\nThe strongest case for ancestor reuse is speed on an active branch. That would be acceptable only with an explicit acceptance of untested intervening changes; it does not relieve P1 and P2 as currently stated.\n\n### 2. blocks-the-design — The Windows setup can silently omit integration coverage\n\n**Evidence:** `packages/core/src/platform/ownership-task-wiring.test.ts:46–60` returns without exercising its live smoke when Task or the built checkout CLI is absent. `packages/core/src/content-contracts/standards/taskfile_release_names.test.ts:6–13,38–52,83–105` conditionally runs Task integration tests. `.github/workflows/ci.yml:659–665` prepares pnpm and installs dependencies for the narrow Windows job. The Linux setup materializes the tip runtime at `ci.yml:265–274`; `tasks/materialize.yml:7–13` gives that operation a build dependency.\n\n**Failure mode:** R3 copies narrow-job setup and invokes Vitest directly on a fresh checkout. Source aliases allow many tests to run, but the missing built CLI makes at least one integration test return successfully without checking the behavior. A green “full suite” result therefore overstates what ran.\n\n**Disposition consequence:** R3 needs an explicit preparation contract for the full suite: pinned Node/pnpm, dependencies, Task, checkout build and the intended runtime under test. Linux’s existing preparation is the conservative starting point, adapted for Windows. Go and uv should not be removed from that baseline merely because the top-level command is Vitest; nor should their necessity be claimed without checking actual test dependencies.\n\nThis does not require adding `task check:merge` or changing existing platform-specific exclusions.\n\n### 3. sharpens-framing — Failure reporting needs an outcome beyond “failing tests”\n\n**Evidence:** `.github/workflows/ci.yml:615–636` explicitly distinguishes Task installation failures from product assertions. `docs/RELEASING.md:110–125` distinguishes hangs and explains that end-of-run JSON reporters may never write after termination. `vitest.config.ts:357–373` configures coverage output, not a complete test-failure reporting channel.\n\n**Failure mode:** A dependency install fails, the runner times out, or Vitest terminates before writing its report. R4 cannot name failing test files or four coverage totals because those observations do not exist. A downstream reporter without an unconditional execution condition may also be skipped precisely when a lane fails.\n\n**Disposition consequence:** The overall design can bind, but R4 needs to describe failure-tolerant reporting: reporting after unsuccessful dependencies, retained logs/results when available, and explicit “setup failure,” “timeout,” or “report unavailable” outcomes. Missing totals must remain unknown rather than become zero or an invented test failure. Reporter failure itself must remain visible in the workflow result.\n\n### 4. sharpens-framing — One open issue is neither permanent deduplication nor guaranteed human delivery\n\n**Evidence:** R4 in Stop 1 searches only open, bot-authored issues and closes them on green. `CONTRIBUTING.md:209–213` requires fixing flaky tests rather than hiding them. `packages/core/src/release/coverage-debt-ledger.ts:148–154` searches title/body debt markers, and `docs/RELEASING.md:157–170` gives those markers release-blocking consequences.\n\n**Failure mode:** A red–green–red sequence creates a second issue because the first is closed. Repeated processing of the same run can add duplicate comments. An unassigned bot issue may never reach the intended person. Copying release debt markers into that issue would also create an unrelated obstacle to a later soft-pass.\n\n**Disposition consequence:** Keep nightly alerts outside the debt ledger, but state the deduplication scope. A stable per-lane issue that is reopened on recurrence gives a durable flap history; alternatively, explicitly accept one issue per failure episode. Reporting should identify run, attempt and lane, tolerate repeat execution, and name the responsible notification recipient or subscription.\n\nThe issue-writing job should have isolated write permission and treat test output as data, never executable shell or script input.\n\n### 5. sharpens-framing — Local fallback proves Windows behavior only on a Windows host\n\n**Evidence:** `packages/core/src/release/pipeline.ts:425–438` invokes the local check. `packages/core/src/ts-check-lane/run-lane.ts:44–67` selects host coverage, not a Windows runner. `vitest.config.ts:18–19,287–307` changes test execution according to the actual platform.\n\n**Failure mode:** A release launched on Linux encounters a missing or red Windows nightly result. R6 falls back to local Step 5 and passes on Linux, leaving Windows behavior untested.\n\n**Disposition consequence:** The fallback can bind for the stated Windows operator workflow, but that support boundary needs to be explicit. A cross-platform release-readiness claim would need an actual Windows witness when local execution is not Windows. That broader runner orchestration need not enter this PR.\n\n### 6. footnote — Preserve existing CI boundaries and keep the first version small\n\nThe existing queue lookup rejects another workflow or event even on the same SHA (`.github/scripts/ci-queue-reuse-lookup.mjs:49–74`), and its tests cover those exclusions (`packages/core/src/content-contracts/standards/ci_queue_reuse.test.ts:80–106`). Separate nightly names and a reader scoped to the nightly workflow preserve that boundary.\n\nAn unchanged-tree optimization can follow measured nightly duration. Skipping execution must not refresh the timestamp of the underlying successful test. Likewise, “no inputs” alone is not the master-only dispatch control: ref admission and immutable checkout belong in the workflow contract.\n\nThe supplied threads contain proposed implementation directions, including #6862’s slow-marker suggestion. I treated these as material to critique, not instructions to execute; the current contributor contract explicitly says that lane does not exist.",
+          "id": 7044533420,
+          "html_url": "https://github.com/deftai/directive/issues/6849#issuecomment-7044533420",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T16:16:46Z",
+          "updated_at": "2026-11-20T16:16:46Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** first successor lean under Stop 1 7044465070 (round 1: 1 of 1 critic posted, comment 7044533420)\n\n## In plain English\nProblem: coverage is measured only at release Step 5 (#6041), and the full suite runs on Windows only there too. Once #6845 lets a release reuse the green CI result and skip Step 5, nothing measures coverage and nothing runs the full Windows suite before a release ships.\n\nWhat the critic found: two daily lanes and the local fallback are the right shape, but a green run on an older commit does not test the release. A change merged after the nightly can break Windows or drop coverage, and printing how many commits were missed does not close that gap. Reuse must require the same source tree as the release. The critic also found that a Windows lane set up like today's narrow Windows job would let some integration tests return early and still pass, because Task or the built CLI is missing. Reporting must cope with setup failures, timeouts and missing reports, keep one durable issue per lane (reopened when it goes red again), and name who is told. The local fallback proves Windows only when the release host is Windows.\n\nSolution this lean proposes: one scheduled workflow runs two lanes once a day on the same master commit: the suite with coverage on Linux, and the full suite on Windows. Both lanes use the full merge-gate preparation and stop before the tests if Task or the built CLI is missing. A red lane reopens or updates that lane's one tracking issue, assigned to a named owner. Release readiness reuses a lane only when it passed on a commit whose tree is the same as the release input; otherwise Step 5 runs the local check as today, and readiness says so before the mint.\n\nWhat this adds: one scheduled workflow, one reporting job and one conjunct on the #6845 reuse rule. Nothing on the PR or merge-queue path.\n\nWhat it removes: the hour-long local Step 5 on a release whose tree a nightly run already tested.\n\nWhat it does not do:\n- It does not reuse a nightly result for a release whose tree differs from the tested tree. On a busy day most cuts fall back to the local Step 5 unless the operator starts the workflow on the tip before cutting; readiness prints that command.\n- It does not dispatch the workflow or wait for it during a release.\n- It does not test Windows when the release runs on a non-Windows host and the Windows lane is not reusable. The supported release host is Windows; on any other host readiness says Windows is untested.\n- It does not change the coverage floor, the coverage-debt ledger, PR checks or the slow test of #6862.\nIf confirmed, the synthesis would assert this design. There is no leftover next-build.\n\nTarget-digest: sha256:1126d85181a7fcce1614de8411e39d38fafd6f75b694dad9bda49f54213c40b5\n**Spec-path:** Bound remedy on this lean\n\nrelieves: P1\nrelieves: P2\n\n## Bound remedy\n1. Workflow. `.github/workflows/nightly.yml` runs on `schedule` (one cron a day) and `workflow_dispatch`, and on no other event. Every job runs only when the ref is `refs/heads/master`, and each lane checks out `github.sha`, so both lanes of one run test the same commit. `concurrency: nightly` without cancel. Workflow permissions are `contents: read`; only the reporting job gets `issues: write`. Job names do not equal a required check name.\n2. Preparation. Both lanes use the `merge-gate-primary` preparation: Node from `.nvmrc`, corepack pnpm, `pnpm install --frozen-lockfile`, Task, Go, uv and the tip dogfood materialize (which builds the checkout). Windows uses the Windows equivalents of the same steps. Before the tests, each lane fails as a setup failure unless `task --version` succeeds and `packages/cli/dist/bin.js` exists.\n3. Coverage lane, `Nightly coverage (Linux)`, on `ubuntu-latest` with `timeout-minutes: 60`: `pnpm run test` (vitest with `--coverage` and the `vitest.config.ts` floor). No `task check:merge` and no coverage-debt flag. It uploads `coverage/coverage-final.json` when it exists.\n4. Windows lane, `Nightly full suite (Windows)`, on `windows-latest` with `timeout-minutes: 240`: `pnpm exec vitest run` without coverage, both vitest projects. The coverage floor is read on Linux only.\n5. Reporting. A job `if: always()` after both lanes classifies each lane as `passed`, `test-failure`, `setup-failure`, `timed-out-or-cancelled` or `report-unavailable`, from the job and step results. For each lane there is one durable tracking issue, found by its hidden body marker among issues opened by `github-actions[bot]`, open or closed. On a red lane it reopens the issue (or creates it once) and comments with the lane, the outcome class, the SHA, the run id and attempt, the run URL, and the failing test files and the four coverage totals when a report exists; an absent value is written as unknown, never as zero. On a passed lane it comments and closes an open issue. A comment for the same run id and attempt is not posted twice. The issue is assigned to the login in the repository variable `NIGHTLY_OWNER`; when it is unset the run summary says no one was assigned. Neither title nor body contains `coverage-debt`. Test output is written to a file and passed with `--body-file`, never into a shell command. A failure of the reporting job fails the run.\n6. Release reuse. Readiness and Step 5 read the nightly workflow runs. For each lane, the witness is the newest run whose head commit tree equals the clean Step 5 input tree; the lane is reusable only when the latest attempt of that lane in that run concluded `success`. A pending, failed or missing latest attempt is not reusable, and an older success is never used. The #6845 Step 5 reuse also requires both lanes reusable. Readiness prints per lane the status, run URL and head SHA. When a lane is not reusable, readiness says before the mint which lane and why, that the full local Step 5 check will run and about how long, and prints the command to start the workflow on master. Step 5 evaluates the rule again and continues without a prompt either way.\n7. Host boundary. When the local Step 5 fallback runs on a host that is not Windows and the Windows lane is not reusable, readiness and Step 5 print that the Windows suite did not run for this release. No refusal is added.\n8. Docs. The release skill and `docs/RELEASING.md` say where coverage and the Windows suite run, the reuse rule, the fallback, the Windows host boundary and how a red lane is reported.\n9. Build order. One PR, built after #6845 merges.\n\n## Acceptance Criteria\n- Given the workflow file, then its only triggers are `schedule` and `workflow_dispatch`, no job name equals `TypeScript (build + lint)` or `Merge gate (task check)`, and only the reporting job has `issues: write`.\n- Given a dispatch on a ref other than master, then no lane runs.\n- Given a lane where Task is missing or `packages/cli/dist/bin.js` is absent, then the lane fails as a setup failure before the tests run.\n- Given a red lane with no tracking issue, then one issue is created; given a closed tracking issue and a new red run, then that issue is reopened and no second issue is created.\n- Given the reporting job runs twice for the same run id and attempt, then only one comment is posted.\n- Given a lane that timed out or failed in setup, then the comment names that outcome class and writes missing totals as unknown.\n- Given a passed lane and an open tracking issue, then the issue gets a comment and is closed.\n- Given a nightly run whose head tree equals the clean Step 5 input tree and whose latest attempt of both lanes succeeded, when the #6845 reuse rule also holds, then Step 5 skips the local check and prints both run URLs.\n- Given a green nightly run on an ancestor whose tree differs from the Step 5 input tree, then Step 5 does not reuse it and runs the full local check.\n- Given a matching run whose latest attempt of a lane failed or is pending, also when an earlier attempt succeeded, then that lane is not reusable.\n- Given a lane is not reusable at readiness, then readiness says before the mint which lane and why, that the full local check will run, and prints the dispatch command.\n- Given the fallback runs on a non-Windows host and the Windows lane is not reusable, then readiness and Step 5 print that the Windows suite did not run.\n- Given the docs, then the release skill and `docs/RELEASING.md` name where coverage and the Windows suite run and the reuse rule.\n\n## Reject\n- Reusing a nightly result from an ancestor or a different tree, with or without an age limit or a printed commit count (comment 7044533420 finding 1).\n- Setting up the Windows lane like the narrow Windows dispatch job, so tests that need Task or the built CLI return early (comment 7044533420 finding 2).\n- Reporting only failing tests, or writing a missing total as zero (comment 7044533420 finding 3).\n- A new issue for each failure, an unassigned issue with no owner named, or coverage-debt markers on the nightly issue (comment 7044533420 finding 4).\n- Claiming the local fallback tests Windows on a non-Windows host (comment 7044533420 finding 5).\n- Running `task check:merge` in the nightly, any job on `pull_request` or `merge_group`, a new required check, automatic test retries, or a slow-test lane.\n- Skipping a nightly run on an unchanged tree in this version.\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 7044533420 | 1. A recent ancestor does not test the release input | blocks-the-design | accept-into-contract (item 6) |\n| comment 7044533420 | 2. The Windows setup can silently omit integration coverage | blocks-the-design | accept-into-contract (item 2) |\n| comment 7044533420 | 3. Failure reporting needs an outcome beyond failing tests | sharpens-framing | accept-into-contract (item 5) |\n| comment 7044533420 | 4. One open issue is neither permanent deduplication nor guaranteed human delivery | sharpens-framing | accept-into-contract (item 5) |\n| comment 7044533420 | 5. Local fallback proves Windows behavior only on a Windows host | sharpens-framing | accept-into-contract (item 7) |\n| comment 7044533420 | 6. Preserve existing CI boundaries and keep the first version small | footnote | accept-into-contract (items 1 and 6; no unchanged-tree skip) |\n\nNon-self-arbitration: the parent wrote the Stop 1 write-back, the recommended mechanism and this lean. The parent re-read the critic's evidence for findings 1 and 2 at the dispatch SHA (`ownership-task-wiring.test.ts` 46-60, `ci.yml` 245-275, `tasks/materialize.yml` 7-13). The two `relieves` cites stay open until a later critic targets them. This lean adds no new premise, so it records no audit marker.\r\n\n",
+          "id": 7044552595,
+          "html_url": "https://github.com/deftai/directive/issues/6849#issuecomment-7044552595",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T16:17:36Z",
+          "updated_at": "2026-11-20T16:17:36Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2\nfinding-classes: footnote\nharvest-changed: false\nharvest-digest: sha256:509f6acd1ad67ccae269b672c8211182d09121ee8cb0914db71bd5fd7214a267\n\n## In plain English\n\nThe revised mechanism addresses both pains for the stated Windows release workflow. A release can skip its local check only when both nightly lanes passed on the same tree as its clean Step 5 input, and #6845’s separate required-check rule also passes. Otherwise, the Windows host runs the existing suite with coverage.\n\nThe preparation fixes the specific false-green integration tests identified previously. The reporting contract now covers failed dependencies, missing reports, reopening existing issues and repeat processing. There are remaining limits worth making explicit, particularly that a release from another operating system has no Windows-testing guarantee.\n\nThis was a source audit at `f1b769a4a832c4ef8b223a8e82428741fd6608ec`, not an execution test. No files were changed, tests run or comments posted.\n\npain-P1: holds - Matching-tree nightly coverage is required for CI reuse; otherwise the existing Step 5 coverage path remains, including its existing debt handling.\npain-P2: holds - For the stated Windows release host, either a matching-tree Windows nightly succeeds or the local Windows suite runs. This verdict does not extend to releases from other operating systems.\n\n### 1. footnote — Item 6 closes the untested-input gap\n\nItem 6 composes coherently with #6845 item 3: nightly tree = clean Step 5 input tree = fetched delivery-tip tree, with successful required checks on that tip. Selecting the newest matching run before inspecting its result prevents success-only searching. Re-evaluation at Step 5 prevents a readiness decision from surviving a changed input or failed later attempt.\n\nThe existing queue lookup demonstrates a useful implementation pattern: select the newest run, read its attempt, then validate explicitly named jobs (`.github/scripts/ci-queue-reuse-lookup.mjs:49–78`). Missing or unreadable evidence must take the local fallback.\n\nA selective rerun can omit a previously successful lane from the newest workflow attempt. Item 6’s “missing latest attempt is not reusable” permits the conservative result: fallback. It does not authorize silently borrowing an older success.\n\nThe successor drops the original 24-hour condition. That permits old evidence for an identical tree; it does not permit evidence for different source bytes. Neither Stop 1 pain requires an age limit independently of tree identity.\n\n### 2. footnote — Preparation repairs the named skips, but “full suite” retains existing exclusions\n\nThe Task probe and CLI existence check directly cover both early returns in `packages/core/src/platform/ownership-task-wiring.test.ts:46–60`. Materialization depends on the checkout build (`tasks/materialize.yml:7–13`; `tasks/engine.yml:29–58`), and the root build emits TypeScript before bundling (`package.json:13`). This also addresses runtime-dist-dependent tests such as `packages/runtime/src/hook-foreign-runtime-link.test.ts:172–175` and `packages/runtime/src/init-cli/ac1010-deft-install-absent.test.ts:30–32`.\n\nOther conditional exclusions remain. The release-help integration explicitly skips Windows (`packages/core/src/content-contracts/standards/taskfile_release_names.test.ts:50–65`). The running-hook replacement test skips when Bash is unavailable (`packages/runtime/src/setup-wiring-hook-replace-6806.test.ts:37,83–89`). Item 2’s two prechecks do not establish Bash availability.\n\nThese are limits of the existing suite, not grounds to reopen the accepted preparation finding. “Full suite” means both configured Vitest projects with their existing platform and capability conditions, not every assertion running on every host (`vitest.config.ts:287–310`).\n\n### 3. footnote — Reporting has the required behavior, with operational limits\n\nItem 5’s unconditional reporting job addresses ordinary dependency failure. Its durable issue lookup across open and closed issues addresses red–green–red recurrence. Its run-and-attempt key addresses repeat comments within each lane, while workflow concurrency serializes normal writers.\n\nImplementation must preserve those requirements across all issue/comment pages and partial completion: finding an existing comment must not skip a still-needed reopen or close operation. Reporter errors must remain failures rather than being interpreted as “no issue found.”\n\nNo design can guarantee that an issue is posted after the entire workflow is forcibly terminated. Also, an unset `NIGHTLY_OWNER` produces a visible summary but no assigned recipient. That is weaker than guaranteed human delivery; configure the owner before relying on assignment as the notification route.\n\nThe source currently configures progress/default test reporters and coverage JSON, not a separate structured test-results artifact (`vitest.config.ts:263–268,358–368`). The implementation therefore needs to collect whatever evidence supports its classification; absent evidence must follow the already-bound unknown/report-unavailable path.\n\n### 4. footnote — The Windows boundary is substantive\n\nThe local fallback invokes the host check (`packages/core/src/release/pipeline.ts:425–438`); coverage selection does not select a Windows runner (`packages/core/src/ts-check-lane/run-lane.ts:44–67`). Item 7 correctly discloses this.\n\nThe strongest reading supporting this lean is the Windows operator workflow described in Stop 1 and expressly retained in the successor. Under that scope, P2 holds. If the intended claim becomes “every release, regardless of host,” P2 does not hold: printing that Windows was untested cannot replace a Windows witness. That broader guarantee would require a changed mechanism or an operator-confirmed leftover scope.\n\nThe supplied thread’s implementation directions were treated as material to audit, not commands to execute.",
+          "id": 7044609752,
+          "html_url": "https://github.com/deftai/directive/issues/6849#issuecomment-7044609752",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T16:20:04Z",
+          "updated_at": "2026-11-20T16:20:04Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\nPain-audit follow-through (audit comment 7044609752; bind map stays successor lean 7044552595)\n\nThe audit is footnote-only with `harvest-changed: false`, and its harvest digest equals the lean's. It found `pain-P1` and `pain-P2` hold.\n\n- comment 7044609752, finding 1 (footnote): accepted. Dropping the 24-hour age limit is intended; tree identity is the reuse rule. The Bound remedy is unchanged.\n- comment 7044609752, finding 2 (footnote): accepted as a scope note. \"Full suite\" means both configured vitest projects with their existing platform and capability conditions. The Bound remedy is unchanged.\n- comment 7044609752, finding 3 (footnote): accepted as implementation guidance. The reporting job reads every page of issues and comments, a found comment does not skip a still-needed reopen or close, and a reporter error is a failure, not \"no issue found\". `NIGHTLY_OWNER` should be set before relying on assignment. The Bound remedy is unchanged.\n- comment 7044609752, finding 4 (footnote): accepted. P2 is relieved for the Windows release host, as the lean states; item 7 discloses the gap on any other host. The Bound remedy is unchanged.\r\n\n",
+          "id": 7044620801,
+          "html_url": "https://github.com/deftai/directive/issues/6849#issuecomment-7044620801",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T16:20:32Z",
+          "updated_at": "2026-11-20T16:20:32Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nBound lean: comment 7044552595. Dispatch SHA: f1b769a4a832c4ef8b223a8e82428741fd6608ec. Non-self-arbitration: the parent wrote the Stop 1 write-back, the recommended mechanism and the lean. Each row names who read the source at the pin (`git show <sha>:<path>` or the dest at that SHA). No tests were run; every method is a source read. Both critic posts are from one family (Codex), so agreement between them is not counted as extra confirmation; rows that only critics read are marked so.\n\n| # | Claim | Status | Method |\n|---|---|---|---|\n| 1 | CI triggers are `pull_request`, `push` to master and `merge_group`; no workflow has a `schedule` trigger; the required checks are the two aggregators | verified | parent read of `.github/workflows/ci.yml` 3-10 and 56-81; listing of `.github/workflows/` |\n| 2 | The merge gate runs the suite without coverage; coverage runs only under release preflight (Step 5) | verified | parent read of `packages/core/src/ts-check-lane/run-lane.ts` 44-58 and `docs/RELEASING.md` 94-104 |\n| 3 | The coverage floor is 75 on all four metrics in `vitest.config.ts`; `COVERAGE_GOAL` 85 is the debt-hatch goal | verified | parent read of `vitest.config.ts` 75-80 and `packages/core/src/vitest-runner/coverage-debt.ts` 5-10 |\n| 4 | The CI Windows job is a task-dispatch regression, not the suite | verified | parent read of `.github/workflows/ci.yml` 595-604 |\n| 5 | The release coverage-debt ledger treats open issues matching `coverage-debt` or `allow-coverage-debt` as open debt | verified | parent read of `packages/core/src/release/coverage-debt-ledger.ts` 148-154 |\n| 6 | The queue-reuse lookup filters by workflow, event and exact SHA, so a separate nightly workflow does not collide with it; the named merge-gate reader matches the exact check name | verified | parent read of `.github/scripts/ci-queue-reuse-lookup.mjs` 49-74 and `packages/core/src/pr-wait-mergeable/semantic-green.ts` 892-910 |\n| 7 | Some integration tests return early when Task or the built CLI is missing; the merge-gate preparation installs Task, Go and uv and builds through the tip dogfood materialize | verified | parent read of `packages/core/src/platform/ownership-task-wiring.test.ts` 46-60, `.github/workflows/ci.yml` 245-275 and `tasks/materialize.yml` 7-13 |\n| 8 | Other tests keep their platform and capability skips (release-help integration on Windows, a hook test without Bash) | critic-read | audit 7044609752 finding 2 (`taskfile_release_names.test.ts` 50-65, `setup-wiring-hook-replace-6806.test.ts` 37, 83-89) |\n| 9 | The local Step 5 fallback runs on the host, so it proves Windows only on a Windows host | critic-read | critic 7044533420 finding 5 and audit 7044609752 finding 4 (`release/pipeline.ts` 425-438) |\n| 10 | The Bound remedy relieves pains P1 and P2 | verified as design coverage | audit 7044609752 (`pain-P1`, `pain-P2` hold; `finding-classes: footnote`; `harvest-changed: false`; digest equal to the lean's) |\n| 11 | The workflow, reporting job and reuse rule behave as designed when built | endorsed, not verified | nothing was executed; the Acceptance Criteria name a test for each case |\r\n\n",
+          "id": 7044623770,
+          "html_url": "https://github.com/deftai/directive/issues/6849#issuecomment-7044623770",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T16:20:39Z",
+          "updated_at": "2026-11-20T16:20:39Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nProblem: coverage is measured only at release Step 5 (#6041), and the full Windows suite runs only there too. Once #6845 lets a release reuse CI and skip Step 5, nothing measures coverage or runs the full Windows suite before a release ships.\n\nAccepted solution: one scheduled workflow runs once a day on the master tip, and on demand, with two lanes on the same commit: the suite with coverage and the config floor on Linux, and the full suite on Windows. Both lanes use the full merge-gate preparation and fail as a setup failure if Task or the built CLI is missing. A reporting job classifies each lane's outcome and keeps one durable tracking issue per lane: reopened or commented on when red, closed when green, assigned to the owner named in a repository variable, never marked as coverage debt. Release readiness and Step 5 reuse a lane only when it passed on a run whose head tree equals the clean Step 5 input tree; that is a conjunct on the #6845 reuse rule. Otherwise Step 5 runs the local check as today, and readiness says so before the mint and prints the command to start the workflow.\n\nLimits accepted: most cuts on a busy day fall back to the local check unless the workflow ran on the tip first. Windows is guaranteed tested only when the release host is Windows; on another host the run says Windows was not tested. Nothing changes on the PR or merge-queue path. It was checked by reading the source at the pinned commit; no code was run. No leftover next-build.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 7044552595.\nverified-claims table 7044623770\n\nConfirm conjunct: yolo standing (Stop 1 7044465070, `yolo-standing: on`) on the operator's launch of this arc. Round-1 critic: comment 7044533420, posted by the parent verbatim as disclosed on panel-deposit 7044465540. Clean audit: comment 7044609752 (`finding-classes: footnote`, `harvest-changed: false`, harvest digest equal to the lean's); follow-through: comment 7044620801. Deferred, not part of this contract: PR and merge-queue speed (#6850 to #6856) and the slow test file (#6862). Build after #6845 merges. Critic posts used: 2 of 4.\n\n",
+          "id": 7044624140,
+          "html_url": "https://github.com/deftai/directive/issues/6849#issuecomment-7044624140",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-20T16:20:40Z",
+          "updated_at": "2026-11-20T16:20:40Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "Coverage measurement and the full Windows suite run only at release Step 5 (#6041 took coverage off the merge path). The merge gate runs the full test suite on Linux for every PR and queue run, but it runs no coverage, and CI has only a narrow Windows dispatch check. #6845 makes a release reuse CI on a matching tip and skip Step 5 without asking. After that, coverage and the full Windows suite would run nowhere. The repo has no scheduled workflows.\n\n## Acceptance Criteria\n\n- [ ] A scheduled workflow runs the suite with coverage and the 85% thresholds on the delivery-branch tip once a day. When it fails, it opens or updates one coverage-debt issue; it never opens a duplicate.\n- [ ] A scheduled workflow runs the full suite on a Windows runner on the same tip once a day. When it fails, it opens or updates one tracking issue that names the failing tests.\n- [ ] Release readiness (#6845) reads both results. If both are green on an ancestor of the release tree within 24 hours, readiness reuses them with no prompt. If either is stale or red, readiness warns before the mint and runs the missing one.\n- [ ] Neither nightly job runs on pull requests or merge_group, so PR and queue time do not change.\n- [ ] The release skill and docs/RELEASING.md say where coverage and Windows testing now run.\n\nRefs #6041, #6845, #6791\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6506157153,
+        "origin": "deftai/directive#6849",
+        "id": "github.issue.6506157153"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "1126d85181a7fcce1614de8411e39d38fafd6f75b694dad9bda49f54213c40b5"
+      },
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 6849,
+        "leanCommentId": 7044552595,
+        "harvestDigest": "509f6acd1ad67ccae269b672c8211182d09121ee8cb0914db71bd5fd7214a267",
+        "slice": null
+      },
+      "kind": "story"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per harvested lean item (22), in list order (#6333)",
+      "sentences": [
+        "Workflow. `.github/workflows/nightly.yml` runs on `schedule` (one cron a day) and `workflow_dispatch`, and on no other event. Every job runs only when the ref is `refs/heads/master`, and each lane checks out `github.sha`, so both lanes of one run test the same commit. `concurrency: nightly` without cancel. Workflow permissions are `contents: read`; only the reporting job gets `issues: write`. Job names do not equal a required check name.",
+        "Preparation. Both lanes use the `merge-gate-primary` preparation: Node from `.nvmrc`, corepack pnpm, `pnpm install --frozen-lockfile`, Task, Go, uv and the tip dogfood materialize (which builds the checkout). Windows uses the Windows equivalents of the same steps. Before the tests, each lane fails as a setup failure unless `task --version` succeeds and `packages/cli/dist/bin.js` exists.",
+        "Coverage lane, `Nightly coverage (Linux)`, on `ubuntu-latest` with `timeout-minutes: 60`: `pnpm run test` (vitest with `--coverage` and the `vitest.config.ts` floor). No `task check:merge` and no coverage-debt flag. It uploads `coverage/coverage-final.json` when it exists.",
+        "Windows lane, `Nightly full suite (Windows)`, on `windows-latest` with `timeout-minutes: 240`: `pnpm exec vitest run` without coverage, both vitest projects. The coverage floor is read on Linux only.",
+        "Reporting. A job `if: always()` after both lanes classifies each lane as `passed`, `test-failure`, `setup-failure`, `timed-out-or-cancelled` or `report-unavailable`, from the job and step results. For each lane there is one durable tracking issue, found by its hidden body marker among issues opened by `github-actions[bot]`, open or closed. On a red lane it reopens the issue (or creates it once) and comments with the lane, the outcome class, the SHA, the run id and attempt, the run URL, and the failing test files and the four coverage totals when a report exists; an absent value is written as unknown, never as zero. On a passed lane it comments and closes an open issue. A comment for the same run id and attempt is not posted twice. The issue is assigned to the login in the repository variable `NIGHTLY_OWNER`; when it is unset the run summary says no one was assigned. Neither title nor body contains `coverage-debt`. Test output is written to a file and passed with `--body-file`, never into a shell command. A failure of the reporting job fails the run.",
+        "Release reuse. Readiness and Step 5 read the nightly workflow runs. For each lane, the witness is the newest run whose head commit tree equals the clean Step 5 input tree; the lane is reusable only when the latest attempt of that lane in that run concluded `success`. A pending, failed or missing latest attempt is not reusable, and an older success is never used. The #6845 Step 5 reuse also requires both lanes reusable. Readiness prints per lane the status, run URL and head SHA. When a lane is not reusable, readiness says before the mint which lane and why, that the full local Step 5 check will run and about how long, and prints the command to start the workflow on master. Step 5 evaluates the rule again and continues without a prompt either way.",
+        "Host boundary. When the local Step 5 fallback runs on a host that is not Windows and the Windows lane is not reusable, readiness and Step 5 print that the Windows suite did not run for this release. No refusal is added.",
+        "Docs. The release skill and `docs/RELEASING.md` say where coverage and the Windows suite run, the reuse rule, the fallback, the Windows host boundary and how a red lane is reported.",
+        "Build order. One PR, built after #6845 merges.",
+        "Given the workflow file, then its only triggers are `schedule` and `workflow_dispatch`, no job name equals `TypeScript (build + lint)` or `Merge gate (task check)`, and only the reporting job has `issues: write`.",
+        "Given a dispatch on a ref other than master, then no lane runs.",
+        "Given a lane where Task is missing or `packages/cli/dist/bin.js` is absent, then the lane fails as a setup failure before the tests run.",
+        "Given a red lane with no tracking issue, then one issue is created; given a closed tracking issue and a new red run, then that issue is reopened and no second issue is created.",
+        "Given the reporting job runs twice for the same run id and attempt, then only one comment is posted.",
+        "Given a lane that timed out or failed in setup, then the comment names that outcome class and writes missing totals as unknown.",
+        "Given a passed lane and an open tracking issue, then the issue gets a comment and is closed.",
+        "Given a nightly run whose head tree equals the clean Step 5 input tree and whose latest attempt of both lanes succeeded, when the #6845 reuse rule also holds, then Step 5 skips the local check and prints both run URLs.",
+        "Given a green nightly run on an ancestor whose tree differs from the Step 5 input tree, then Step 5 does not reuse it and runs the full local check.",
+        "Given a matching run whose latest attempt of a lane failed or is pending, also when an earlier attempt succeeded, then that lane is not reusable.",
+        "Given a lane is not reusable at readiness, then readiness says before the mint which lane and why, that the full local check will run, and prints the dispatch command.",
+        "Given the fallback runs on a non-Windows host and the Windows lane is not reusable, then readiness and Step 5 print that the Windows suite did not run.",
+        "Given the docs, then the release skill and `docs/RELEASING.md` name where coverage and the Windows suite run and the reuse rule."
+      ],
+      "admitted_source_sentences": [
+        "Workflow. `.github/workflows/nightly.yml` runs on `schedule` (one cron a day) and `workflow_dispatch`, and on no other event. Every job runs only when the ref is `refs/heads/master`, and each lane checks out `github.sha`, so both lanes of one run test the same commit. `concurrency: nightly` without cancel. Workflow permissions are `contents: read`; only the reporting job gets `issues: write`. Job names do not equal a required check name.",
+        "Preparation. Both lanes use the `merge-gate-primary` preparation: Node from `.nvmrc`, corepack pnpm, `pnpm install --frozen-lockfile`, Task, Go, uv and the tip dogfood materialize (which builds the checkout). Windows uses the Windows equivalents of the same steps. Before the tests, each lane fails as a setup failure unless `task --version` succeeds and `packages/cli/dist/bin.js` exists.",
+        "Coverage lane, `Nightly coverage (Linux)`, on `ubuntu-latest` with `timeout-minutes: 60`: `pnpm run test` (vitest with `--coverage` and the `vitest.config.ts` floor). No `task check:merge` and no coverage-debt flag. It uploads `coverage/coverage-final.json` when it exists.",
+        "Windows lane, `Nightly full suite (Windows)`, on `windows-latest` with `timeout-minutes: 240`: `pnpm exec vitest run` without coverage, both vitest projects. The coverage floor is read on Linux only.",
+        "Reporting. A job `if: always()` after both lanes classifies each lane as `passed`, `test-failure`, `setup-failure`, `timed-out-or-cancelled` or `report-unavailable`, from the job and step results. For each lane there is one durable tracking issue, found by its hidden body marker among issues opened by `github-actions[bot]`, open or closed. On a red lane it reopens the issue (or creates it once) and comments with the lane, the outcome class, the SHA, the run id and attempt, the run URL, and the failing test files and the four coverage totals when a report exists; an absent value is written as unknown, never as zero. On a passed lane it comments and closes an open issue. A comment for the same run id and attempt is not posted twice. The issue is assigned to the login in the repository variable `NIGHTLY_OWNER`; when it is unset the run summary says no one was assigned. Neither title nor body contains `coverage-debt`. Test output is written to a file and passed with `--body-file`, never into a shell command. A failure of the reporting job fails the run.",
+        "Release reuse. Readiness and Step 5 read the nightly workflow runs. For each lane, the witness is the newest run whose head commit tree equals the clean Step 5 input tree; the lane is reusable only when the latest attempt of that lane in that run concluded `success`. A pending, failed or missing latest attempt is not reusable, and an older success is never used. The #6845 Step 5 reuse also requires both lanes reusable. Readiness prints per lane the status, run URL and head SHA. When a lane is not reusable, readiness says before the mint which lane and why, that the full local Step 5 check will run and about how long, and prints the command to start the workflow on master. Step 5 evaluates the rule again and continues without a prompt either way.",
+        "Host boundary. When the local Step 5 fallback runs on a host that is not Windows and the Windows lane is not reusable, readiness and Step 5 print that the Windows suite did not run for this release. No refusal is added.",
+        "Docs. The release skill and `docs/RELEASING.md` say where coverage and the Windows suite run, the reuse rule, the fallback, the Windows host boundary and how a red lane is reported.",
+        "Build order. One PR, built after #6845 merges.",
+        "Given the workflow file, then its only triggers are `schedule` and `workflow_dispatch`, no job name equals `TypeScript (build + lint)` or `Merge gate (task check)`, and only the reporting job has `issues: write`.",
+        "Given a dispatch on a ref other than master, then no lane runs.",
+        "Given a lane where Task is missing or `packages/cli/dist/bin.js` is absent, then the lane fails as a setup failure before the tests run.",
+        "Given a red lane with no tracking issue, then one issue is created; given a closed tracking issue and a new red run, then that issue is reopened and no second issue is created.",
+        "Given the reporting job runs twice for the same run id and attempt, then only one comment is posted.",
+        "Given a lane that timed out or failed in setup, then the comment names that outcome class and writes missing totals as unknown.",
+        "Given a passed lane and an open tracking issue, then the issue gets a comment and is closed.",
+        "Given a nightly run whose head tree equals the clean Step 5 input tree and whose latest attempt of both lanes succeeded, when the #6845 reuse rule also holds, then Step 5 skips the local check and prints both run URLs.",
+        "Given a green nightly run on an ancestor whose tree differs from the Step 5 input tree, then Step 5 does not reuse it and runs the full local check.",
+        "Given a matching run whose latest attempt of a lane failed or is pending, also when an earlier attempt succeeded, then that lane is not reusable.",
+        "Given a lane is not reusable at readiness, then readiness says before the mint which lane and why, that the full local check will run, and prints the dispatch command.",
+        "Given the fallback runs on a non-Windows host and the Windows lane is not reusable, then readiness and Step 5 print that the Windows suite did not run.",
+        "Given the docs, then the release skill and `docs/RELEASING.md` name where coverage and the Windows suite run and the reuse rule."
+      ],
+      "admitted_source_digest": "f8cd1ce2f6cfe7d1bc9b0949dc2801258819919886b7d1f0fe2279ccdc8570aa",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Workflow. `.github/workflows/nightly.yml` runs on `schedule` (one cron a day) and `workflow_dispatch`, and on no other event. Every job runs only when the ref is `refs/heads/master`, and each lane checks out `github.sha`, so both lanes of one run test the same commit. `concurrency: nightly` without cancel. Workflow permissions are `contents: read`; only the reporting job gets `issues: write`. Job names do not equal a required check name.",
+          "artifact_path": ".github/workflows/nightly.yml",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Preparation. Both lanes use the `merge-gate-primary` preparation: Node from `.nvmrc`, corepack pnpm, `pnpm install --frozen-lockfile`, Task, Go, uv and the tip dogfood materialize (which builds the checkout). Windows uses the Windows equivalents of the same steps. Before the tests, each lane fails as a setup failure unless `task --version` succeeds and `packages/cli/dist/bin.js` exists.",
+          "artifact_path": ".github/workflows/nightly.yml",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Coverage lane, `Nightly coverage (Linux)`, on `ubuntu-latest` with `timeout-minutes: 60`: `pnpm run test` (vitest with `--coverage` and the `vitest.config.ts` floor). No `task check:merge` and no coverage-debt flag. It uploads `coverage/coverage-final.json` when it exists.",
+          "artifact_path": ".github/workflows/nightly.yml",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Windows lane, `Nightly full suite (Windows)`, on `windows-latest` with `timeout-minutes: 240`: `pnpm exec vitest run` without coverage, both vitest projects. The coverage floor is read on Linux only.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Reporting. A job `if: always()` after both lanes classifies each lane as `passed`, `test-failure`, `setup-failure`, `timed-out-or-cancelled` or `report-unavailable`, from the job and step results. For each lane there is one durable tracking issue, found by its hidden body marker among issues opened by `github-actions[bot]`, open or closed. On a red lane it reopens the issue (or creates it once) and comments with the lane, the outcome class, the SHA, the run id and attempt, the run URL, and the failing test files and the four coverage totals when a report exists; an absent value is written as unknown, never as zero. On a passed lane it comments and closes an open issue. A comment for the same run id and attempt is not posted twice. The issue is assigned to the login in the repository variable `NIGHTLY_OWNER`; when it is unset the run summary says no one was assigned. Neither title nor body contains `coverage-debt`. Test output is written to a file and passed with `--body-file`, never into a shell command. A failure of the reporting job fails the run.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Release reuse. Readiness and Step 5 read the nightly workflow runs. For each lane, the witness is the newest run whose head commit tree equals the clean Step 5 input tree; the lane is reusable only when the latest attempt of that lane in that run concluded `success`. A pending, failed or missing latest attempt is not reusable, and an older success is never used. The #6845 Step 5 reuse also requires both lanes reusable. Readiness prints per lane the status, run URL and head SHA. When a lane is not reusable, readiness says before the mint which lane and why, that the full local Step 5 check will run and about how long, and prints the command to start the workflow on master. Step 5 evaluates the rule again and continues without a prompt either way.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Host boundary. When the local Step 5 fallback runs on a host that is not Windows and the Windows lane is not reusable, readiness and Step 5 print that the Windows suite did not run for this release. No refusal is added.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Docs. The release skill and `docs/RELEASING.md` say where coverage and the Windows suite run, the reuse rule, the fallback, the Windows host boundary and how a red lane is reported.",
+          "artifact_path": "docs/RELEASING.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Build order. One PR, built after #6845 merges.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Given the workflow file, then its only triggers are `schedule` and `workflow_dispatch`, no job name equals `TypeScript (build + lint)` or `Merge gate (task check)`, and only the reporting job has `issues: write`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Given a dispatch on a ref other than master, then no lane runs.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "Given a lane where Task is missing or `packages/cli/dist/bin.js` is absent, then the lane fails as a setup failure before the tests run.",
+          "artifact_path": ".github/workflows/nightly.yml",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "Given a red lane with no tracking issue, then one issue is created; given a closed tracking issue and a new red run, then that issue is reopened and no second issue is created.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "Given the reporting job runs twice for the same run id and attempt, then only one comment is posted.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "Given a lane that timed out or failed in setup, then the comment names that outcome class and writes missing totals as unknown.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "Given a passed lane and an open tracking issue, then the issue gets a comment and is closed.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 17,
+          "text": "Given a nightly run whose head tree equals the clean Step 5 input tree and whose latest attempt of both lanes succeeded, when the #6845 reuse rule also holds, then Step 5 skips the local check and prints both run URLs.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 18,
+          "text": "Given a green nightly run on an ancestor whose tree differs from the Step 5 input tree, then Step 5 does not reuse it and runs the full local check.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 19,
+          "text": "Given a matching run whose latest attempt of a lane failed or is pending, also when an earlier attempt succeeded, then that lane is not reusable.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 20,
+          "text": "Given a lane is not reusable at readiness, then readiness says before the mint which lane and why, that the full local check will run, and prints the dispatch command.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 21,
+          "text": "Given the fallback runs on a non-Windows host and the Windows lane is not reusable, then readiness and Step 5 print that the Windows suite did not run.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 22,
+          "text": "Given the docs, then the release skill and `docs/RELEASING.md` name where coverage and the Windows suite run and the reuse rule.",
+          "artifact_path": "docs/RELEASING.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.6506157153",
+    "updated": "2026-11-22T22:18:44Z"
+  }
+}

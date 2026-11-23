@@ -14,8 +14,19 @@
 - **#6647** -- enhancement(cli): flag and path friction across verify, occupancy, xbrief:preflight, session:start and finalize on Windows -- `[running]`
 - **#6613** -- P3-U1a: revert release checks that contradict the #5947 decision (U1a: code removal, release finish step, release skill) -- `[running]`
 - **#4905** -- bug(xbrief): drift gate rejects a canonical brief that only quotes the legacy x-vbrief prefix -- `[running]`
-- **#6981** -- security(hooks): Claude Code's PowerShell tool is not a shell tool, so shell-class guards never inspect it -- `[running]`
-- **#7047** -- [framework-gap] scope:complete #4870 refusal for an issue-ingested brief names no remedy, and the documented remedy (swarm.verify_commands) is fenced -- `[running]`
+- **#4923** -- leftover(#4916): stop mandating main.md on rapid / identity-only / read-only -- `[running]`
+- **#4949** -- leftover(#4923): unfunded always-on Personal-wins and #480 trigger -- `[running]`
+- **#6139** -- feat(hooks): every write-gate deny prints exactly one next command -- `[running]`
+- **#6740** -- security(kill-switch): honor the kill switch only when a human mints it -- `[running]`
+- **#6849** -- ci: nightly coverage and Windows full-suite runs that release readiness reuses -- `[running]`
+- **#6869** -- bug(release): pr:wait-mergeable-and-merge needs --repo, and the pin bump leaves a lockfile pnpm refuses -- `[running]`
+- **#6893** -- pre-pr: leaf ergonomics for finishing a controller run (#6888 items 2-4) -- `[running]`
+- **#6897** -- test(cli): guard every documented deft <verb> -- form with a real-parser test -- `[running]`
+- **#6899** -- orphan-active: bound the pending lifecycle-PR scan by the run deadline (#6896 follow-up) -- `[running]`
+- **#6902** -- pre-pr:run ignores --project-root and always uses the cwd store -- `[running]`
+- **#6904** -- release: a timed-out Step 5 smoke check leaves its build and vitest processes running -- `[running]`
+- **#6914** -- [framework-gap] deft-checkpoint cannot write xbrief/continue.xbrief.json while a story is active: the host write hook refuses it as outside file_scope -- `[running]`
+- **#7083** -- feat(scope): cohort activation, approved-scope mint and per-story launch (slice of #7062) -- `[running]`
 
 ## Proposed
 
@@ -48,8 +59,13 @@ _Scopes not yet promoted to pending. Orientation only — not a substitute for `
 
 ## Completed
 
-_Showing 25 of 2064 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
+_Showing 25 of 2069 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
 
+- **#7085** -- docs+ingest: document sliced leans and the deft-slice child-issue route; name it in the refusal -- `[completed]`
+- **#7082** -- feat(swarm): cohort lifecycle - in-PR completion first, one cohort lifecycle PR (slice of #7062) -- `[completed]`
+- **#7077** -- class-checks class 2 fails any edit to a file that already names a test root (compare against base) -- `[completed]`
+- **#6981** -- security(hooks): Claude Code's PowerShell tool is not a shell tool, so shell-class guards never inspect it -- `[completed]`
+- **#7047** -- [framework-gap] scope:complete #4870 refusal for an issue-ingested brief names no remedy, and the documented remedy (swarm.verify_commands) is fenced -- `[completed]`
 - **#7057** -- session:start leaves tracked .eval/README.md and a current AGENTS.md managed section unchanged -- `[completed]`
 - **#7056** -- upgrade: ask before the vbrief→xbrief data migration (safe interim for #7009) -- `[completed]`
 - **#7029** -- [framework-gap] Absolute core.hooksPath makes every linked worktree run the primary checkout's hooks; breaks commits after the _directive-run.sh rename -- `[completed]`
@@ -70,9 +86,4 @@ _Showing 25 of 2064 completed scopes (newest first). Full history: lifecycle `co
 - **#6970** -- [framework-gap] check --no-suite hardcodes origin master, so the merge-chokepoint gate cannot run in a repo whose default branch is main -- `[completed]`
 - **#6965** -- install: two-pass fixture allowlist drifted from owned-paths (data-schema.json, seed placeholder) -- `[completed]`
 - **#6609** -- bug(ingest): the derived acceptance rung turns every prose sentence of an issue into a clause, even when the body has an explicit Acceptance Criteria list -- `[completed]`
-- **#6873** -- bug(scope): scope:complete never discovers a deft-story: N product PR (two-PR path needs --merge-commit/--pr by hand) -- `[completed]`
-- **#6934** -- [framework-gap] Readiness and preflight accept stories that share one origin issue, which can never be completed -- `[completed]`
-- **#6937** -- [framework-gap] observable-scope mints need one human approval per cohort, not one terminal command per story -- `[completed]`
-- **#6886** -- bug(acceptance): no admitted acceptance-command form for JS workspace test runners (vitest) across scope:activate and verify:ac -- `[completed]`
-- **#6888** -- bug(pre-pr): leaves cannot complete pre-pr:run controller runs, and --complete publishes a pass after verify:ac failed -- `[completed]`
 

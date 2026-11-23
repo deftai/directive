@@ -21,7 +21,7 @@ Three layers: **Rules** (lazy-loaded guidance under `content/`), **Tasks** (the 
 | ci-cd | CI runner and pipeline guidance, loaded when migrating or configuring CI. | 6 | 5 | 4 | 6 | 0 | 0 |
 | coding | Core software-development rules for agents: hygiene, testing, debugging, security, build output. | 10 | 201 | 59 | 147 | 2 | 5 |
 | context | How to feed agents context well: examples, deterministic splits, spec deltas. | 8 | 42 | 67 | 30 | 16 | 13 |
-| contracts | Interface/behavioral contracts the framework enforces. | 16 | 235 | 16 | 149 | 0 | 5 |
+| contracts | Interface/behavioral contracts the framework enforces. | 16 | 235 | 16 | 149 | 0 | 6 |
 | conventions | Cross-cutting naming, formatting, and repo conventions. | 4 | 16 | 2 | 16 | 0 | 3 |
 | deployments | Provider-specific deployment playbooks (AWS, Azure, GCP, Cloudflare, Vercel, fly.io…). | 52 | 107 | 74 | 24 | 13 | 6 |
 | docs | Explanatory docs and the framework glossary. | 49 | 34 | 17 | 69 | 1 | 3 |
@@ -35,7 +35,7 @@ Three layers: **Rules** (lazy-loaded guidance under `content/`), **Tasks** (the 
 | references | External references and citations backing the guidance. | 4 | 19 | 1 | 19 | 0 | 0 |
 | resilience | Failure handling, recovery, and robustness rules. | 2 | 16 | 14 | 15 | 1 | 2 |
 | scm | Source-control conventions and Git/GitHub workflow rules. | 3 | 122 | 35 | 40 | 1 | 3 |
-| skills | Packaged multi-step agent workflows (build, release, interview, triage, review…). | 42 | 641 | 121 | 748 | 0 | 19 |
+| skills | Packaged multi-step agent workflows (build, release, interview, triage, review…). | 42 | 642 | 121 | 748 | 0 | 19 |
 | strategies | Higher-order approaches: interviewing, decomposition, planning, research, refactoring. | 17 | 342 | 97 | 157 | 0 | 15 |
 | swarm | Multi-agent (swarm) coordination guidance. | 1 | 75 | 15 | 22 | 0 | 0 |
 | templates | Reusable document/scaffold templates. | 11 | 104 | 10 | 55 | 1 | 5 |

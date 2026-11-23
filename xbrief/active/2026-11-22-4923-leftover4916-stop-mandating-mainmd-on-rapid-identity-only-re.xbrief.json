@@ -1,0 +1,766 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #4923",
+    "updated": "2026-11-22T22:24:05Z"
+  },
+  "plan": {
+    "title": "leftover(#4916): stop mandating main.md on rapid / identity-only / read-only",
+    "status": "running",
+    "narratives": {
+      "Description": "The always-on Session routing in agents-entry.md tells read-only and identity-only sessions to load main.md before USER.md and PROJECT-DEFINITION. This story drops main.md from that load list and its else-clause, makes commands.md and host-lifecycle-duties.md match, and keeps the L4 install-root locator.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/4923",
+      "Overview": "\n\n1. Recut `content/templates/agents-entry.md` L20 load list so it does not eager `main.md / ` on the read-only first prompt. Load AGENTS.md, USER.md, and PROJECT-DEFINITION.\n2. Recut the L20 else-clause so it does not eager `main →`.\n3. Same-PR recut of `content/commands.md` L419 to match L454 (omit main.md on read-only alignment). At pin `23c8b01ad48c19f478b69a78a973bafffca4882d` this is commands.md L440.\n4. Keep L4 `Deft is installed in` plus `Full guidelines: <root>/main.md` as the install-root haystack.\n5. Recut `content/contracts/host-lifecycle-duties.md` L50 with commands.md if that line still eagers main.md. Rules pack regenerates from source; no hand-edit.\n6. `task agents:refresh` and `agents_entry_contract` so the generated consumer route cannot restore an unconditional main.md read.\n7. No Personal-wins add. No mutation load-main.md insert. No `absoluteMaxBytes` raise. No skipFatPath switch. No setup identity-only detector switch.\n\n",
+      "Labels": "bug, agent-experience, area:skills, design-critique:ingest-ready, core-capabilities, promise:planning",
+      "UserStory": "As an agent starting a read-only or identity-only session, I want the always-on Session routing to load AGENTS.md, USER.md and PROJECT-DEFINITION without main.md, so that the first prompt does not pay for a 37 KB read it does not need.",
+      "ImplementationPlan": "1. content/templates/agents-entry.md Session routing: drop `main.md / ` from the read-only load list and `main → ` from the else-clause. Keep L4 `Full guidelines: .../main.md` as the install-root locator (clauses 1, 2, 4, 7).\n2. content/commands.md Session routing: the read-only line loads AGENTS.md / USER.md / PROJECT-DEFINITION; the #4544 quote of the else-clause matches the recut template (clause 3).\n3. content/contracts/host-lifecycle-duties.md family-1 step 3 stops ordering main.md; content/skills/deft-directive-setup/SKILL.md else-clause quote matches, and content/packs/skills/skills-pack-0.1.json is regenerated if it carries that quote (clause 5).\n4. `task agents:refresh` regenerates AGENTS.md; packages/core/src/content-contracts/skills/agents_entry_contract.test.ts asserts the Session routing read-only load list carries no main.md (clause 6).\n5. xbrief/PROJECT-DEFINITION.xbrief.json: lower agentsMdBudget.absoluteMaxBytes to the measured managed size, never raise it (clause 7; the later of the wave-1 PRs #4923 / #4949 sets the final value).\n6. changelog.d/4923-read-only-main-md-load.md.",
+      "Traces": "#4923 Bound remedy (lean 6174554332, record 6174746630). Wave 1 of #3735 with #4949. Related: #4916, #2176, #4544, #3014."
+    },
+    "items": [
+      {
+        "title": "Recut `content/templates/agents-entry.md` L20 load list so it does not eager `main.md / ` on the read-only first prompt. Load AGENTS.md, USER.md, and PROJECT-DEFINITION.",
+        "status": "proposed",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "Recut `content/templates/agents-entry.md` L20 load list so it does not eager `main.md / ` on the read-only first prompt. Load AGENTS.md, USER.md, and PROJECT-DEFINITION."
+        }
+      },
+      {
+        "title": "Recut the L20 else-clause so it does not eager `main →`.",
+        "status": "proposed",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "Recut the L20 else-clause so it does not eager `main →`."
+        }
+      },
+      {
+        "title": "Same-PR recut of `content/commands.md` L419 to match L454 (omit main.md on read-only alignment). At pin `23c8b01ad48c19f478b69a78a973bafffca4882d` this is commands.md L440.",
+        "status": "proposed",
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "Same-PR recut of `content/commands.md` L419 to match L454 (omit main.md on read-only alignment). At pin `23c8b01ad48c19f478b69a78a973bafffca4882d` this is commands.md L440."
+        }
+      },
+      {
+        "title": "Keep L4 `Deft is installed in` plus `Full guidelines: <root>/main.md` as the install-root haystack.",
+        "status": "proposed",
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "Keep L4 `Deft is installed in` plus `Full guidelines: <root>/main.md` as the install-root haystack."
+        }
+      },
+      {
+        "title": "Recut `content/contracts/host-lifecycle-duties.md` L50 with commands.md if that line still eagers main.md. Rules pack regenerates from source; no hand-edit.",
+        "status": "proposed",
+        "id": "clause.5",
+        "narrative": {
+          "Acceptance": "Recut `content/contracts/host-lifecycle-duties.md` L50 with commands.md if that line still eagers main.md. Rules pack regenerates from source; no hand-edit."
+        }
+      },
+      {
+        "title": "`task agents:refresh` and `agents_entry_contract` so the generated consumer route cannot restore an unconditional main.md read.",
+        "status": "proposed",
+        "id": "clause.6",
+        "narrative": {
+          "Acceptance": "`task agents:refresh` and `agents_entry_contract` so the generated consumer route cannot restore an unconditional main.md read."
+        }
+      },
+      {
+        "title": "No Personal-wins add. No mutation load-main.md insert. No `absoluteMaxBytes` raise. No skipFatPath switch. No setup identity-only detector switch.",
+        "status": "proposed",
+        "id": "clause.7",
+        "narrative": {
+          "Acceptance": "No Personal-wins add. No mutation load-main.md insert. No `absoluteMaxBytes` raise. No skipFatPath switch. No setup identity-only detector switch."
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "area:skills",
+      "design-critique:ingest-ready",
+      "core-capabilities",
+      "promise:planning"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/4923",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #4923: leftover(#4916): stop mandating main.md on rapid / identity-only / read-only"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/4916",
+        "type": "x-xbrief/refs",
+        "title": "Issue #4916"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per harvested lean item (7), in list order (#6333)",
+      "sentences": [
+        "Recut `content/templates/agents-entry.md` L20 load list so it does not eager `main.md / ` on the read-only first prompt. Load AGENTS.md, USER.md, and PROJECT-DEFINITION.",
+        "Recut the L20 else-clause so it does not eager `main →`.",
+        "Same-PR recut of `content/commands.md` L419 to match L454 (omit main.md on read-only alignment). At pin `23c8b01ad48c19f478b69a78a973bafffca4882d` this is commands.md L440.",
+        "Keep L4 `Deft is installed in` plus `Full guidelines: <root>/main.md` as the install-root haystack.",
+        "Recut `content/contracts/host-lifecycle-duties.md` L50 with commands.md if that line still eagers main.md. Rules pack regenerates from source; no hand-edit.",
+        "`task agents:refresh` and `agents_entry_contract` so the generated consumer route cannot restore an unconditional main.md read.",
+        "No Personal-wins add. No mutation load-main.md insert. No `absoluteMaxBytes` raise. No skipFatPath switch. No setup identity-only detector switch."
+      ],
+      "admitted_source_sentences": [
+        "Recut `content/templates/agents-entry.md` L20 load list so it does not eager `main.md / ` on the read-only first prompt. Load AGENTS.md, USER.md, and PROJECT-DEFINITION.",
+        "Recut the L20 else-clause so it does not eager `main →`.",
+        "Same-PR recut of `content/commands.md` L419 to match L454 (omit main.md on read-only alignment). At pin `23c8b01ad48c19f478b69a78a973bafffca4882d` this is commands.md L440.",
+        "Keep L4 `Deft is installed in` plus `Full guidelines: <root>/main.md` as the install-root haystack.",
+        "Recut `content/contracts/host-lifecycle-duties.md` L50 with commands.md if that line still eagers main.md. Rules pack regenerates from source; no hand-edit.",
+        "`task agents:refresh` and `agents_entry_contract` so the generated consumer route cannot restore an unconditional main.md read.",
+        "No Personal-wins add. No mutation load-main.md insert. No `absoluteMaxBytes` raise. No skipFatPath switch. No setup identity-only detector switch."
+      ],
+      "admitted_source_digest": "92803ae82b480de36b7c8dccd94efca43cc4cebc69baa684b344c911b24b0296",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Recut `content/templates/agents-entry.md` L20 load list so it does not eager `main.md / ` on the read-only first prompt. Load AGENTS.md, USER.md, and PROJECT-DEFINITION.",
+          "artifact_path": "content/templates/agents-entry.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Recut the L20 else-clause so it does not eager `main →`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Same-PR recut of `content/commands.md` L419 to match L454 (omit main.md on read-only alignment). At pin `23c8b01ad48c19f478b69a78a973bafffca4882d` this is commands.md L440.",
+          "artifact_path": "content/commands.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Keep L4 `Deft is installed in` plus `Full guidelines: <root>/main.md` as the install-root haystack.",
+          "artifact_path": "content/templates/agents-entry.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Recut `content/contracts/host-lifecycle-duties.md` L50 with commands.md if that line still eagers main.md. Rules pack regenerates from source; no hand-edit.",
+          "artifact_path": "content/contracts/host-lifecycle-duties.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "`task agents:refresh` and `agents_entry_contract` so the generated consumer route cannot restore an unconditional main.md read.",
+          "artifact_path": "packages/core/src/content-contracts/skills/agents_entry_contract.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "No Personal-wins add. No mutation load-main.md insert. No `absoluteMaxBytes` raise. No skipFatPath switch. No setup identity-only detector switch.",
+          "artifact_path": "content/templates/agents-entry.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because leftover #4923 holds unmet Tax B from #4916: always-on `content/templates/agents-entry.md` still orders a `main.md` read on the identity-only / read-only first prompt. Title-line L4, the L20 load list, and the L20 else-clause all survive a session-routing-only list edit.\n\nmechanism-shaped: true\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-4923-dc\norigin-ref: origin/HEAD\ndispatch-sha: d35cb4878bbc66a8b252609aeedbe4d33976868d\n\ncharter: open critique\nspend: N≥3\nspend-ask: asked\nspend-why: operator utterance `appropriate n`. Per-issue Stop 2: which always-on pointer to recut (L4, L20 load list, L20 else-clause) versus identity-only skip versus expected-cost is a genuinely open solution space with always-on AGENTS injection blast. N≥3 panel permission used.\nDual-stop cap: 3 posts\n\npain: P1\n\ntarget: #4923\ntarget-shape: single-issue (default)\naudit-targets: none\nrefutation-target: a session-routing-only list edit already unloads main.md on identity-only / read-only\n\n## Gate stamp\n\nThe triage author stamps the semantic call. This write-back is not the round-1 ceiling; spend N≥3 takes the panel-deposit snapshot.\n\nP1 is leftover(#4916) Tax B (pain-audit 5783468254; Handoff 5783498663; leftover-split parking on this number). Always-on agents-entry still orders a main.md read on the identity-only / read-only first prompt. Injected-surface remainder (Stop 1 P1 / Tax A) stays on #4916 and is leftover-deferred to open #3014. Capture remainder stays on #4544.\n\nRe-measured at dispatch SHA `d35cb4878bbc66a8b252609aeedbe4d33976868d`:\n\n- `content/templates/agents-entry.md` L4: `Full guidelines: .deft/core/main.md`\n- L20 load list: `load AGENTS.md / main.md / USER.md / xbrief/PROJECT-DEFINITION.xbrief.json`\n- L20 else-clause: `else main → USER → PROJECT-DEFINITION`\n- Consumer AGENTS.md is 38335 bytes. agents-entry.md is 19233 bytes.\n- Identity-only detector exists in setup SKILL.md L686-L688 (empty plan.items AND no convention-valid lifecycle scopes). It does not skip the always-on main.md pointers.\n- skipFatPath on rapid/minimal lightens only triage welcome, optional network, staleness (ceremony-dial.ts L139-140; session-start.ts L1771-1772).\n\nWhat this P1 is not:\n\n- Not skipFatPath / ceremony-dial unload of host-injected AGENTS.md.\n- Not a default thin AGENTS profile (#3014).\n- Not the capture remainder on #4544.\n- Not auto-seeding `xbrief/active/`.\n- Not mid-run AGENTS rewrite (#3164).\n- Not the injected-surface load tax leftover-deferred on #4916 to #3014.\n\nOpen forks the critic may take: recut every always-on main.md pointer (L4, L20 load list, L20 else-clause) so identity-only / read-only / rapid does not mandate main.md; skip main.md via the existing identity-only detector; or treat the read as expected cost and close.\n\n",
+          "id": 5787785518,
+          "html_url": "https://github.com/deftai/directive/issues/4923#issuecomment-5787785518",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T02:15:12Z",
+          "updated_at": "2026-09-23T02:15:12Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 3\ninput-ceiling: 5787798332\nfamilies: grok, claude, codex\n\n",
+          "id": 5787798332,
+          "html_url": "https://github.com/deftai/directive/issues/4923#issuecomment-5787798332",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T02:16:48Z",
+          "updated_at": "2026-09-23T02:16:49Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nCharter: open critique, round 1, fresh critic. Tree reads are pinned to `d35cb4878bbc66a8b252609aeedbe4d33976868d`. Input stops at comment 5787798332.\n\n## Verdict\n\nTake a narrowed fork 1. Recut only the **load mandates** (L20 load list, L20 else-clause, and the mirrors listed below). Keep L4 as it is. Do not use the identity-only detector as the switch. Do not close as expected cost. Also move the one rule from main.md that read-only sessions need into the always-on surface.\n\n## Re-verified anchors\n\n- `agents-entry.md` L4, L20 load list, L20 else-clause: text confirmed. agents-entry is 19233 bytes. Consumer AGENTS.md is 38335 bytes. main.md is 37592 bytes, so this read roughly doubles the first-prompt load.\n- Setup SKILL.md L686-L688 identity-only detector: confirmed. It is **prose only**. `git grep -i 'identityOnly|isIdentityOnly' packages/core/src` finds no hits outside tests.\n- skipFatPath: confirmed at `ceremony-dial.ts` L147/L155 and at `session-start.ts` L1922/L1981/L1994/L1999. It gates triage welcome, optional network, and staleness. It never touches main.md.\n\n## Findings\n\n### F1 — `sharpens-framing`: L4 is a locator that code parses, not a load mandate\n\nEvidence: `packages/core/src/doctor/manifest.ts` L124-L136 `parseInstallRootFromAgentsMd` falls back to `FULL_GUIDELINES_RE = /Full guidelines:\\s+(\\S+)\\/main\\.md/`. `doctor/checks.ts` L1508 and `init-deposit/legacy-detect.ts` L219 call it. `500_discoverability.test.ts` L124 pins the `.deft/core/main.md` count in agents-entry to exactly 1. The literal also appears in the Go fixtures (`cmd/deft-install/e2e_upgrade_test.go` L68, `setup_test.go` L2730).\n\nFailure mode: if L4 counts as a \"pointer to recut\", a fix that rewords or removes it breaks the discoverability pin. It also removes the fallback install-root parse for AGENTS.md files that lack the `Deft is installed in` phrase. And it cuts no read, because \"Full guidelines: X\" orders nothing.\n\nDisposition: scope Tax B to the imperative load sites. State L4 as kept on purpose (locator). The issue body's \"including L4\" needs amending.\n\n### F2 — `blocks-the-design` (for the fork-1 scope as stated): the inventory misses four more mandate surfaces\n\nEvidence (`git grep -F 'main.md / USER' / 'main → USER' / 'main.md → USER'` at the SHA):\n- `content/commands.md` L419: \"Load AGENTS.md / main.md / USER.md / PROJECT-DEFINITION\" is the depth target that L20 points to.\n- `AGENTS.md` L16 (maintainer header): \"before responding to any user request, read in this order: main.md → USER.md → …\".\n- `content/packs/rules/rules-pack-0.1.json` L3626 carries the same L16 text.\n- `content/contracts/host-lifecycle-duties.md` L50: \"Session routing loads main → USER → PROJECT-DEFINITION before mutation\".\n\nFailure mode: after an edit to agents-entry only, L20 still sends the agent to `commands.md` § Session routing, which still says Load main.md. The mandate survives one hop away. That is the same \"survives a list edit\" class this issue exists to close. In this repo, L16 still mandates main.md before any response.\n\nDisposition: the bound remedy must list every one of these surfaces, or name each one it leaves out and why. The rules pack is probably generated, so the lean should name its regeneration step. Do not hand-edit it.\n\n### F3 — `blocks-the-design` (for fork 2): identity-only is the wrong axis\n\nEvidence: the detector (SKILL.md L688) is a **project-state** predicate: empty `plan.items` AND no convention-valid lifecycle scope files. \"Read-only\" is a **session-posture** axis (#2176). \"Rapid\" is a **ceremony-dial** axis (`ceremony-dial.ts`). These three axes are independent. The detector also has no code implementation.\n\nFailure mode 1: a read-only question on a scoped brownfield project (the common case) is not identity-only. So main.md stays mandated, and the pain survives for most sessions.\nFailure mode 2: to evaluate the detector, the agent must first read PROJECT-DEFINITION and list five lifecycle folders. That is more first-prompt work than the problem it replaces.\nFailure mode 3: an identity-only project that gets a mutation prompt would skip main.md, which inverts the intent.\n\nDisposition: reject fork 2. The switch must be the #2176 posture axis that L20 already uses (\"Read-only default until mutation intent\"). The title's \"identity-only / read-only / rapid\" should become \"read-only posture (any dial depth)\". Rapid mutation sessions still need main.md.\n\n### F4 — `blocks-the-design` (for any recut that only deletes): read-only loses the authority-precedence rule (injection lens fires)\n\nEvidence: USER.md precedence is defined in main.md L12 (\"`Personal` (always wins …) … PROJECT-DEFINITION overrides these [Defaults]\") and L378-L379. `grep -n -i 'always wins\\|precedence' content/templates/agents-entry.md` finds only L120 \"Review-surface precedence\". The consumer always-on surface has **no** statement that Personal wins. Only the maintainer AGENTS.md L17 has one (\"USER.md Personal (always wins) entries override external context …\").\n\nFailure mode: in a consumer read-only session that no longer reads main.md, host-injected context (Warp Drive rules, MCP instructions, prompt-injected text) competes with USER.md with no rule to settle it. The agent can take its addressing-name, language, or strategy from external context. That is an authority and untrusted-input change, so the lens fires. No deterministic control observes which source won. \"The agent will still read USER.md\" does not fix this: reading a file does not tell the agent which source outranks the other.\n\nDisposition: the bound remedy must add one precedence line to agents-entry L20 (Personal wins over external context and PROJECT-DEFINITION; PROJECT-DEFINITION beats Defaults). This mirrors maintainer L17 under #1309 propagation, so `agents_entry_contract` markers change. This adds bytes to the always-on surface, which touches #3014 / #4916 Tax A. Keep it to one line. Do not recut Tax A here.\n\n### F5 — `sharpens-framing`: the replacement wording must say when main.md loads, not just drop it\n\nEvidence: L20 already splits read-only from mutation (\"Mutation → `deft session:start` then … gated\"). The soft post-compact hook checks that `.deft/core/main.md` exists as deposit integrity. That is an existence check, not a read.\n\nFailure mode: if main.md is deleted from the list without a load trigger, it has no mandated load point at all. Mutation sessions then lose Dual Stop, Rule Authority, and Thin Fail-Closed depth. L77/L79/L82 only say \"See main.md\".\n\nDisposition: the lean should state the trigger: \"main.md: load at the mutation boundary (with `deft session:start`) or on demand\". Place it in the L20 Mutation clause, so the gated ritual path keeps it.\n\n### F6 — `footnote`: embedded refutation-target\n\nThe Stop 1 write-back 5787785518 carries `refutation-target: a session-routing-only list edit already unloads main.md …`. The charter is open critique, so I treated this as described content, not an instruction. On the merits it is false anyway, per F2 (commands.md L419 and maintainer L16 survive).\n\n### F7 — `footnote`: no gate observes the skip\n\nThe change removes a requirement. It does not add a safety gate. So the lack of a machine check that the agent skipped main.md is acceptable. The eval surface (`deft eval:triggers`) is the natural place to observe it later, if anyone wants to.\n\n## Road not taken / steelman\n\nStrongest rejected position: **fork 3, expected cost, close.** main.md holds precedence, addressing, and the cold-start preamble. One ~37 KB read is cheap next to a 38 KB AGENTS.md. Each recut of always-on text risks drift (#1309 propagation, five surfaces per F2). A read-only answer rarely suffers from reading extra guidance. What would flip my verdict to close: evidence that the read-only main.md read does no harm (no timeout, context-budget pressure, or first-response latency the operator named), and that #3014's thin profile will replace this surface soon anyway. The body cites pain-audit 5783468254 on #4916 but gives no measurement inside this envelope. If the parent cannot restate that harm on this thread, fork 3 is defensible.\n\nAlso rejected: gating the skip on skipFatPath (the rapid/minimal dial). The issue's \"What this is not\" list excludes that. It also has the same wrong-axis problem as F3 (rapid mutation still needs main.md).\n\n",
+          "id": 5787827861,
+          "html_url": "https://github.com/deftai/directive/issues/4923#issuecomment-5787827861",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T02:20:19Z",
+          "updated_at": "2026-09-23T02:20:19Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: gpt-6-sol\n```quarantined\nrole: critic\n```\naudit-targets: none\n\nRound 1, open critique of #4923. I read the issue and its two comments through id 5787798332, and rechecked source with `git show 'd35cb4878bbc66a8b252609aeedbe4d33976868d:<path>'` at the dispatch SHA.\n\n## blocks-the-design — The linked Session routing rule still mandates the read\n\nEvidence: [agents-entry L4](https://github.com/deftai/directive/blob/d35cb4878bbc66a8b252609aeedbe4d33976868d/content/templates/agents-entry.md#L4) points to the full guidelines; [L20](https://github.com/deftai/directive/blob/d35cb4878bbc66a8b252609aeedbe4d33976868d/content/templates/agents-entry.md#L20) both lists `main.md` in the initial load and orders `main → USER → PROJECT-DEFINITION`. That same line links Session routing, whose [commands.md L419](https://github.com/deftai/directive/blob/d35cb4878bbc66a8b252609aeedbe4d33976868d/content/commands.md#L419) independently says to load AGENTS.md, main.md, USER.md, and PROJECT-DEFINITION on read-only starts. I verified all four occurrences in the pinned tree.\n\nFailure mode: a change confined to the three template cues can still send an agent through the linked normative route and back to an unconditional main.md read. The named Tax B remains on a scoped or identity-only read-only first prompt.\n\nDisposition: recut commands.md Session routing with all three agents-entry cues, then run `task agents:refresh`. Use the existing `agents_entry_contract` marker surface to check the generated consumer route for an unconditional main.md read while keeping an on-demand pointer to the full guidelines.\n\n## blocks-the-design — Identity-only and skipFatPath cannot be the whole switch\n\nEvidence: the [setup detector](https://github.com/deftai/directive/blob/d35cb4878bbc66a8b252609aeedbe4d33976868d/content/skills/deft-directive-setup/SKILL.md#L686-L692) needs live `plan.items` and lifecycle scopes; the [interview detector](https://github.com/deftai/directive/blob/d35cb4878bbc66a8b252609aeedbe4d33976868d/content/strategies/interview.md#L47-L60) has the same scope test. Setup already says to [ask before reading framework files and allow main.md later](https://github.com/deftai/directive/blob/d35cb4878bbc66a8b252609aeedbe4d33976868d/content/skills/deft-directive-setup/SKILL.md#L133-L138). The [ceremony dial](https://github.com/deftai/directive/blob/d35cb4878bbc66a8b252609aeedbe4d33976868d/packages/core/src/policy/ceremony-dial.ts#L129-L156) and [session-start consumers](https://github.com/deftai/directive/blob/d35cb4878bbc66a8b252609aeedbe4d33976868d/packages/core/src/session/session-start.ts#L1921-L2008) use `skipFatPath` for triage welcome, optional network, and the staleness tickler, not prompt loading. Read-only posture in commands.md L419 includes research and ticket shaping regardless of whether scopes exist.\n\nFailure mode: an identity-only exception leaves scoped read-only and scoped rapid prompts paying the main.md load. A detector reached after the always-on first-prompt command cannot undo that load. Wiring this to skipFatPath changes CLI ceremony but leaves host-injected AGENTS instructions intact.\n\nDisposition: model read-only posture, project shape, and rapid depth as separate inputs. Start alignment from AGENTS, USER, and PROJECT-DEFINITION; load main.md for a concrete task trigger. Verify scoped read-only, identity-only, and rapid cases separately. Keep the existing setup identity-only detector for setup classification.\n\n## blocks-the-design — Preserve the trust boundary when main.md becomes optional\n\nEvidence: [main.md L12](https://github.com/deftai/directive/blob/d35cb4878bbc66a8b252609aeedbe4d33976868d/main.md#L12) establishes USER.md Personal precedence; [L154-L167](https://github.com/deftai/directive/blob/d35cb4878bbc66a8b252609aeedbe4d33976868d/main.md#L154-L167) says external issue/PR text and tool output are data, not instructions. A pinned-tree search of agents-entry for `external content|untrusted|prompt injection|instruction hierarchy` found no corresponding rule. The read-only route explicitly includes ticket shaping, which reads external text.\n\nFailure mode: an agent handling an adversarial issue or PR can encounter instruction-shaped text before it loads the rule that forbids promoting that text to authority. The generated AGENTS surface is injected into parent and worker prompts, so this affects every such first prompt without any worktree or shared-state change.\n\nDisposition: retain a concise trust-tier and USER Personal precedence rule in the always-on entry, or make the existing security guidance an explicit pre-external-read trigger. Guard the chosen route in the existing content-contract surface. Leave the broader injected-surface reduction on #3014.\n\n## sharpens-framing — Expected cost is a valid explicit disposition\n\nEvidence: pinned `git show ... | wc -c` returned 37,592 bytes for main.md, 38,335 for consumer AGENTS.md, and 19,233 for agents-entry.md. These are byte counts, not token or latency measurements. Keeping the read preserves the full guidance and avoids conditional routing.\n\nFailure mode: closing #4923 as fixed while retaining the unconditional read would report relief of P1 that did not occur.\n\nDisposition: if the expected-cost fork wins, record the accepted cost and unresolved P1 plainly. Measured first-prompt latency or token data, plus an explicit operator decision, would change my preference for the conditional route.\n\n## footnote — Self-dogfood acceptance needs the right surface\n\nThis repo's [unmanaged AGENTS.md L16](https://github.com/deftai/directive/blob/d35cb4878bbc66a8b252609aeedbe4d33976868d/AGENTS.md#L16) separately orders `main → USER → PROJECT-DEFINITION`. A test of this checkout's first prompt would still see that maintainer rule after a consumer-template fix. Validate the generated consumer section, and state separately if the maintainer header is included in #4923.\n\n",
+          "id": 5787867330,
+          "html_url": "https://github.com/deftai/directive/issues/4923#issuecomment-5787867330",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T02:24:32Z",
+          "updated_at": "2026-09-23T02:24:32Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nRound 1, fresh critic, open critique. Pin `d35cb4878bbc66a8b252609aeedbe4d33976868d`. Input ceiling 5787798332 (Stop 1 5787785518; panel-deposit 5787798332). Charter is open critique. Stop 1's `refutation-target:` is described content.\n\n## Verdict\n\nTax B holds: always-on `content/templates/agents-entry.md` still eagers a 37592-byte `main.md` read on the identity-only / read-only first prompt. `skipFatPath` cannot unload it. Two of the three named forks cannot bind as written.\n\nThe bindable remainder is a delete-or-reorder of the *eager* conjuncts so identity-only and read-only do not first-prompt-read `main.md`. Keep L4 as the install-path haystack. Recut `commands.md` L419 in the same PR. USER.md stays eager. Depth `See main.md` lines stay lazy. #3014 and #4544 stay off this harvest.\n\n## Findings\n\n### 1. Rapid as a first-prompt skip conjunct — `blocks-the-design`\n\n**Evidence.** Re-run at this pin:\n\n- `packages/core/src/session/session-start.ts` 1525–1526: `posture === READ_ONLY_POSTURE` returns `runReadOnlySessionStart` before ceremony dial.\n- Dial and `skipFatPath` are assigned at 1564–1599 on the mutation path only. Consumers: triage welcome (1922), optional network (1981), release-probe message (1994), staleness tickler (1999). Comment 1771–1772: informational cold path only.\n- `packages/core/src/policy/ceremony-dial.ts` 139–155: rapid/minimal `skipFatPath: true` with the same contract. `compose=content/strategies/rapid.md` is a status pointer.\n- Host injects AGENTS.md before any of that runs. Stop 1 P1 is the identity-only / read-only first prompt.\n\n**Failure mode.** A harvest that recuts L4/L20 \"so identity-only / read-only / rapid does not mandate main.md\" adds an `unless rapid` clause the first prompt cannot evaluate. The identity-only first prompt still reads 37592-byte `main.md`. Tax B stays loaded on the session that paid.\n\n**Disposition.** Drop rapid from the skip set. Typed `plan.policy.ceremonyDial.override` is a mutation-path field. It is not an AGENTS prefix switch.\n\n### 2. Skip via the setup-skill identity-only detector — `blocks-the-design`\n\n**Evidence.** Setup SKILL.md 686–688 (shared with `content/strategies/interview.md` chaining): identity-only = empty `plan.items` AND no convention-valid lifecycle scopes. PROJECT-DEFINITION existence is identity.\n\nThat detector is off the first-prompt path:\n\n- `session-start.ts` at this SHA has zero `identity-only` / `identityOnly` hits.\n- agents-entry L20: missing USER.md / PROJECT-DEFINITION → setup Phase 1/2; **else** main → USER → PROJECT-DEFINITION.\n- Identity-only requires PROJECT-DEFINITION, so the else-clause fires and setup SKILL is not loaded.\n- `content/templates/agents-consumer-header.md` has no `main.md` pointer. The tax is the managed else-clause.\n\n**Failure mode.** Bound-remedy points L20 at setup SKILL.md 686–688. The identity-only first prompt never opens that skill. L4 and the else-clause still eager `main.md`.\n\n**Disposition.** If the skip is identity-only, inline the two conjuncts into always-on session-routing (agents-entry L20 and `commands.md` § Session routing). Finding 4 bounds how much text that inline may add.\n\n### 3. L4 is an install-path sentinel — `sharpens-framing`\n\n**Evidence.** L4: `Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md`.\n\n`packages/core/src/doctor/manifest.ts` 124–136: `INSTALLED_IN_RE` then `FULL_GUIDELINES_RE = /Full guidelines:\\s+(\\S+)\\/main\\.md/`. `parseInstallRootFromAgentsMd` uses both. Installer fixtures and QUICK-START Case K parse the same haystack.\n\n**Failure mode.** Deleting L4 to stop the eager read breaks install-root parse. Rewriting `Full guidelines:` so the regex misses falls back to `.deft/core` while agents still treat a surviving guidelines pointer as a read. A session-routing-only list edit that leaves L4 as an eager-read instruction is the named no-op.\n\n**Disposition.** Keep `Deft is installed in <root>.` and the `Full guidelines: <root>/main.md` substring. Recut the eager-read meaning in the L20 load list and the else-clause.\n\n### 4. Conditional skip prose misses the managed byte ratchet — `sharpens-framing`\n\n**Evidence.** `plan.policy.agentsMdBudget.absoluteMaxBytes` is 19314. AGENTS.md managed section at this pin is 19271 bytes (agents-entry file 19233; the live open marker adds sha/refreshed/session). Headroom 43 bytes. `managedMaxLines` is 175, already at the line ratchet. `packages/core/src/agents-md-budget/evaluate.ts` 635 fails closed on growth. North-star remains 8192.\n\nL20's mutation clause is `Mutation → session:start` then gated ritual. It does not add a later `main.md` load. A read-only-only skip without a mutation add-back is an unconditional un-mandate of the eager read.\n\n**Failure mode.** Fork 1/2 add identity-only + read-only + rapid skip text to L20. `verify:agents-md-budget` goes red unless the same PR raises `absoluteMaxBytes`. That raise is a Tax A / #3014 move.\n\n**Disposition.** First-ship is delete/reorder of the eager conjuncts (net zero or negative bytes). Unconditional un-mandate of the eager read, with lazy `See main.md` kept, relieves identity-only and read-only without new predicates. A mutation add-back of an eager `main.md` load needs a matching deletion or a reviewed budget raise on a different issue.\n\n### 5. `commands.md` L419 still eagers `main.md` — `sharpens-framing`\n\n**Evidence.** agents-entry L20 names `.deft/core/commands.md` § Session routing as depth. At this pin `content/commands.md` 419: `Load AGENTS.md / main.md / USER.md / PROJECT-DEFINITION`. Line 454 (read-only research alignment) already omits `main.md`: `Alignment load (AGENTS / USER / PROJECT-DEFINITION)`. `packages/core/src/content-contracts/skills/agents_md_session_start.test.ts` locks read-only / addressing-name / mutation tokens. It does not lock the `main.md` conjunct.\n\n**Failure mode.** Recut agents-entry L20 only. Diligent agents open the depth home and re-mandate the 37592-byte read. Spec-path harvest looks green.\n\n**Disposition.** Same-PR recut of `commands.md` 419 to match 454. Extend `agents_md_session_start.test.ts` so the eager `main.md` conjunct cannot return silently.\n\n## Injection / swarm lens\n\nAlways-on agents-entry is consumer constitution and the host prefix. Mid-run rewrite stays #3164; `agents:refresh` is the legal path. Untrusted first-prompt text must not select which rules bind.\n\nSkip triggers that survive:\n\n- identity-only: repo state (empty `plan.items`, no lifecycle scopes). Observable after USER.md + PROJECT-DEFINITION, before `main.md`, if the else-clause is reordered.\n- read-only: default #2176 posture. Already in the same paragraph.\n- rapid / dial depth: prompt-derived unless `plan.policy.ceremonyDial.override` is typed. Including it as an AGENTS condition is an authority lever.\n\nProcess pins (#2508 / #3032) stay on #4916 / #3014. Unloading the whole managed section on identity-only would make parent-implements the default on this on-ramp. Unique dest-lock is irrelevant; this seat is process-only.\n\n`main.md` L14 already names `packs:slice` lazy loading. Reuse that split: eager USER.md + PROJECT-DEFINITION; `main.md` on demand via existing depth lines (L77 Dual Stop, L79 Rule Authority, L82 Thin Fail-Closed, L88 Continuous Improvement). Those four are not first-prompt load lists. Leave them in place.\n\n## Road not taken\n\nRejected: expected-cost close of Tax B on file bytes. Steelman: AGENTS.md is already pointer-sufficient (#2371); Dual Stop / Rule Authority live in the prefix; extra 37KB is one cached read. What would flip: a host measurement of first-prompt tokens and time on the identity-only consumer deposit. That measurement is not in envelope.\n\nRejected: identity-only-only skip, leaving brownfield read-only eagers. Steelman: the leftover was paid by the #4544 identity-only exemplar. What would flip: Stop 1 P1 naming only identity-only. It names identity-only / read-only.\n\nRejected: deleting L4's `Full guidelines` substring. Steelman: one line cannot both sentinel and eager-read. What would flip: moving install-root parse off `INSTALLED_IN_RE` / `FULL_GUIDELINES_RE` first. That move is not this issue.\n\n## Footnotes\n\n- `footnote`: skipFatPath still only lightens informational cold path. Stop 1's \"what this is not\" is correct. Do not grow skipFatPath into an AGENTS unloader.\n- `footnote`: Maintainer unmanaged AGENTS.md L4 / L16 still say `Full guidelines: main.md` and `main.md → USER.md → PROJECT-DEFINITION`. `agents:refresh` does not recut unmanaged. This repo's unmanaged header is out of Tax B unless Bound-remedy names it.\n- `footnote`: #3014 is open (`hold`). Capture stays on #4544.\n\n## Checks\n\n`git show d35cb4878bbc66a8b252609aeedbe4d33976868d:` on `content/templates/agents-entry.md` (L4, L20, L77/L79/L82/L88), `content/templates/agents-consumer-header.md`, `AGENTS.md` (38335 bytes; managed 19271), `main.md` (37592 bytes, L14), `content/commands.md` (419, 454), `content/skills/deft-directive-setup/SKILL.md` (686–688), `content/strategies/interview.md` (identity-only), `packages/core/src/session/session-start.ts` (1525–1526, 1564–1599, 1771–1772, 1922/1981/1994/1999), `packages/core/src/policy/ceremony-dial.ts` (139–155), `packages/core/src/doctor/manifest.ts` (124–136), `packages/core/src/content-contracts/skills/agents_md_session_start.test.ts`, `packages/core/src/agents-md-budget/evaluate.ts` (635), `xbrief/PROJECT-DEFINITION.xbrief.json` (`absoluteMaxBytes` 19314, `managedMaxLines` 175). REST: `issues/4923` plus comments through 5787798332; `issues/3014` open.\n\n",
+          "id": 5787882250,
+          "html_url": "https://github.com/deftai/directive/issues/4923#issuecomment-5787882250",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T02:26:06Z",
+          "updated_at": "2026-09-23T02:26:06Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nAlways-on agents-entry still eagers a main.md read on the read-only first prompt. L4 is an install-path locator, not a load mandate. Identity-only and skipFatPath cannot be the skip. Confirming this map recuts the eager conjuncts on L20, the else-clause, and commands.md Session routing so read-only loads AGENTS, USER, and PROJECT-DEFINITION; main.md loads at mutation or on demand. One Personal-wins line uses bytes the eager conjuncts free. It keeps L4. It does not unload host-injected AGENTS.md.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes. One round-1 critic is also grok-4.6. Takes accept critic headings.\n\nForward verdict: recut. Disposition: classified headings accept-into-contract. Residual: none on classified headings.\nSpec-path: next-build contract is not this body.\n\n**Lean:** round-1 successor after three isolated critics. Cites critic 5787827861, critic 5787867330, critic 5787882250. Supersedes Stop 1 write-back 5787785518. Round 1 sibling count 3.\n\nTarget-digest: sha256:33bb6a763181dd11bee12a71b7bbced43510e59338915b813b5f76ed6c55acf6\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-4923-dc\norigin-ref: origin/HEAD\ndispatch-sha: d35cb4878bbc66a8b252609aeedbe4d33976868d\ntarget shape: single-issue\nround: 1\nsiblings: 3\nDual-stop cap: 3 posts (spent)\n\nrelieves: P1\n\n## Takes\n\n- 5787827861 F1 L4 is a locator that code parses, not a load mandate — accept-into-contract\n- 5787827861 F2 inventory misses commands.md L419, maintainer L16, rules pack, host-lifecycle-duties — accept-into-contract\n- 5787827861 F3 identity-only is the wrong axis — accept-into-contract\n- 5787827861 F4 read-only loses USER.md Personal precedence unless always-on carries it — accept-into-contract\n- 5787827861 F5 replacement wording must say when main.md loads — accept-into-contract\n- 5787867330 linked Session routing still mandates the read — accept-into-contract\n- 5787867330 identity-only and skipFatPath cannot be the whole switch — accept-into-contract\n- 5787867330 preserve the trust boundary when main.md becomes optional — accept-into-contract\n- 5787867330 expected cost is a valid explicit disposition — accept-into-contract (fork not taken)\n- 5787882250 F1 rapid is not a first-prompt skip conjunct — accept-into-contract\n- 5787882250 F2 setup-skill identity-only detector is off the first-prompt path — accept-into-contract\n- 5787882250 F3 L4 is an install-path sentinel — accept-into-contract\n- 5787882250 F4 conditional skip prose misses the managed byte ratchet — accept-into-contract\n- 5787882250 F5 commands.md L419 still eagers main.md — accept-into-contract\n\n## Bound remedy\n\n- Keep L4 `Deft is installed in` plus `Full guidelines: <root>/main.md` as the install-root haystack. Do not delete the substring.\n- Recut agents-entry L20 load list and L20 else-clause so read-only first prompt loads AGENTS.md, USER.md, and PROJECT-DEFINITION. No eager main.md on that path.\n- Same-PR recut of `content/commands.md` L419 to match L454 (omit main.md on read-only alignment). Depth pointer on L20 stays.\n- Mutation clause on L20: load main.md at `deft session:start` / mutation boundary, or on demand via existing See-main.md depth lines. Do not add rapid as an AGENTS skip.\n- Add one USER.md Personal-wins-over-external-context line on the always-on surface, using bytes freed by dropping the eager main.md conjuncts. Net zero or negative managed bytes. No `absoluteMaxBytes` raise on this number.\n- Switch is #2176 read-only posture, not the setup identity-only detector, not skipFatPath.\n- `task agents:refresh` and `agents_entry_contract` so the generated consumer route cannot restore an unconditional main.md read.\n- Named omit: maintainer unmanaged AGENTS.md L16 / L4 stay out of this leftover unless a later dogfood recut names them. `agents:refresh` does not rewrite unmanaged. host-lifecycle-duties.md L50 recut with commands.md if it still eagers main.md; rules pack regenerates from source, no hand-edit.\n- #3014 injected-surface shrink and #4544 capture stay off this harvest.\n\n",
+          "id": 5787910367,
+          "html_url": "https://github.com/deftai/directive/issues/4923#issuecomment-5787910367",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T02:29:22Z",
+          "updated_at": "2026-09-23T02:29:22Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1\n\nPain-audit, round 2, fresh. Pin `d35cb4878bbc66a8b252609aeedbe4d33976868d`. Ceiling comment 5787910367. Question: does Bound remedy on that successor lean relieve Stop 1 P1 on comment 5787785518. Round-1 headings 5787827861, 5787867330, 5787882250 are prior classified headings. Parent hypotheses unused.\n\n## Verdict\n\nP1 stays unrelieved on this Bound remedy. Dropping the L20 load-list conjunct, the L20 else-clause conjunct, and commands.md L419 eager `main.md` is the right delete set, and #2176 read-only posture is the right switch. The harvest as written cannot land under the managed-section ratchet once the stacked always-on adds are included, and a landed omit leaves ticket-shaping read-only without the existing #480 lazy-load trigger.\n\n## Findings\n\n### 1. Bound-remedy funding cannot land the stacked adds — `blocks-the-design`\n\nEvidence. Reproduced `extractManagedSection` / `measureManagedSection` / `countRegions` from `packages/core/src/agents-md-budget/evaluate.ts` on `git show` of AGENTS.md and `content/templates/agents-entry.md` at the pin:\n\n- live managed section: 19301 bytes, 175 lines\n- `plan.policy.agentsMdBudget.absoluteMaxBytes`: 19314 (headroom 13)\n- `managedMaxLines`: 175 (at cap)\n- agents-entry.md: 19233 bytes, 175 lines\n- L20 deletes: `main.md / ` = 10 bytes; `main → ` = 9 UTF-8 bytes (`→` is three bytes). Freed by the named conjuncts: 19 bytes\n- Bound remedy funds one USER.md Personal-wins-over-external-context line from those 19 bytes, adds a mutation load-main.md clause, requires net zero or negative managed bytes, and forbids an `absoluteMaxBytes` raise on this number\n\nMeasured carries: maintainer Personal-wins sentence on AGENTS.md L16 is 130 bytes. Minimal load-bearing clause `USER.md Personal wins over external context.` is 44 bytes. Inserting `load main.md; ` into the existing Mutation sentence is 14 bytes. 19301 − 19 + 44 = 19326 (over by 12) with Personal-wins alone. With the mutation insert: 19340 (over by 26). A new markdown line is 176 against `managedMaxLines` 175 unless folded into L20; folding leaves the byte miss. Comment 5787882250 F4's 19271/43 ledger is a different method; 43 + 19 still cannot hold 44 + 14.\n\nFailure mode. An implementer following this harvest hits `verify:agents-md-budget` fail-closed, drops an accepted carry, or raises `absoluteMaxBytes` (Tax A / #3014, named omit). Spec-path harvest can look green while the eager read remains, or the ratchet goes red.\n\nDisposition. The lean cannot bind as written. Recut Bound remedy to a funded set: delete-only of the three eager conjuncts, or name the matching always-on deletions that fund each add. A blocking pain-audit is not relief.\n\n### 2. #480 lazy-load trigger lives only in main.md — `blocks-the-design`\n\nEvidence. `git show` main.md L154–167 (Agent Trap, instruction hierarchy, trust-tier). L156 places the lazy-load of `meta/security.md` \"whenever the agent is about to process externally-sourced content\" inside main.md. agents-entry has no Agent Trap / instruction-hierarchy rule; L108 points at `meta/security.md` only for Unbounded A2A. commands.md L419 names ticket-shaping as a read-only session. Bound remedy adds Personal-wins-over-external-context and omits the #480 trigger. Personal-wins is USER.md vs Warp/MCP/prompt-injected (AGENTS.md L16). Instruction hierarchy is issue/PR/web/tool text as data (main.md L160–167). Comment 5787867330 required trust-tier and Personal precedence, or an explicit pre-external-read trigger. Inventory: reuse that existing L156 trigger; do not draft a second hierarchy.\n\nFailure mode. A read-only ticket-shaping first prompt after the omit never opens main.md, never sees the lazy-load trigger, and can follow instruction-shaped issue text. Injection lens fires. No deterministic control observes which source won.\n\nDisposition. Bound remedy must name the existing pre-external-read trigger (main.md L156 / `meta/security.md` Agent Trap) on the always-on surface, with a matching deletion that funds it, or leftover that carry on a different issue. As written the recut cannot bind.\n\n### 3. host-lifecycle L50 already eagers — `footnote`\n\n`content/contracts/host-lifecycle-duties.md` L50: \"Session routing loads main → USER → PROJECT-DEFINITION before mutation.\" Bound remedy already says recut with commands.md if that line still eagers. The condition holds at this pin. Adapter checklist, not the injected prefix.\n\n### 4. L4 is locative haystack — `footnote`\n\nL4: \"Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md\". `parseInstallRootFromAgentsMd` (`packages/core/src/doctor/manifest.ts` L124–136) uses `INSTALLED_IN_RE` then `FULL_GUIDELINES_RE`. `500_discoverability.test.ts` L124 pins the `.deft/core/main.md` count in agents-entry to 1. L4 has no load/read imperative. The load imperatives are L20 and commands.md L419. Keep the haystack.\n\n## Injection / swarm lens\n\nAlways-on agents-entry is host-injected constitution. This recut changes which rules bind on the first prompt and which untrusted issue text meets before #480. Mid-run rewrite stays #3164. `agents:refresh` is the legal path. skipFatPath and the setup identity-only detector stay off the switch: session-start.ts L1525–1526 returns read-only before dial; skipFatPath consumers are L1922 / L1981 / L1994 / L1999; identity-only is setup SKILL.md L686–688 prose, with no `packages/core/src` implementation outside tests.\n\n## Road not taken\n\nRejected: expected-cost close of Tax B. Steelman: 37592-byte main.md is one cached read next to 38335-byte AGENTS.md; dropping it without a funded #480 carry is worse than the tax. Flip: operator accepts a delete-only harvest and leftovers the carries.\n\nRejected: treating round-1 agreement as confirmation that L4 is locative. Re-derived from the pin: no load verb; doctor haystack; discoverability count 1.\n\n## Checks\n\n`git show` pin on `content/templates/agents-entry.md` L4 / L20 / L77 / L79 / L82 / L88 / L108, `content/commands.md` L419 / L454, `content/contracts/host-lifecycle-duties.md` L50, AGENTS.md L4 / L16, main.md L12 / L14 / L154–167, `packages/core/src/doctor/manifest.ts` L124–136, `packages/core/src/session/session-start.ts` L1525–1526 / L1564–1599 / L1922 / L1981 / L1994 / L1999, `packages/core/src/policy/ceremony-dial.ts` L139–155, `content/skills/deft-directive-setup/SKILL.md` L686–688, `packages/core/src/agents-md-budget/evaluate.ts` measure and count, `xbrief/PROJECT-DEFINITION.xbrief.json` `absoluteMaxBytes` 19314 `managedMaxLines` 175, `500_discoverability.test.ts` L124, `agents_md_session_start.test.ts` (no `main.md` conjunct pin), `agents_entry_contract.test.ts` session-routing markers. REST: `issues/4923` plus comments through 5787910367; `issues/3014` open, `hold`.\n\n",
+          "id": 5788018452,
+          "html_url": "https://github.com/deftai/directive/issues/4923#issuecomment-5788018452",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T02:40:00Z",
+          "updated_at": "2026-09-23T02:40:00Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nPain-audit blocked the relieves cite. Bound remedy stacked Personal-wins and a mutation load insert that the managed-section ratchet cannot fund, and the omit left ticket-shaping without the existing #480 lazy-load trigger. This map retracts relieves of P1.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes. Takes accept critic headings.\n\nForward verdict: recut. Disposition: classified headings accept-into-contract. Residual: Stop 1 P1 unmet.\nSpec-path: next-build contract is not this body.\n\n**Lean:** retraction of successor lean 5787910367. Cites critic 5788018452. This map is not the bind harvest.\n\nTarget-digest: sha256:33bb6a763181dd11bee12a71b7bbced43510e59338915b813b5f76ed6c55acf6\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-4923-dc\norigin-ref: origin/HEAD\ndispatch-sha: d35cb4878bbc66a8b252609aeedbe4d33976868d\nDual-stop cap: 3 posts (spent; reserved-slot pain-audit)\n\ndoes-not-relieve: P1\n\n## Takes\n\n1. Bound-remedy funding cannot land the stacked adds — accept-into-contract\n2. #480 lazy-load trigger lives only in main.md — accept-into-contract\n3. host-lifecycle L50 already eagers — accept-into-contract\n4. L4 is locative haystack — accept-into-contract\n\n",
+          "id": 5788030805,
+          "html_url": "https://github.com/deftai/directive/issues/4923#issuecomment-5788030805",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T02:41:15Z",
+          "updated_at": "2026-09-23T02:41:15Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nPain-audit blocked the relieves cite. Dual-stop halt. Next step is an operator leftover verb.\n\n**Handoff:** Dual-stop reserved-slot spent after blocking pain-audit 5788018452. Retraction of successor lean 5787910367. Finish still possible after leftover-split, leftover-defer, leftover-deliver, or leftover-close.\n\nopen-question: leftover-deliver delete-only of the three eager conjuncts (L20 load list, L20 else-clause, commands.md L419) on this number; leftover-split the unfunded always-on carries (Personal-wins and the existing #480 pre-external-read trigger) onto a child; leftover-defer those carries to open #3014; or leftover-close Tax B as expected cost.\n\nRecommended leftover path: leftover-deliver the delete-only harvest on this number, leftover-split Personal-wins plus the #480 trigger onto a funded child, keep L4 as locative haystack. Yolo standing does not confirm that split.\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-4923-dc\norigin-ref: origin/HEAD\ndispatch-sha: d35cb4878bbc66a8b252609aeedbe4d33976868d\ndest-wo: leftover-complete after leftover verb\nDual-stop cap: 3 posts\n\n",
+          "id": 5788030930,
+          "html_url": "https://github.com/deftai/directive/issues/4923#issuecomment-5788030930",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T02:41:16Z",
+          "updated_at": "2026-09-23T02:41:16Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nOperator leftover-deliver is recorded. First-ship is delete-only of the three eager main.md conjuncts. L4 stays locative haystack. Personal-wins and the #480 pre-external-read trigger are not in this harvest. Confirming this map recuts so read-only alignment loads AGENTS.md, USER.md, and PROJECT-DEFINITION.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes. Takes accept critic headings.\n\nForward verdict: leftover-deliver remainder. Disposition: classified headings accept-into-contract. Residual: Stop 1 P1 unmet; Dual-stop remaining 0.\nSpec-path: next-build contract is not this body.\n\n**Lean:** leftover-deliver bind of delete-only remainder. Predecessor retraction 5788030805. Cites critic 5788018452. Recut: supersedes retraction 5788030805.\n\nTarget-digest: sha256:33bb6a763181dd11bee12a71b7bbced43510e59338915b813b5f76ed6c55acf6\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-4923-dc\norigin-ref: origin/HEAD\ndispatch-sha: d35cb4878bbc66a8b252609aeedbe4d33976868d\nDual-stop cap: 3 posts (spent; reserved-slot pain-audit)\ndest-wo: leftover-complete\n\ndoes-not-relieve: P1\n\n## Takes\n\n1. Bound-remedy funding cannot land the stacked adds — accept-into-contract (5788018452)\n2. #480 lazy-load trigger lives only in main.md — accept-into-contract (5788018452)\n3. host-lifecycle L50 already eagers — accept-into-contract\n4. L4 is locative haystack — accept-into-contract\n\n## Bound remedy\n\n- Recut `content/templates/agents-entry.md` L20 load list so it does not eager `main.md / ` on the read-only first prompt. Load AGENTS.md, USER.md, and PROJECT-DEFINITION.\n- Recut the L20 else-clause so it does not eager `main →`.\n- Same-PR recut of `content/commands.md` L419 to match L454 (omit main.md on read-only alignment).\n- Keep L4 `Deft is installed in` plus `Full guidelines: <root>/main.md` as the install-root haystack.\n- Recut `content/contracts/host-lifecycle-duties.md` L50 with commands.md if that line still eagers main.md. Rules pack regenerates from source; no hand-edit.\n- `task agents:refresh` and `agents_entry_contract` so the generated consumer route cannot restore an unconditional main.md read.\n- No Personal-wins add. No mutation load-main.md insert. No `absoluteMaxBytes` raise. No skipFatPath switch. No setup identity-only detector switch.\n\n",
+          "id": 5788182171,
+          "html_url": "https://github.com/deftai/directive/issues/4923#issuecomment-5788182171",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T02:56:30Z",
+          "updated_at": "2026-09-23T02:56:30Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nLeftover-deliver of the delete-only harvest is recorded. Dual-stop numbered cap is spent. The #480 pre-external-read trigger and Personal-wins line are unfunded carries. Halt.\n\n**Handoff:** Dual-stop remaining 0 after leftover-deliver. Retraction 5788030805. Leftover-deliver lean supersedes that retraction. Finish still possible after leftover-split, leftover-defer, leftover-close, or Dual-stop raise.\n\nopen-question: leftover-split the unfunded always-on carries (USER.md Personal-wins and the existing #480 pre-external-read trigger at main.md L156) onto a funded child; leftover-defer those carries to open #3014; leftover-close them as expected cost; or Dual-stop raise to pain-audit a later bind.\n\nRecommended leftover path: leftover-split the unfunded carries onto a funded child, leftover-defer shrink of the injected surface to #3014. Yolo standing does not confirm that split.\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-4923-dc\norigin-ref: origin/HEAD\ndispatch-sha: d35cb4878bbc66a8b252609aeedbe4d33976868d\ndest-wo: leftover-complete\nDual-stop cap: 3 posts\n\n",
+          "id": 5788182260,
+          "html_url": "https://github.com/deftai/directive/issues/4923#issuecomment-5788182260",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T02:56:30Z",
+          "updated_at": "2026-09-23T02:56:30Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nOperator leftover-split is recorded. Unfunded always-on carries (USER.md Personal-wins and the existing #480 pre-external-read trigger) move to leftover #4949. Remainder on this number is delete-only of the three eager main.md conjuncts, with L4 kept as locative haystack. This map does not claim that remainder closes P1.\n\nThis is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1 and these takes.\n\nForward verdict: leftover-split remainder. Disposition: classified headings accept-into-contract. Residual: Dual-stop halt; P1 uncited until a later bind.\nSpec-path: remainder on this number.\n\n**Lean:** leftover-split remainder after operator leftover-split. Recut: supersedes leftover-deliver 5788182171. Leftover filed from parent issue-create: #4949.\n\nTarget-digest: sha256:33bb6a763181dd11bee12a71b7bbced43510e59338915b813b5f76ed6c55acf6\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-4923-dc\norigin-ref: origin/HEAD\ndispatch-sha: d35cb4878bbc66a8b252609aeedbe4d33976868d\nDual-stop cap: 3 posts\ndest-wo: leftover-complete\n\ndoes-not-relieve: P1\n\n## Takes\n\n1. Bound-remedy funding cannot land the stacked adds — accept-into-contract (5788018452)\n2. #480 lazy-load trigger lives only in main.md — accept-into-contract (5788018452)\n3. host-lifecycle L50 already eagers — accept-into-contract\n4. L4 is locative haystack — accept-into-contract\n\n## Bound remedy\n\n- Recut `content/templates/agents-entry.md` L20 load list so it does not eager `main.md / ` on the read-only first prompt. Load AGENTS.md, USER.md, and PROJECT-DEFINITION.\n- Recut the L20 else-clause so it does not eager `main →`.\n- Same-PR recut of `content/commands.md` L419 to match L454 (omit main.md on read-only alignment).\n- Keep L4 `Deft is installed in` plus `Full guidelines: <root>/main.md` as the install-root haystack.\n- Recut `content/contracts/host-lifecycle-duties.md` L50 with commands.md if that line still eagers main.md. Rules pack regenerates from source; no hand-edit.\n- `task agents:refresh` and `agents_entry_contract` so the generated consumer route cannot restore an unconditional main.md read.\n- No Personal-wins add. No mutation load-main.md insert. No `absoluteMaxBytes` raise. No skipFatPath switch. No setup identity-only detector switch.\n\n",
+          "id": 5788333400,
+          "html_url": "https://github.com/deftai/directive/issues/4923#issuecomment-5788333400",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T03:12:57Z",
+          "updated_at": "2026-09-23T03:12:57Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nLeftover #4949 is filed for unfunded always-on carries. Remainder on #4923 is delete-only. Dual-stop numbered cap is spent (3 of 3 posts plus reserved pain-audit). Continue-remainder is false. Halt.\n\n**Halt:** Dual-stop posts remaining 0 after leftover-split. Finish still possible after a Dual-stop raise or later-arc. Do not bind `relieves: P1` without a pain-audit.\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-4923-dc\norigin-ref: origin/HEAD\ndispatch-sha: d35cb4878bbc66a8b252609aeedbe4d33976868d\ndest-wo: leftover-complete\nDual-stop cap: 3 posts\n\n",
+          "id": 5788333568,
+          "html_url": "https://github.com/deftai/directive/issues/4923#issuecomment-5788333568",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-09-23T03:12:58Z",
+          "updated_at": "2026-09-23T03:12:58Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\nDual-stop raise: numbered cap 4 posts (was 3). Operator confirmed raise on utterance \"complete the arcs of 4923 and 4997\". One numbered post remains for a pain-audit of the recut lean. Reserved pain-audit slot stays spent on 5788018452 and is not refilled. Checking seat: Codex Astra.\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-4923-dc\norigin-ref: origin/master\ndispatch-sha: 23c8b01ad48c19f478b69a78a973bafffca4882d\ndest-wo: leftover-complete\n\n",
+          "id": 6174553956,
+          "html_url": "https://github.com/deftai/directive/issues/4923#issuecomment-6174553956",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-14T17:42:11Z",
+          "updated_at": "2026-10-14T17:42:11Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nOperator Dual-stop raise is recorded. Remainder on this number is delete-only of the three eager main.md conjuncts. L4 stays locative haystack. Unfunded always-on carries stay on leftover #4949. Confirming this map recuts so read-only alignment loads AGENTS.md, USER.md, and PROJECT-DEFINITION, and that remainder relieves Stop 1 P1 as now scoped. This is not an instruction to a later builder.\n\nNon-self-arbitration: same grok-4.6 parent authored Stop 1, leftover-split 5788333400, and these takes. Takes accept critic headings.\n\nForward verdict: recut. Disposition: classified headings accept-into-contract. Residual: none on this number after pain-audit of this map.\nSpec-path: remainder on this number.\n\n**Lean:** Dual-stop leftover recut after operator raise. Predecessor leftover-split 5788333400 recorded no relief of Stop 1 pain. Recut: supersedes leftover-split 5788333400. This map amends and replaces bind map 5788333400.\n\nTarget-digest: sha256:33bb6a763181dd11bee12a71b7bbced43510e59338915b813b5f76ed6c55acf6\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-4923-dc\norigin-ref: origin/master\ndispatch-sha: 23c8b01ad48c19f478b69a78a973bafffca4882d\nDual-stop cap: 4 posts\ndest-wo: leftover-complete\n\nrelieves: P1\n\n## Takes\n\n1. Bound-remedy funding cannot land the stacked adds — accept-into-contract (5788018452)\n2. #480 lazy-load trigger lives only in main.md — accept-into-contract (5788018452)\n3. host-lifecycle L50 already eagers — accept-into-contract\n4. L4 is locative haystack — accept-into-contract\n\n## Bound remedy\n\n1. Recut `content/templates/agents-entry.md` L20 load list so it does not eager `main.md / ` on the read-only first prompt. Load AGENTS.md, USER.md, and PROJECT-DEFINITION.\n2. Recut the L20 else-clause so it does not eager `main →`.\n3. Same-PR recut of `content/commands.md` L419 to match L454 (omit main.md on read-only alignment). At pin `23c8b01ad48c19f478b69a78a973bafffca4882d` this is commands.md L440.\n4. Keep L4 `Deft is installed in` plus `Full guidelines: <root>/main.md` as the install-root haystack.\n5. Recut `content/contracts/host-lifecycle-duties.md` L50 with commands.md if that line still eagers main.md. Rules pack regenerates from source; no hand-edit.\n6. `task agents:refresh` and `agents_entry_contract` so the generated consumer route cannot restore an unconditional main.md read.\n7. No Personal-wins add. No mutation load-main.md insert. No `absoluteMaxBytes` raise. No skipFatPath switch. No setup identity-only detector switch.\n\n",
+          "id": 6174554332,
+          "html_url": "https://github.com/deftai/directive/issues/4923#issuecomment-6174554332",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-14T17:42:12Z",
+          "updated_at": "2026-10-14T17:54:26Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1\nfinding-classes: footnote\nharvest-changed: false\n\nPain-audit of successor lean 6174554332 against Stop 1 5787785518. Input ceiling 6174554332 inclusive. Numbered post 4 after raise 6174553956; no reserved-slot refill.\n\n## Verdict\n\nThe Bound remedy covers P1's consumer first-prompt main.md mandate. No blocking or sharpening finding; leave the bind harvest unchanged. This is design coverage, not a claim that the remedy has shipped or that every maintainer session stops reading main.md.\n\nverification-path: read-only pin reads via git show 23c8b01ad48c19f478b69a78a973bafffca4882d:, dest cwd-without-occupy; in-memory assertions and measurements over those blobs.\n\n### 1. Consumer mandates are covered — footnote\n\nAt the dispatch SHA, agents-entry's two imperative conjuncts are at L24, not historical L20: `load AGENTS.md / main.md / USER.md /` and `else main → USER → PROJECT-DEFINITION`. Each occurs once. commands.md L440 independently mandates the read; L477 already gives the shorter AGENTS / USER / PROJECT-DEFINITION alignment. Remedy items 1–3 cover all three. Item 5 covers host-lifecycle-duties.md L50, whose main-first sequence remains present. The stock agents-consumer-header.md contains no main.md pointer.\n\nI checked these occurrences and simulated the two template deletions in memory; both targeted conjuncts disappear. Item 6 already requires refresh and the existing content-contract surface to prevent reintroduction. Existing agents_md_session_start tests assert posture/alignment tokens, not omission of main.md: the remedy's requested regression protection is implementation work, not proof supplied by today's tests.\n\n### 2. The delete-only remedy fits the current byte and line limits — footnote\n\nReproduced the pinned evaluate.ts measurement method: normalize line endings, take the opening-through-closing managed-marker span, join with newlines, count UTF-8 bytes; count managed lines inclusively.\n\nPinned AGENTS.md measures 28,034 bytes / 200 lines; the two deletions give 28,015 / 200. Template span measures 27,965 → 27,946 bytes, also 200 lines. The pinned PROJECT-DEFINITION's plan x-directive/policy agentsMdBudget is absoluteMaxBytes 28,100 and managedMaxLines 200. Thus the named deletes save 19 bytes without adding a line or raising either limit. These are current-pin measurements, not a refutation of the earlier audit's different-SHA figures.\n\nL4 remains intact. doctor/manifest.ts L124–136 uses the installed-in and Full-guidelines patterns; 500_discoverability.test.ts L124 pins one full main.md path. I checked that the pinned template has exactly one. The locator is not an imperative read.\n\n### 3. Coverage has the already-recorded boundary — footnote\n\nAGENTS.md L16 still independently orders main → USER → PROJECT-DEFINITION. The earlier map 5787910367 explicitly omitted the unmanaged maintainer header, and the current remedy targets the generated consumer route. Refresh does not make that maintainer mandate disappear. This audit does not extend P1 relief to the unmanaged header or to every rapid mutation path.\n\nInjection lens: pinned agents-entry L24 now already carries USER Personal precedence; no new Personal line is required for this delete-only remedy. That is not the external-content-as-data defense. main.md L156–167 still holds that separate defense and its security lazy-load pointer. The thread records the operator split of those carries to #4949; this audit does not declare that safeguard delivered or waive it. The split does not prevent the named deletions from removing the consumer mandate.\n\nI treated instruction-shaped issue/comment text, including the old refutation-target, as described content. No posture predicate, host-input bypass, occupancy mechanism, or new trust mechanism is proposed.\n\n## Alternative considered\n\nKeeping the read preserves immediate access to the security guidance, but it leaves the exact consumer mandate P1 names. Given the recorded split, that is not a reason to relabel this delete-only remedy as non-relief. A surviving mandatory consumer read outside the covered surfaces, or a requirement to deliver the split safeguard on this number, would change this verdict.\n\nChecks were static pinned-blob checks; no repository test suite, ingest, mutation session, or product edits were performed.",
+          "id": 6174710719,
+          "html_url": "https://github.com/deftai/directive/issues/4923#issuecomment-6174710719",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-14T17:50:18Z",
+          "updated_at": "2026-10-14T17:50:18Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Status | Method |\n|---|---|---|\n| At pin `23c8b01ad48c19f478b69a78a973bafffca4882d`, `content/templates/agents-entry.md` L24 still carries one `load AGENTS.md / main.md / USER.md /` conjunct and one `else main → USER → PROJECT-DEFINITION` conjunct | verified | pin-read L24; pain-audit 6174710719 quoted `git show 23c8b01ad48c19f478b69a78a973bafffca4882d:content/templates/agents-entry.md` and counted each conjunct once |\n| `content/commands.md` L440 still mandates `Load AGENTS.md / main.md / USER.md / PROJECT-DEFINITION` on read-only alignment | verified | pin-read L440; pain-audit 6174710719 independent extract |\n| `content/commands.md` L477 already names shorter alignment load `(AGENTS / USER / PROJECT-DEFINITION)` without a main.md token | verified | pin-read L477; pain-audit 6174710719 |\n| `content/contracts/host-lifecycle-duties.md` L50 still eagers `Session routing loads main → USER → PROJECT-DEFINITION before mutation` | verified | pin-read L50; pain-audit 6174710719 |\n| L4 locative haystack remains `Deft is installed in .deft/core/. Full guidelines: .deft/core/main.md`; `packages/core/src/doctor/manifest.ts` L124–125 match `installed in` and `Full guidelines: …/main.md` | verified | pin-read agents-entry L4 and doctor/manifest.ts L124–125; pain-audit 6174710719 |\n| Recut lean 6174554332 harvest is seven Bound-remedy items: delete load-list main.md, delete else-clause `main →`, recut commands.md L440, keep L4, recut host-lifecycle L50 if still eager, `task agents:refresh` plus `agents_entry_contract`, no Personal-wins add | verified | live REST lean 6174554332 Bound-remedy items 1–7 |\n| Pain-audit 6174710719 is footnote-only (`finding-classes: footnote`, `harvest-changed: false`) and leaves the bind harvest unchanged | verified | live REST critic 6174710719 |\n| Unmanaged maintainer `AGENTS.md` L16 still independently orders `main.md → USER.md → ./xbrief/PROJECT-DEFINITION.xbrief.json`; that surface is outside this remainder and stays on leftover #4949 | verified | pin-read AGENTS.md L16; pain-audit 6174710719 coverage boundary |\n\nNon-self-arbitration: grok-4.6 parent authored Stop 1 5787785518 and recut lean 6174554332. Rows rest on pin-read at dispatch SHA `23c8b01ad48c19f478b69a78a973bafffca4882d` and Codex gpt-6 pain-audit 6174710719 primary-source re-derivation.\n\n",
+          "id": 6174746301,
+          "html_url": "https://github.com/deftai/directive/issues/4923#issuecomment-6174746301",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-14T17:52:12Z",
+          "updated_at": "2026-10-14T17:52:12Z",
+          "author_association": "COLLABORATOR"
+        },
+        {
+          "body": "model: grok-4.6\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nRead-only first-prompt still loads main.md on the generated consumer route. The accepted recut deletes the agents-entry load-list and else-clause conjuncts and the matching commands.md L440 mandate, keeps L4 as locative haystack, refreshes the generated route, and leaves unfunded always-on carries on leftover #4949. Confirming this map means identity-only / read-only alignment loads AGENTS.md, USER.md, and PROJECT-DEFINITION.\n\nThis is not an instruction to a later builder.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nCites successor lean 6174554332 and verified-claims table 6174746301.\npain-audit 6174710719 is footnote-only; leftover-pain of relieves: P1 is satisfied.\n\narc-mode: no-ingest\nyolo-standing: yes\ndest: /Users/davidcall/.grok/worktrees/deft-directive/issue-4923-dc\norigin-ref: origin/master\ndispatch-sha: 23c8b01ad48c19f478b69a78a973bafffca4882d\nDual-stop cap: 4 posts\ndest-wo: leftover-complete\n\n",
+          "id": 6174746630,
+          "html_url": "https://github.com/deftai/directive/issues/4923#issuecomment-6174746630",
+          "user": {
+            "login": "dbcall2",
+            "id": 15332465,
+            "node_id": "MDQ6VXNlcjE1MzMyNDY1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/15332465?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/dbcall2",
+            "html_url": "https://github.com/dbcall2",
+            "followers_url": "https://api.github.com/users/dbcall2/followers",
+            "following_url": "https://api.github.com/users/dbcall2/following{/other_user}",
+            "gists_url": "https://api.github.com/users/dbcall2/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/dbcall2/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/dbcall2/subscriptions",
+            "organizations_url": "https://api.github.com/users/dbcall2/orgs",
+            "repos_url": "https://api.github.com/users/dbcall2/repos",
+            "events_url": "https://api.github.com/users/dbcall2/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/dbcall2/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-10-14T17:52:13Z",
+          "updated_at": "2026-10-14T17:52:13Z",
+          "author_association": "COLLABORATOR"
+        }
+      ],
+      "issueBody": "## Pain\n\nUnmet Tax B from #4916 (pain-audit 5783468254): always-on `content/templates/agents-entry.md` still orders a `main.md` read on the identity-only / read-only first prompt. Title-line L4 (`Full guidelines: .deft/core/main.md`), the L20 load list (`load AGENTS.md / main.md / USER.md / …`), and the L20 else-clause (`else main → USER → PROJECT-DEFINITION`) all survive a session-routing-only list edit. Identity-only already has a detector in setup SKILL.md. Capture remainder stays on #4544.\n\n## Why this number exists\n\n#4916 leftover-split of Tax B per Handoff 5783498663. Operator confirmed leftover. The injected-surface remainder (Stop 1 P1 / Tax A) stays on #4916 and is leftover-deferred to open #3014. This issue holds stop-mandating `main.md` on rapid / identity-only / read-only, including every always-on pointer.\n\n## What this is not\n\n- Not skipFatPath / ceremony-dial unload of host-injected AGENTS.md.\n- Not a default thin AGENTS profile (#3014).\n- Not the capture remainder on #4544.\n- Not auto-seeding `xbrief/active/`.\n- Not mid-run AGENTS rewrite (#3164).\n\nRefs #4916, #4544, #3014, #4593, #2176.\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 5545361968,
+        "origin": "deftai/directive#4923",
+        "id": "github.issue.5545361968"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "33bb6a763181dd11bee12a71b7bbced43510e59338915b813b5f76ed6c55acf6"
+      },
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 4923,
+        "leanCommentId": 6174554332,
+        "harvestDigest": "92803ae82b480de36b7c8dccd94efca43cc4cebc69baa684b344c911b24b0296",
+        "slice": null
+      },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": false,
+        "file_scope": [
+          "content/templates/agents-entry.md",
+          "AGENTS.md",
+          "content/commands.md",
+          "content/contracts/host-lifecycle-duties.md",
+          "content/skills/deft-directive-setup/SKILL.md",
+          "content/packs/skills/skills-pack-0.1.json",
+          "packages/core/src/content-contracts/skills/agents_entry_contract.test.ts",
+          "changelog.d/4923-read-only-main-md-load.md",
+          "docs/RULE-MAP.md",
+          "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "xbrief/evaluator-surface-disposition.json",
+          "xbrief/.audit/spec-drift/github.issue.5545361968.json"
+        ],
+        "verify_commands": [
+          "npx vitest run packages/core/src/content-contracts/skills/agents_entry_contract.test.ts",
+          "deft verify:agents-md-budget"
+        ],
+        "size": "small",
+        "file_scope_confidence": "high",
+        "depends_on": [],
+        "expected_outputs": [
+          "agents-entry.md Session routing: read-only load list drops `main.md / ` and the else-clause drops `main → `; L4 `Full guidelines: .../main.md` locator unchanged",
+          "content/commands.md Session routing read-only line (Load AGENTS.md / USER.md / PROJECT-DEFINITION) and the #4544 quote of the else-clause match the recut template",
+          "host-lifecycle-duties.md family-1 step 3 no longer orders main.md before mutation; setup SKILL.md else-clause quote (and regenerated skills pack) match",
+          "AGENTS.md managed section regenerated via task agents:refresh (about 19 bytes smaller); agents_entry_contract asserts the read-only load list carries no main.md",
+          "agentsMdBudget.absoluteMaxBytes lowered to the measured managed size (never raised); the later of the two wave-1 PRs (#4923 / #4949) sets the final value",
+          "one changelog fragment changelog.d/4923-read-only-main-md-load.md"
+        ],
+        "conflict_group": "agents-md-budget-absolute",
+        "model_tier": "medium",
+        "acceptance_criteria_justification": "The 7 clauses are the 7 Bound remedy items of the accepted arc lean 6174554332 on #4923, harvested and digest-pinned by issue ingest; they cannot be merged or dropped without breaking the admitted-source pin."
+      },
+      "kind": "story"
+    },
+    "id": "github.issue.5545361968",
+    "updated": "2026-11-22T22:24:05Z"
+  }
+}

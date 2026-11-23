@@ -188,6 +188,15 @@ Exceeding a budget prints an advisory line and does **not** change the exit
 code. Budget drift is a signal to re-measure the mechanism, not a new failure
 mode for callers.
 
+The pending lifecycle-PR scan (#6645) is the one place the budget is also a
+stop (#6899). Before each open-PR list page and each changed-files page, the
+scan checks the run deadline (start time plus the budget). Once the deadline
+is reached it starts no new request, keeps every shipped verdict (exit 1, even
+for a brief whose lifecycle PR was already found), and prints
+`pending lifecycle check cut short at the run deadline, shipped verdicts kept: ...`.
+A request already running can still end after the deadline, and the reads
+before and after the scan are not bounded by this stop.
+
 ---
 
 ## Out of scope
