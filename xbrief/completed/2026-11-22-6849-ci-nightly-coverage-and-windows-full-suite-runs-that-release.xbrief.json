@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6849",
-    "updated": "2026-11-22T22:18:44Z"
+    "updated": "2026-11-23T03:13:41Z"
   },
   "plan": {
     "title": "ci: nightly coverage and Windows full-suite runs that release readiness reuses",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Once a release reuses CI (#6791, S1 of #6845), coverage against the floor and the full Windows suite run nowhere before a release ships. This story adds one scheduled workflow with a Linux coverage lane and a Windows full-suite lane on the same master commit, a reporting job that keeps one durable tracking issue per lane, and a nightly conjunct on the merged Step 5 CI reuse rule that release:run readiness prints and Step 5 re-evaluates. Nothing changes on the PR or merge-queue path and no required check is added.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6849",
@@ -20,178 +20,332 @@
     "items": [
       {
         "title": "Workflow. `.github/workflows/nightly.yml` runs on `schedule` (one cron a day) and `workflow_dispatch`, and on no other event. Every job runs only when the ref is `refs/heads/master`, and each lane checks out `github.sha`, so both lanes of one run test the same commit. `concurrency: nightly` without cancel. Workflow permissions are `contents: read`; only the reporting job gets `issues: write`. Job names do not equal a required check name.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "Workflow. `.github/workflows/nightly.yml` runs on `schedule` (one cron a day) and `workflow_dispatch`, and on no other event. Every job runs only when the ref is `refs/heads/master`, and each lane checks out `github.sha`, so both lanes of one run test the same commit. `concurrency: nightly` without cancel. Workflow permissions are `contents: read`; only the reporting job gets `issues: write`. Job names do not equal a required check name."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "b500bbba1b70ad73192fd2768d76f21ca894064d",
+          "recorded_at": "2026-11-23T03:13:41Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Preparation. Both lanes use the `merge-gate-primary` preparation: Node from `.nvmrc`, corepack pnpm, `pnpm install --frozen-lockfile`, Task, Go, uv and the tip dogfood materialize (which builds the checkout). Windows uses the Windows equivalents of the same steps. Before the tests, each lane fails as a setup failure unless `task --version` succeeds and `packages/cli/dist/bin.js` exists.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "Preparation. Both lanes use the `merge-gate-primary` preparation: Node from `.nvmrc`, corepack pnpm, `pnpm install --frozen-lockfile`, Task, Go, uv and the tip dogfood materialize (which builds the checkout). Windows uses the Windows equivalents of the same steps. Before the tests, each lane fails as a setup failure unless `task --version` succeeds and `packages/cli/dist/bin.js` exists."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "b500bbba1b70ad73192fd2768d76f21ca894064d",
+          "recorded_at": "2026-11-23T03:13:41Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Coverage lane, `Nightly coverage (Linux)`, on `ubuntu-latest` with `timeout-minutes: 60`: `pnpm run test` (vitest with `--coverage` and the `vitest.config.ts` floor). No `task check:merge` and no coverage-debt flag. It uploads `coverage/coverage-final.json` when it exists.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "Coverage lane, `Nightly coverage (Linux)`, on `ubuntu-latest` with `timeout-minutes: 60`: `pnpm run test` (vitest with `--coverage` and the `vitest.config.ts` floor). No `task check:merge` and no coverage-debt flag. It uploads `coverage/coverage-final.json` when it exists."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "b500bbba1b70ad73192fd2768d76f21ca894064d",
+          "recorded_at": "2026-11-23T03:13:41Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Windows lane, `Nightly full suite (Windows)`, on `windows-latest` with `timeout-minutes: 240`: `pnpm exec vitest run` without coverage, both vitest projects. The coverage floor is read on Linux only.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "Given the nightly workflow, then the Windows lane Nightly full suite (Windows) runs on windows-latest with timeout-minutes 240 and runs pnpm exec vitest run without coverage over both vitest projects; the coverage floor is read on Linux only."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "b500bbba1b70ad73192fd2768d76f21ca894064d",
+          "recorded_at": "2026-11-23T03:13:41Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Reporting. A job `if: always()` after both lanes classifies each lane as `passed`, `test-failure`, `setup-failure`, `timed-out-or-cancelled` or `report-unavailable`, from the job and step results. For each lane there is one durable tracking issue, found by its hidden body marker among issues opened by `github-actions[bot]`, open or closed. On a red lane it reopens the issue (or creates it once) and comments with the lane, the outcome class, the SHA, the run id and attempt, the run URL, and the failing test files and the four coverage totals when a report exists; an absent value is written as unknown, never as zero. On a passed lane it comments and closes an open issue. A comment for the same run id and attempt is not posted twice. The issue is assigned to the login in the repository variable `NIGHTLY_OWNER`; when it is unset the run summary says no one was assigned. Neither title nor body contains `coverage-debt`. Test output is written to a file and passed with `--body-file`, never into a shell command. A failure of the reporting job fails the run.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "Reporting. A job `if: always()` after both lanes classifies each lane as `passed`, `test-failure`, `setup-failure`, `timed-out-or-cancelled` or `report-unavailable`, from the job and step results. For each lane there is one durable tracking issue, found by its hidden body marker among issues opened by `github-actions[bot]`, open or closed. On a red lane it reopens the issue (or creates it once) and comments with the lane, the outcome class, the SHA, the run id and attempt, the run URL, and the failing test files and the four coverage totals when a report exists; an absent value is written as unknown, never as zero. On a passed lane it comments and closes an open issue. A comment for the same run id and attempt is not posted twice. The issue is assigned to the login in the repository variable `NIGHTLY_OWNER`; when it is unset the run summary says no one was assigned. Neither title nor body contains `coverage-debt`. Test output is written to a file and passed with `--body-file`, never into a shell command. A failure of the reporting job fails the run."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "b500bbba1b70ad73192fd2768d76f21ca894064d",
+          "recorded_at": "2026-11-23T03:13:41Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Release reuse. Readiness and Step 5 read the nightly workflow runs. For each lane, the witness is the newest run whose head commit tree equals the clean Step 5 input tree; the lane is reusable only when the latest attempt of that lane in that run concluded `success`. A pending, failed or missing latest attempt is not reusable, and an older success is never used. The #6845 Step 5 reuse also requires both lanes reusable. Readiness prints per lane the status, run URL and head SHA. When a lane is not reusable, readiness says before the mint which lane and why, that the full local Step 5 check will run and about how long, and prints the command to start the workflow on master. Step 5 evaluates the rule again and continues without a prompt either way.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "narrative": {
           "Acceptance": "Release reuse. Readiness and Step 5 read the nightly workflow runs. For each lane, the witness is the newest run whose head commit tree equals the clean Step 5 input tree; the lane is reusable only when the latest attempt of that lane in that run concluded `success`. A pending, failed or missing latest attempt is not reusable, and an older success is never used. The #6845 Step 5 reuse also requires both lanes reusable. Readiness prints per lane the status, run URL and head SHA. When a lane is not reusable, readiness says before the mint which lane and why, that the full local Step 5 check will run and about how long, and prints the command to start the workflow on master. Step 5 evaluates the rule again and continues without a prompt either way."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "b500bbba1b70ad73192fd2768d76f21ca894064d",
+          "recorded_at": "2026-11-23T03:13:41Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Host boundary. When the local Step 5 fallback runs on a host that is not Windows and the Windows lane is not reusable, readiness and Step 5 print that the Windows suite did not run for this release. No refusal is added.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
         "narrative": {
           "Acceptance": "Host boundary. When the local Step 5 fallback runs on a host that is not Windows and the Windows lane is not reusable, readiness and Step 5 print that the Windows suite did not run for this release. No refusal is added."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "b500bbba1b70ad73192fd2768d76f21ca894064d",
+          "recorded_at": "2026-11-23T03:13:41Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Docs. The release skill and `docs/RELEASING.md` say where coverage and the Windows suite run, the reuse rule, the fallback, the Windows host boundary and how a red lane is reported.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.8",
         "narrative": {
           "Acceptance": "Given docs/RELEASING.md and the release skill, then both name where coverage and the Windows suite run, the reuse rule, the local fallback, the Windows host boundary and how a red lane is reported."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "b500bbba1b70ad73192fd2768d76f21ca894064d",
+          "recorded_at": "2026-11-23T03:13:41Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Build order. One PR, built after #6845 merges.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.9",
         "narrative": {
           "Acceptance": "Given the product change, then it ships as one PR built on the merged #6845 surfaces (S1 ci-reuse.ts from PR #6898; S3 to S5 release:run readiness, all closed)."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "b500bbba1b70ad73192fd2768d76f21ca894064d",
+          "recorded_at": "2026-11-23T03:13:41Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given the workflow file, then its only triggers are `schedule` and `workflow_dispatch`, no job name equals `TypeScript (build + lint)` or `Merge gate (task check)`, and only the reporting job has `issues: write`.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.10",
         "narrative": {
           "Acceptance": "Given the workflow file, then its only triggers are `schedule` and `workflow_dispatch`, no job name equals `TypeScript (build + lint)` or `Merge gate (task check)`, and only the reporting job has `issues: write`."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "b500bbba1b70ad73192fd2768d76f21ca894064d",
+          "recorded_at": "2026-11-23T03:13:41Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given a dispatch on a ref other than master, then no lane runs.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.11",
         "narrative": {
           "Acceptance": "Given a dispatch on a ref other than master, then no lane runs."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "b500bbba1b70ad73192fd2768d76f21ca894064d",
+          "recorded_at": "2026-11-23T03:13:41Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given a lane where Task is missing or `packages/cli/dist/bin.js` is absent, then the lane fails as a setup failure before the tests run.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.12",
         "narrative": {
           "Acceptance": "Given a lane where Task is missing or `packages/cli/dist/bin.js` is absent, then the lane fails as a setup failure before the tests run."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "b500bbba1b70ad73192fd2768d76f21ca894064d",
+          "recorded_at": "2026-11-23T03:13:41Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given a red lane with no tracking issue, then one issue is created; given a closed tracking issue and a new red run, then that issue is reopened and no second issue is created.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.13",
         "narrative": {
           "Acceptance": "Given a red lane with no tracking issue, then one issue is created; given a closed tracking issue and a new red run, then that issue is reopened and no second issue is created."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "b500bbba1b70ad73192fd2768d76f21ca894064d",
+          "recorded_at": "2026-11-23T03:13:41Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given the reporting job runs twice for the same run id and attempt, then only one comment is posted.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.14",
         "narrative": {
           "Acceptance": "Given the reporting job runs twice for the same run id and attempt, then only one comment is posted."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "b500bbba1b70ad73192fd2768d76f21ca894064d",
+          "recorded_at": "2026-11-23T03:13:41Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given a lane that timed out or failed in setup, then the comment names that outcome class and writes missing totals as unknown.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.15",
         "narrative": {
           "Acceptance": "Given a lane that timed out or failed in setup, then the comment names that outcome class and writes missing totals as unknown."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "b500bbba1b70ad73192fd2768d76f21ca894064d",
+          "recorded_at": "2026-11-23T03:13:41Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given a passed lane and an open tracking issue, then the issue gets a comment and is closed.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.16",
         "narrative": {
           "Acceptance": "Given a passed lane and an open tracking issue, then the issue gets a comment and is closed."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "b500bbba1b70ad73192fd2768d76f21ca894064d",
+          "recorded_at": "2026-11-23T03:13:41Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given a nightly run whose head tree equals the clean Step 5 input tree and whose latest attempt of both lanes succeeded, when the #6845 reuse rule also holds, then Step 5 skips the local check and prints both run URLs.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.17",
         "narrative": {
           "Acceptance": "Given a nightly run whose head tree equals the clean Step 5 input tree and whose latest attempt of both lanes succeeded, when the #6845 reuse rule also holds, then Step 5 skips the local check and prints both run URLs."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "b500bbba1b70ad73192fd2768d76f21ca894064d",
+          "recorded_at": "2026-11-23T03:13:41Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given a green nightly run on an ancestor whose tree differs from the Step 5 input tree, then Step 5 does not reuse it and runs the full local check.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.18",
         "narrative": {
           "Acceptance": "Given a green nightly run on an ancestor whose tree differs from the Step 5 input tree, then Step 5 does not reuse it and runs the full local check."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "b500bbba1b70ad73192fd2768d76f21ca894064d",
+          "recorded_at": "2026-11-23T03:13:41Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given a matching run whose latest attempt of a lane failed or is pending, also when an earlier attempt succeeded, then that lane is not reusable.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.19",
         "narrative": {
           "Acceptance": "Given a matching run whose latest attempt of a lane failed or is pending, also when an earlier attempt succeeded, then that lane is not reusable."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "b500bbba1b70ad73192fd2768d76f21ca894064d",
+          "recorded_at": "2026-11-23T03:13:41Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given a lane is not reusable at readiness, then readiness says before the mint which lane and why, that the full local check will run, and prints the dispatch command.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.20",
         "narrative": {
           "Acceptance": "Given a lane is not reusable at readiness, then readiness says before the mint which lane and why, that the full local check will run, and prints the dispatch command."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "b500bbba1b70ad73192fd2768d76f21ca894064d",
+          "recorded_at": "2026-11-23T03:13:41Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given the fallback runs on a non-Windows host and the Windows lane is not reusable, then readiness and Step 5 print that the Windows suite did not run.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.21",
         "narrative": {
           "Acceptance": "Given the fallback runs on a non-Windows host and the Windows lane is not reusable, then readiness and Step 5 print that the Windows suite did not run."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "b500bbba1b70ad73192fd2768d76f21ca894064d",
+          "recorded_at": "2026-11-23T03:13:41Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given the docs, then the release skill and `docs/RELEASING.md` name where coverage and the Windows suite run and the reuse rule.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.22",
         "narrative": {
           "Acceptance": "Given the docs, then the release skill and `docs/RELEASING.md` name where coverage and the Windows suite run and the reuse rule."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "b500bbba1b70ad73192fd2768d76f21ca894064d",
+          "recorded_at": "2026-11-23T03:13:41Z",
+          "recorded_by": "scope:complete"
         }
       }
     ],
@@ -570,7 +724,36 @@
         "harvestDigest": "509f6acd1ad67ccae269b672c8211182d09121ee8cb0914db71bd5fd7214a267",
         "slice": null
       },
-      "kind": "story"
+      "kind": "story",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "ff53cdd1d7ead17e83b552ef11d5a5a088222468",
+        "prNumber": 7156,
+        "prBase": "master",
+        "mergeCommit": "b500bbba1b70ad73192fd2768d76f21ca894064d",
+        "deliveryBranch": "master",
+        "deliveryCommit": "8e30ddf2baaa6737a633dc569ba1360d6ac4d3f6",
+        "verifiedAt": "2026-11-23T03:13:41Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:OWEwZDY5MDktOTZkNS00NjFiLWIzMTUtODg5ZjNlZjFkNTI0",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          7116
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-23T03:13:41Z",
+      "completedSessionId": "host:claude:v1:OWEwZDY5MDktOTZkNS00NjFiLWIzMTUtODg5ZjNlZjFkNTI0",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-23T03:13:41Z"
+      }
     },
     "acceptance": {
       "commands": [],
@@ -785,6 +968,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.6506157153",
-    "updated": "2026-11-22T22:18:44Z"
+    "updated": "2026-11-23T03:13:41Z"
   }
 }
