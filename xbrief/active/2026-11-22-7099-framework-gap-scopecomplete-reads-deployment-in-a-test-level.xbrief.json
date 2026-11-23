@@ -1,0 +1,680 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #7099",
+    "updated": "2026-11-22T23:17:39Z"
+  },
+  "plan": {
+    "title": "[framework-gap] scope:complete reads 'deployment' in a test-level criterion as a required deploy axis",
+    "status": "running",
+    "narratives": {
+      "Description": "[framework-gap] scope:complete reads 'deployment' in a test-level criterion as a required deploy axis",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/7099",
+      "Overview": "\n1. Explainer. A new exported `explainTextStrictAxes(item)` in `packages/core/src/scope/acceptance-evidence.ts` builds the same joined, lowercased, slash-split text that `inferTextStrictAxes` matches today, with an index map from each character back to its field and original index, and runs the same regexes over all matches. Per axis it returns up to 3 matches and a count of the rest. Each match gives the field holding its start, `crossField: true` when it ends in another field, and an excerpt: the matched words plus up to four words either side, sliced from the original field text through the map. `inferTextStrictAxes` takes its axis list from the explainer, so decision and explanation cannot drift.\n2. Declared axes. When a declaration decides the axes, the report names the field that held the winning token and its value, using the existing precedence of the eight fields.\n3. Fence. Every printed excerpt is cut to 80 characters first and then passed through `fenceUntrustedAcceptanceText`.\n4. Refusal detail. For an unsuitable `evidence.kind`, the `scope:complete` detail adds one continuation line per reported match (`<axis> from <field>: <excerpt>`, then `(+N more)`), or the declared field from item 2. When more than one strict axis is required, it says that no single evidence kind satisfies the clause.\n5. Refusal remedy. When a blocker is an axis mismatch, the gate's closing text for that item replaces \"Write evidence/disposition on the plan item at the reported path\" with: record evidence of the required kind, or an operator runs `formatAcceptanceDispositionCommand` with `not_applicable`, the plan id when present and the item id. It states that the grant disposes of the whole criterion and replaces its evidence, that the grant is bound to the clause text (`clause.N` ids) or the item title only, and that #7127 tracks a correction that keeps test evidence. An item without an id is reported as not targetable by a grant. The refusal does not suggest rewording the clause or adding a declaration. `formatAcceptanceDispositionCommand` and its template-name constant move into `scope/acceptance-evidence.ts`; `policy/acceptance-disposition-grant.ts` re-exports them.\n6. Advisories. At `scope:promote`, `scope:activate` and `xbrief:preflight` each row keeps its current text, and its reported matches print on indented continuation lines under it. At promote and activate the last line also says that a `merge` declaration means no strict axis, so test, review or merge evidence then passes. At `xbrief:preflight` the last line names the item 5 grant command and still does not suggest a declaration.\n7. The classifier's results do not change, and existing axis expectations stay as they are.\n8. One PR: `acceptance-evidence.ts` and its tests, the re-export in `policy/acceptance-disposition-grant.ts`, the tests that assert advisory output (`packages/core/src/scope/main.test.ts`, runtime preflight tests), one sentence in `content/commands.md` that shows the `not_applicable` grant, and one `changelog.d/` fragment.\n\n## Acceptance Criteria\n\n- [ ] Given the #7099 criterion as an item title, when `explainTextStrictAxes` runs, then it returns `deploy` with field `title`, `crossField: false` and an excerpt that contains \"deployment\" in its original case.\n- [ ] Given every string in the existing axis tests, plus title `observed` with id `behavior` and title `user` with id `acceptance`, then the explainer's axis set equals `inferRequiredStrictAxes` with no declaration, the two cross-field cases report `crossField: true`, and no existing axis expectation changes.\n- [ ] Given an item with `x-directive/requires: merge` and `x-directive/acceptanceAxis: deploy` and `kind: test` evidence, then the refusal names `x-directive/acceptanceAxis=deploy` as the deciding field.\n- [ ] Given an item with an id, a deploy-axis title and `kind: test` evidence, when `scope:complete` refuses, then the refusal shows the fenced excerpt, prints the `not_applicable` grant command with that item id, says the grant replaces the evidence for the whole criterion and is bound to the clause text or title only, names #7127, and does not tell the author to write a disposition onto that item.\n- [ ] Given the same item without an id, then the refusal says that no grant can target it.\n- [ ] Given \"Smoke must pass after deployment\" with `kind: smoke` evidence, then the refusal says that no single evidence kind satisfies the clause.\n- [ ] Given a matched field that contains a backtick, `»` and a newline near the match, then every output prints the excerpt inside one fence from `fenceUntrustedAcceptanceText`, with at most 80 characters before fencing.\n- [ ] Given an item with five matches for one axis, then three excerpts print, followed by `(+2 more)`.\n- [ ] Given the promote, activate and preflight advisories, then each existing row text is unchanged and its matches follow on continuation lines; the promote and activate last line says what a `merge` declaration admits; the preflight last line names the grant command and no declaration.\n\n\n",
+      "Constraint": "- Narrowing the deploy word rule (comments 7087188484 Q1, 7087188768 Q1, 7087237940 Q1): it cannot separate a deployment that must happen from deployment data.\n- Accepting `kind: test` on the evidence side for a deploy axis (comment 7087188768, road not taken).\n- Matching each field separately (comment 7087188484, finding 2), and taking indices from lowercased text with no map back (comment 7087188768, finding 1; comment 7087237940, finding 3).\n- Appending the grant line under the write-onto-the-brief sentence (comment 7087237940, finding 1).\n- Suggesting a declaration or rewording after activation (comments 7087188768 Q3, 7087237940 Q3).\n- A `test` declaration token or an axis-only grant in this PR: split to #7127.",
+      "Labels": "design-critique:ingest-ready"
+    },
+    "items": [
+      {
+        "title": "Explainer. A new exported `explainTextStrictAxes(item)` in `packages/core/src/scope/acceptance-evidence.ts` builds the same joined, lowercased, slash-split text that `inferTextStrictAxes` matches today, with an index map from each character back to its field and original index, and runs the same regexes over all matches. Per axis it returns up to 3 matches and a count of the rest. Each match gives the field holding its start, `crossField: true` when it ends in another field, and an excerpt: the matched words plus up to four words either side, sliced from the original field text through the map. `inferTextStrictAxes` takes its axis list from the explainer, so decision and explanation cannot drift.",
+        "status": "proposed",
+        "id": "clause.1"
+      },
+      {
+        "title": "Declared axes. When a declaration decides the axes, the report names the field that held the winning token and its value, using the existing precedence of the eight fields.",
+        "status": "proposed",
+        "id": "clause.2"
+      },
+      {
+        "title": "Fence. Every printed excerpt is cut to 80 characters first and then passed through `fenceUntrustedAcceptanceText`.",
+        "status": "proposed",
+        "id": "clause.3"
+      },
+      {
+        "title": "Refusal detail. For an unsuitable `evidence.kind`, the `scope:complete` detail adds one continuation line per reported match (`<axis> from <field>: <excerpt>`, then `(+N more)`), or the declared field from item 2. When more than one strict axis is required, it says that no single evidence kind satisfies the clause.",
+        "status": "proposed",
+        "id": "clause.4"
+      },
+      {
+        "title": "Refusal remedy. When a blocker is an axis mismatch, the gate's closing text for that item replaces \"Write evidence/disposition on the plan item at the reported path\" with: record evidence of the required kind, or an operator runs `formatAcceptanceDispositionCommand` with `not_applicable`, the plan id when present and the item id. It states that the grant disposes of the whole criterion and replaces its evidence, that the grant is bound to the clause text (`clause.N` ids) or the item title only, and that #7127 tracks a correction that keeps test evidence. An item without an id is reported as not targetable by a grant. The refusal does not suggest rewording the clause or adding a declaration. `formatAcceptanceDispositionCommand` and its template-name constant move into `scope/acceptance-evidence.ts`; `policy/acceptance-disposition-grant.ts` re-exports them.",
+        "status": "proposed",
+        "id": "clause.5"
+      },
+      {
+        "title": "Advisories. At `scope:promote`, `scope:activate` and `xbrief:preflight` each row keeps its current text, and its reported matches print on indented continuation lines under it. At promote and activate the last line also says that a `merge` declaration means no strict axis, so test, review or merge evidence then passes. At `xbrief:preflight` the last line names the item 5 grant command and still does not suggest a declaration.",
+        "status": "proposed",
+        "id": "clause.6"
+      },
+      {
+        "title": "The classifier's results do not change, and existing axis expectations stay as they are.",
+        "status": "proposed",
+        "id": "clause.7"
+      },
+      {
+        "title": "One PR: `acceptance-evidence.ts` and its tests, the re-export in `policy/acceptance-disposition-grant.ts`, the tests that assert advisory output (`packages/core/src/scope/main.test.ts`, runtime preflight tests), one sentence in `content/commands.md` that shows the `not_applicable` grant, and one `changelog.d/` fragment.",
+        "status": "proposed",
+        "id": "clause.8"
+      },
+      {
+        "title": "Given the #7099 criterion as an item title, when `explainTextStrictAxes` runs, then it returns `deploy` with field `title`, `crossField: false` and an excerpt that contains \"deployment\" in its original case.",
+        "status": "proposed",
+        "id": "clause.9",
+        "x-directive/requires": "merge"
+      },
+      {
+        "title": "Given every string in the existing axis tests, plus title `observed` with id `behavior` and title `user` with id `acceptance`, then the explainer's axis set equals `inferRequiredStrictAxes` with no declaration, the two cross-field cases report `crossField: true`, and no existing axis expectation changes.",
+        "status": "proposed",
+        "id": "clause.10"
+      },
+      {
+        "title": "Given an item with `x-directive/requires: merge` and `x-directive/acceptanceAxis: deploy` and `kind: test` evidence, then the refusal names `x-directive/acceptanceAxis=deploy` as the deciding field.",
+        "status": "proposed",
+        "id": "clause.11",
+        "x-directive/requires": "merge"
+      },
+      {
+        "title": "Given an item with an id, a deploy-axis title and `kind: test` evidence, when `scope:complete` refuses, then the refusal shows the fenced excerpt, prints the `not_applicable` grant command with that item id, says the grant replaces the evidence for the whole criterion and is bound to the clause text or title only, names #7127, and does not tell the author to write a disposition onto that item.",
+        "status": "proposed",
+        "id": "clause.12"
+      },
+      {
+        "title": "Given the same item without an id, then the refusal says that no grant can target it.",
+        "status": "proposed",
+        "id": "clause.13"
+      },
+      {
+        "title": "Given \"Smoke must pass after deployment\" with `kind: smoke` evidence, then the refusal says that no single evidence kind satisfies the clause.",
+        "status": "proposed",
+        "id": "clause.14",
+        "x-directive/requires": "merge"
+      },
+      {
+        "title": "Given a matched field that contains a backtick, `»` and a newline near the match, then every output prints the excerpt inside one fence from `fenceUntrustedAcceptanceText`, with at most 80 characters before fencing.",
+        "status": "proposed",
+        "id": "clause.15"
+      },
+      {
+        "title": "Given an item with five matches for one axis, then three excerpts print, followed by `(+2 more)`.",
+        "status": "proposed",
+        "id": "clause.16"
+      },
+      {
+        "title": "Given the promote, activate and preflight advisories, then each existing row text is unchanged and its matches follow on continuation lines; the promote and activate last line says what a `merge` declaration admits; the preflight last line names the grant command and no declaration.",
+        "status": "proposed",
+        "id": "clause.17"
+      }
+    ],
+    "tags": [
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/7099",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #7099: [framework-gap] scope:complete reads 'deployment' in a test-level criterion as a required deploy axis"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "crossField: true",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L4"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": false,
+        "file_scope": [
+          "packages/core/src/scope/acceptance-evidence.ts",
+          "packages/core/src/scope/acceptance-evidence.test.ts",
+          "packages/core/src/policy/acceptance-disposition-grant.ts",
+          "packages/core/src/policy/acceptance-disposition-grant.test.ts",
+          "packages/core/src/scope/main.test.ts",
+          "packages/runtime/src/vbrief-preflight.test.ts",
+          "content/commands.md",
+          "changelog.d/7099-strict-axis-explainer.md",
+          "docs/RULE-MAP.md",
+          "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "xbrief/evaluator-surface-disposition.json",
+          "xbrief/.audit/spec-drift/github.issue.6548326984.json"
+        ],
+        "verify_commands": [
+          "npx vitest run packages/core/src/scope/acceptance-evidence.test.ts packages/core/src/policy/acceptance-disposition-grant.test.ts",
+          "npx vitest run packages/core/src/scope/main.test.ts packages/runtime/src/vbrief-preflight.test.ts"
+        ],
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "depends_on": [],
+        "expected_outputs": [
+          "new export explainTextStrictAxes(item) in scope/acceptance-evidence.ts: same joined text as inferTextStrictAxes with an index map back to field and original text; per axis up to 3 matches plus a count, each with field, crossField and an excerpt; inferTextStrictAxes takes its axes from it",
+          "a declared axis reports the field and value that decided it",
+          "excerpts cut to 80 characters, then fenced with fenceUntrustedAcceptanceText",
+          "scope:complete axis-mismatch refusal prints match lines, the multi-axis line, and the not_applicable grant command (formatAcceptanceDispositionCommand moved to scope, re-exported from policy) in place of the write-onto-the-brief sentence; id-less items reported as not targetable; names #7127",
+          "promote, activate and preflight advisories keep row text and add continuation lines; promote/activate say what a merge declaration admits; preflight names the grant",
+          "one commands.md sentence showing the not_applicable grant and one changelog fragment changelog.d/7099-strict-axis-explainer.md"
+        ],
+        "conflict_group": "acceptance-evidence-gate",
+        "model_tier": "high",
+        "acceptance_criteria_justification": "The 17 clauses are the 8 Bound remedy items and 9 Acceptance Criteria of the accepted lean 7087294915 on #7099 (record 7087356771), harvested and digest-pinned by issue ingest; they cannot be merged or dropped without breaking the admitted-source pin."
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: triage\n```\n\nStop 1 — Gate (arc 7099; no-ingest)\n\nmechanism-shaped: true\ndesign-critique: warranted, because the fix changes what the `scope:complete` acceptance-evidence gate demands: narrowing the deploy-axis classifier could let a real deploy claim pass on test evidence, while keeping it leaves test-level clauses blocked; the issue offers three different mechanisms, and the #6301 arc already found that a text rule could not separate a name from a claim.\n\nTarget-digest: sha256:a5b10959b57a07dc399a11cc1c23512de06fc575d107da273aecf4a37f7ca7be\ndispatch-sha: d1c306329d7652a1218a5ca7d7a11ae46c32997a\ndest: C:/Repos/deft/wt/arc-7099 (pinKind origin-default, guarded-prep)\narc-mode: no-ingest\nyolo-standing: on\ncharter: open critique\nrefutation-target: \"A text rule on the criterion can tell a clause that needs a deployment to happen from a clause about deployment data the code handles, without letting a real deploy claim pass on test evidence\" (the premise behind the issue's first two suggested fixes)\nspend-recommend: N≥3\nspend: N≥3\nspend-ask: resolved\nspend-why: resolved by `deft design-critique:spend-resolve` on the issue's own words (no `n=` or `panel` token) with the parent recommend N≥3. Stop 2 panel permission applies: the solution space is open (the issue names three different fixes, and the declaration and grant paths are a fourth), and the target is a fail-closed evidence gate used by every consumer, where a wrong narrowing silently weakens it.\ncritic-post cap: 3 round-1 posts (contract default for an N=3 panel), no default retry\ndual-stop-reserved: first post-lean pain-audit of asserted coverage in-cap via evaluateDualStopParentPath; raise after reserved spent\nmateriality-bar: open\ntarget-kind: issue\nceiling-kind: comment-id\nverification-path: pin-read git show d1c306329d7652a1218a5ca7d7a11ae46c32997a: + dest cwd-without-occupy\npain: P1, P2\n\n## In plain English\n`scope:complete` will not accept test evidence for a criterion that it thinks needs a deployment. It decides that by looking for the words deploy, deploys, deployed or deployment in the criterion text. In the consumer repo a criterion described how an event bridge handles deployment-status events (\"When a deployment moves failed then rolled_back ...\"). Nothing in it is deployed, and a unit test proves it, but the word \"deployment\" made the gate demand deploy evidence, so the story could not complete without an operator grant. The error named the axis but not the word that caused it, or what to do.\n\nThe recommended fix keeps the word rule as it is, because a sentence such as \"the deployment succeeds on staging\" is a real deploy claim with the same shape as the issue's example. Instead, every place that reports a strict axis also shows the text that set it and where it was found: the activation advisory (so an author can declare the clause's real requirement before activation, when the declaration is reviewed), and the `scope:complete` refusal, which also names the operator grant that clears the clause after activation. No change to which clauses need which evidence.\n\n## Pains\n- P1 — A criterion that only describes how code handles deployment data blocks `scope:complete` on `kind: test` evidence, because the word \"deployment\" sets the deploy axis; the author finds out at completion, when the only paths left are an operator grant or rewording the clause, which edits the gate's input (#7099, #3156).\n- P2 — The refusal and the activation advisory name the axis but not the text that set it, or the ways to clear it, so the author cannot see why the axis applied or what to do (#7099, suggested fix 3).\n\n## Out of scope (named, not pains)\n- The smoke, UAT and observed-behaviour axes, except that they share the reporting change.\n- Inference from code spans and fences (settled by the #6301 arc: keep matching).\n- The `x-directive/requires` declaration rules and the #6591 warning, beyond naming them in messages.\n- The operator grant (`acceptance-disposition`, #6318), beyond naming it.\n\n## Evidence\n- The issue's premise \"the only agent-side workaround is to reword\" is not quite right. Two other paths exist: an `x-directive/requires` declaration on the item (`merge`, or the one axis it needs), and an operator `acceptance-disposition` grant with `--disposition not_applicable`. But a declaration added after activation is warned by `verify:scope-provenance` (#6591), and that warning's remedy says to remove the added declaration or record the evidence (`refusal-declarations/table.ts`, row `declaration-hides-axis`). So after activation the sanctioned path is the operator grant; before activation a declaration is a reviewed precommitment.\n- Parent probe (a scratch `tsx` script outside the repo, importing `packages/core/src/scope/acceptance-evidence.ts`; `packages/core/src/scope/` is byte-identical between the primary checkout used for the run and the dispatch SHA) of `inferRequiredStrictAxes({ title })`:\n  - the issue's criterion: `[\"deploy\"]`; with the \"deployment moves\" sentence removed (only `deploy.done` left): `[]`.\n  - `deploy` for \"after deployment\", \"Works after deployment.\", \"The service answers after deployment to staging.\", \"deploys to prod after merge\", \"the deployment succeeds on staging\", \"The deployment status page shows rolled_back\", \"deployment records are stored with their status\", \"Deployment events are forwarded to the websocket\".\n  - `[]` for \"the deployments table lists failed runs\" and \"a redeployment is triggered\" (`deploy(?:ment|ed|s)?` matches neither \"deployments\" nor \"redeployment\").\n  - `[\"smoke\",\"deploy\"]` for \"Smoke must pass after deployment\".\n  - With the issue's criterion: `x-directive/requires: merge` gives `[]`; `test` and `review` are not declaration tokens and leave `[\"deploy\"]`; `deploy` gives `[\"deploy\"]`.\n- The same probe through `evaluateAcceptanceEvidenceGate` with `kind: test` evidence reproduces the issue's error text exactly (`evidence.kind=test is not suitable for required axis/axes [deploy]; merge/review alone cannot satisfy ...`); the item with `x-directive/requires: merge` passes. `formatStrictAxisAdvisory(..., \"scope:activate\")` prints `a: deploy` with no text, and `b: deploy (declared)`.\n\n## Anchors at the dispatch SHA\n- `packages/core/src/scope/acceptance-evidence.ts`: 383-404 `inferRequiredStrictAxes` (declaration wins; merge-only gives `[]`); 411-418 `inferHiddenStrictAxes`; 421-455 `inferTextStrictAxes` (fields: title, id, narrative Acceptance / Description / Test); 464-472 `PROSE_LEFT`, `PROSE_RIGHT`, `proseWord`, `PROSE_DEPLOY`; 475-489 slash alternations; 546-560 `listStrictAxisRequirements`; 575-622 `formatStrictAxisAdvisory`, `strictAxisAdvisoryLines`; 636-653 `isEvidenceKindSuitable`; 1913-1930 the unsuitable-kind detail; 2407-2449 `evaluateAcceptanceEvidenceGate` message.\n- `packages/core/src/scope/acceptance-evidence.test.ts` 267-269: \"deploys to prod after merge\", \"after deployment\", \"Works after deployment.\" expect `[\"deploy\"]`.\n- `packages/core/src/scope-provenance/declaration-hides-axis.ts` 1-21 (#6591, warn only); `packages/core/src/refusal-declarations/table.ts` 96-101.\n- `packages/core/src/policy/acceptance-disposition-grant.ts` 54 (`deferred`, `not_applicable`, `waived`); `content/commands.md` 155 and 162.\n- History: #6270 / #6289 (prose-only boundaries, `deploy.done` excluded); #6301 (keep matching inside code; name-only relief moved to #6591); #6272 / #6369 (activation advisory).\n\n## Recommended mechanism (the thing to critique)\n- D1. One matcher, with sources. `inferTextStrictAxes` becomes a thin wrapper over a new exported `explainTextStrictAxes(item)` that returns, per axis, the field it matched in (`title`, `id`, or `narrative.<key>`) and a short excerpt: the matched word with up to four words either side, cut at 80 characters, as written (case kept). Same regexes, same field order, one pass, so the explanation and the decision cannot drift.\n- D2. `scope:complete` detail. When `evidence.kind` is unsuitable and the axes come from text, the detail adds one `<axis> from <field>: «<excerpt>»` per axis, fenced with `fenceUntrustedAcceptanceText`. When they come from a declaration, it says `declared by x-directive/requires=<value>`.\n- D3. `scope:complete` remedy line, printed once when any blocker is an axis mismatch: record evidence of that kind; or, if the clause does not need that event, an operator records `deft authz:grant -- --template acceptance-disposition --plan-ref <scopeId> --story-ids <itemIds> --disposition not_applicable --reason <text> --confirm`. It does not suggest rewording the clause or adding a declaration after activation.\n- D4. Advisory. Each row printed at `scope:promote`, `scope:activate` and `xbrief:preflight` adds the same `from <field>: «<excerpt>»`. At promote and activate the existing last line already names the declaration; it stays.\n- D5. The classifier does not change: same words, same fields, same results for every existing test.\n- D6. Tests: `explainTextStrictAxes` on the issue's criterion (deploy, the field, an excerpt containing \"deployment\"); the gate detail and the remedy line; an advisory row with the excerpt; an excerpt with backticks and `»` stays inside the fence; the existing axis tests stay unchanged.\n- D7. One PR: `acceptance-evidence.ts`, its tests, and one `changelog.d/` fragment.\n\nQuestions for the critics:\n1. Is keeping the classifier (D5) right? Or is there a rule that clears the issue's criterion while \"after deployment\", \"the service answers after deployment to staging\" and \"the deployment succeeds on staging\" still need deploy evidence, and no real deploy claim passes on test evidence?\n2. Does D1-D4 relieve P1, given that after activation the only sanctioned path is still an operator grant? If not, what is the smallest change that does (for example a `test` declaration token, which today does not exist and would not admit merge evidence the way `merge` does)?\n3. Is D3 honest about #6591? Should the refusal mention the declaration at all?\n4. Is the excerpt (D1, D2) safe and useful: length bound, case, fencing of untrusted text, and more than one match per axis?\n5. Does this fit one PR?\n\n",
+          "id": 7087054159,
+          "html_url": "https://github.com/deftai/directive/issues/7099#issuecomment-7087054159",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T22:45:17Z",
+          "updated_at": "2026-11-22T22:45:17Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 3\ninput-ceiling: 7087059884\nseat: claude launcher: claude-code-native-subagent (model opus)\nseat: codex launcher: codex (exec --ephemeral --skip-git-repo-check --sandbox read-only -C dest -o outfile)\nseat: grok launcher: grok (--cwd dest --prompt-file --permission-mode auto --disable-web-search --no-subagents --output-format plain)\n\ncharter: open critique\nspend: N≥3\narc-mode: no-ingest\nmateriality-bar: open\ndispatch-sha: d1c306329d7652a1218a5ca7d7a11ae46c32997a\ndest: C:/Repos/deft/wt/arc-7099\nverification-path: pin-read git show d1c306329d7652a1218a5ca7d7a11ae46c32997a: + dest cwd-without-occupy\naudit-targets: none\nStop 1 cite: comment 7087054159\n\n## Launch posture (disclosed)\n- The parent is Claude Code (claude-opus-5-5). It does not use the playbook's bypass critic argv. Each seat uses a read-only launcher against the dest.\n- Launch probe under the argv actually used: codex `--sandbox read-only` returned `pong` rc 0; grok `--permission-mode auto` returned `pong` rc 0. The Claude seat is a native subagent spawn with no CLI argv. The probe proves launchability only, not method.\n- No seat has GitHub access. Each reads the same parent-written thread snapshot (issue body, thread up to and including this deposit) and reads code with `git show <dispatch-sha>:<path>` from the dest. The parent posts each critic's final message verbatim, with no edits; Grok plain output may print progress narration before the body, which the parent strips and discloses.\n- Critic-post cap for this arc: 3 round-1 posts, no default retry; the first post-lean pain-audit of asserted coverage uses the Dual-stop reserved slot.\n- This deposit was created and then edited once, only to record its own comment id as the input ceiling.\n\n",
+          "id": 7087059884,
+          "html_url": "https://github.com/deftai/directive/issues/7099#issuecomment-7087059884",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T22:45:45Z",
+          "updated_at": "2026-11-22T22:45:53Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\n\nThe gate mistakes deployment data for a requirement to deploy something. The proposed change explains that mistake but deliberately preserves it. That is useful diagnostic work, but it does not make the consumer repo’s test evidence sufficient.\n\nI support preserving classification in this PR, with corrections below. D3 must disclose that its grant replaces acceptance evidence with a disposition for the whole criterion. D1 also needs an explicit way to preserve matches spanning fields. I would not bind D1–D7 unchanged or describe them as resolving P1.\n\n## Answers to questions 1–5\n\n1. **Keep D5 for this diagnostic slice.** The inspected matcher cannot establish whether a deployment noun describes data or an actual event. I have no replacement text rule with the requested no-false-negative guarantee. Existing classification already misses “redeployment”; preserving it is compatibility, not proof of semantic correctness.\n2. **D1–D4 improve discovery and recovery instructions, but leave P1’s completion blockage.** A `test` declaration could avoid the extra merge permission granted by `merge`, but alone would not solve post-activation authority. Keep P1 explicit as residual rather than add a new declaration mechanism to this PR.\n3. **D3 is consistent with avoiding post-activation declaration edits, but must distinguish policy from enforcement.** #6591 warns; it does not refuse completion. Mention an existing declaration when explaining a decision, but do not recommend adding one as completion-time recovery.\n4. **Bounded, fenced excerpts are useful with qualifications.** Preserve the actual match, label a single example as a trigger rather than an exhaustive explanation, handle cross-field matches, and fence excerpts in advisories too. The existing fence is an untrusted-content marker, not comprehensive terminal or Markdown sanitization.\n5. **One PR is reasonable for diagnostics and regression coverage.** Keep semantic reclassification and new authority mechanisms outside it. Treat D7’s file list as an estimate, not a restriction that prevents necessary tests.\n\n## Findings\n\n### 1. blocks-the-design — D3 offers a whole-criterion disposition as though it clears only the false axis\n\n**Evidence:** At the dispatch pin, `applyGrantedDispositions` calls `stampNamespacedDisposition`. That calls `clearAcceptanceStampFields`, deleting existing evidence. `evaluateAcceptanceEvidenceGate` accepts a valid disposition without testing evidence suitability. The grant template supports `not_applicable`, but has no axis-specific exemption.\n\n**Failure mode:** An operator follows “if the clause does not need that event” and marks the whole event-handling requirement not applicable. The requirement remains applicable and tested; only the inferred deployment obligation was wrong. The resulting acceptance record loses that distinction and replaces its test evidence.\n\n**Disposition consequence:** Rewrite D3 to state that the command authorizes a disposition of the entire criterion and replaces its evidence record. Do not present it as accepting the existing test or correcting the classifier. Retain P1 as unresolved unless a separately scoped mechanism preserves test-backed acceptance while correcting the requirement.\n\n### 2. blocks-the-design — A single-field explanation cannot represent every existing match\n\n**Evidence:** `inferTextStrictAxes` joins title, id and narrative fields with newlines before matching. `PROSE_USER_ACCEPTANCE` uses `user\\s+acceptance`; observed-behavior matching also permits whitespace. A read-only Node probe confirmed matches across `\"user\\nacceptance\"` and `\"observed\\nbehavior\"`.\n\n**Failure mode:** An item with title `user` and id `acceptance` currently requires UAT, even though neither field independently contains the matching phrase. Searching each field separately would change classification; retaining the joined search but attributing the complete match to one field would misdescribe the evidence.\n\n**Disposition consequence:** D1 must retain the joined matching surface and map match spans back to their contributing fields, or explicitly represent a cross-field trigger. Add regression cases for both examples. Preserve slash-alternation matching and map excerpts back to original text rather than transformed offsets.\n\n### 3. sharpens-framing — Declaration explanations must identify the winning field\n\n**Evidence:** `readExplicitAcceptanceRequirementFields` reads eight fields. `inferRequiredStrictAxes` selects the first valid strict declaration and gives it precedence over a merge declaration.\n\n**Failure mode:** With `x-directive/requires=merge` and `x-directive/acceptanceAxis=deploy`, deploy is required. D2’s prescribed `declared by x-directive/requires=<value>` could blame `merge`, or invent a value in a field that was absent.\n\n**Disposition consequence:** Explain the actual winning declaration field and normalized value using the existing precedence. Add conflicting-field and alias fixtures. This refines diagnostics without changing authority.\n\n### 4. sharpens-framing — D3’s evidence remedy is impossible for some supported inputs\n\n**Evidence:** `isEvidenceKindSuitable` requires every inferred axis to equal one evidence kind. Its documentation explicitly identifies the multi-axis limitation. `\"Smoke must pass after deployment\"` infers both smoke and deploy.\n\n**Failure mode:** “Record evidence of that kind” suggests an available repair, but neither smoke nor deploy evidence can satisfy that criterion through this gate.\n\n**Disposition consequence:** Qualify the remedy for multi-axis blockers: no single evidence kind satisfies them under the current representation. Do not imply an axis-specific grant exists. This is necessary honesty for a shared diagnostic surface, not a request to redesign multi-axis acceptance here.\n\n### 5. sharpens-framing — P2 relief must not be counted as P1 resolution\n\n**Evidence:** Existing mechanisms already include pre-activation advisories, declaration precedence, the warning-only provenance comparison, and operator disposition grants. D5 preserves classification and evidence suitability.\n\n**Failure mode:** Closing the reported false-positive problem after this PR leaves the same test-backed criterion blocked; the user merely receives a better explanation.\n\n**Disposition consequence:** Describe the deliverable as trigger visibility and recovery guidance. Explicitly retain the unwanted operator intervention as residual pain.\n\n## Alternatives considered\n\nThe strongest case for a `test` declaration is that it expresses the intended proof without also admitting merge evidence. I would reconsider it with a defined post-activation authorization rule and tests showing that it cannot silently erase a real deployment requirement. Adding the token alone does not establish either property.\n\n## Verification and limits\n\nI read the supplied snapshot only through comment 7087059884 and used `git show` at `d1c306329d7652a1218a5ca7d7a11ae46c32997a` for the contract, matcher, evidence gate, tests, provenance warning, refusal row, and disposition implementation. I independently ran small Node regex probes; these corroborate matching behavior but are not executions of the exported TypeScript gate.\n\nI did not build, run the repository test suite, access the consumer repo or GitHub, read sibling critiques, mutate files, or spawn agents. USER.md access was denied, so personal alignment could not be verified.\n\nCritic pass complete; return this comment to the parent for disposition.",
+          "id": 7087188484,
+          "html_url": "https://github.com/deftai/directive/issues/7099#issuecomment-7087188484",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T22:56:10Z",
+          "updated_at": "2026-11-22T22:56:10Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\n`scope:complete` asks for deploy evidence whenever a criterion contains \"deploy\", \"deploys\", \"deployed\" or \"deployment\". In the consumer repo, a criterion described how code handles deployment-status events. A unit test proves it, but the word \"deployment\" made the gate refuse test evidence. The Stop 1 lean keeps the word rule. It adds the matched text, and where it was found, to the refusal and to the activation advisory, and it names the operator grant in the refusal.\n\nMy verdict: keeping the rule is right. I found no word rule that separates the two kinds of clause. The lean can bind, but four points need sharpening. (1) The \"same pass, case kept\" excerpt claim does not hold as written. (2) The new advisory row format breaks existing assertions in a test file that D7 leaves out. (3) The grant line cannot name items that have no id. (4) The framing should say plainly that P1 gets no relief after activation, and that the advisory hides what a `merge` declaration admits. None of these blocks the design.\n\n## Answers to the Stop 1 questions\n1. **D5 (keep the classifier): agree.** At the pin, \"When the deployment finishes, the health check returns 200\" (a real deploy claim) and \"When a deployment fails, the bridge emits a deploy.done frame\" (data handling) both give `[\"deploy\"]`, and they have the same shape: \"When a/the deployment <verb>\". A verb-based rule that clears one also clears the other.\n2. **Partly.** D1-D4 relieve P2. They relieve P1 only before activation, through a better-informed declaration. After activation, the grant is still the only sanctioned path, and that is by design. A `test` token is not needed for relief: a `merge` declaration already admits `kind: test`, and also `kind: review` (finding 4). The smallest real gain for P1 is advisory wording that says what `merge` admits.\n3. **D3 is honest about #6591.** It matches the `declaration-hides-axis` remedy. The refusal should not suggest a declaration after activation. One gap: id-less items (finding 3).\n4. **Useful, with fixes.** Bounding and fencing are right, but the offset and case claims need restating (finding 1). The advisory must use the real fence function (finding 5). Report the first match plus a count (finding 6).\n5. **Yes**, if D7 also lists `packages/core/src/scope/main.test.ts`, or if D4 prints the excerpt on a continuation line (finding 2).\n\n## Findings\n\n### 1. sharpens-framing: D1's \"same regexes, one pass, case kept, field attribution\" is not one consistent computation\n- **Evidence:** `inferTextStrictAxes` (`acceptance-evidence.ts` 421-454) joins title, id and narrative with `\\n`, lowercases the joined string, then runs deploy/smoke/UAT on `splitAxisAlternations(raw)`, which inserts spaces around `/`. observed_behavior runs on `raw`. So two coordinate systems are in use, and neither is the original text.\n- **Probe at the pin:** title `\"observed\"` with id `\"behavior\"` gives `[\"observed_behavior\"]`. The match spans two fields, because `[_\\s-]?` matches the `\\n` joiner. Also, `\"İ\".toLowerCase().length` is 2, not 1, so indices taken from the lowercased text do not map 1:1 back onto the original.\n- **Failure mode:** a per-field explainer can disagree with the decision (the cross-field case), or a case-kept slice can be cut at the wrong characters.\n- **Disposition:** restate D1. Compute the explanation on the same joined string. Report the field that contains the match start. Take the excerpt from the normalized (lowercased) text, and drop \"case kept\". Add a test that the explainer's axis set equals `inferTextStrictAxes` on the existing axis corpus plus the cross-field case.\n\n### 2. sharpens-framing: the D4 row change breaks existing assertions outside D7's file list\n- **Evidence:** `packages/core/src/scope/main.test.ts` 521-579 asserts the exact rows `\"  clause.1: deploy\\n\"` and `\"  clause.4: deploy (declared)\\n\"`. `packages/runtime/src/vbrief-preflight.ts` 48-50 also prints these lines.\n- **Failure mode:** appending `from <field>: «…»` to the row makes those tests fail. That contradicts D6 (\"existing axis tests stay unchanged\") and D7's file list.\n- **Disposition:** print the excerpt on an indented continuation line under each row. This keeps the row format and those tests unchanged. Otherwise, add `main.test.ts` to D7.\n\n### 3. sharpens-framing: the D3 grant command cannot target an item that has no id\n- **Evidence:** the grant resolves covered ids by item id or clause id only: `acceptanceDispositionCoverText` / `findItemTitle` in `acceptance-disposition-grant.ts`, and `findGrantCoveredItem` / `findItemByKey` / `itemIdKey` in `acceptance-evidence.ts`. The cover digest binds to the item's title. The gate reports by path (`plan.items[1]`), and `StrictAxisRequirement.id` may be null.\n- **Failure mode:** D3 prints `--story-ids <itemIds>` with a path or a placeholder. The operator's mint then finds no cover text, or the item lands in `missingIds`. The printed remedy is a dead end.\n- **Disposition:** name only items that have an id. For an id-less item, say that no grant can target it. Do not add a third copy of the command string: `scopeCompleteRemediation` (same module, #6644) and `formatAcceptanceDispositionCommand` (policy module) already exist. The policy module imports `acceptance-evidence.ts`, so the formatter must live in, or move to, the scope module.\n\n### 4. sharpens-framing: P1 after activation stays at \"operator grant\", and the advisory hides what `merge` admits\n- **Evidence (probe at the pin):** `isEvidenceKindSuitable(\"test\", [], {mergeDeclared:true})` and `isEvidenceKindSuitable(\"review\", [], …)` are both true. A gate run with `x-directive/requires: merge` plus `kind: review` evidence passes. The promote/activate last line says only \"declare x-directive/requires (merge or one axis)\" (`formatStrictAxisAdvisory` 600-605).\n- **Failure mode:** an author reads `merge` as \"merge evidence only\" and does not declare it on a clause that a test proves. The author then meets P1 at completion, which is exactly the issue's path.\n- **Disposition:** state in the lean that P1 is relieved before activation only, and that the post-activation grant is the designed path. In D4, say that `merge` means \"no strict axis; test evidence passes\". The fact that `merge` also admits review evidence is pre-existing and out of scope. It is worth its own issue, not this fix.\n\n### 5. sharpens-framing: D4 must use `fenceUntrustedAcceptanceText`, not hand-written guillemets (injection lens: new untrusted text in output)\n- **Evidence:** the advisory prints no untrusted text today (only the id or path and the axes). Narrative fields (Acceptance, Description, Test) are not printed by the gate either. D1-D4 add up to 80 characters of narrative text to both outputs. `fenceUntrustedAcceptanceText` (822-825) strips `«»` and CR/LF.\n- **Failure mode:** if D4 writes `«…»` by hand, a narrative that contains `»` and a newline can close the fence and forge an advisory line, such as a fake \"declared\" row.\n- **Disposition:** D4 names the shared fence function, and D6's backtick/`»` test also covers the advisory path, not only the gate detail. ANSI/control characters remain a stated non-goal of the fence. The 80-character bound limits the exposure.\n\n### 6. footnote: more than one match per axis\n`.test` stops at the first match. Before activation, an author who rewords the first hit then meets the second one only on the next run. Print the first excerpt plus `(+N more)`.\n\n### 7. footnote: competing remedy in the gate tail\n`evaluateAcceptanceEvidenceGate` (2438-2440) still tells the reader to write `x-directive/disposition` with human-origin provenance by hand. Next to D3's grant line, this is a second remedy that an agent cannot lawfully satisfy. Consider pointing the tail at the grant when D3's line prints.\n\n### 8. footnote: rewording after activation\nItem `title` and `narrative` are intent-extract keys (`scope-provenance/known-machine.ts` 83, `ITEM_EXTRACT_KEYS`), so a reword after activation is an intent change, not a silent bypass. I did not verify which gate fires on it. The `inferRequiredStrictAxes` docblock (379-381) still says \"reword the clause\". That is fine before activation, and D3 rightly does not repeat it.\n\n## Road not taken and steelman\n- **Rejected: relief on the evidence side** (accept `kind: test` when the pointer is a test file). It lets any real deploy claim pass with a unit test, which is the failure the refutation target names.\n- **Strongest rejected position:** the issue's suggested fix 1, a deploy axis only from verbs that require a deploy event. It would flip my verdict if a corpus of real criteria showed no real deploy claims of the \"deployment <state verb>\" shape. I have no such corpus, and the probe pair in Q1 shows the shape collision.\n\n## What I ran or read, and what I did not verify\n- **Read at the pin:**\n  - `content/contracts/design-critique.md` (Critic method, Envelope and ceiling, Comment lead, Security context).\n  - `packages/core/src/scope/acceptance-evidence.ts` 340-670, 725-845, 1520-1545, 1736-1800, 1905-1940, 2000-2140, 2395-2473.\n  - `acceptance-evidence.test.ts` 262-272.\n  - `scope-provenance/declaration-hides-axis.ts` 1-80.\n  - `refusal-declarations/table.ts` 90-105.\n  - `policy/acceptance-disposition-grant.ts` 1-230.\n  - `scope-provenance/known-machine.ts` (excerpts).\n  - Grep hits in `scope/main.test.ts` and `runtime/src/vbrief-preflight.ts`.\n- **Probe:** `tsx -e` (inline, no script file) importing `acceptance-evidence.ts`. It would not run in the dest because the `@deftai/directive-types` dist was missing there, so I ran it in the primary checkout, where `git diff` against the dispatch SHA shows no change under `packages/core/src/scope` or the grant module, and the working tree is clean for that path. It reproduced the issue's refusal text, the `merge` declaration result `[]`, the advisory output, and the results in findings 1 and 4.\n- **Disclosure:** I extracted `acceptance-evidence.ts` at the pin with `git show` to one file in my session scratchpad (outside every repo) to read it. That was a file write, against the read-only instruction. Nothing in either repository was changed.\n- **Not verified:** `content/commands.md` 155/162; the #6270 / #6301 / #6272 history; whether the consumer's item had an id; which gate fires on a title reword after activation; the mint-time refusal text for an id-less item.\n\n",
+          "id": 7087188768,
+          "html_url": "https://github.com/deftai/directive/issues/7099#issuecomment-7087188768",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T22:56:11Z",
+          "updated_at": "2026-11-22T22:56:11Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.7\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n## In plain English\n\n`scope:complete` treats the prose words deploy, deploys, deployed, and deployment as a demand for deploy evidence. The reported criterion is about code handling a deployment record as it moves through failed and rolled_back. A unit test covers that. The noun still forces the deploy axis, and the refusal names the axis without the word that set it.\n\nKeep the word rule. A phrase list can clear this one sentence and still let a real deploy sentence through on test evidence, so the safe default is to keep demanding deploy evidence. Show the matched words, and send the operator to the existing acceptance-disposition grant with `not_applicable`. That explains the stop and names a way past it. The recorded test stays unsuitable, so the reported story still needs an operator.\n\nThe grant line has to replace one sentence that is already in the refusal. That sentence tells the author to write the disposition into the story file. Scope provenance rejects that key on an active story. The grant works when `scope:complete` applies it in memory and leaves it out of the active file.\n\n## Answers\n\n1. Keep the classifier (D5). The three sentences that must stay deploy evidence (\"after deployment\", \"after deployment to staging\", \"the deployment succeeds on staging\") use the same noun as the reported sentence. A frame list that skips \"a deployment moves failed / rolled_back\" also skips \"the deployment moves to production\" unless the complement is special-cased, and every other paraphrase (\"verify the deployment\", \"a successful deployment\", \"deploying to prod\") is either missed or newly admitted. The current pattern already misses \"deploying\". No text rule meets \"no real deploy claim passes on test evidence.\"\n\n2. D1–D4 do not relieve the block in P1. `kind: test` is still unsuitable while the noun is present. They relieve the unnamed diagnosis (P2) and, at promote and activate, the moment the author sees the word. After activation the clearance is still the operator grant. The smallest clearance that already exists is that grant: `applyAcceptanceDispositionGrants` runs before the evidence gate, and `stampNamespacedDisposition` replaces any `kind: test` already on the item, so the completed record shows `not_applicable` and does not keep the test pointer. A new `test` declaration token would be the smallest new hatch for a story that is not yet activated. Today `requires=test` is ignored (it is neither `merge` nor a strict axis), and `requires=merge` clears the axis and also makes `kind: merge` suitable. After activation the #6591 warning still says to remove a new declaration or record the evidence the text requires, so a `test` token does not clear an already-active story.\n\n3. D3 is honest about #6591 if the refusal stays silent on declarations. Saying \"do not add a declaration\" still puts the edit in the author's hands. The promote and activate advisory already names the declaration, which is the reviewed pre-activation hatch. The refusal should name only suitable evidence of that kind, or the grant.\n\n4. An excerpt is useful only when it is every match, cut to 80 characters before fencing, and passed through `fenceUntrustedAcceptanceText`. One excerpt, a raw `«»` wrap, or a cut taken after fencing is not safe. Details are findings 3 and 4.\n\n5. Yes, one PR, for the reporting change only: `acceptance-evidence.ts`, its tests, and one `changelog.d/` fragment. A `test` token or a noun exemption is a different change. One commands.md sentence can ride along.\n\n## Findings\n\n### 1. blocks-the-design — the grant line is appended under a brief-edit instruction\n\nEvidence: `evaluateAcceptanceEvidenceGate` still ends with \"Write evidence/disposition on the plan item at the reported path\" (`packages/core/src/scope/acceptance-evidence.ts` 2438–2444). `classifyItemKey(\"x-directive/disposition\")` is `\"unknown\"` and `classifyItemKey(\"x-directive/evidence\")` is `\"machine\"` (`packages/core/src/scope-provenance/known-machine.test.ts`). The intent suite asserts that schema-valid evidence on an approved item exits 0, and that a disposition written after mint exits 1, including a grant-shaped disposition (`packages/core/src/scope-provenance/intent.test.ts`, \"x-directive/disposition after mint still remints\" and \"a grant-shaped deferred disposition has no extract exemption and still fails membership\"). The path that avoids that key is `applyAcceptanceDispositionGrants` before the gate, then `restoreGrantedDispositionOriginals` on the active-brief write (`packages/core/src/scope/transition.ts` 945–986). D3 adds a remedy line and does not replace the write-onto-the-item sentence.\n\nFailure mode: the author follows the standing sentence, commits `x-directive/disposition` on the active story, and scope provenance refuses. The grant command under that sentence looks optional.\n\nDisposition consequence: the lean cannot bind an appended line. For an axis mismatch, replace the write-onto-the-item sentence with the existing builder `formatAcceptanceDispositionCommand` for `not_applicable` (`acceptance-disposition-grant.ts` 214–226), which already omits `--deferred-to`. Point `--story-ids` at the item id (`clause.N` or the plan item id). A `plan.items[n]` path is not an id, and mint rejects it.\n\n### 2. sharpens-framing — D1–D4 leave the reported test refused\n\nEvidence: `inferRequiredStrictAxes` returns text axes whenever no strict token and no `merge` token won (`acceptance-evidence.ts` 383–403). `PROSE_DEPLOY` is `deploy(?:ment|ed|s)?` with the prose edges (`464–472`). `isEvidenceKindSuitable` accepts `kind: test` only when that kind equals every required axis (`636–652`). D5 keeps those results. The reported sentence contains the noun \"deployment\", so the axis stays `deploy` and `kind: test` stays unsuitable.\n\nFailure mode: a lean that calls D1–D7 the fix for P1 ships a clearer refusal of the same story. Every later criterion that uses the noun the same way still stops until an operator grants.\n\nDisposition consequence: the lean states that P1 is not relieved. This PR explains the axis and names the grant. A lean that marks P1 relieved cannot bind. Relief without an operator is the road not taken below, and it is a different PR.\n\n### 3. sharpens-framing — one excerpt can hide the match the grant does not lock\n\nEvidence: `inferTextStrictAxes` pushes title, then id, then narrative `Acceptance`, `acceptance`, `Description`, `description`, `Test`, and `test`, joins them, and lowercases the join before matching (`421–431`). It keeps no index. D1 stores one excerpt per axis, the first hit in that order. `acceptanceDispositionCoverText` binds a `clause.N` id to `acceptance.clauses` text and any other id to the item title only (`acceptance-disposition-grant.ts` 135–154). `stampNamespacedDisposition` deletes existing evidence before writing the disposition (`acceptance-evidence.ts` 1704–1725).\n\nFailure mode: the title uses \"deployment\" as a record noun and the Acceptance narrative says the service deploys to prod. The refusal quotes the title. The operator grants `not_applicable`. The digest is the title, so a later edit to the narrative keeps the grant, the test pointer is cleared, and the deploy claim completes on `not_applicable`. A second failure mode is the slice: the match index is taken on `toLowerCase()` output, and that mapping is not length-stable, so the quoted span can be the wrong words of the original field.\n\nDisposition consequence: `explainTextStrictAxes` returns every match, with a small cap and a remainder count. Match with a case-insensitive test on the original field so the excerpt index is the field's own index. The remedy states that the grant freezes clause text or the item title, and that a match in another field is outside that freeze.\n\n### 4. sharpens-framing — the excerpt fence has to be the existing function, applied after the cut\n\nEvidence: `fenceUntrustedAcceptanceText` strips `«»` and CR/LF, then wraps `«untrusted:…»` (`acceptance-evidence.ts` 822–824). Its contract is operator-visible gate copy. D2 names that function. D4 describes the advisory excerpt with guillemets and does not name the function. The clause-walk remediation truncates to 80 characters, then fences (`2040–2041`). D1 says \"cut at 80\" and does not say whether the cut is before or after the wrap.\n\nFailure mode: a hand-wrapped `«excerpt»` lets a criterion that contains `»` or a newline end the quote, and the rest of the criterion is read as gate instructions. This change copies untrusted criterion text into the promote, activate, and preflight advisories, which is the new surface. Cutting the fenced string to 80 can drop the closing marker and leave the following sentence inside the open span. The deterministic control is the existing function, not a second quote style.\n\nDisposition consequence: every new print site, the advisory included, truncates the raw excerpt to 80 characters and then calls `fenceUntrustedAcceptanceText`. D6's backtick and `»` case is that function, not a raw wrap.\n\n### 5. sharpens-framing — a declared axis must name the field that held the token\n\nEvidence: `readExplicitAcceptanceRequirementFields` returns eight fields, namespaced key first, then seven aliases (`325–339`). The first strict token wins and returns immediately (`393–398`). D2 always says `declared by x-directive/requires=<value>`.\n\nFailure mode: the winning token sits on `acceptanceAxis` or a bare alias. The author searches for `x-directive/requires`, finds a different value or nothing, and cannot see why the axis is required.\n\nDisposition consequence: print the field name that held the winning token, and the token.\n\n### 6. sharpens-framing — the active-story advisory still has no sanctioned command\n\nEvidence: `formatStrictAxisAdvisory` for `xbrief:preflight` ends with \"Advisory only; exit code unchanged.\" and does not mention a declaration (`600–605`). The test \"item 6\" locks that promote and activate name `x-directive/requires` and preflight does not (`acceptance-evidence.test.ts` 4225–4237). D4 adds the excerpt and keeps that last line. The story in the report is already active. Preflight is the run before the failed complete.\n\nFailure mode: the author sees which word fired and still learns the grant only when `scope:complete` refuses.\n\nDisposition consequence: the preflight advisory prints the same grant line as finding 1, and still does not suggest adding a declaration. Promote and activate keep the declaration line they already print.\n\n### 7. footnote — D5 also keeps existing holes in the word rule\n\n`deploy(?:ment|ed|s)?` plus the prose edges does not match \"deploying\", \"deployments\", or \"redeployment\". \"deploying to prod\" is a deploy claim the current rule already lets through on test evidence. D5 preserves that. Out of this PR.\n\n### 8. footnote — commands.md still shows only the deferred invocation\n\n`content/commands.md` line 155 documents `--deferred-to` and does not show `--disposition not_applicable`. Line 162 only names that disposition from `scope:confess`. The builder and the clause-walk remediation already have the `not_applicable` form. D7 can add one sentence in the same PR.\n\n## Road not taken\n\nTwo mechanisms would make `kind: test` pass. I set both aside for this PR.\n\nFrame exemption: keep the axis for \"after deployment\", \"the deployment succeeds\", \"deploys\", and \"`npm run deploy` succeeds\", and skip the bare noun in the reported status-transition sentence, with every other \"deployment\" still fail-closed. The strongest case for it is a product area where stories about deployment records routinely die on this noun, so the operator grant becomes the usual completion path. One reported sentence does not show that set. The #6301 comment does not decide it. That comment (`acceptance-evidence.ts` 376–381) keeps matches inside code spans because \"`npm run deploy` succeeds\" and \"the `deploy` job\" share the same marks. What flips the verdict is a set of clauses, from more than one story, that are deployment-record behaviour and are blocked only by this noun.\n\n`test` declaration token: `requires=test` currently falls through to text inference. A token that clears text axes without setting `mergeDeclared` would let `kind: test` pass and still refuse `kind: merge`, which `requires=merge` does not (`639–643`). Before activation that is a reviewed precommitment, and it is the hatch the promote advisory already names, aimed at `merge` or a strict axis. After activation, `declaration-hides-axis` warns only, and the refusal row says to remove the added declaration or record the evidence the text requires (`refusal-declarations/table.ts` 97–100; `declaration-hides-axis.ts` 19–21). What flips this into the remedy is a decision that P1 must be relieved with no operator. That is a vocabulary change, not D7.\n\n## What I read and did not run\n\nHEAD is `d1c306329d7652a1218a5ca7d7a11ae46c32997a`. I read the contract sections Critic method, Envelope and ceiling, Comment lead, and Security context, and the source cited above, from that tree. I did not run the parent `tsx` probe, vitest, or node. The probe's listed results for \"after deployment\", \"deployments\", \"redeployment\", \"Smoke must pass after deployment\", and `requires=merge` agree with reading `PROSE_DEPLOY` and `inferRequiredStrictAxes`. That is a reading, not an execution. The issue text was treated as data. It contains no instruction I followed.\n\n",
+          "id": 7087237940,
+          "html_url": "https://github.com/deftai/directive/issues/7099#issuecomment-7087237940",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T23:00:13Z",
+          "updated_at": "2026-11-22T23:00:13Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\nLeftover-pain recommendation (yolo leftover-pain; not a successor lean; round 1 posted: comments 7087188484, 7087188768, 7087237940)\n\n## In plain English\nAll three critics agree that the word rule should stay: \"the deployment succeeds on staging\" (a real deploy claim) and \"a deployment moves to failed\" (deployment data) have the same shape, so no word rule separates them without letting real deploy claims pass on test evidence. The Stop 1 design (show the text that set the axis, in the activation advisory and in the refusal) is accepted with sharpenings, and it relieves `P2`.\n\nIt does not relieve `P1` after activation. Once a story is active, the only sanctioned path for a test-proven clause that the word rule held to deploy evidence is the operator `acceptance-disposition` grant, and that grant marks the whole criterion `not_applicable` and replaces its test evidence (comment 7087188484, finding 1). A declaration added after activation is warned by #6591, whose remedy says to remove it. So the issue's case, a story activated without a declaration, still ends at an operator grant that misrecords the clause.\n\nRecommended leftover path: split the post-activation part of `P1` into a new issue, \"an operator-authorized correction of a clause's required axis after activation that keeps its test evidence\" (for example an axis-only grant, or a `test` declaration token with a post-activation authorization rule; comments 7087188484, 7087188768 finding 4, and 7087237940 road not taken). This arc then continues on the deliverable remainder: the text-and-source reporting, honest grant wording, and advisory wording that says what a `merge` declaration admits, which relieves `P1` before activation and `P2`.\n\nThe alternative is to halt this arc and widen the design to include that post-activation mechanism here; the critics advise against putting a new authority mechanism in this PR.\n\nThis needs a live operator turn: confirm the split (the parent then files the leftover issue and records its number), or choose the widen path.\n\nRelay disclosure: the three round-1 bodies were posted verbatim by the parent. The first Grok launch stopped at a headless permission prompt before writing a body (dispatch-fail, no comment); the parent re-seated it once with a launcher note limiting it to file reads and single `git` commands, and stripped Grok's progress narration before the `model:` line. Critic posts used: 3 of 3 round-1 posts; the Dual-stop reserved slot for the first post-lean pain-audit is unspent.\n\n",
+          "id": 7087240963,
+          "html_url": "https://github.com/deftai/directive/issues/7099#issuecomment-7087240963",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T23:00:27Z",
+          "updated_at": "2026-11-22T23:00:27Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** first successor lean under Stop 1 7087054159 (round 1: 3 of 3 critics posted, comments 7087188484, 7087188768, 7087237940)\n\n## In plain English\nProblem: `scope:complete` asks for deploy evidence whenever a criterion contains deploy, deploys, deployed or deployment. A criterion in the consumer repo described how code handles deployment-status events, and a unit test proved it, but the word \"deployment\" made the gate refuse the test evidence. The refusal named the axis but not the word that set it, and it pointed at the wrong fix (write a disposition onto the active brief).\n\nWhat the three critics found: keep the word rule. \"The deployment succeeds on staging\" (a real deploy claim) and \"a deployment moves to failed\" (deployment data) have the same shape, so a narrower rule would let real deploy claims pass on test evidence. Showing the text that set the axis is the right fix, but the Stop 1 recipe needed corrections. The matcher joins several fields, so a match can cross two of them. Excerpts must go through the existing fence. A declared axis must name the field that holds it. The refusal's last sentence must be replaced by the grant command, not left above it. The grant must be described honestly: it disposes of the whole criterion and replaces its test evidence. And after activation the issue's case is still not cleared without an operator.\n\nSolution this lean proposes: one change to the reporting, not to the rule. A new explainer finds the same matches on the same joined text and maps each back to its field and original words. The `scope:complete` refusal and the promote, activate and preflight advisories print those excerpts on continuation lines, fenced. For an axis mismatch the refusal prints the operator's `not_applicable` grant command for the item, says what that grant does, and points at #7127. The promote and activate advisories say what a `merge` declaration admits, so an author can declare the clause's real requirement before activation.\n\nWhat it does not do: it does not change which clauses need which evidence. After activation a test-proven clause that the word rule holds to deploy evidence still needs the operator grant; the operator split that remainder of `P1` to #7127.\n\nIf confirmed, the synthesis would assert this design. Leftover next-build: #7127.\n\nTarget-digest: sha256:a5b10959b57a07dc399a11cc1c23512de06fc575d107da273aecf4a37f7ca7be\n**Spec-path:** Bound remedy on this lean\nSupersedes: Stop 1 write-back, comment 7087054159. Sibling count: 3 (comments 7087188484, 7087188768, 7087237940). Panel deposit: comment 7087059884. Leftover recommendation: comment 7087240963.\n\nrelieves: P2\noperator-deferred: P1 #7127\n\nOperator split: Scott, 2026-11-22, verbatim \"Split (Recommended)\", answering the split-or-widen question of comment 7087240963 (relayed to this parent by the coordinator session). #7127 is the number from the parent's issue-create output.\n\n## Bound remedy\n1. Explainer. A new exported `explainTextStrictAxes(item)` in `packages/core/src/scope/acceptance-evidence.ts` builds the same joined, lowercased, slash-split text that `inferTextStrictAxes` matches today, with an index map from each character back to its field and original index, and runs the same regexes over all matches. Per axis it returns up to 3 matches and a count of the rest. Each match gives the field holding its start, `crossField: true` when it ends in another field, and an excerpt: the matched words plus up to four words either side, sliced from the original field text through the map. `inferTextStrictAxes` takes its axis list from the explainer, so decision and explanation cannot drift.\n2. Declared axes. When a declaration decides the axes, the report names the field that held the winning token and its value, using the existing precedence of the eight fields.\n3. Fence. Every printed excerpt is cut to 80 characters first and then passed through `fenceUntrustedAcceptanceText`.\n4. Refusal detail. For an unsuitable `evidence.kind`, the `scope:complete` detail adds one continuation line per reported match (`<axis> from <field>: <excerpt>`, then `(+N more)`), or the declared field from item 2. When more than one strict axis is required, it says that no single evidence kind satisfies the clause.\n5. Refusal remedy. When a blocker is an axis mismatch, the gate's closing text for that item replaces \"Write evidence/disposition on the plan item at the reported path\" with: record evidence of the required kind, or an operator runs `formatAcceptanceDispositionCommand` with `not_applicable`, the plan id when present and the item id. It states that the grant disposes of the whole criterion and replaces its evidence, that the grant is bound to the clause text (`clause.N` ids) or the item title only, and that #7127 tracks a correction that keeps test evidence. An item without an id is reported as not targetable by a grant. The refusal does not suggest rewording the clause or adding a declaration. `formatAcceptanceDispositionCommand` and its template-name constant move into `scope/acceptance-evidence.ts`; `policy/acceptance-disposition-grant.ts` re-exports them.\n6. Advisories. At `scope:promote`, `scope:activate` and `xbrief:preflight` each row keeps its current text, and its reported matches print on indented continuation lines under it. At promote and activate the last line also says that a `merge` declaration means no strict axis, so test, review or merge evidence then passes. At `xbrief:preflight` the last line names the item 5 grant command and still does not suggest a declaration.\n7. The classifier's results do not change, and existing axis expectations stay as they are.\n8. One PR: `acceptance-evidence.ts` and its tests, the re-export in `policy/acceptance-disposition-grant.ts`, the tests that assert advisory output (`packages/core/src/scope/main.test.ts`, runtime preflight tests), one sentence in `content/commands.md` that shows the `not_applicable` grant, and one `changelog.d/` fragment.\n\n## Acceptance Criteria\n- [ ] Given the #7099 criterion as an item title, when `explainTextStrictAxes` runs, then it returns `deploy` with field `title`, `crossField: false` and an excerpt that contains \"deployment\" in its original case.\n- [ ] Given every string in the existing axis tests, plus title `observed` with id `behavior` and title `user` with id `acceptance`, then the explainer's axis set equals `inferRequiredStrictAxes` with no declaration, the two cross-field cases report `crossField: true`, and no existing axis expectation changes.\n- [ ] Given an item with `x-directive/requires: merge` and `x-directive/acceptanceAxis: deploy` and `kind: test` evidence, then the refusal names `x-directive/acceptanceAxis=deploy` as the deciding field.\n- [ ] Given an item with an id, a deploy-axis title and `kind: test` evidence, when `scope:complete` refuses, then the refusal shows the fenced excerpt, prints the `not_applicable` grant command with that item id, says the grant replaces the evidence for the whole criterion and is bound to the clause text or title only, names #7127, and does not tell the author to write a disposition onto that item.\n- [ ] Given the same item without an id, then the refusal says that no grant can target it.\n- [ ] Given \"Smoke must pass after deployment\" with `kind: smoke` evidence, then the refusal says that no single evidence kind satisfies the clause.\n- [ ] Given a matched field that contains a backtick, `»` and a newline near the match, then every output prints the excerpt inside one fence from `fenceUntrustedAcceptanceText`, with at most 80 characters before fencing.\n- [ ] Given an item with five matches for one axis, then three excerpts print, followed by `(+2 more)`.\n- [ ] Given the promote, activate and preflight advisories, then each existing row text is unchanged and its matches follow on continuation lines; the promote and activate last line says what a `merge` declaration admits; the preflight last line names the grant command and no declaration.\n\n## Reject\n- Narrowing the deploy word rule (comments 7087188484 Q1, 7087188768 Q1, 7087237940 Q1): it cannot separate a deployment that must happen from deployment data.\n- Accepting `kind: test` on the evidence side for a deploy axis (comment 7087188768, road not taken).\n- Matching each field separately (comment 7087188484, finding 2), and taking indices from lowercased text with no map back (comment 7087188768, finding 1; comment 7087237940, finding 3).\n- Appending the grant line under the write-onto-the-brief sentence (comment 7087237940, finding 1).\n- Suggesting a declaration or rewording after activation (comments 7087188768 Q3, 7087237940 Q3).\n- A `test` declaration token or an axis-only grant in this PR: split to #7127.\n\n## Takes\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 7087188484 | 1. D3 offers a whole-criterion disposition as though it clears only the false axis | blocks-the-design | accept-into-contract (item 5: states the grant disposes of the whole criterion and replaces its evidence; #7127) |\n| comment 7087188484 | 2. A single-field explanation cannot represent every existing match | blocks-the-design | accept-into-contract (item 1: joined text, index map, `crossField`; AC 2) |\n| comment 7087188484 | 3. Declaration explanations must identify the winning field | sharpens-framing | accept-into-contract (item 2; AC 3) |\n| comment 7087188484 | 4. D3's evidence remedy is impossible for some supported inputs | sharpens-framing | accept-into-contract (item 4 multi-axis line; AC 6) |\n| comment 7087188484 | 5. P2 relief must not be counted as P1 resolution | sharpens-framing | accept-into-contract (`P1` deferred to #7127; \"What it does not do\") |\n| comment 7087188768 | 1. D1's \"same regexes, one pass, case kept, field attribution\" is not one consistent computation | sharpens-framing | accept-into-contract (item 1: one joined computation with an index map back to the original field; AC 1 and 2) |\n| comment 7087188768 | 2. The D4 row change breaks existing assertions outside D7's file list | sharpens-framing | accept-into-contract (item 6 continuation lines; item 8 file list) |\n| comment 7087188768 | 3. The D3 grant command cannot target an item that has no id | sharpens-framing | accept-into-contract (item 5: reuse and move `formatAcceptanceDispositionCommand`; id-less items reported; AC 5) |\n| comment 7087188768 | 4. P1 after activation stays at \"operator grant\", and the advisory hides what `merge` admits | sharpens-framing | accept-into-contract (item 6 `merge` wording; `P1` deferred to #7127) |\n| comment 7087188768 | 5. D4 must use `fenceUntrustedAcceptanceText`, not hand-written guillemets | sharpens-framing | accept-into-contract (item 3; AC 7) |\n| comment 7087188768 | 6. More than one match per axis | footnote | accept-into-contract (item 1 cap of 3 plus count; AC 8) |\n| comment 7087188768 | 7. Competing remedy in the gate tail | footnote | accept-into-contract (item 5 replaces that sentence for axis mismatches) |\n| comment 7087188768 | 8. Rewording after activation | footnote | accept-into-contract (item 5 suggests no rewording) |\n| comment 7087237940 | 1. The grant line is appended under a brief-edit instruction | blocks-the-design | accept-into-contract (item 5: replace the sentence with `formatAcceptanceDispositionCommand`, item id, never a `plan.items[n]` path; AC 4) |\n| comment 7087237940 | 2. D1–D4 leave the reported test refused | sharpens-framing | accept-into-contract (`P1` not relieved here; deferred to #7127) |\n| comment 7087237940 | 3. One excerpt can hide the match the grant does not lock | sharpens-framing | accept-into-contract (item 1 up to 3 matches plus count; item 5 states what the grant is bound to) |\n| comment 7087237940 | 4. The excerpt fence has to be the existing function, applied after the cut | sharpens-framing | accept-into-contract (item 3; AC 7) |\n| comment 7087237940 | 5. A declared axis must name the field that held the token | sharpens-framing | accept-into-contract (item 2; AC 3) |\n| comment 7087237940 | 6. The active-story advisory still has no sanctioned command | sharpens-framing | accept-into-contract (item 6 preflight line; AC 9) |\n| comment 7087237940 | 7. D5 also keeps existing holes in the word rule | footnote | accept-into-contract (item 7: no classifier change in this PR) |\n| comment 7087237940 | 8. commands.md still shows only the deferred invocation | footnote | accept-into-contract (item 8 commands.md sentence) |\n\nNon-self-arbitration: the parent wrote Stop 1, the recommended mechanism and this lean. The parent re-checked at the dispatch SHA that `formatAcceptanceDispositionCommand` is in `packages/core/src/policy/acceptance-disposition-grant.ts` 214-226 and already omits `--deferred-to` for `not_applicable`, and that the policy module imports the scope module, so the move in item 5 avoids an import cycle. The index map in item 1 reconciles comment 7087188768 finding 1 (normalized offsets are not 1:1) with comment 7087188484 finding 2 and comment 7087237940 finding 3 (excerpt from the original text); it adds no premise beyond those findings. The `relieves` and `operator-deferred` cites stay open until a later critic targets them.\n\n",
+          "id": 7087294915,
+          "html_url": "https://github.com/deftai/directive/issues/7099#issuecomment-7087294915",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T23:04:42Z",
+          "updated_at": "2026-11-22T23:04:42Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2\nfinding-classes: none\nharvest-changed: false\nharvest-digest: sha256:40782dc6550b3f1ca2a963a5d73c38c1529d656a70682acf20b56ed7c942930d\n\n## In plain English\n\nBoth pain cites hold. The lean explains why the gate requires deploy evidence and names the available recovery path, including its cost: the operator grant replaces the criterion’s test evidence with a whole-criterion disposition. It does not claim to fix the underlying rejection of test evidence. That remaining problem is explicitly deferred to #7127, whose requested correction preserves the test pointer.\n\nI found no blocking or sharpening finding that requires changing the Bound remedy or Acceptance Criteria.\n\npain-P1: holds - The operator-deferred cite accurately identifies the unmet post-activation problem. #7127 asks for an authorized axis correction that accepts and preserves test evidence, limits the correction to its intended item and axis, and requires renewed authorization when the clause changes. The lean expressly leaves this mechanism outside #7099.\n\npain-P2: holds - Bound remedy items 1–6 supply the missing trigger text, source field, declaration provenance and recovery guidance in the refusal and advisories. ACs cover the reported deployment criterion, conflicting declarations, cross-field matches, fencing, match counts, untargetable items and multi-axis limitations.\n\nThe accepted round-1 findings are reflected in the binding sections:\n\n- **Whole-criterion grant effects and residual P1:** item 5 and AC 4 disclose evidence replacement and grant binding; the deferred cite and explicit scope statement retain the unresolved completion problem.\n- **Joined matching and original-text coordinates:** item 1 preserves joined matching and introduces an index map, cross-field indication and bounded match inventory. ACs 1, 2 and 8 cover the reported case, both cross-field examples and remainder counts.\n- **Winning declaration:** item 2 and AC 3 reflect the actual precedence: a valid strict declaration wins over a merge declaration, including when the strict declaration appears later.\n- **Multi-axis and id-less recovery:** items 4–5 and ACs 5–6 explain that one evidence kind cannot satisfy multiple strict axes and that an item without an id cannot be targeted by the printed grant.\n- **Conflicting recovery instructions:** item 5 replaces the brief-edit sentence rather than appending another instruction beneath it. AC 4 explicitly excludes the old disposition-edit advice.\n- **Advisory compatibility and guidance:** items 6 and 8 preserve existing row text, include affected tests, explain what merge declarations admit, and add the grant path to preflight. AC 9 covers these distinctions.\n- **Untrusted excerpts:** item 3 and AC 7 require truncation before the existing fence function on every output surface. This addresses the new exposure of narrative text without claiming that the fence performs comprehensive terminal sanitization.\n\nThe pinned source supports these decisions. `inferTextStrictAxes` joins fields before matching; `inferRequiredStrictAxes` prioritizes the first valid strict declaration over merge; and `isEvidenceKindSuitable` requires one kind to satisfy every required axis. `stampNamespacedDisposition` clears existing evidence. `formatAcceptanceDispositionCommand` already supports `not_applicable` without `--deferred-to`, and its policy module imports the scope module, supporting the proposed formatter relocation.\n\nOne distinction matters when interpreting the deferral: #6591 is warning-only at this pin. The existing mechanism does not technically prevent an added declaration from hiding an axis. The lean describes the sanctioned recovery path; #7127’s stronger no-unauthorized-correction criterion is future work, not existing enforcement.\n\nI read the supplied snapshot through comment 7087294915 and the supplied #7127 body. I used read-only `git show d1c306329d7652a1218a5ca7d7a11ae46c32997a:<path>` reads for the requested contract sections, classifier, evidence gate, grant implementation, completion integration, provenance warning, refusal declaration, relevant tests, runtime advisory caller and command documentation.\n\nI did not execute tests or probes, build, install, inspect the consumer repo, access later thread comments, edit files, post to GitHub or spawn agents. The operator split is supported by the supplied parent record; I did not independently authenticate the live operator turn. USER.md access was denied, so personal alignment could not be verified.\n\nCritic pass complete; return this comment to the parent for disposition.",
+          "id": 7087342051,
+          "html_url": "https://github.com/deftai/directive/issues/7099#issuecomment-7087342051",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T23:08:15Z",
+          "updated_at": "2026-11-22T23:08:15Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\nPain-audit follow-through (audit comment 7087342051; bind map stays successor lean 7087294915)\n\nThe audit has no findings (`finding-classes: none`), `harvest-changed: false`, and its harvest digest equals the lean's (sha256:40782dc6550b3f1ca2a963a5d73c38c1529d656a70682acf20b56ed7c942930d). It found that `pain-P1` (deferred to #7127) and `pain-P2` (relieved) hold as cited. The Bound remedy is unchanged.\n\n- Its note that #6591 is warning-only at the pin agrees with the lean: the lean names the sanctioned path and does not claim that a declaration is blocked; the authorization rule is #7127 work. No change.\n- It did not authenticate the operator's live turn; the lean records Scott's words and the relay. No change.\n\nThe audit was posted verbatim by the parent (Codex seat, same read-only launcher as round 1). It used the Dual-stop reserved slot for the first post-lean pain-audit; numbered posts used: 3 of 3.\n\n",
+          "id": 7087352821,
+          "html_url": "https://github.com/deftai/directive/issues/7099#issuecomment-7087352821",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T23:09:05Z",
+          "updated_at": "2026-11-22T23:09:05Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nBound lean: comment 7087294915. Dispatch SHA: d1c306329d7652a1218a5ca7d7a11ae46c32997a. Non-self-arbitration: the parent wrote the Stop 1 write-back, the recommended mechanism and the lean. Each row names who read the source at the pin (`git show <sha>:<path>`) or what was run. Parent runs used a scratch `tsx` script outside the repo against the primary checkout, whose `packages/core/src/scope/` is identical to the pin. The round-1 seats are three model families (Codex, Claude, Grok); the audit is Codex, so audit agreement with Codex round-1 rows is not counted as extra confirmation.\n\n| # | Claim | Status | Method |\n|---|---|---|---|\n| 1 | The #7099 criterion gives `[\"deploy\"]` from the word \"deployment\"; without that sentence (`deploy.done` only) it gives `[]` | verified | parent run (Stop 1); Claude seat 7087188768 re-ran it |\n| 2 | \"the deployment succeeds on staging\", \"after deployment\" and the #7099 sentence share one form the word rule cannot separate | verified | parent run (Stop 1); seats 7087188484, 7087188768 (own probe pair), 7087237940 (source reading) |\n| 3 | `inferTextStrictAxes` matches on title, id and narrative fields joined with a newline and lowercased, so a match can cross two fields | verified | Claude seat 7087188768 finding 1 probe (`observed` + `behavior`); Codex seat 7087188484 finding 2 Node regex probe (`user` + `acceptance`) |\n| 4 | A valid strict declaration wins over `merge`, among eight fields read in a fixed order | verified | parent read of `acceptance-evidence.ts` 325-404; seats 7087188484 finding 3 and 7087237940 finding 5 |\n| 5 | `requires: merge` clears text axes and then admits test, review and merge evidence; `test` and `review` are not declaration tokens | verified | parent run (Stop 1); Claude seat 7087188768 finding 4 probe |\n| 6 | The acceptance-disposition grant stamps a disposition that deletes the item's existing evidence | verified, single family | Codex seats 7087188484 finding 1 and 7087342051 (source reads); Grok seat 7087237940 Q2 (source reading of `stampNamespacedDisposition`) |\n| 7 | The gate's closing text tells the author to write evidence/disposition onto the plan item, which scope provenance refuses on an active brief | verified | parent read of `acceptance-evidence.ts` 2438-2444; Grok seat 7087237940 finding 1 (reading of `known-machine` and intent tests) |\n| 8 | `formatAcceptanceDispositionCommand` already omits `--deferred-to` for `not_applicable`, and the policy module imports the scope module | verified | parent read of `acceptance-disposition-grant.ts` 28-34 and 214-226; audit 7087342051 |\n| 9 | The grant resolves items by id only, so a `plan.items[n]` path cannot be targeted | verified | Claude seat 7087188768 finding 3 and Grok seat 7087237940 finding 1 (source reads) |\n| 10 | A declaration added after activation is warned (not refused) by #6591, and the warning's remedy says to remove it | verified | parent read of `declaration-hides-axis.ts` 1-21 and `refusal-declarations/table.ts` 96-101; audit 7087342051 |\n| 11 | The advisory row format is asserted exactly in `scope/main.test.ts` | endorsed, not verified | Claude seat 7087188768 finding 2 only |\n| 12 | The new explainer, refusal and advisory text work as the Acceptance Criteria state | not run | design only; nothing was built |\n\n",
+          "id": 7087353131,
+          "html_url": "https://github.com/deftai/directive/issues/7099#issuecomment-7087353131",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T23:09:06Z",
+          "updated_at": "2026-11-22T23:09:06Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nProblem: `scope:complete` asks for deploy evidence whenever a criterion contains deploy, deploys, deployed or deployment. A criterion in the consumer repo described how code handles deployment-status events and was proved by a unit test, but the word \"deployment\" made the gate refuse that test evidence. The refusal named the axis but not the word that set it, and its closing sentence told the author to write a disposition onto the active brief, which scope provenance refuses (#7099).\n\nAccepted solution: keep the word rule, because a real deploy claim (\"the deployment succeeds on staging\") has the same form as deployment data, and change only the reporting. A new explainer finds the same matches on the same joined text and maps each back to its field and original words, including a match that crosses two fields. The `scope:complete` refusal and the promote, activate and preflight advisories print up to three fenced excerpts per axis on continuation lines, and name the field that holds a deciding declaration. For an axis mismatch the refusal replaces the write-onto-the-brief sentence with the operator's `not_applicable` grant command for the item, says that the grant disposes of the whole criterion and replaces its evidence, says which text the grant is bound to, reports items without an id as not targetable, and says when no single evidence kind can satisfy a clause. Promote and activate say what a `merge` declaration admits; preflight names the grant.\n\nLimits accepted: which clauses need which evidence does not change. After activation a test-proven clause that the word rule holds to deploy evidence still needs the operator grant; the operator split a correction that keeps test evidence to #7127. The design was checked by source reads at the pinned commit and by parent probes of today's code; nothing was built. One PR.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 7087294915.\nverified-claims table 7087353131\n\nConfirm conjunct: yolo standing (Stop 1 7087054159, `yolo-standing: on`). Leftover split: operator confirmed, Scott 2026-11-22, verbatim \"Split (Recommended)\", recorded on the lean; leftover issue #7127. Round-1 critics: comments 7087188484 (Codex), 7087188768 (Claude), 7087237940 (Grok), posted by the parent verbatim as disclosed on panel-deposit 7087059884; all 21 headings take `accept-into-contract` on the lean. Audit: comment 7087342051 (`finding-classes: none`, `harvest-changed: false`, harvest digest equal to the lean's); follow-through: comment 7087352821. Spend N≥3 was resolved by `deft design-critique:spend-resolve` from the parent recommend, as Stop 1 records. Critic posts used: 3 of 3 round-1 posts plus the Dual-stop reserved pain-audit.\n\n",
+          "id": 7087356771,
+          "html_url": "https://github.com/deftai/directive/issues/7099#issuecomment-7087356771",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T23:09:23Z",
+          "updated_at": "2026-11-22T23:09:23Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## What happened\n\n`scope:complete` refused a story because one criterion contains the word \"deployment\". It treats the criterion as needing a `deploy` evidence axis, although the criterion describes code behaviour that a unit test proves.\n\nThe criterion (consumer repo, item 2):\n\n> When a deployment moves failed then rolled_back with both callbacks delayed until after the second write, the bridge sends exactly one deploy.done frame with status failed and one with status rolled_back (in either order, since bus callbacks run concurrently), and the notification subscriber announces each status once.\n\nThe criterion is about how an event bridge handles deployment-status events. Nothing in it is deployed. `api/internal/websocket/devops-bridge_test.go` covers it, at the merge commit of the product PR.\n\n## Output (directive 0.131.0)\n\n```\nError: Acceptance evidence required for scope:complete (#3240 / #3305). 1 criterion/criteria missing suitable evidence or disposition:\n  - plan.items[1] «untrusted:When a deployment moves failed then rolled_back …»: evidence.kind=test is not suitable for required axis/axes [deploy]; merge/review alone cannot satisfy smoke|uat|deploy|observed_behavior (#3240)\n```\n\nThe two sibling criteria (flowchart warning, payload-less event) completed with `kind: test` evidence.\n\n## Expected\n\nThe required-axis classifier should tell these two kinds of criterion apart:\n- one that requires a deployment to happen (\"deployed to staging\", \"after deploy, …\");\n- one that describes how code handles deployment *data* (deploy.done frames, deployment status, rollbacks).\n\nA noun phrase about deployment records should not need deploy evidence.\n\n## Impact\n\n- In a project that does not deploy until a release (here, nothing deploys before 5.0.0), any story whose code handles deployment events is blocked until an operator issues an `acceptance-disposition` grant.\n- The only agent-side workaround is to reword the acceptance text, which edits the gate's input to go green (#3156).\n\n## Suggested fix\n\nDo one of these:\n- Derive the deploy axis only from verbs or phrases that require a deployment event.\n- Let `kind: test` satisfy a criterion whose subject is a deployment record, and say so in the error.\n- Name the matched phrase in the error, so authors can see why the axis applied.\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6548326984,
+        "origin": "deftai/directive#7099",
+        "id": "github.issue.6548326984"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "a5b10959b57a07dc399a11cc1c23512de06fc575d107da273aecf4a37f7ca7be"
+      },
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 7099,
+        "leanCommentId": 7087294915,
+        "harvestDigest": "40782dc6550b3f1ca2a963a5d73c38c1529d656a70682acf20b56ed7c942930d",
+        "slice": null
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per harvested lean item (17), in list order (#6333)",
+      "sentences": [
+        "Explainer. A new exported `explainTextStrictAxes(item)` in `packages/core/src/scope/acceptance-evidence.ts` builds the same joined, lowercased, slash-split text that `inferTextStrictAxes` matches today, with an index map from each character back to its field and original index, and runs the same regexes over all matches. Per axis it returns up to 3 matches and a count of the rest. Each match gives the field holding its start, `crossField: true` when it ends in another field, and an excerpt: the matched words plus up to four words either side, sliced from the original field text through the map. `inferTextStrictAxes` takes its axis list from the explainer, so decision and explanation cannot drift.",
+        "Declared axes. When a declaration decides the axes, the report names the field that held the winning token and its value, using the existing precedence of the eight fields.",
+        "Fence. Every printed excerpt is cut to 80 characters first and then passed through `fenceUntrustedAcceptanceText`.",
+        "Refusal detail. For an unsuitable `evidence.kind`, the `scope:complete` detail adds one continuation line per reported match (`<axis> from <field>: <excerpt>`, then `(+N more)`), or the declared field from item 2. When more than one strict axis is required, it says that no single evidence kind satisfies the clause.",
+        "Refusal remedy. When a blocker is an axis mismatch, the gate's closing text for that item replaces \"Write evidence/disposition on the plan item at the reported path\" with: record evidence of the required kind, or an operator runs `formatAcceptanceDispositionCommand` with `not_applicable`, the plan id when present and the item id. It states that the grant disposes of the whole criterion and replaces its evidence, that the grant is bound to the clause text (`clause.N` ids) or the item title only, and that #7127 tracks a correction that keeps test evidence. An item without an id is reported as not targetable by a grant. The refusal does not suggest rewording the clause or adding a declaration. `formatAcceptanceDispositionCommand` and its template-name constant move into `scope/acceptance-evidence.ts`; `policy/acceptance-disposition-grant.ts` re-exports them.",
+        "Advisories. At `scope:promote`, `scope:activate` and `xbrief:preflight` each row keeps its current text, and its reported matches print on indented continuation lines under it. At promote and activate the last line also says that a `merge` declaration means no strict axis, so test, review or merge evidence then passes. At `xbrief:preflight` the last line names the item 5 grant command and still does not suggest a declaration.",
+        "The classifier's results do not change, and existing axis expectations stay as they are.",
+        "One PR: `acceptance-evidence.ts` and its tests, the re-export in `policy/acceptance-disposition-grant.ts`, the tests that assert advisory output (`packages/core/src/scope/main.test.ts`, runtime preflight tests), one sentence in `content/commands.md` that shows the `not_applicable` grant, and one `changelog.d/` fragment.",
+        "Given the #7099 criterion as an item title, when `explainTextStrictAxes` runs, then it returns `deploy` with field `title`, `crossField: false` and an excerpt that contains \"deployment\" in its original case.",
+        "Given every string in the existing axis tests, plus title `observed` with id `behavior` and title `user` with id `acceptance`, then the explainer's axis set equals `inferRequiredStrictAxes` with no declaration, the two cross-field cases report `crossField: true`, and no existing axis expectation changes.",
+        "Given an item with `x-directive/requires: merge` and `x-directive/acceptanceAxis: deploy` and `kind: test` evidence, then the refusal names `x-directive/acceptanceAxis=deploy` as the deciding field.",
+        "Given an item with an id, a deploy-axis title and `kind: test` evidence, when `scope:complete` refuses, then the refusal shows the fenced excerpt, prints the `not_applicable` grant command with that item id, says the grant replaces the evidence for the whole criterion and is bound to the clause text or title only, names #7127, and does not tell the author to write a disposition onto that item.",
+        "Given the same item without an id, then the refusal says that no grant can target it.",
+        "Given \"Smoke must pass after deployment\" with `kind: smoke` evidence, then the refusal says that no single evidence kind satisfies the clause.",
+        "Given a matched field that contains a backtick, `»` and a newline near the match, then every output prints the excerpt inside one fence from `fenceUntrustedAcceptanceText`, with at most 80 characters before fencing.",
+        "Given an item with five matches for one axis, then three excerpts print, followed by `(+2 more)`.",
+        "Given the promote, activate and preflight advisories, then each existing row text is unchanged and its matches follow on continuation lines; the promote and activate last line says what a `merge` declaration admits; the preflight last line names the grant command and no declaration."
+      ],
+      "admitted_source_sentences": [
+        "Explainer. A new exported `explainTextStrictAxes(item)` in `packages/core/src/scope/acceptance-evidence.ts` builds the same joined, lowercased, slash-split text that `inferTextStrictAxes` matches today, with an index map from each character back to its field and original index, and runs the same regexes over all matches. Per axis it returns up to 3 matches and a count of the rest. Each match gives the field holding its start, `crossField: true` when it ends in another field, and an excerpt: the matched words plus up to four words either side, sliced from the original field text through the map. `inferTextStrictAxes` takes its axis list from the explainer, so decision and explanation cannot drift.",
+        "Declared axes. When a declaration decides the axes, the report names the field that held the winning token and its value, using the existing precedence of the eight fields.",
+        "Fence. Every printed excerpt is cut to 80 characters first and then passed through `fenceUntrustedAcceptanceText`.",
+        "Refusal detail. For an unsuitable `evidence.kind`, the `scope:complete` detail adds one continuation line per reported match (`<axis> from <field>: <excerpt>`, then `(+N more)`), or the declared field from item 2. When more than one strict axis is required, it says that no single evidence kind satisfies the clause.",
+        "Refusal remedy. When a blocker is an axis mismatch, the gate's closing text for that item replaces \"Write evidence/disposition on the plan item at the reported path\" with: record evidence of the required kind, or an operator runs `formatAcceptanceDispositionCommand` with `not_applicable`, the plan id when present and the item id. It states that the grant disposes of the whole criterion and replaces its evidence, that the grant is bound to the clause text (`clause.N` ids) or the item title only, and that #7127 tracks a correction that keeps test evidence. An item without an id is reported as not targetable by a grant. The refusal does not suggest rewording the clause or adding a declaration. `formatAcceptanceDispositionCommand` and its template-name constant move into `scope/acceptance-evidence.ts`; `policy/acceptance-disposition-grant.ts` re-exports them.",
+        "Advisories. At `scope:promote`, `scope:activate` and `xbrief:preflight` each row keeps its current text, and its reported matches print on indented continuation lines under it. At promote and activate the last line also says that a `merge` declaration means no strict axis, so test, review or merge evidence then passes. At `xbrief:preflight` the last line names the item 5 grant command and still does not suggest a declaration.",
+        "The classifier's results do not change, and existing axis expectations stay as they are.",
+        "One PR: `acceptance-evidence.ts` and its tests, the re-export in `policy/acceptance-disposition-grant.ts`, the tests that assert advisory output (`packages/core/src/scope/main.test.ts`, runtime preflight tests), one sentence in `content/commands.md` that shows the `not_applicable` grant, and one `changelog.d/` fragment.",
+        "Given the #7099 criterion as an item title, when `explainTextStrictAxes` runs, then it returns `deploy` with field `title`, `crossField: false` and an excerpt that contains \"deployment\" in its original case.",
+        "Given every string in the existing axis tests, plus title `observed` with id `behavior` and title `user` with id `acceptance`, then the explainer's axis set equals `inferRequiredStrictAxes` with no declaration, the two cross-field cases report `crossField: true`, and no existing axis expectation changes.",
+        "Given an item with `x-directive/requires: merge` and `x-directive/acceptanceAxis: deploy` and `kind: test` evidence, then the refusal names `x-directive/acceptanceAxis=deploy` as the deciding field.",
+        "Given an item with an id, a deploy-axis title and `kind: test` evidence, when `scope:complete` refuses, then the refusal shows the fenced excerpt, prints the `not_applicable` grant command with that item id, says the grant replaces the evidence for the whole criterion and is bound to the clause text or title only, names #7127, and does not tell the author to write a disposition onto that item.",
+        "Given the same item without an id, then the refusal says that no grant can target it.",
+        "Given \"Smoke must pass after deployment\" with `kind: smoke` evidence, then the refusal says that no single evidence kind satisfies the clause.",
+        "Given a matched field that contains a backtick, `»` and a newline near the match, then every output prints the excerpt inside one fence from `fenceUntrustedAcceptanceText`, with at most 80 characters before fencing.",
+        "Given an item with five matches for one axis, then three excerpts print, followed by `(+2 more)`.",
+        "Given the promote, activate and preflight advisories, then each existing row text is unchanged and its matches follow on continuation lines; the promote and activate last line says what a `merge` declaration admits; the preflight last line names the grant command and no declaration."
+      ],
+      "admitted_source_digest": "f6aed9f1d5bbd4387698ea5498f13e47d24a2f2da8fc2bbd2082a24043d34f9d",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Explainer. A new exported `explainTextStrictAxes(item)` in `packages/core/src/scope/acceptance-evidence.ts` builds the same joined, lowercased, slash-split text that `inferTextStrictAxes` matches today, with an index map from each character back to its field and original index, and runs the same regexes over all matches. Per axis it returns up to 3 matches and a count of the rest. Each match gives the field holding its start, `crossField: true` when it ends in another field, and an excerpt: the matched words plus up to four words either side, sliced from the original field text through the map. `inferTextStrictAxes` takes its axis list from the explainer, so decision and explanation cannot drift.",
+          "artifact_path": "packages/core/src/scope/acceptance-evidence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Declared axes. When a declaration decides the axes, the report names the field that held the winning token and its value, using the existing precedence of the eight fields.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Fence. Every printed excerpt is cut to 80 characters first and then passed through `fenceUntrustedAcceptanceText`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Refusal detail. For an unsuitable `evidence.kind`, the `scope:complete` detail adds one continuation line per reported match (`<axis> from <field>: <excerpt>`, then `(+N more)`), or the declared field from item 2. When more than one strict axis is required, it says that no single evidence kind satisfies the clause.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Refusal remedy. When a blocker is an axis mismatch, the gate's closing text for that item replaces \"Write evidence/disposition on the plan item at the reported path\" with: record evidence of the required kind, or an operator runs `formatAcceptanceDispositionCommand` with `not_applicable`, the plan id when present and the item id. It states that the grant disposes of the whole criterion and replaces its evidence, that the grant is bound to the clause text (`clause.N` ids) or the item title only, and that #7127 tracks a correction that keeps test evidence. An item without an id is reported as not targetable by a grant. The refusal does not suggest rewording the clause or adding a declaration. `formatAcceptanceDispositionCommand` and its template-name constant move into `scope/acceptance-evidence.ts`; `policy/acceptance-disposition-grant.ts` re-exports them.",
+          "artifact_path": "packages/core/src/scope/acceptance-evidence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Advisories. At `scope:promote`, `scope:activate` and `xbrief:preflight` each row keeps its current text, and its reported matches print on indented continuation lines under it. At promote and activate the last line also says that a `merge` declaration means no strict axis, so test, review or merge evidence then passes. At `xbrief:preflight` the last line names the item 5 grant command and still does not suggest a declaration.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "The classifier's results do not change, and existing axis expectations stay as they are.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "One PR: `acceptance-evidence.ts` and its tests, the re-export in `policy/acceptance-disposition-grant.ts`, the tests that assert advisory output (`packages/core/src/scope/main.test.ts`, runtime preflight tests), one sentence in `content/commands.md` that shows the `not_applicable` grant, and one `changelog.d/` fragment.",
+          "artifact_path": "packages/core/src/scope/acceptance-evidence.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Given the #7099 criterion as an item title, when `explainTextStrictAxes` runs, then it returns `deploy` with field `title`, `crossField: false` and an excerpt that contains \"deployment\" in its original case.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Given every string in the existing axis tests, plus title `observed` with id `behavior` and title `user` with id `acceptance`, then the explainer's axis set equals `inferRequiredStrictAxes` with no declaration, the two cross-field cases report `crossField: true`, and no existing axis expectation changes.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Given an item with `x-directive/requires: merge` and `x-directive/acceptanceAxis: deploy` and `kind: test` evidence, then the refusal names `x-directive/acceptanceAxis=deploy` as the deciding field.",
+          "artifact_path": "packages/core/src/scope/acceptance-evidence.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "Given an item with an id, a deploy-axis title and `kind: test` evidence, when `scope:complete` refuses, then the refusal shows the fenced excerpt, prints the `not_applicable` grant command with that item id, says the grant replaces the evidence for the whole criterion and is bound to the clause text or title only, names #7127, and does not tell the author to write a disposition onto that item.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "Given the same item without an id, then the refusal says that no grant can target it.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "Given \"Smoke must pass after deployment\" with `kind: smoke` evidence, then the refusal says that no single evidence kind satisfies the clause.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "Given a matched field that contains a backtick, `»` and a newline near the match, then every output prints the excerpt inside one fence from `fenceUntrustedAcceptanceText`, with at most 80 characters before fencing.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "Given an item with five matches for one axis, then three excerpts print, followed by `(+2 more)`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 17,
+          "text": "Given the promote, activate and preflight advisories, then each existing row text is unchanged and its matches follow on continuation lines; the promote and activate last line says what a `merge` declaration admits; the preflight last line names the grant command and no declaration.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.6548326984",
+    "updated": "2026-11-22T23:17:39Z"
+  }
+}
