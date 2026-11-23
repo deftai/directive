@@ -1,0 +1,28 @@
+{
+  "schemaVersion": "deft.decision.v1",
+  "id": "design-critique-not-warranted-for-7234-because-the-fix-is-a-smal",
+  "decision": "design-critique: not warranted for #7234, because the fix is a small path correction in the agents-entry template plus a path-resolution contract test",
+  "governingRule": {
+    "description": "Before issue:ingest record arc or design-critique: not warranted, because ...",
+    "path": "AGENTS.md",
+    "rfc2119": "MUST"
+  },
+  "alternativesConsidered": [
+    {
+      "option": "run a design-critique arc on #7234",
+      "whyNot": null
+    }
+  ],
+  "whyWinner": "The cause is two lines in content/templates/agents-entry.md that lost the node_modules/@deftai/directive-runtime/ prefix; the correct form already exists on neighbouring lines, so an arc would re-derive it",
+  "confidence": "high",
+  "activeScopeRefs": [],
+  "timestamp": "2026-11-23T22:53:58Z",
+  "revisitTrigger": "If the path-resolution contract test needs a new managed-section path convention or a production code change",
+  "tags": [
+    "process",
+    "docs"
+  ],
+  "relatedIssues": [
+    7234
+  ]
+}
