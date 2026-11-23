@@ -37,9 +37,11 @@ import {
   type PreCancelVerdict,
 } from "../orchestration/subagent-steer.js";
 import {
+  canonicalPathIdentity,
   defaultGitRunner,
   type GitRunner,
   gitCommonDir,
+  sameWorktreePath,
   worktreePathOrNull,
 } from "../session/git.js";
 import { isLinkedWorktreePath } from "../session/main-worktree.js";
@@ -173,7 +175,11 @@ export function physicalTargetKey(projectRoot: string, targetId: string): string
   for (const candidate of candidates) {
     if (candidate.length === 0 || !existsSync(candidate)) continue;
     try {
-      return normalize(realpathSync(candidate)).replace(/\\/g, "/").toLowerCase();
+      // win32: native identity so an 8.3 alias of one tree is one key (#7200).
+      const physical =
+        (process.platform === "win32" ? canonicalPathIdentity(candidate) : null) ??
+        realpathSync(candidate);
+      return normalize(physical).replace(/\\/g, "/").toLowerCase();
     } catch {
       /* try next candidate */
     }
@@ -324,11 +330,8 @@ export type StoryBindingScopeResult =
   | { readonly ok: true; readonly storyId: string; readonly briefPath: string }
   | { readonly ok: false; readonly reason: string };
 
-function sameRepoPath(left: string, right: string): boolean {
-  const a = resolve(left);
-  const b = resolve(right);
-  return process.platform === "win32" ? a.toLowerCase() === b.toLowerCase() : a === b;
-}
+/** Shared worktree compare: resolve, win32 fold, win32 physical identity (#7200). */
+const sameRepoPath = sameWorktreePath;
 
 function isDirectory(path: string): boolean {
   try {

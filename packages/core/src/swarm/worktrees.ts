@@ -4,6 +4,7 @@ import {
   assertProjectionContained,
   ProjectionContainmentError,
 } from "../fs/projection-containment.js";
+import { canonicalPathIdentity } from "../session/git.js";
 import { C3_FIELDS } from "./constants.js";
 import { ensureSubagentStatusDir } from "./subagent-status-dir.js";
 import { runText, type TextCaptureResult } from "./subprocess.js";
@@ -68,6 +69,16 @@ export function compareKey(pathStr: string): string {
   return pathStr.replace(/\\/g, "/").toLowerCase();
 }
 
+/**
+ * Map key for one worktree: {@link compareKey} of its win32 physical identity
+ * (#7200), so an 8.3 or lowercase cohort-map path finds git's long spelling in
+ * `git worktree list`. POSIX keys are unchanged.
+ */
+export function worktreeIdentityKey(pathStr: string): string {
+  if (process.platform !== "win32") return compareKey(pathStr);
+  return compareKey(canonicalPathIdentity(pathStr) ?? pathStr);
+}
+
 export interface WorktreeRecord {
   readonly story_id: string;
   readonly worktree_path: string;
@@ -81,7 +92,10 @@ export interface WorktreePorcelainEntry {
 }
 
 /** Parse `git worktree list --porcelain` into `{compareKey: {branch, head}}`. */
-export function parseWorktreePorcelain(text: string): Map<string, WorktreePorcelainEntry> {
+export function parseWorktreePorcelain(
+  text: string,
+  keyOf: (pathStr: string) => string = compareKey,
+): Map<string, WorktreePorcelainEntry> {
   const registered = new Map<string, WorktreePorcelainEntry>();
   let currentPath: string | null = null;
   let currentBranch: string | null = null;
@@ -89,7 +103,7 @@ export function parseWorktreePorcelain(text: string): Map<string, WorktreePorcel
 
   const flush = (): void => {
     if (currentPath !== null) {
-      registered.set(compareKey(currentPath), { branch: currentBranch, head: currentHead });
+      registered.set(keyOf(currentPath), { branch: currentBranch, head: currentHead });
     }
   };
 
@@ -126,7 +140,7 @@ function gitWorktreeList(repoRoot: string, git: GitRunner): Map<string, Worktree
         `${proc.stderr.trim() || "<no stderr>"} -- is this a git work tree?`,
     );
   }
-  return parseWorktreePorcelain(proc.stdout);
+  return parseWorktreePorcelain(proc.stdout, worktreeIdentityKey);
 }
 
 function resolveCommitOid(repoRoot: string, revision: string, git: GitRunner): string {
@@ -266,7 +280,7 @@ export function resolveWorktreeMap(
 
     const worktreePath = resolvePath(rawPath.trim(), root);
     assertWorktreePathContained(root, worktreePath);
-    const key = compareKey(worktreePath);
+    const key = worktreeIdentityKey(worktreePath);
     const posixPath = worktreePath.replace(/\\/g, "/");
 
     if (seenPaths.has(key)) {

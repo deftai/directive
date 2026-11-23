@@ -10,7 +10,14 @@ import {
   type ActiveCliCheckSeams,
   checkActiveCliAgainstTarget,
 } from "./active-cli.js";
-import { defaultGitRunner, type GitRunner, gitHead, gitIsAncestor, worktreePath } from "./git.js";
+import {
+  defaultGitRunner,
+  type GitRunner,
+  gitHead,
+  gitIsAncestor,
+  samePathIdentity,
+  worktreePath,
+} from "./git.js";
 import { pythonJsonDump } from "./json.js";
 import { evaluateOccupancyCeremonyEligibility } from "./occupancy.js";
 import {
@@ -362,7 +369,7 @@ function evaluateLoadedState(
     };
   }
   const currentWorktree = worktreePath(projectRoot, runGit);
-  if (state.worktreePath !== currentWorktree) {
+  if (!samePathIdentity(state.worktreePath, currentWorktree)) {
     return {
       code: 1,
       message:
