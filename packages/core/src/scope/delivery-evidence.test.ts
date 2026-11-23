@@ -2473,12 +2473,15 @@ describe("PR-only delivery identity (#5710 P1)", () => {
     const unstamped = join(prOnlyPlan(null, [prRef(6215)]), 6215);
     expect(unstamped.ok).toBe(false);
     expect(unstamped.message).toMatch(/github-pr reference is not a delivery identity/);
-    // Today's resolver: an issue URL under any reference type makes the brief issue-anchored.
-    const anchored = issuePlan(5710);
-    anchored.references = [
-      { uri: `https://github.com/${REPO}/issues/5710`, type: "x-xbrief/refs" },
-    ];
-    expect(resolvePlanGithubIssueRef(anchored)).toEqual({ repository: REPO, issueNumber: 5710 });
+    // #7025: an issue URL under a context type does not anchor; only an exact
+    // GitHub issue type does.
+    const context = issuePlan(5710);
+    context.references = [{ uri: `https://github.com/${REPO}/issues/5710`, type: "x-xbrief/refs" }];
+    expect(resolvePlanGithubIssueRef(context)).toBeNull();
+    expect(resolvePlanGithubIssueRef(issuePlan(5710))).toEqual({
+      repository: REPO,
+      issueNumber: 5710,
+    });
     expect(resolvePrOnlyDeliveryIdentity(prOnlyPlan(6215), canonical)).toEqual({
       ok: true,
       repository: REPO,

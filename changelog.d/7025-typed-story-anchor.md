@@ -1,0 +1,2 @@
+section: Fixed
+- `scope:complete` no longer takes a context link as the story issue (#7025). Only a reference typed exactly `x-xbrief/github-issue` (or the legacy `github-issue` forms) anchors a brief; an upstream issue cited as `x-xbrief/external` or `x-xbrief/refs` no longer makes the identity join fetch a same-numbered PR from that repository. A brief whose only issue links are context takes the PR-only path: stamp `productPullRequest` or add a story issue reference. The merge-commit mismatch refusal now names the repository it read.
