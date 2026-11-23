@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #7170",
-    "updated": "2026-11-23T05:35:47Z"
+    "updated": "2026-11-23T14:43:42Z"
   },
   "plan": {
     "title": "[framework-gap] scope:complete clause walk requires a quoted token that the clause says must never appear ('never apikey:…')",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "At scope:complete, the clause walk reads every quoted literal in an acceptance clause as text the bound file must contain, unless the clause is one of the #6269 removal sentences. A consumer clause that says a docs view shows a person, org or team name and never an api-key id therefore fails, although the shipped code is correct and must hold the api-key prefix to detect it, and the only way through is an operator acceptance-disposition grant. This story sets aside a quoted literal whose operator is a negation (never inverts it), keeps the presence check for phrases that still require the literal, stops an absence phrase from counting as an existence claim in walkOne and in the #3550 behavioral count, and names checked and set-aside spans on each row. Completion, verified-pass resolution and AC pass banking are unchanged on the checked spans.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/7170",
@@ -20,138 +20,257 @@
     "items": [
       {
         "title": "Negated literal. In `classifyQuotedTokenPolarity`, when no removal word is present, a quoted span whose operator is a negation is set aside. It is not a token check and is never inverted to an absence check. The cues are never, not, no, nor, cannot, without, instead of, rather than, and a word ending in `n't`. A cue governs a span before it only when the span comes next, or when exactly one word between them is a display verb from a closed list (show, display, render, print, emit, log, return, contain, include, appear, output, say, write, in their inflected forms). A cue after the span governs it only in the form span, an optional auxiliary (is, are, was, were, must, should, does, do, did, will, can, may, or a word ending in `n't`), not or never, an optional be or been, then a display verb from the same list. A governing cue before a span also covers the next spans joined to it only by a comma, or, and, or nor. Any other word, punctuation, quoted span or code span between ends the rule, so not only, no change to, without breaking, never omit and never fails to keep the presence check. A cue that follows another cue does not govern the span: before the span, a cue preceded by another cue directly or with one auxiliary between (cannot not show); after the span, an auxiliary ending in `n't`, or cannot, followed by not or never. Two negations keep the presence check. The other spans keep the presence check. If no span is left, polarity is `none`. The #6269 removal grammar (a removal word present) is unchanged.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "When no removal word is present and a negation cue (never, not, no, nor, cannot, without, instead of, rather than, or a word ending in n't) is the operator of a quoted span under the item 1 operator rule, then classifyQuotedTokenPolarity sets that span aside without inverting it, covers spans joined by a comma, or, and or nor, keeps the presence check for any other word, punctuation or span between and for two negations in a row, returns none when no span is left, and leaves the #6269 removal grammar unchanged."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e0b421facf4e3a1674fe55f9e4f837595c372aa1",
+          "recorded_at": "2026-11-23T14:43:42Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Existence guard. In `walkOne`, the positive existence branch (`EXISTENCE_CLAIM`) also requires that `NEGATED_EXISTENCE` does not match and that no span was set aside by item 1. `isExistenceOrQuotedTokenClause` gets the same set-aside guard on its own existence fallback (it already has the `NEGATED_EXISTENCE` guard). A clause with an absence phrase that the path check does not claim, and a clause whose only spans were set aside, then reach the non-adjudicable behavioral row (#4240), never `verified`, and both helpers count such a clause as behavioral. `isBoundArtifactAbsenceClaim` is unchanged (#7188). Stated limit: a clause that makes a positive existence claim about the bound file and has an absence phrase about something else becomes behavioral, so that existence check is dropped rather than verified; the missing-file failure and the bound-file absence failure run earlier and are unchanged.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "When the walk reaches the positive existence branch, then walkOne takes it only if NEGATED_EXISTENCE does not match and no span was set aside, isExistenceOrQuotedTokenClause applies the same set-aside guard on its existence fallback, such clauses reach the non-adjudicable behavioral row (#4240) and count as behavioral, and isBoundArtifactAbsenceClaim is unchanged."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e0b421facf4e3a1674fe55f9e4f837595c372aa1",
+          "recorded_at": "2026-11-23T14:43:42Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Row detail. A row with set-aside spans names each span and its cue, and names the spans it did check. A presence failure adds that no removal or negation cue governs the missing literal.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "When a row has set-aside spans, then its detail names each set-aside span and its cue and the spans it checked, and a presence failure adds that no removal or negation cue governs the missing literal."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e0b421facf4e3a1674fe55f9e4f837595c372aa1",
+          "recorded_at": "2026-11-23T14:43:42Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Completion unchanged. A clause left with no check is decided where it is today: `clauseWalkBlocks` does not block on it, and on `scope:complete` a walk with no `verified` row still needs a green executable run or the #7047 declared-test floor (#4870). Item evidence alone does not admit it. A mixed clause whose checked span is present still yields a `verified` row, so the `empty-pass` to `verified-pass` relabel and the AC pass bank behave as today; that row covers only the checked spans. This fix removes false `failed` rows and false `verified` rows; it adds no admit path.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "When a clause is left with no check, then clauseWalkBlocks does not block on it, scope:complete still needs a green executable run or the #7047 declared-test floor for a walk with no verified row, item evidence alone does not admit it, and a mixed clause with a present checked span still yields a verified row that covers only the checked spans."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e0b421facf4e3a1674fe55f9e4f837595c372aa1",
+          "recorded_at": "2026-11-23T14:43:42Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Docs. `content/docs/plan-acceptance.md` (Quoted-token polarity) states the negation rule, the existence guard and item 4.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "When the story ships, then content/docs/plan-acceptance.md (Quoted-token polarity) states the negation rule, the existence guard and the unchanged completion behaviour of item 4."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e0b421facf4e3a1674fe55f9e4f837595c372aa1",
+          "recorded_at": "2026-11-23T14:43:42Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "One ordinary story PR: `packages/core/src/verify-ac/clauses.ts`, `packages/core/src/verify-ac/clauses.test.ts`, a `scope:complete` acceptance-walk test, a verify:ac resolution and banking test, `content/docs/plan-acceptance.md`, one `changelog.d/` fragment.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "narrative": {
           "Acceptance": "When the story ships, then it is one ordinary story PR touching clauses.ts, clauses.test.ts, a scope:complete acceptance-walk test, a verify:ac resolution and banking test, plan-acceptance.md and one changelog.d fragment."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e0b421facf4e3a1674fe55f9e4f837595c372aa1",
+          "recorded_at": "2026-11-23T14:43:42Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given the issue clause shape (a view shows a person, org or team name literal and, after never, an api-key literal) bound to a file that holds the name literal and the api-key prefix, when the walk runs, then the row is verified on the name literal and its detail names the set-aside api-key literal and its cue.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
         "narrative": {
           "Acceptance": "Given the issue clause shape bound to a file holding the name literal and the api-key prefix, when the walk runs, then the row is verified on the name literal and its detail names the set-aside api-key literal and its cue."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e0b421facf4e3a1674fe55f9e4f837595c372aa1",
+          "recorded_at": "2026-11-23T14:43:42Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given clauses where the literal is negated by never, not, cannot or a word ending in `n't` directly before it, by one display verb between (does not show, never contains), or after it (the literal, then is never shown, or must not appear), when the walk runs, then the literal is set aside and the row is not failed.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.8",
         "narrative": {
           "Acceptance": "Given a literal negated by never, not, cannot or a word ending in n't directly before it, by one display verb between, or after it with is never shown or must not appear, when the walk runs, then the literal is set aside and the row is not failed."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e0b421facf4e3a1674fe55f9e4f837595c372aa1",
+          "recorded_at": "2026-11-23T14:43:42Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given clauses where the literal follows not only, no change to, without breaking, never omit, never fails to show, or a cue with a comma or colon between, when the walk runs, then that literal keeps the presence check and fails when missing.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.9",
         "narrative": {
           "Acceptance": "Given a literal after not only, no change to, without breaking, never omit, never fails to show, or a cue with a comma or colon between, when the walk runs, then the literal keeps the presence check and fails when missing."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e0b421facf4e3a1674fe55f9e4f837595c372aa1",
+          "recorded_at": "2026-11-23T14:43:42Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given a clause with never before two literals joined by or, when the walk runs, then both literals are set aside.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.10",
         "narrative": {
           "Acceptance": "Given never before two literals joined by or, when the walk runs, then both literals are set aside."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e0b421facf4e3a1674fe55f9e4f837595c372aa1",
+          "recorded_at": "2026-11-23T14:43:42Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given a mixed clause with a positive literal of at least three characters and a negated one, when the walk runs, then the positive literal is checked (verified when present, failed when missing) and the negated literal is never checked.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.11",
         "narrative": {
           "Acceptance": "Given a mixed clause with a positive literal of at least three characters and a negated one, when the walk runs, then the positive literal is checked (verified when present, failed when missing) and the negated literal is never checked."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e0b421facf4e3a1674fe55f9e4f837595c372aa1",
+          "recorded_at": "2026-11-23T14:43:42Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given a clause with an absence phrase that names no declared path, bound to a present file, when the walk runs, then the row is non-adjudicable unverifiable, not verified.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.12",
         "narrative": {
           "Acceptance": "Given an absence phrase that names no declared path, bound to a present file, when the walk runs, then the row is non-adjudicable unverifiable, not verified."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e0b421facf4e3a1674fe55f9e4f837595c372aa1",
+          "recorded_at": "2026-11-23T14:43:42Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given a clause with a positive existence word and only set-aside spans, when the walk runs and when the #3550 behavioral count runs, then the walk row is non-adjudicable unverifiable and the count treats the clause as behavioral.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.13",
         "narrative": {
           "Acceptance": "Given a positive existence word and only set-aside spans, when the walk runs and the #3550 behavioral count runs, then the row is non-adjudicable unverifiable and the count treats the clause as behavioral."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e0b421facf4e3a1674fe55f9e4f837595c372aa1",
+          "recorded_at": "2026-11-23T14:43:42Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given a brief whose only clause has every span set aside, no executable acceptance command and no declared test command, when `scope:complete` evaluates the acceptance walk, then it refuses with the zero-verified notice as today; with a declared test command that passes, the #7047 floor admits it as today.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.14",
         "narrative": {
           "Acceptance": "Given a brief whose only clause has every span set aside, no executable acceptance command and no declared test command, when scope:complete evaluates the walk, then it refuses with the zero-verified notice as today; with a passing declared test command the #7047 floor admits it as today."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e0b421facf4e3a1674fe55f9e4f837595c372aa1",
+          "recorded_at": "2026-11-23T14:43:42Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given a mixed clause whose checked span is present and no executable run, when verify:ac runs on an otherwise bank-eligible brief, then the resolution is `verified-pass`, the AC pass bank accepts it as today, and the row detail lists the set-aside literal as not checked.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.15",
         "narrative": {
           "Acceptance": "Given a mixed clause whose checked span is present and no executable run, when verify:ac runs on an otherwise bank-eligible brief, then the resolution is verified-pass, the AC pass bank accepts it as today, and the row detail lists the set-aside literal as not checked."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e0b421facf4e3a1674fe55f9e4f837595c372aa1",
+          "recorded_at": "2026-11-23T14:43:42Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "The existing #3826, #4240, #5393 and #6269 tests in `clauses.test.ts` pass unchanged, and `plan-acceptance.md` states the negation rule and the existence guard.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.16",
         "narrative": {
           "Acceptance": "When the suite runs, then the existing #3826, #4240, #5393 and #6269 tests in clauses.test.ts pass unchanged, and plan-acceptance.md states the negation rule and the existence guard."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e0b421facf4e3a1674fe55f9e4f837595c372aa1",
+          "recorded_at": "2026-11-23T14:43:42Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given a clause with two negations in a row before a literal (cannot not show, or a word ending in `n't` then not show) or after it (an auxiliary ending in `n't` then not appear), when the walk runs, then the literal keeps the presence check and fails when missing.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.17",
         "narrative": {
           "Acceptance": "Given two negations in a row before a literal (cannot not show, or a word ending in n't then not show) or after it (an auxiliary ending in n't then not appear), when the walk runs, then the literal keeps the presence check and fails when missing."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e0b421facf4e3a1674fe55f9e4f837595c372aa1",
+          "recorded_at": "2026-11-23T14:43:42Z",
+          "recorded_by": "scope:complete"
         }
       }
     ],
@@ -1210,9 +1329,38 @@
         "conflict_group": "verify-ac-clause-walk",
         "model_tier": "high",
         "acceptance_criteria_justification": "The 17 clauses are the Bound-remedy items and Acceptance Criteria of the accepted design-critique lean 7092358691 (synthesis 7092408583, ingest-ready), harvested and digest-pinned by triage:accept (Spec-path); they cannot be merged or dropped without breaking the admitted-source pin."
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "d56fdb69304fe7c3a10f880d1c3783dbfa7dabd4",
+        "prNumber": 7198,
+        "prBase": "master",
+        "mergeCommit": "e0b421facf4e3a1674fe55f9e4f837595c372aa1",
+        "deliveryBranch": "master",
+        "deliveryCommit": "e0b421facf4e3a1674fe55f9e4f837595c372aa1",
+        "verifiedAt": "2026-11-23T14:43:42Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:OWEwZDY5MDktOTZkNS00NjFiLWIzMTUtODg5ZjNlZjFkNTI0",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          7190
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-23T14:43:42Z",
+      "completedSessionId": "host:claude:v1:OWEwZDY5MDktOTZkNS00NjFiLWIzMTUtODg5ZjNlZjFkNTI0",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-23T14:43:42Z"
       }
     },
     "id": "github.issue.6551976312",
-    "updated": "2026-11-23T05:35:47Z"
+    "updated": "2026-11-23T14:43:42Z"
   }
 }
