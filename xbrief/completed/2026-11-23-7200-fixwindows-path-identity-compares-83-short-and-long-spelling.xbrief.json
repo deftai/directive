@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #7200",
-    "updated": "2026-11-23T15:32:55Z"
+    "updated": "2026-11-23T20:52:06Z"
   },
   "plan": {
     "title": "fix(windows): path identity compares 8.3 short and long spellings in the shared git path helpers (#7199 A)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "On Windows one folder has several spellings: the long name, the 8.3 short name that os.tmpdir() returns on the CI runners, another letter case, or a junction path. Directive's path-identity checks in hook root admission, occupancy, the session ritual and swarm compare those spellings as strings, so one worktree looks like two and the session's own checkout is refused as foreign-repository. This story adds one win32 canonical-path helper in session/git.ts, routes every named identity compare and the worker-auth and spawn-reservation hash keys through it, and leaves POSIX code paths, recorded fields and dispatcher.ts message text unchanged.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/7200",
@@ -20,130 +20,242 @@
     "items": [
       {
         "title": "Helper. `packages/core/src/session/git.ts` exports `canonicalPathIdentity(path)` and `samePathIdentity(a, b)`. On win32, `canonicalPathIdentity` returns `realpathSync.native(path)`; when that fails with ENOENT or ENOTDIR it resolves the nearest existing ancestor natively and appends the missing rest unchanged; any other failure returns null. It keeps the native case and never folds case. `samePathIdentity` is true only when the two inputs are already equal under the site's existing compare, or both canonical forms are non-null and equal. On POSIX neither function is called by any site in this change, so every POSIX path keeps the function it uses today (`resolve`, JS `realpathSync`, or a fold).",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "When the build lands, then packages/core/src/session/git.ts exports canonicalPathIdentity and samePathIdentity; on win32 canonicalPathIdentity returns the realpathSync.native form in native case with no case fold, falls back on ENOENT or ENOTDIR to the nearest existing native ancestor plus the unchanged rest, and returns null on any other failure; samePathIdentity is true only under the site's existing compare or for equal non-null canonical forms; POSIX sites call neither."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a0436c611ff09a12adaeafb2a99292ea5761d482",
+          "recorded_at": "2026-11-23T20:22:32Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Git helpers. On win32, `gitCommonDir`, `worktreePath` and `worktreePathOrNull` pass their result through `canonicalPathIdentity` and keep today's value when it returns null. The git argv is unchanged (no `--path-format`, so no git-version dependency and no test-mock churn). `mainWorktreeRoot` inherits the fix.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "When gitCommonDir, worktreePath or worktreePathOrNull run on win32, then each returns canonicalPathIdentity of today's result and keeps today's value when the helper returns null, the git argv is unchanged, and mainWorktreeRoot inherits the fix."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a0436c611ff09a12adaeafb2a99292ea5761d482",
+          "recorded_at": "2026-11-23T20:22:32Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Identity compares. On win32 these compare through `samePathIdentity`: `admitEffectiveHookRoot` (both equality tests; on a match found only by canonical identity it returns the candidate, git's spelling, as the effective root) and the root de-duplication in `admitMutationTargetSet`; `occupancyWorktreeMatches` (`occupancyCanonicalPath` uses the helper on win32); the ritual-state worktree compare in `verify-session-ritual.ts` and `session-start.ts`; `restampOwnerLivenessOnHookEvent`; `sameRepoPath` and the alias-peer `physicalTargetKey` in `swarm/pre-dispatch.ts` (the key keeps its fold; the lexical ledger key `normalizeTargetId` stays lexical); `sameTree` in `worktree-pm-install.ts`, `main-worktree.ts`, `spawn-occupancy.ts` (including `existingDispatchReservation`) and `child-occupancy.ts`; the main-root compare in `swarm/dest-place.ts`; and the `resolveWorktreeMap` lookup against `git worktree list`, whose `compareKey` folds the canonical form exactly as it folds today. The local `sameTree` / `sameRepoPath` copies are replaced by one shared export that keeps each site's current behavior plus the win32 identity test.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "When the named win32 identity compares run (admitEffectiveHookRoot and admitMutationTargetSet, occupancyWorktreeMatches, the ritual compare in verify-session-ritual.ts and session-start.ts, restampOwnerLivenessOnHookEvent, sameRepoPath and physicalTargetKey, sameTree in worktree-pm-install.ts, main-worktree.ts, spawn-occupancy.ts and child-occupancy.ts, the dest-place main-root compare, and resolveWorktreeMap), then each compares through samePathIdentity via one shared export, admission returns the candidate on a canonical-only match, and normalizeTargetId stays lexical."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a0436c611ff09a12adaeafb2a99292ea5761d482",
+          "recorded_at": "2026-11-23T20:22:32Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Hash keys. On win32, worker-auth `canonicalWorktreePath` (used by write, reuse match, cleanup, and the reader through `resolveWorkerAuthDestPath`) and spawn `reservationDigestKey` (reserve, read, release) build their key from `canonicalPathIdentity`; the reservation key keeps its case fold. For git's long spelling of an existing worktree the key is the same as before. Nothing looks up a pre-fix key. Residual, named: a worker-auth record written before the fix under a non-canonical spelling stays an unread orphan file (the reader already never found it), and a spawn lock written before the fix under such a spelling is not seen by a later reserve, so a reservation live across the upgrade can be doubled once, the same split two spellings cause today.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "When worker-auth canonicalWorktreePath (write, reuse match, cleanup and read) or spawn reservationDigestKey (reserve, read and release) builds a key on win32, then the key comes from canonicalPathIdentity, the reservation key keeps its case fold, the key for git's long spelling is unchanged, and no code path looks up a pre-fix key."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a0436c611ff09a12adaeafb2a99292ea5761d482",
+          "recorded_at": "2026-11-23T20:22:32Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Storage and messages. Recorded fields keep what they record today; no record is rewritten and no migration runs. No refusal or message text in `packages/core/src/hooks/dispatcher.ts` changes; only path spellings inside existing messages may change. Write-target containment, the write fence and the protected-destination realpath checks do not use the helper.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.5",
         "narrative": {
           "Acceptance": "When the change ships, then recorded fields keep what they record today with no rewrite or migration, no refusal or message text in dispatcher.ts changes except path spellings inside existing messages, and write-target containment, the write fence and the protected-destination realpath checks do not call the helper."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a0436c611ff09a12adaeafb2a99292ea5761d482",
+          "recorded_at": "2026-11-23T20:22:32Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Docs. `content/docs/hook-root-admission.md` says that on win32 the payload root and candidate roots compare by physical identity (a junction or 8.3 spelling of the same checkout is that checkout), that write targets are still not canonicalized (#4023 unchanged), and that no case fold applies to roots.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.6",
         "narrative": {
           "Acceptance": "When a reader opens content/docs/hook-root-admission.md, then it states that on win32 the payload root and candidate roots compare by physical identity, that write targets are still not canonicalized (#4023), and that no case fold applies to roots."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a0436c611ff09a12adaeafb2a99292ea5761d482",
+          "recorded_at": "2026-11-23T20:22:32Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Tests (win32, skipped when no 8.3 name exists for the fixture folder, found with `cmd /c for %I in (\"<path>\") do @echo %~sI` and checked to resolve to that folder): the helper (8.3, lowercase, missing leaf, a failure other than ENOENT or ENOTDIR gives null and adds no equality); `gitCommonDir`; and one 8.3 case per family: admission, ritual compare, owner-liveness, `isMainWorktreePath`, pre-dispatch alias peer, spawn reservation key, worker-auth key, `resolveWorktreeMap`; POSIX tests are unchanged.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.7",
         "narrative": {
           "Acceptance": "When the targeted tests run on win32 with an 8.3 name available, then tests cover the helper (8.3, lowercase, missing leaf, and a non-ENOENT failure that returns null and adds no equality), gitCommonDir, and one 8.3 case each for admission, ritual compare, owner-liveness, isMainWorktreePath, pre-dispatch alias peer, spawn reservation key, worker-auth key and resolveWorktreeMap; they skip where no 8.3 name exists and POSIX tests are unchanged."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a0436c611ff09a12adaeafb2a99292ea5761d482",
+          "recorded_at": "2026-11-23T20:22:32Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "One PR: `git.ts` and the files in items 3 and 4, their tests, the doc in item 6 and one `changelog.d/` fragment. Install, upgrade, doctor, setup, launcher and uninstall code is not touched; the one edit in `swarm/worktree-pm-install.ts` is the identity guard of linked-worktree preparation (`sameTree`), not package-install logic. After merge the nightly Windows lane decides the five probable files; each still red gets its own issue with Refs #7199.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.8",
         "narrative": {
           "Acceptance": "When the product PR opens, then it carries git.ts, the item 3 and 4 files, their tests, the hook-root-admission doc and one changelog.d fragment, touches no install, upgrade, doctor, setup, launcher or uninstall code, and edits worktree-pm-install.ts only at its sameTree identity guard."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a0436c611ff09a12adaeafb2a99292ea5761d482",
+          "recorded_at": "2026-11-23T20:22:32Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "`packages/core/src/session/git.ts` exports `canonicalPathIdentity` and `samePathIdentity`; on win32 an 8.3 spelling and a lowercase spelling of one existing folder give the same canonical form as its long spelling, a missing leaf (ENOENT or ENOTDIR) keeps its spelling under the native ancestor, any other failure gives null, and null adds no equality beyond the site's existing compare.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.9",
         "narrative": {
           "Acceptance": "Given an 8.3 spelling and a lowercase spelling of one existing folder on win32, then canonicalPathIdentity returns the same form as for its long spelling, a missing leaf keeps its spelling under the native ancestor, any other failure returns null, and null adds no equality beyond the site's existing compare."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a0436c611ff09a12adaeafb2a99292ea5761d482",
+          "recorded_at": "2026-11-23T20:22:32Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "On win32, `gitCommonDir`, `worktreePath` and `worktreePathOrNull` return the helper's form when it resolves and today's value when it returns null, so `gitCommonDir` from the 8.3 spelling of a main worktree equals the value from its long spelling and from a linked worktree of the same repository.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.10",
         "narrative": {
           "Acceptance": "Given the 8.3 spelling of a main worktree on win32, then gitCommonDir returns the same value as from its long spelling and from a linked worktree of the same repository, and worktreePath and worktreePathOrNull return the helper form or today's value on null."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a0436c611ff09a12adaeafb2a99292ea5761d482",
+          "recorded_at": "2026-11-23T20:22:32Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Given a payload root in 8.3 spelling and a write target in the same main worktree or in a linked worktree of the same repository, `admitEffectiveHookRoot` admits; a target in a different repository is still refused `foreign-repository`; no case fold is applied to roots.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.11",
         "narrative": {
           "Acceptance": "Given a payload root in 8.3 spelling and a write target in the same main worktree or in a linked worktree of the same repository, then admitEffectiveHookRoot admits; a target in a different repository still fails as foreign-repository, and no case fold applies to roots."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a0436c611ff09a12adaeafb2a99292ea5761d482",
+          "recorded_at": "2026-11-23T20:22:32Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "On win32, occupancy, the ritual-state worktree compare, owner-liveness re-stamp, `isMainWorktreePath`, linked-worktree prep, dest-place, story binding (`sameRepoPath`), the pre-dispatch alias-peer check, spawn and child occupancy, and `resolveWorktreeMap` treat an 8.3 spelling and the long spelling of one worktree as the same worktree, each proven by a test that is skipped where 8.3 names are unavailable.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.12",
         "narrative": {
           "Acceptance": "Given an 8.3 and a long spelling of one worktree on win32, then occupancy, the ritual compare, owner-liveness re-stamp, isMainWorktreePath, linked-worktree prep, dest-place, story binding, the pre-dispatch alias-peer check, spawn and child occupancy, and resolveWorktreeMap treat them as one worktree, each shown by a test that skips where 8.3 names are unavailable."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a0436c611ff09a12adaeafb2a99292ea5761d482",
+          "recorded_at": "2026-11-23T20:22:32Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Worker-auth keys (write, reuse match, cleanup and read) and spawn reservation keys (reserve, read and release) are the same for the 8.3 and long spellings of one worktree and unchanged for the long spelling; no code path looks up a pre-fix key.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.13",
         "narrative": {
           "Acceptance": "Given the 8.3 and long spellings of one worktree, then worker-auth keys (write, reuse match, cleanup and read) and spawn reservation keys (reserve, read and release) are equal, the key for the long spelling is unchanged, and no code path looks up a pre-fix key."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a0436c611ff09a12adaeafb2a99292ea5761d482",
+          "recorded_at": "2026-11-23T20:22:32Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "The 34 confirmed files listed in the issue pass on the nightly Windows lane; each of the 5 probable files passes or gets its own issue with Refs to #7199.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.14",
         "narrative": {
           "Acceptance": "When the nightly Windows lane runs after merge, then the 34 confirmed files listed in the issue pass, and each of the 5 probable files passes or has its own issue with Refs #7199."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a0436c611ff09a12adaeafb2a99292ea5761d482",
+          "recorded_at": "2026-11-23T20:22:32Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "POSIX behavior is unchanged: no POSIX branch changes, and the Linux nightly and the merge gate stay green.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.15",
         "narrative": {
           "Acceptance": "When the change merges, then no POSIX branch changes, and the Linux nightly and the merge gate stay green."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a0436c611ff09a12adaeafb2a99292ea5761d482",
+          "recorded_at": "2026-11-23T20:22:32Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "No refusal or message text in `packages/core/src/hooks/dispatcher.ts` changes, and `content/docs/hook-root-admission.md` states that roots compare by physical identity on win32 while targets are still not canonicalized (#4023).",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.16",
         "narrative": {
           "Acceptance": "When the change merges, then no refusal or message text in packages/core/src/hooks/dispatcher.ts changes, and content/docs/hook-root-admission.md states that roots compare by physical identity on win32 while targets are still not canonicalized (#4023)."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a0436c611ff09a12adaeafb2a99292ea5761d482",
+          "recorded_at": "2026-11-23T20:22:32Z",
+          "recorded_by": "scope:complete"
         }
       }
     ],
@@ -751,7 +863,37 @@
         "harvestDigest": "a46d087e35c0ad2658b2e70ebe9521e9162bef5a5ebfe52e876e263b4882a9c0",
         "slice": null
       },
-      "kind": "story"
+      "kind": "story",
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "00ac71b1f361d7ed7f88340312c736d269c88242",
+        "prNumber": 7215,
+        "prBase": "master",
+        "mergeCommit": "a0436c611ff09a12adaeafb2a99292ea5761d482",
+        "deliveryBranch": "master",
+        "deliveryCommit": "f1644c49fb3e99e79800440e6344337114f6206d",
+        "verifiedAt": "2026-11-23T20:52:06Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:OWEwZDY5MDktOTZkNS00NjFiLWIzMTUtODg5ZjNlZjFkNTI0",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          7209,
+          7211
+        ]
+      },
+      "completedAt": "2026-11-23T20:52:06Z",
+      "completedSessionId": "host:claude:v1:OWEwZDY5MDktOTZkNS00NjFiLWIzMTUtODg5ZjNlZjFkNTI0",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-23T20:52:06Z"
+      }
     },
     "acceptance": {
       "commands": [],
@@ -912,6 +1054,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.6561558004",
-    "updated": "2026-11-23T15:32:55Z"
+    "updated": "2026-11-23T20:52:06Z"
   }
 }
