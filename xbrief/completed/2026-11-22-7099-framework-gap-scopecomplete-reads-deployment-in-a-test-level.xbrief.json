@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #7099",
-    "updated": "2026-11-22T23:17:39Z"
+    "updated": "2026-11-23T17:21:40Z"
   },
   "plan": {
     "title": "[framework-gap] scope:complete reads 'deployment' in a test-level criterion as a required deploy axis",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "[framework-gap] scope:complete reads 'deployment' in a test-level criterion as a required deploy axis",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/7099",
@@ -17,91 +17,207 @@
     "items": [
       {
         "title": "Explainer. A new exported `explainTextStrictAxes(item)` in `packages/core/src/scope/acceptance-evidence.ts` builds the same joined, lowercased, slash-split text that `inferTextStrictAxes` matches today, with an index map from each character back to its field and original index, and runs the same regexes over all matches. Per axis it returns up to 3 matches and a count of the rest. Each match gives the field holding its start, `crossField: true` when it ends in another field, and an excerpt: the matched words plus up to four words either side, sliced from the original field text through the map. `inferTextStrictAxes` takes its axis list from the explainer, so decision and explanation cannot drift.",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "fa82f3886bd9f50de53e1ac843c081fdc50c9e9b",
+          "recorded_at": "2026-11-23T17:21:40Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Declared axes. When a declaration decides the axes, the report names the field that held the winning token and its value, using the existing precedence of the eight fields.",
-        "status": "proposed",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "fa82f3886bd9f50de53e1ac843c081fdc50c9e9b",
+          "recorded_at": "2026-11-23T17:21:40Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Fence. Every printed excerpt is cut to 80 characters first and then passed through `fenceUntrustedAcceptanceText`.",
-        "status": "proposed",
-        "id": "clause.3"
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "fa82f3886bd9f50de53e1ac843c081fdc50c9e9b",
+          "recorded_at": "2026-11-23T17:21:40Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Refusal detail. For an unsuitable `evidence.kind`, the `scope:complete` detail adds one continuation line per reported match (`<axis> from <field>: <excerpt>`, then `(+N more)`), or the declared field from item 2. When more than one strict axis is required, it says that no single evidence kind satisfies the clause.",
-        "status": "proposed",
-        "id": "clause.4"
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "fa82f3886bd9f50de53e1ac843c081fdc50c9e9b",
+          "recorded_at": "2026-11-23T17:21:40Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Refusal remedy. When a blocker is an axis mismatch, the gate's closing text for that item replaces \"Write evidence/disposition on the plan item at the reported path\" with: record evidence of the required kind, or an operator runs `formatAcceptanceDispositionCommand` with `not_applicable`, the plan id when present and the item id. It states that the grant disposes of the whole criterion and replaces its evidence, that the grant is bound to the clause text (`clause.N` ids) or the item title only, and that #7127 tracks a correction that keeps test evidence. An item without an id is reported as not targetable by a grant. The refusal does not suggest rewording the clause or adding a declaration. `formatAcceptanceDispositionCommand` and its template-name constant move into `scope/acceptance-evidence.ts`; `policy/acceptance-disposition-grant.ts` re-exports them.",
-        "status": "proposed",
-        "id": "clause.5"
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "fa82f3886bd9f50de53e1ac843c081fdc50c9e9b",
+          "recorded_at": "2026-11-23T17:21:40Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Advisories. At `scope:promote`, `scope:activate` and `xbrief:preflight` each row keeps its current text, and its reported matches print on indented continuation lines under it. At promote and activate the last line also says that a `merge` declaration means no strict axis, so test, review or merge evidence then passes. At `xbrief:preflight` the last line names the item 5 grant command and still does not suggest a declaration.",
-        "status": "proposed",
-        "id": "clause.6"
+        "status": "completed",
+        "id": "clause.6",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "fa82f3886bd9f50de53e1ac843c081fdc50c9e9b",
+          "recorded_at": "2026-11-23T17:21:40Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "The classifier's results do not change, and existing axis expectations stay as they are.",
-        "status": "proposed",
-        "id": "clause.7"
+        "status": "completed",
+        "id": "clause.7",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "fa82f3886bd9f50de53e1ac843c081fdc50c9e9b",
+          "recorded_at": "2026-11-23T17:21:40Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "One PR: `acceptance-evidence.ts` and its tests, the re-export in `policy/acceptance-disposition-grant.ts`, the tests that assert advisory output (`packages/core/src/scope/main.test.ts`, runtime preflight tests), one sentence in `content/commands.md` that shows the `not_applicable` grant, and one `changelog.d/` fragment.",
-        "status": "proposed",
-        "id": "clause.8"
+        "status": "completed",
+        "id": "clause.8",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "fa82f3886bd9f50de53e1ac843c081fdc50c9e9b",
+          "recorded_at": "2026-11-23T17:21:40Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given the #7099 criterion as an item title, when `explainTextStrictAxes` runs, then it returns `deploy` with field `title`, `crossField: false` and an excerpt that contains \"deployment\" in its original case.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.9",
-        "x-directive/requires": "merge"
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "fa82f3886bd9f50de53e1ac843c081fdc50c9e9b",
+          "recorded_at": "2026-11-23T17:21:40Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given every string in the existing axis tests, plus title `observed` with id `behavior` and title `user` with id `acceptance`, then the explainer's axis set equals `inferRequiredStrictAxes` with no declaration, the two cross-field cases report `crossField: true`, and no existing axis expectation changes.",
-        "status": "proposed",
-        "id": "clause.10"
+        "status": "completed",
+        "id": "clause.10",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "fa82f3886bd9f50de53e1ac843c081fdc50c9e9b",
+          "recorded_at": "2026-11-23T17:21:40Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given an item with `x-directive/requires: merge` and `x-directive/acceptanceAxis: deploy` and `kind: test` evidence, then the refusal names `x-directive/acceptanceAxis=deploy` as the deciding field.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.11",
-        "x-directive/requires": "merge"
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "fa82f3886bd9f50de53e1ac843c081fdc50c9e9b",
+          "recorded_at": "2026-11-23T17:21:40Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given an item with an id, a deploy-axis title and `kind: test` evidence, when `scope:complete` refuses, then the refusal shows the fenced excerpt, prints the `not_applicable` grant command with that item id, says the grant replaces the evidence for the whole criterion and is bound to the clause text or title only, names #7127, and does not tell the author to write a disposition onto that item.",
-        "status": "proposed",
-        "id": "clause.12"
+        "status": "completed",
+        "id": "clause.12",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "fa82f3886bd9f50de53e1ac843c081fdc50c9e9b",
+          "recorded_at": "2026-11-23T17:21:40Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given the same item without an id, then the refusal says that no grant can target it.",
-        "status": "proposed",
-        "id": "clause.13"
+        "status": "completed",
+        "id": "clause.13",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "fa82f3886bd9f50de53e1ac843c081fdc50c9e9b",
+          "recorded_at": "2026-11-23T17:21:40Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given \"Smoke must pass after deployment\" with `kind: smoke` evidence, then the refusal says that no single evidence kind satisfies the clause.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.14",
-        "x-directive/requires": "merge"
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "fa82f3886bd9f50de53e1ac843c081fdc50c9e9b",
+          "recorded_at": "2026-11-23T17:21:40Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given a matched field that contains a backtick, `»` and a newline near the match, then every output prints the excerpt inside one fence from `fenceUntrustedAcceptanceText`, with at most 80 characters before fencing.",
-        "status": "proposed",
-        "id": "clause.15"
+        "status": "completed",
+        "id": "clause.15",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "fa82f3886bd9f50de53e1ac843c081fdc50c9e9b",
+          "recorded_at": "2026-11-23T17:21:40Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given an item with five matches for one axis, then three excerpts print, followed by `(+2 more)`.",
-        "status": "proposed",
-        "id": "clause.16"
+        "status": "completed",
+        "id": "clause.16",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "fa82f3886bd9f50de53e1ac843c081fdc50c9e9b",
+          "recorded_at": "2026-11-23T17:21:40Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given the promote, activate and preflight advisories, then each existing row text is unchanged and its matches follow on continuation lines; the promote and activate last line says what a `merge` declaration admits; the preflight last line names the grant command and no declaration.",
-        "status": "proposed",
-        "id": "clause.17"
+        "status": "completed",
+        "id": "clause.17",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "fa82f3886bd9f50de53e1ac843c081fdc50c9e9b",
+          "recorded_at": "2026-11-23T17:21:40Z",
+          "recorded_by": "scope:complete"
+        }
       }
     ],
     "tags": [
@@ -505,6 +621,36 @@
         "leanCommentId": 7087294915,
         "harvestDigest": "40782dc6550b3f1ca2a963a5d73c38c1529d656a70682acf20b56ed7c942930d",
         "slice": null
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "a169cead55297fa25cb2b649a429d9e6901545dc",
+        "prNumber": 7173,
+        "prBase": "master",
+        "mergeCommit": "fa82f3886bd9f50de53e1ac843c081fdc50c9e9b",
+        "deliveryBranch": "master",
+        "deliveryCommit": "6b4e07b92be2a3f6b036732f07176e8148bd57cb",
+        "verifiedAt": "2026-11-23T17:21:40Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:OWEwZDY5MDktOTZkNS00NjFiLWIzMTUtODg5ZjNlZjFkNTI0",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          7136,
+          7164
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-23T17:21:40Z",
+      "completedSessionId": "host:claude:v1:OWEwZDY5MDktOTZkNS00NjFiLWIzMTUtODg5ZjNlZjFkNTI0",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-23T17:21:40Z"
       }
     },
     "acceptance": {
@@ -675,6 +821,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.6548326984",
-    "updated": "2026-11-22T23:17:39Z"
+    "updated": "2026-11-23T17:21:40Z"
   }
 }
