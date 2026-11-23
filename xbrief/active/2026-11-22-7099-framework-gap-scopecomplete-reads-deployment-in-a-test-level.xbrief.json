@@ -675,25 +675,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.6548326984",
-    "updated": "2026-11-22T23:17:39Z",
-    "x-directive/intentConstraint": {
-      "constraints": [
-        {
-          "value": "3",
-          "unit": "matches",
-          "rejectionScope": "item"
-        },
-        {
-          "value": "4",
-          "unit": "words",
-          "rejectionScope": "item"
-        },
-        {
-          "value": "80",
-          "unit": "characters",
-          "rejectionScope": "item"
-        }
-      ]
-    }
+    "updated": "2026-11-22T23:17:39Z"
   }
 }
