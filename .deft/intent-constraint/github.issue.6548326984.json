@@ -1,0 +1,30 @@
+{
+  "schema": "deft.intent-constraint.v1",
+  "planId": "github.issue.6548326984",
+  "xbriefRelPath": "xbrief/active/2026-11-22-7099-framework-gap-scopecomplete-reads-deployment-in-a-test-level.xbrief.json",
+  "approvedAt": "2026-11-23T02:45:22Z",
+  "constraints": [
+    {
+      "value": "3",
+      "unit": "matches",
+      "rejectionScope": "item"
+    },
+    {
+      "value": "4",
+      "unit": "words",
+      "rejectionScope": "item"
+    },
+    {
+      "value": "80",
+      "unit": "characters",
+      "rejectionScope": "item"
+    }
+  ],
+  "humanApproval": {
+    "kind": "declared",
+    "actor": "scott",
+    "mintedAt": "2026-11-23T02:45:22Z",
+    "mintedVia": "scope:record-intent-constraint"
+  },
+  "contractDigest": "2e3bde41e1df344e062c5a5cc8ebb3b1ea8cccf28c9639e2ca0361acb1688d22"
+}
