@@ -1,0 +1,117 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #7181",
+    "updated": "2026-11-23T13:59:25Z"
+  },
+  "plan": {
+    "title": "test(flaky): #6904 tree-kill tests in ci-reuse.test.ts and the occupancy suite fail intermittently in the queue",
+    "status": "running",
+    "narratives": {
+      "Description": "test(flaky): #6904 tree-kill tests in ci-reuse.test.ts and the occupancy suite fail intermittently in the queue",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/7181",
+      "Overview": "## Problem\n\nTwo tests fail intermittently in the merge queue and in `scope:complete`:\n\n1. `packages/core/src/release/ci-reuse.test.ts`, describe \"smoke command under the timed-child supervisor (#6904)\". \"stops a child that outlives the deadline and reports the tree stopped\" (line 636) failed in merge-group runs 45105737860 (#7166 group) and 45106027256 (#7167 group) on 2026-11-23, each time the only failure in 1674 files. \"still stops the child but reports unverified when the scan fails\" (line 643) failed on a third queue run that night. Both tests take about 2.5 s of real time (Greptile flagged them against the slow-test rule, #975, on #6904's PR #7129). Each failure drops the PR out of the queue.\n2. The occupancy acceptance suite fails intermittently when `scope:complete` runs it as an acceptance command (seen on the #6679 lifecycle, 2026-11-23). A re-run passes. Split out to #7195.\n\n## Acceptance Criteria\n\n- [ ] The two #6904 tree-kill tests stay real-process tests, with recorded Linux stress evidence: the liveness probe misread rate before and after the fix, and at least 90 test runs with no failure.\n- [ ] Per `CONTRIBUTING.md` § Slow tests (#975) there is no slow marker; the real-process tree-kill proof is kept, and the fix removes the race rather than hiding it.\n\nRefs #6904, #7129, #975, #6679.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\n"
+    },
+    "items": [
+      {
+        "title": "The two #6904 tree-kill tests stay real-process tests, with recorded Linux stress evidence: the liveness probe misread rate before and after the fix, and at least 90 test runs with no failure.",
+        "status": "proposed",
+        "id": "clause.1"
+      },
+      {
+        "title": "Per `CONTRIBUTING.md` § Slow tests (#975) there is no slow marker; the real-process tree-kill proof is kept, and the fix removes the race rather than hiding it.",
+        "status": "proposed",
+        "id": "clause.2"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/7181",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #7181: test(flaky): #6904 tree-kill tests in ci-reuse.test.ts and the occupancy suite fail intermittently in the queue"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6904",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6904"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per sentence-list entry (2), in order (#6333)",
+      "sentences": [
+        "The two #6904 tree-kill tests stay real-process tests, with recorded Linux stress evidence: the liveness probe misread rate before and after the fix, and at least 90 test runs with no failure.",
+        "Per `CONTRIBUTING.md` § Slow tests (#975) there is no slow marker; the real-process tree-kill proof is kept, and the fix removes the race rather than hiding it."
+      ],
+      "admitted_source_sentences": [
+        "The two #6904 tree-kill tests stay real-process tests, with recorded Linux stress evidence: the liveness probe misread rate before and after the fix, and at least 90 test runs with no failure.",
+        "Per `CONTRIBUTING.md` § Slow tests (#975) there is no slow marker; the real-process tree-kill proof is kept, and the fix removes the race rather than hiding it."
+      ],
+      "admitted_source_digest": "32790a9f1d93700a544a34c59f32fed63e81e99273381a2780906ef1db949403",
+      "admitted_source_extractor": 2,
+      "clauses": [
+        {
+          "id": 1,
+          "text": "The two #6904 tree-kill tests stay real-process tests, with recorded Linux stress evidence: the liveness probe misread rate before and after the fix, and at least 90 test runs with no failure.",
+          "artifact_path": "packages/core/src/release/ci-reuse.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Per `CONTRIBUTING.md` § Slow tests (#975) there is no slow marker; the real-process tree-kill proof is kept, and the fix removes the race rather than hiding it.",
+          "artifact_path": "packages/core/src/check/suite-gate-supervisor-lib.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6552685477,
+        "origin": "deftai/directive#7181",
+        "id": "github.issue.6552685477"
+      },
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/check/suite-gate-supervisor-lib.ts",
+          "packages/core/src/check/suite-gate-supervisor.test.ts",
+          "packages/core/src/release/ci-reuse.test.ts",
+          "changelog.d/7181-tree-kill-pending-sigkill.md",
+          "docs/RULE-MAP.md",
+          "xbrief/evaluator-surface-disposition.json",
+          "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "xbrief/.audit/spec-drift/github.issue.6552685477.json"
+        ],
+        "verify_commands": [
+          "npx vitest run packages/core/src/check/suite-gate-supervisor.test.ts packages/core/src/release/ci-reuse.test.ts"
+        ],
+        "size": "small",
+        "file_scope_confidence": "high",
+        "depends_on": [],
+        "expected_outputs": [
+          "suite-gate-supervisor-lib.ts: isPidRunning counts a Linux process with SIGKILL pending (SigPnd/ShdPnd) as not running, via hasPendingSigkill; no wait, no new numeric constant",
+          "suite-gate-supervisor.test.ts: unit cases for SIGKILL pending in SigPnd and ShdPnd, another signal pending, no pending, unreadable status",
+          "ci-reuse.test.ts tree-kill tests unchanged: real-process, no skip, assertions unchanged",
+          "PR body records the Linux stress evidence: probe misread rate before/after and at least 90 test runs",
+          "one changelog fragment changelog.d/7181-tree-kill-pending-sigkill.md"
+        ],
+        "model_tier": "high"
+      }
+    },
+    "id": "github.issue.6552685477",
+    "updated": "2026-11-23T13:59:25Z"
+  }
+}
