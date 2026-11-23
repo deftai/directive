@@ -7,12 +7,14 @@ import { afterAll, describe, expect, it } from "vitest";
 const itChmod = it.skipIf(process.platform === "win32");
 
 import { buildIssueVbrief } from "../intake/issue-ingest.js";
+import { formatFrameworkCommand } from "../render/framework-commands.js";
 import { runTransition } from "../scope/transition.js";
 import {
   ELIGIBLE_STATUS,
   emitJson,
   evaluate,
   formatActivateHint,
+  formatOriginCommand,
   PREFLIGHT_NOT_AUTHORIZATION,
   PREFLIGHT_USAGE_HINT,
 } from "./evaluate.js";
@@ -524,7 +526,7 @@ describe("origin freshness (#3363)", () => {
     expect(readFileSync(path, "utf8")).toBe(before);
   });
 
-  it("fails closed when the only origin is a provenance Origin URL", () => {
+  it("fails closed when the only origin is an ingest Origin URL whose body changed", () => {
     const path = writeVbrief(
       "active",
       "3363-origin-text.xbrief.json",
@@ -540,10 +542,115 @@ describe("origin freshness (#3363)", () => {
       }),
     );
     const result = evaluate(path, {
-      fetchOriginUpdatedAt: () => ({ updatedAt: "2026-08-14T17:00:00Z" }),
+      fetchOriginUpdatedAt: () => ({ updatedAt: "2026-08-14T17:00:00Z", body: "New body." }),
     });
     expect(result.exitCode).toBe(1);
-    expect(result.message).toContain("newer than this xBRIEF");
+    expect(result.message).toContain("reason: origin body changed");
+  });
+});
+
+describe("origin content compare (#7138)", () => {
+  const ISSUE = "https://github.com/deftai/directive/issues/7138";
+  const OVERVIEW = "Do the thing.";
+  const PLAIN = "PLAIN-COMMENT-TEXT routine update";
+
+  function writeBodyRouteBrief(): string {
+    return writeVbrief(
+      "active",
+      "7138-body-route.xbrief.json",
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8", updated: "2026-11-01T10:00:00Z" },
+        plan: {
+          status: "running",
+          metadata: underThresholdPlacement(),
+          narratives: { Origin: `Ingested from ${ISSUE}`, Overview: OVERVIEW },
+          references: [{ type: "x-xbrief/github-issue", uri: ISSUE }],
+        },
+      }),
+    );
+  }
+
+  function drifted(body: string) {
+    return () => ({
+      updatedAt: "2026-11-01T12:00:00Z",
+      body,
+      state: "open",
+      authorLogin: "owner",
+    });
+  }
+
+  const plainComment = {
+    fetchOriginComments: () => ({
+      ok: true as const,
+      comments: [
+        {
+          id: 901,
+          body: PLAIN,
+          user: { login: "bob" },
+          updated_at: "2026-11-01T11:00:00Z",
+          html_url: `${ISSUE}#issuecomment-901`,
+        },
+      ],
+    }),
+    fetchAuthorWritePermission: () => false,
+  };
+
+  it("passes a plain comment with one WARN line naming its id and URL, without its text", () => {
+    const path = writeBodyRouteBrief();
+    const result = evaluate(path, {
+      fetchOriginUpdatedAt: drifted(OVERVIEW),
+      originReads: plainComment,
+    });
+    expect(result.exitCode).toBe(0);
+    expect(result.message).toContain("lifecycle-ready");
+    const warnLines = result.message.split("\n").filter((line) => line.startsWith("WARN: origin"));
+    expect(warnLines).toHaveLength(1);
+    expect(warnLines[0]).toContain(`901 ${ISSUE}#issuecomment-901`);
+    expect(result.message).not.toContain(PLAIN);
+  });
+
+  it("names the reason and prints the exact deft recovery for a changed body", () => {
+    const path = writeBodyRouteBrief();
+    const result = evaluate(path, {
+      fetchOriginUpdatedAt: drifted("Do another thing."),
+      originReads: plainComment,
+    });
+    expect(result.exitCode).toBe(1);
+    const lines = result.message.split("\n");
+    expect(lines[0]).toContain("Origin check refused (reason: origin body changed).");
+    expect(lines[1]).toBe(
+      `  Expected: \`deft xbrief:preflight -- ${path}\` after the recovery below.`,
+    );
+    expect(lines[2]).toBe(
+      "  Recovery: this xBRIEF is already in active/ at status running. " +
+        "Once you have re-read the origin delta, stamp xBRIEFInfo.updated in place with " +
+        `\`deft scope:block -- ${path}\` then \`deft scope:unblock -- ${path}\`. ` +
+        "That pair is interim: it records a blocked -> running transition for a brief " +
+        "that was never blocked, and #3857 owns the verb that records the acknowledgement honestly.",
+    );
+    expect(result.message).not.toContain("restore `gh` REST access");
+    expect(result.message).not.toContain("task scope:");
+  });
+
+  it("prints each command exactly as formatFrameworkCommand does", () => {
+    for (const args of [
+      ["scope:block", "--", "xbrief/active/a b$&.xbrief.json"],
+      ["scope:unblock", "--", "x.json"],
+      ["xbrief:preflight", "--", "x.json"],
+    ]) {
+      expect(formatOriginCommand(args)).toBe(formatFrameworkCommand(args));
+    }
+  });
+
+  it("keeps the restore-gh line for an unreadable thread", () => {
+    const path = writeBodyRouteBrief();
+    const result = evaluate(path, {
+      fetchOriginUpdatedAt: drifted(OVERVIEW),
+      originReads: { fetchOriginComments: () => ({ ok: false as const, reason: "HTTP 502" }) },
+    });
+    expect(result.exitCode).toBe(1);
+    expect(result.message).toContain("reason: origin unavailable");
+    expect(result.message).toContain("restore `gh` REST access");
   });
 });
 
@@ -596,8 +703,10 @@ describe("origin-freshness recovery (#3828)", () => {
     });
 
     // The printed advice must succeed from that same state and clear the reject.
-    expect(reject.message).toContain(`task scope:block -- ${path}`);
-    expect(reject.message).toContain(`task scope:unblock -- ${path}`);
+    expect(reject.message).toContain("reason: no baseline");
+    expect(reject.message).toContain(`deft scope:block -- ${path}`);
+    expect(reject.message).toContain(`deft scope:unblock -- ${path}`);
+    expect(reject.message).toContain(`deft xbrief:preflight -- ${path}`);
     expect(reject.message).toContain("#3857");
     const stampedAt = new Date("2026-08-28T18:00:00Z");
     expect(runTransition("block", path, stampedAt).ok).toBe(true);

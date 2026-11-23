@@ -18,10 +18,15 @@ export {
 export { cmdVbriefReconcile, run, usage } from "./main.js";
 export type {
   EvaluateOriginFreshnessOptions,
+  FetchAuthorWritePermission,
+  FetchOriginComments,
   FetchOriginUpdatedAt,
   GithubIssueOrigin,
+  OriginBaseline,
   OriginFreshnessKind,
   OriginFreshnessResult,
+  OriginIssueSnapshot,
+  OriginRefusalReason,
 } from "./origin-freshness.js";
 export {
   briefUpdatedOf,
@@ -32,6 +37,7 @@ export {
   fetchGithubIssueUpdatedAt,
   formatOriginStaleMessage,
   ORIGIN_FRESHNESS_REMEDIATION,
+  resolveOriginBaseline,
 } from "./origin-freshness.js";
 export {
   PARITY_SCENARIO_NAMES,
