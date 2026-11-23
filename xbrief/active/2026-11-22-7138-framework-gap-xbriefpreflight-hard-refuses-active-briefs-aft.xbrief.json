@@ -1,0 +1,355 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #7138",
+    "updated": "2026-11-22T23:29:03Z"
+  },
+  "plan": {
+    "title": "[framework-gap] xbrief:preflight hard-refuses active briefs after any comment on the origin issue (slice origin-content-compare)",
+    "status": "running",
+    "narratives": {
+      "Description": "xbrief:preflight no longer refuses an active brief only because its origin issue's updated_at moved. On drift it compares what the brief holds from the authoritative origin (stored body, stored comment thread, or Spec-path source) with the live origin, refuses on a requirement change, and warns on other activity. This brief is the single slice origin-content-compare of #7007; its contract is the accepted lean 7087466393.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/7138",
+      "Overview": "- Authoritative origin and baseline. A Spec-path brief (one with a `readSpecPathSourceRecord` record) uses the record's issue, the parent for a slice. A body-route brief (one with an ingest `plan.narratives.Origin` and no Spec-path refused-body record) uses the issue named in that Origin; its body baseline is `plan.narratives.Overview`, or an empty body when ingest wrote no `Overview`. Any other brief has no baseline. `evaluateOriginFreshness` checks the authoritative origin's `updated_at` first; no drift means pass, as today.\n- Body compare. On drift for a body-route brief, preflight compares `scan(<live body>).transformed_content` (the transform ingest used) with the body baseline, ignoring trailing whitespace. Different: refuse with the reason \"origin body changed\".\n- Comment compare (body-route brief, whose stored thread was read from its authoritative issue). On drift, preflight reads the live thread with `fetchIssueComments`. A comment is unread when its id is not in `plan.metadata.issueCommentThread` or its `updated_at` is newer than the stored entry; a brief with no stored thread treats every comment newer than its stamp as unread. An unread comment refuses when it starts with the design-critique comment lead (`model:` then `role:`), when it is the comment `selectIngestCurrentShape` selects, or when it carries an `## Acceptance Criteria` list (`criteriaListUnits`) and its author is the issue author, or `hasWritePermission` says the author may write, or `hasWritePermission` cannot answer. The same three shape tests also run on each stored comment (its scanned body in `issueCommentThread`, author checked the same way): a stored comment that had a requirement shape refuses when the live thread no longer has its id or has it with a newer `updated_at`, whatever its live shape. Every other unread comment goes into one `WARN:` line with count, ids and URLs, never comment text, telling the agent to read them before implementing (#2143). A failed or incomplete thread read refuses.\n- Spec-path compare. On drift for a Spec-path brief, preflight runs `fetchSpecPathLiveIdentities` on the recorded source and compares the digest with the brief's pin, as `verify:ac` does. Mismatch or unavailable: refuse. A body change on that issue is a `WARN:` line (the lean is the contract). Its thread is read with `fetchIssueComments` without the stored thread (which, for a slice, belongs to the child issue): an unread comment is one with `updated_at` newer than the brief stamp, judged by item 3's live shape tests; a requirement shape or unknown author permission refuses, other comments go into the `WARN:` line, and a failed read refuses. An edit or delete of the recorded lean or criteria record, or a later arc, is caught by the source resolver itself (harvest digest and completed-arc read), since that record, not the rest of the thread, is a Spec-path brief's contract.\n- Warn-only cases. Every origin other than the authoritative one (including a slice's child issue) prints a `WARN:` line naming it and never refuses, including when its fetch fails. A closed authoritative origin prints a `WARN:` line; closure alone never refuses, and it never stops items 2-4 or a failed fetch of the authoritative origin from refusing. A brief with no baseline keeps today's timestamp refusal.\n- Recovery text. The reject names its reason (body changed, requirement comment, Spec-path source changed, author permission unknown, no baseline, origin unavailable) and prints the block/unblock pair and the usage line with `formatFrameworkCommand` (`deft scope:block -- <path>`, `deft xbrief:preflight -- <path>`), keeps the #3857 pointer, and keeps \"restore `gh` access\" for the unavailable cases. The sync and refinement skills (pack source, regenerated) describe this rule instead of a refusal on any newer `updated_at`. CHANGELOG line.\n- Tests: a plain comment, a label, a close and a same-content body edit pass with the WARN; a changed body, a Constraints-only body change, a changed body on a closed origin, an edited old comment that adds an Acceptance Criteria list, an Acceptance Criteria comment whose author permission read fails, an ingest-time Acceptance Criteria comment edited to plain text, the same comment deleted, a new design-critique record and a changed Spec-path lean refuse; an issue ingested with an empty body passes a plain comment and refuses a new body; a slice is checked against its parent issue, and a slice with a non-empty child thread, an unchanged parent lean and a plain parent comment or label passes with the WARN, while a newer Acceptance Criteria comment by a writer on the parent refuses; a referenced origin's drift or fetch failure warns; a failed thread read refuses; a brief with no baseline refuses on drift; the WARN never contains comment text; the printed recovery strings are exact, and the printed `deft` commands resolve through the CLI router.\n- For a brief with a baseline (a body-route brief ingested from an issue, or a Spec-path brief with a source record), a comment with no requirement shape, a label, a close and a same-content body edit on the authoritative origin no longer make `xbrief:preflight` refuse; it passes with one `WARN:` line naming the new comments by id and URL, without their text.\n- A changed body (also on a closed origin), a new or edited comment with a design-critique comment lead, a selected Current shape comment, or an Acceptance Criteria list whose author is the issue author, a writer, or of unknown permission, a comment that had one of those shapes at ingest and is now edited or deleted, and a changed Spec-path source still refuse.\n- A Spec-path brief is compared through its recorded source issue and lean, the parent issue for a slice; its newer comments are judged by live shape, never against the child's stored thread, so harmless parent activity on a slice with a child thread passes.\n- A referenced origin other than the authoritative one only warns, including on a fetch failure; a failed or incomplete thread read of the authoritative origin refuses; a brief with no baseline keeps today's timestamp refusal.\n- The reject names its reason and prints `deft scope:block -- <path>`, `deft scope:unblock -- <path>` and `deft xbrief:preflight -- <path>`, which resolve through the CLI router.\n- The sync and refinement skills describe the new rule, with a CHANGELOG line.\n\n",
+      "Constraint": "- Treating an equal acceptance-pin digest as proof that the origin is unchanged (comment 7087292767, finding 1).\n- Comparing a Spec-path brief through its local Overview or the first reference (comment 7087292767, finding 2).\n- Passing on an unreadable comment thread (comment 7087292767, finding 3).\n- A new refusal for a closed origin, or a closure that exempts a changed body or requirement comment (comment 7087292767, finding 4; comment 7087355920, finding 1).\n- Reading a failed permission lookup as \"not a writer\" (comment 7087355920, finding 2).\n- Judging a comment only by its live shape, so an edited-away or deleted requirement comment escapes (comment 7087404461, finding 1).\n- Comparing a slice's parent thread with the child issue's stored thread (comment 7087442334, finding 1).\n- Pinning today's live body as a baseline for a brief that has none (comment 7087292767, finding 5).",
+      "UserStory": "As an agent implementing an active brief, I want xbrief:preflight to refuse only when the origin's requirements changed, so that routine comments, labels and closes on the origin issue do not cost a hand stamp or a lifecycle PR.",
+      "ImplementationPlan": "1. packages/core/src/vbrief-reconcile/origin-freshness.ts: keep the updated_at check first; on drift resolve the authoritative origin and compare the body baseline, the stored comment thread or the Spec-path source digest (Bound remedy items 1-5), with a shared requirement-shape helper under packages/core/src/intake/.\n2. packages/core/src/preflight/evaluate.ts: name the reject reason and print the recovery and usage line with formatFrameworkCommand in the deft form, keeping the #3857 pointer (item 6).\n3. Skills pack source content/packs/skills/skills-pack-0.1.json and the regenerated sync and refinement SKILL.md files, plus one changelog.d fragment (item 6).\n4. Tests: origin-freshness.test.ts, evaluate.test.ts, the intake helper test and a runtime cli-router test assert the pass, warn and refuse cases and the router resolution of the printed commands (item 7); verify with the brief's verify_commands.",
+      "Traces": "#7007 accepted design-critique arc: bound lean 7087466393, synthesis 7087516602, verified-claims table 7087510061. Related: #3363, #3857, #2143, #4434, #7085."
+    },
+    "items": [
+      {
+        "title": "Authoritative origin and baseline. A Spec-path brief (one with a `readSpecPathSourceRecord` record) uses the record's issue, the parent for a slice. A body-route brief (one with an ingest `plan.narratives.Origin` and no Spec-path refused-body record) uses the issue named in that Origin; its body baseline is `plan.narratives.Overview`, or an empty body when ingest wrote no `Overview`. Any other brief has no baseline. `evaluateOriginFreshness` checks the authoritative origin's `updated_at` first; no drift means pass, as today.",
+        "status": "proposed",
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "When the origin updated_at is not newer than the brief stamp, preflight returns a pass as today; on drift it uses the authoritative origin: the recorded source issue (the parent for a slice) for a Spec-path brief, the Origin issue for a body-route brief, and no baseline for any other brief."
+        }
+      },
+      {
+        "title": "Body compare. On drift for a body-route brief, preflight compares `scan(<live body>).transformed_content` (the transform ingest used) with the body baseline, ignoring trailing whitespace. Different: refuse with the reason \"origin body changed\".",
+        "status": "proposed",
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "When the authoritative origin of a body-route brief drifts and its scanned live body differs from the stored body baseline (trailing whitespace ignored), preflight rejects with the reason origin body changed."
+        }
+      },
+      {
+        "title": "Comment compare (body-route brief, whose stored thread was read from its authoritative issue). On drift, preflight reads the live thread with `fetchIssueComments`. A comment is unread when its id is not in `plan.metadata.issueCommentThread` or its `updated_at` is newer than the stored entry; a brief with no stored thread treats every comment newer than its stamp as unread. An unread comment refuses when it starts with the design-critique comment lead (`model:` then `role:`), when it is the comment `selectIngestCurrentShape` selects, or when it carries an `## Acceptance Criteria` list (`criteriaListUnits`) and its author is the issue author, or `hasWritePermission` says the author may write, or `hasWritePermission` cannot answer. The same three shape tests also run on each stored comment (its scanned body in `issueCommentThread`, author checked the same way): a stored comment that had a requirement shape refuses when the live thread no longer has its id or has it with a newer `updated_at`, whatever its live shape. Every other unread comment goes into one `WARN:` line with count, ids and URLs, never comment text, telling the agent to read them before implementing (#2143). A failed or incomplete thread read refuses.",
+        "status": "proposed",
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "When a body-route brief's origin drifts, preflight rejects an unread comment with a requirement shape (design-critique lead, selected Current shape, or Acceptance Criteria list by the issue author, a writer, or an author of unknown permission), a stored requirement-shaped comment that was edited or deleted, and a failed thread read; every other unread comment shows only in one WARN line with count, ids and URLs."
+        }
+      },
+      {
+        "title": "Spec-path compare. On drift for a Spec-path brief, preflight runs `fetchSpecPathLiveIdentities` on the recorded source and compares the digest with the brief's pin, as `verify:ac` does. Mismatch or unavailable: refuse. A body change on that issue is a `WARN:` line (the lean is the contract). Its thread is read with `fetchIssueComments` without the stored thread (which, for a slice, belongs to the child issue): an unread comment is one with `updated_at` newer than the brief stamp, judged by item 3's live shape tests; a requirement shape or unknown author permission refuses, other comments go into the `WARN:` line, and a failed read refuses. An edit or delete of the recorded lean or criteria record, or a later arc, is caught by the source resolver itself (harvest digest and completed-arc read), since that record, not the rest of the thread, is a Spec-path brief's contract.",
+        "status": "proposed",
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "When a Spec-path brief's origin drifts, preflight rejects a changed or unavailable source digest and a newer source-issue comment with a requirement shape or unknown author permission, and emits a WARN line for a body change or other newer comments."
+        }
+      },
+      {
+        "title": "Warn-only cases. Every origin other than the authoritative one (including a slice's child issue) prints a `WARN:` line naming it and never refuses, including when its fetch fails. A closed authoritative origin prints a `WARN:` line; closure alone never refuses, and it never stops items 2-4 or a failed fetch of the authoritative origin from refusing. A brief with no baseline keeps today's timestamp refusal.",
+        "status": "proposed",
+        "id": "clause.5",
+        "narrative": {
+          "Acceptance": "Preflight emits a WARN line and never rejects for a referenced origin (even when its fetch fails) or for a closed authoritative origin alone, and still rejects drift on a brief with no baseline."
+        }
+      },
+      {
+        "title": "Recovery text. The reject names its reason (body changed, requirement comment, Spec-path source changed, author permission unknown, no baseline, origin unavailable) and prints the block/unblock pair and the usage line with `formatFrameworkCommand` (`deft scope:block -- <path>`, `deft xbrief:preflight -- <path>`), keeps the #3857 pointer, and keeps \"restore `gh` access\" for the unavailable cases. The sync and refinement skills (pack source, regenerated) describe this rule instead of a refusal on any newer `updated_at`. CHANGELOG line.",
+        "status": "proposed",
+        "id": "clause.6",
+        "narrative": {
+          "Acceptance": "When preflight rejects on origin drift, the output names the reason and shows the deft block/unblock pair and usage line, the #3857 pointer, and the restore gh access hint for the unavailable cases; the sync and refinement skills and a CHANGELOG line describe the rule."
+        }
+      },
+      {
+        "title": "Tests: a plain comment, a label, a close and a same-content body edit pass with the WARN; a changed body, a Constraints-only body change, a changed body on a closed origin, an edited old comment that adds an Acceptance Criteria list, an Acceptance Criteria comment whose author permission read fails, an ingest-time Acceptance Criteria comment edited to plain text, the same comment deleted, a new design-critique record and a changed Spec-path lean refuse; an issue ingested with an empty body passes a plain comment and refuses a new body; a slice is checked against its parent issue, and a slice with a non-empty child thread, an unchanged parent lean and a plain parent comment or label passes with the WARN, while a newer Acceptance Criteria comment by a writer on the parent refuses; a referenced origin's drift or fetch failure warns; a failed thread read refuses; a brief with no baseline refuses on drift; the WARN never contains comment text; the printed recovery strings are exact, and the printed `deft` commands resolve through the CLI router.",
+        "status": "proposed",
+        "id": "clause.7",
+        "narrative": {
+          "Acceptance": "The tests assert that each pass case listed in Bound remedy item 7 returns a pass with the WARN and each listed refuse case fails, that the WARN never contains comment text, that the recovery strings are exact, and that the printed deft commands resolve through the CLI router."
+        }
+      },
+      {
+        "title": "For a brief with a baseline (a body-route brief ingested from an issue, or a Spec-path brief with a source record), a comment with no requirement shape, a label, a close and a same-content body edit on the authoritative origin no longer make `xbrief:preflight` refuse; it passes with one `WARN:` line naming the new comments by id and URL, without their text.",
+        "status": "proposed",
+        "id": "clause.8",
+        "narrative": {
+          "Acceptance": "When the authoritative origin of a brief with a baseline gets a comment with no requirement shape, a label, a close or a same-content body edit, xbrief:preflight returns a pass with one WARN line naming the new comments by id and URL, without their text."
+        }
+      },
+      {
+        "title": "A changed body (also on a closed origin), a new or edited comment with a design-critique comment lead, a selected Current shape comment, or an Acceptance Criteria list whose author is the issue author, a writer, or of unknown permission, a comment that had one of those shapes at ingest and is now edited or deleted, and a changed Spec-path source still refuse.",
+        "status": "proposed",
+        "id": "clause.9",
+        "narrative": {
+          "Acceptance": "xbrief:preflight still rejects a changed body (also on a closed origin), a new or edited requirement-shaped comment (design-critique lead, selected Current shape, or Acceptance Criteria list by the issue author, a writer or an author of unknown permission), such a comment edited or deleted since ingest, and a changed Spec-path source."
+        }
+      },
+      {
+        "title": "A Spec-path brief is compared through its recorded source issue and lean, the parent issue for a slice; its newer comments are judged by live shape, never against the child's stored thread, so harmless parent activity on a slice with a child thread passes.",
+        "status": "proposed",
+        "id": "clause.10",
+        "narrative": {
+          "Acceptance": "For a Spec-path brief, preflight validates against the recorded source issue and lean (the parent for a slice) and judges newer comments by live shape, so harmless parent activity on a slice with a child thread returns a pass."
+        }
+      },
+      {
+        "title": "A referenced origin other than the authoritative one only warns, including on a fetch failure; a failed or incomplete thread read of the authoritative origin refuses; a brief with no baseline keeps today's timestamp refusal.",
+        "status": "proposed",
+        "id": "clause.11",
+        "narrative": {
+          "Acceptance": "Preflight only warns for a referenced origin other than the authoritative one, even when its fetch fails, and rejects a failed or incomplete thread read of the authoritative origin and drift on a brief with no baseline."
+        }
+      },
+      {
+        "title": "The reject names its reason and prints `deft scope:block -- <path>`, `deft scope:unblock -- <path>` and `deft xbrief:preflight -- <path>`, which resolve through the CLI router.",
+        "status": "proposed",
+        "id": "clause.12",
+        "narrative": {
+          "Acceptance": "When preflight rejects on origin drift, the output names its reason and shows deft scope:block -- <path>, deft scope:unblock -- <path> and deft xbrief:preflight -- <path>, and each of those commands resolves through the CLI router."
+        }
+      },
+      {
+        "title": "The sync and refinement skills describe the new rule, with a CHANGELOG line.",
+        "status": "proposed",
+        "id": "clause.13",
+        "narrative": {
+          "Acceptance": "The deft-directive-sync and deft-directive-refinement skills describe when preflight warns and when it rejects on origin drift, and a CHANGELOG line records the change."
+        }
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/7138",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #7138: [framework-gap] xbrief:preflight hard-refuses active briefs after any comment on the origin issue (slice origin-content-compare)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/7007",
+        "type": "x-xbrief/refs",
+        "title": "Issue #7007"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "## Acceptance Criteria",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L5"
+        },
+        {
+          "command": "deft",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L9"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "file_scope": [
+          "packages/core/src/vbrief-reconcile/origin-freshness.ts",
+          "packages/core/src/vbrief-reconcile/origin-freshness.test.ts",
+          "packages/core/src/vbrief-reconcile/index.ts",
+          "packages/core/src/preflight/evaluate.ts",
+          "packages/core/src/preflight/evaluate.test.ts",
+          "packages/core/src/preflight/index.ts",
+          "packages/core/src/intake/origin-requirement-shape.ts",
+          "packages/core/src/intake/origin-requirement-shape.test.ts",
+          "packages/runtime/src/cli-router/preflight-origin-remedy-route.test.ts",
+          "content/packs/skills/skills-pack-0.1.json",
+          "content/skills/deft-directive-sync/SKILL.md",
+          "content/skills/deft-directive-refinement/SKILL.md",
+          "changelog.d/7138-preflight-origin-content-compare.md",
+          "docs/RULE-MAP.md",
+          "xbrief/evaluator-surface-disposition.json",
+          "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "xbrief/.audit/spec-drift/github.issue.6549189652.json"
+        ],
+        "verify_commands": [
+          "npx vitest run packages/core/src/vbrief-reconcile/origin-freshness.test.ts packages/core/src/preflight/evaluate.test.ts packages/core/src/intake/origin-requirement-shape.test.ts",
+          "npx vitest run packages/runtime/src/cli-router/preflight-origin-remedy-route.test.ts"
+        ],
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "depends_on": [],
+        "expected_outputs": [
+          "origin-freshness.ts: timestamp first; on drift of the authoritative origin compare the brief's baseline (body-route: scanned body + stored ingest thread; Spec-path: recorded source digest and live-shape comment check, parent issue for a slice)",
+          "requirement-shape comments (design-critique lead, selected Current shape, Acceptance Criteria list by author/writer/unknown permission) refuse when new, edited, or (stored) edited/deleted; other new comments give one WARN line with ids and URLs, no text",
+          "referenced origins and closure alone only warn; failed thread read and no-baseline drift refuse",
+          "preflight reject names its reason and prints deft scope:block / scope:unblock / xbrief:preflight via formatFrameworkCommand; #3857 pointer kept",
+          "router test: the printed deft commands resolve through routeArgv",
+          "sync and refinement skills (pack source, regenerated) describe the new rule",
+          "one changelog fragment changelog.d/7138-preflight-origin-content-compare.md"
+        ],
+        "conflict_group": "preflight-origin-freshness",
+        "model_tier": "high",
+        "acceptance_criteria_justification": "The 13 clauses are the Bound-remedy items and Acceptance Criteria of the accepted design-critique lean 7087466393 on parent #7007 (synthesis 7087516602, ingest-ready), harvested through slice origin-content-compare and digest-pinned by issue:ingest (Spec-path); they cannot be merged or dropped without breaking the admitted-source pin."
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueBody": "Slice origin-content-compare of #7007.\n\nThe contract is the accepted arc on #7007: bound lean comment 7087466393, synthesis 7087516602. This slice carries every item of that lean, so it is the whole change.\n\nRefs #7007\n\ndeft-slice: #7007 origin-content-compare\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6549189652,
+        "origin": "deftai/directive#7138",
+        "id": "github.issue.6549189652"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "c5b4058febf2355f6bb785811ea81f053201f06c1cb2ea672ad251b896d9f90d"
+      },
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 7007,
+        "leanCommentId": 7087466393,
+        "harvestDigest": "a7ccef05b776c7df3485a6f3ebf40c95c2708822899104a3c02d9de18d381d9d",
+        "slice": "origin-content-compare"
+      },
+      "kind": "story"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per harvested lean item (13), in list order (#6333)",
+      "sentences": [
+        "Authoritative origin and baseline. A Spec-path brief (one with a `readSpecPathSourceRecord` record) uses the record's issue, the parent for a slice. A body-route brief (one with an ingest `plan.narratives.Origin` and no Spec-path refused-body record) uses the issue named in that Origin; its body baseline is `plan.narratives.Overview`, or an empty body when ingest wrote no `Overview`. Any other brief has no baseline. `evaluateOriginFreshness` checks the authoritative origin's `updated_at` first; no drift means pass, as today.",
+        "Body compare. On drift for a body-route brief, preflight compares `scan(<live body>).transformed_content` (the transform ingest used) with the body baseline, ignoring trailing whitespace. Different: refuse with the reason \"origin body changed\".",
+        "Comment compare (body-route brief, whose stored thread was read from its authoritative issue). On drift, preflight reads the live thread with `fetchIssueComments`. A comment is unread when its id is not in `plan.metadata.issueCommentThread` or its `updated_at` is newer than the stored entry; a brief with no stored thread treats every comment newer than its stamp as unread. An unread comment refuses when it starts with the design-critique comment lead (`model:` then `role:`), when it is the comment `selectIngestCurrentShape` selects, or when it carries an `## Acceptance Criteria` list (`criteriaListUnits`) and its author is the issue author, or `hasWritePermission` says the author may write, or `hasWritePermission` cannot answer. The same three shape tests also run on each stored comment (its scanned body in `issueCommentThread`, author checked the same way): a stored comment that had a requirement shape refuses when the live thread no longer has its id or has it with a newer `updated_at`, whatever its live shape. Every other unread comment goes into one `WARN:` line with count, ids and URLs, never comment text, telling the agent to read them before implementing (#2143). A failed or incomplete thread read refuses.",
+        "Spec-path compare. On drift for a Spec-path brief, preflight runs `fetchSpecPathLiveIdentities` on the recorded source and compares the digest with the brief's pin, as `verify:ac` does. Mismatch or unavailable: refuse. A body change on that issue is a `WARN:` line (the lean is the contract). Its thread is read with `fetchIssueComments` without the stored thread (which, for a slice, belongs to the child issue): an unread comment is one with `updated_at` newer than the brief stamp, judged by item 3's live shape tests; a requirement shape or unknown author permission refuses, other comments go into the `WARN:` line, and a failed read refuses. An edit or delete of the recorded lean or criteria record, or a later arc, is caught by the source resolver itself (harvest digest and completed-arc read), since that record, not the rest of the thread, is a Spec-path brief's contract.",
+        "Warn-only cases. Every origin other than the authoritative one (including a slice's child issue) prints a `WARN:` line naming it and never refuses, including when its fetch fails. A closed authoritative origin prints a `WARN:` line; closure alone never refuses, and it never stops items 2-4 or a failed fetch of the authoritative origin from refusing. A brief with no baseline keeps today's timestamp refusal.",
+        "Recovery text. The reject names its reason (body changed, requirement comment, Spec-path source changed, author permission unknown, no baseline, origin unavailable) and prints the block/unblock pair and the usage line with `formatFrameworkCommand` (`deft scope:block -- <path>`, `deft xbrief:preflight -- <path>`), keeps the #3857 pointer, and keeps \"restore `gh` access\" for the unavailable cases. The sync and refinement skills (pack source, regenerated) describe this rule instead of a refusal on any newer `updated_at`. CHANGELOG line.",
+        "Tests: a plain comment, a label, a close and a same-content body edit pass with the WARN; a changed body, a Constraints-only body change, a changed body on a closed origin, an edited old comment that adds an Acceptance Criteria list, an Acceptance Criteria comment whose author permission read fails, an ingest-time Acceptance Criteria comment edited to plain text, the same comment deleted, a new design-critique record and a changed Spec-path lean refuse; an issue ingested with an empty body passes a plain comment and refuses a new body; a slice is checked against its parent issue, and a slice with a non-empty child thread, an unchanged parent lean and a plain parent comment or label passes with the WARN, while a newer Acceptance Criteria comment by a writer on the parent refuses; a referenced origin's drift or fetch failure warns; a failed thread read refuses; a brief with no baseline refuses on drift; the WARN never contains comment text; the printed recovery strings are exact, and the printed `deft` commands resolve through the CLI router.",
+        "For a brief with a baseline (a body-route brief ingested from an issue, or a Spec-path brief with a source record), a comment with no requirement shape, a label, a close and a same-content body edit on the authoritative origin no longer make `xbrief:preflight` refuse; it passes with one `WARN:` line naming the new comments by id and URL, without their text.",
+        "A changed body (also on a closed origin), a new or edited comment with a design-critique comment lead, a selected Current shape comment, or an Acceptance Criteria list whose author is the issue author, a writer, or of unknown permission, a comment that had one of those shapes at ingest and is now edited or deleted, and a changed Spec-path source still refuse.",
+        "A Spec-path brief is compared through its recorded source issue and lean, the parent issue for a slice; its newer comments are judged by live shape, never against the child's stored thread, so harmless parent activity on a slice with a child thread passes.",
+        "A referenced origin other than the authoritative one only warns, including on a fetch failure; a failed or incomplete thread read of the authoritative origin refuses; a brief with no baseline keeps today's timestamp refusal.",
+        "The reject names its reason and prints `deft scope:block -- <path>`, `deft scope:unblock -- <path>` and `deft xbrief:preflight -- <path>`, which resolve through the CLI router.",
+        "The sync and refinement skills describe the new rule, with a CHANGELOG line."
+      ],
+      "admitted_source_sentences": [
+        "Authoritative origin and baseline. A Spec-path brief (one with a `readSpecPathSourceRecord` record) uses the record's issue, the parent for a slice. A body-route brief (one with an ingest `plan.narratives.Origin` and no Spec-path refused-body record) uses the issue named in that Origin; its body baseline is `plan.narratives.Overview`, or an empty body when ingest wrote no `Overview`. Any other brief has no baseline. `evaluateOriginFreshness` checks the authoritative origin's `updated_at` first; no drift means pass, as today.",
+        "Body compare. On drift for a body-route brief, preflight compares `scan(<live body>).transformed_content` (the transform ingest used) with the body baseline, ignoring trailing whitespace. Different: refuse with the reason \"origin body changed\".",
+        "Comment compare (body-route brief, whose stored thread was read from its authoritative issue). On drift, preflight reads the live thread with `fetchIssueComments`. A comment is unread when its id is not in `plan.metadata.issueCommentThread` or its `updated_at` is newer than the stored entry; a brief with no stored thread treats every comment newer than its stamp as unread. An unread comment refuses when it starts with the design-critique comment lead (`model:` then `role:`), when it is the comment `selectIngestCurrentShape` selects, or when it carries an `## Acceptance Criteria` list (`criteriaListUnits`) and its author is the issue author, or `hasWritePermission` says the author may write, or `hasWritePermission` cannot answer. The same three shape tests also run on each stored comment (its scanned body in `issueCommentThread`, author checked the same way): a stored comment that had a requirement shape refuses when the live thread no longer has its id or has it with a newer `updated_at`, whatever its live shape. Every other unread comment goes into one `WARN:` line with count, ids and URLs, never comment text, telling the agent to read them before implementing (#2143). A failed or incomplete thread read refuses.",
+        "Spec-path compare. On drift for a Spec-path brief, preflight runs `fetchSpecPathLiveIdentities` on the recorded source and compares the digest with the brief's pin, as `verify:ac` does. Mismatch or unavailable: refuse. A body change on that issue is a `WARN:` line (the lean is the contract). Its thread is read with `fetchIssueComments` without the stored thread (which, for a slice, belongs to the child issue): an unread comment is one with `updated_at` newer than the brief stamp, judged by item 3's live shape tests; a requirement shape or unknown author permission refuses, other comments go into the `WARN:` line, and a failed read refuses. An edit or delete of the recorded lean or criteria record, or a later arc, is caught by the source resolver itself (harvest digest and completed-arc read), since that record, not the rest of the thread, is a Spec-path brief's contract.",
+        "Warn-only cases. Every origin other than the authoritative one (including a slice's child issue) prints a `WARN:` line naming it and never refuses, including when its fetch fails. A closed authoritative origin prints a `WARN:` line; closure alone never refuses, and it never stops items 2-4 or a failed fetch of the authoritative origin from refusing. A brief with no baseline keeps today's timestamp refusal.",
+        "Recovery text. The reject names its reason (body changed, requirement comment, Spec-path source changed, author permission unknown, no baseline, origin unavailable) and prints the block/unblock pair and the usage line with `formatFrameworkCommand` (`deft scope:block -- <path>`, `deft xbrief:preflight -- <path>`), keeps the #3857 pointer, and keeps \"restore `gh` access\" for the unavailable cases. The sync and refinement skills (pack source, regenerated) describe this rule instead of a refusal on any newer `updated_at`. CHANGELOG line.",
+        "Tests: a plain comment, a label, a close and a same-content body edit pass with the WARN; a changed body, a Constraints-only body change, a changed body on a closed origin, an edited old comment that adds an Acceptance Criteria list, an Acceptance Criteria comment whose author permission read fails, an ingest-time Acceptance Criteria comment edited to plain text, the same comment deleted, a new design-critique record and a changed Spec-path lean refuse; an issue ingested with an empty body passes a plain comment and refuses a new body; a slice is checked against its parent issue, and a slice with a non-empty child thread, an unchanged parent lean and a plain parent comment or label passes with the WARN, while a newer Acceptance Criteria comment by a writer on the parent refuses; a referenced origin's drift or fetch failure warns; a failed thread read refuses; a brief with no baseline refuses on drift; the WARN never contains comment text; the printed recovery strings are exact, and the printed `deft` commands resolve through the CLI router.",
+        "For a brief with a baseline (a body-route brief ingested from an issue, or a Spec-path brief with a source record), a comment with no requirement shape, a label, a close and a same-content body edit on the authoritative origin no longer make `xbrief:preflight` refuse; it passes with one `WARN:` line naming the new comments by id and URL, without their text.",
+        "A changed body (also on a closed origin), a new or edited comment with a design-critique comment lead, a selected Current shape comment, or an Acceptance Criteria list whose author is the issue author, a writer, or of unknown permission, a comment that had one of those shapes at ingest and is now edited or deleted, and a changed Spec-path source still refuse.",
+        "A Spec-path brief is compared through its recorded source issue and lean, the parent issue for a slice; its newer comments are judged by live shape, never against the child's stored thread, so harmless parent activity on a slice with a child thread passes.",
+        "A referenced origin other than the authoritative one only warns, including on a fetch failure; a failed or incomplete thread read of the authoritative origin refuses; a brief with no baseline keeps today's timestamp refusal.",
+        "The reject names its reason and prints `deft scope:block -- <path>`, `deft scope:unblock -- <path>` and `deft xbrief:preflight -- <path>`, which resolve through the CLI router.",
+        "The sync and refinement skills describe the new rule, with a CHANGELOG line."
+      ],
+      "admitted_source_digest": "823c715aca3c95113bdadca4db9108048fa501db488a818c12acc6dcdf78ba9d",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Authoritative origin and baseline. A Spec-path brief (one with a `readSpecPathSourceRecord` record) uses the record's issue, the parent for a slice. A body-route brief (one with an ingest `plan.narratives.Origin` and no Spec-path refused-body record) uses the issue named in that Origin; its body baseline is `plan.narratives.Overview`, or an empty body when ingest wrote no `Overview`. Any other brief has no baseline. `evaluateOriginFreshness` checks the authoritative origin's `updated_at` first; no drift means pass, as today.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Body compare. On drift for a body-route brief, preflight compares `scan(<live body>).transformed_content` (the transform ingest used) with the body baseline, ignoring trailing whitespace. Different: refuse with the reason \"origin body changed\".",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Comment compare (body-route brief, whose stored thread was read from its authoritative issue). On drift, preflight reads the live thread with `fetchIssueComments`. A comment is unread when its id is not in `plan.metadata.issueCommentThread` or its `updated_at` is newer than the stored entry; a brief with no stored thread treats every comment newer than its stamp as unread. An unread comment refuses when it starts with the design-critique comment lead (`model:` then `role:`), when it is the comment `selectIngestCurrentShape` selects, or when it carries an `## Acceptance Criteria` list (`criteriaListUnits`) and its author is the issue author, or `hasWritePermission` says the author may write, or `hasWritePermission` cannot answer. The same three shape tests also run on each stored comment (its scanned body in `issueCommentThread`, author checked the same way): a stored comment that had a requirement shape refuses when the live thread no longer has its id or has it with a newer `updated_at`, whatever its live shape. Every other unread comment goes into one `WARN:` line with count, ids and URLs, never comment text, telling the agent to read them before implementing (#2143). A failed or incomplete thread read refuses.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Spec-path compare. On drift for a Spec-path brief, preflight runs `fetchSpecPathLiveIdentities` on the recorded source and compares the digest with the brief's pin, as `verify:ac` does. Mismatch or unavailable: refuse. A body change on that issue is a `WARN:` line (the lean is the contract). Its thread is read with `fetchIssueComments` without the stored thread (which, for a slice, belongs to the child issue): an unread comment is one with `updated_at` newer than the brief stamp, judged by item 3's live shape tests; a requirement shape or unknown author permission refuses, other comments go into the `WARN:` line, and a failed read refuses. An edit or delete of the recorded lean or criteria record, or a later arc, is caught by the source resolver itself (harvest digest and completed-arc read), since that record, not the rest of the thread, is a Spec-path brief's contract.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Warn-only cases. Every origin other than the authoritative one (including a slice's child issue) prints a `WARN:` line naming it and never refuses, including when its fetch fails. A closed authoritative origin prints a `WARN:` line; closure alone never refuses, and it never stops items 2-4 or a failed fetch of the authoritative origin from refusing. A brief with no baseline keeps today's timestamp refusal.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Recovery text. The reject names its reason (body changed, requirement comment, Spec-path source changed, author permission unknown, no baseline, origin unavailable) and prints the block/unblock pair and the usage line with `formatFrameworkCommand` (`deft scope:block -- <path>`, `deft xbrief:preflight -- <path>`), keeps the #3857 pointer, and keeps \"restore `gh` access\" for the unavailable cases. The sync and refinement skills (pack source, regenerated) describe this rule instead of a refusal on any newer `updated_at`. CHANGELOG line.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Tests: a plain comment, a label, a close and a same-content body edit pass with the WARN; a changed body, a Constraints-only body change, a changed body on a closed origin, an edited old comment that adds an Acceptance Criteria list, an Acceptance Criteria comment whose author permission read fails, an ingest-time Acceptance Criteria comment edited to plain text, the same comment deleted, a new design-critique record and a changed Spec-path lean refuse; an issue ingested with an empty body passes a plain comment and refuses a new body; a slice is checked against its parent issue, and a slice with a non-empty child thread, an unchanged parent lean and a plain parent comment or label passes with the WARN, while a newer Acceptance Criteria comment by a writer on the parent refuses; a referenced origin's drift or fetch failure warns; a failed thread read refuses; a brief with no baseline refuses on drift; the WARN never contains comment text; the printed recovery strings are exact, and the printed `deft` commands resolve through the CLI router.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "For a brief with a baseline (a body-route brief ingested from an issue, or a Spec-path brief with a source record), a comment with no requirement shape, a label, a close and a same-content body edit on the authoritative origin no longer make `xbrief:preflight` refuse; it passes with one `WARN:` line naming the new comments by id and URL, without their text.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "A changed body (also on a closed origin), a new or edited comment with a design-critique comment lead, a selected Current shape comment, or an Acceptance Criteria list whose author is the issue author, a writer, or of unknown permission, a comment that had one of those shapes at ingest and is now edited or deleted, and a changed Spec-path source still refuse.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "A Spec-path brief is compared through its recorded source issue and lean, the parent issue for a slice; its newer comments are judged by live shape, never against the child's stored thread, so harmless parent activity on a slice with a child thread passes.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "A referenced origin other than the authoritative one only warns, including on a fetch failure; a failed or incomplete thread read of the authoritative origin refuses; a brief with no baseline keeps today's timestamp refusal.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "The reject names its reason and prints `deft scope:block -- <path>`, `deft scope:unblock -- <path>` and `deft xbrief:preflight -- <path>`, which resolve through the CLI router.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "The sync and refinement skills describe the new rule, with a CHANGELOG line.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.6549189652",
+    "updated": "2026-11-22T23:29:03Z"
+  }
+}
