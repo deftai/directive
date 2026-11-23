@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6914",
-    "updated": "2026-11-22T22:14:07Z"
+    "updated": "2026-11-23T01:50:03Z"
   },
   "plan": {
     "title": "[framework-gap] deft-checkpoint cannot write xbrief/continue.xbrief.json while a story is active: the host write hook refuses it as outside file_scope",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "[framework-gap] deft-checkpoint cannot write xbrief/continue.xbrief.json while a story is active: the host write hook refuses it as outside file_scope",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6914",
@@ -17,68 +17,159 @@
     "items": [
       {
         "title": "Checkpoint path predicate (P1). One function, `isContinueCheckpointPath(rel)`, true for exactly `xbrief/continue.xbrief.json` and `vbrief/continue.vbrief.json`, case-sensitive. No glob and no other name. The dispatcher and the write-fence refusal both call it.",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e3e72a43cce3b79bf0aaf05462ad804ba951de01",
+          "recorded_at": "2026-11-23T01:50:03Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Checkpoint exemption (P1). In the dispatcher's lifecycle-exempt block, a third branch through `allowExemptLifecycleWrite` with allow code `write-checkpoint-ready`, taken only when every harvested mutation target (patch move ends included) is a checkpoint path. Authz, project runtime authority and occupancy run as for the other two branches, after the existing ritual and occupancy gates. No story is selected and no extra-path allowance is read or spent.",
-        "status": "proposed",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e3e72a43cce3b79bf0aaf05462ad804ba951de01",
+          "recorded_at": "2026-11-23T01:50:03Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Path eligibility (P1). The branch is taken only when, for every target: the harvested path, after URI decoding and before lexical normalization, has no `..` component; `assertWriteTargetSafe` passes (no link on any existing component, containment); and an existing checkpoint is a regular file with exactly one hard link. An inspection error declines the branch. A declined target falls through to today's checks.",
-        "status": "proposed",
-        "id": "clause.3"
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e3e72a43cce3b79bf0aaf05462ad804ba951de01",
+          "recorded_at": "2026-11-23T01:50:03Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Commit scope fence (P2). No code change: the commit scope-cover already drops `xbrief/` and `vbrief/` paths from the product set. Tests pin it.",
-        "status": "proposed",
-        "id": "clause.4"
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e3e72a43cce3b79bf0aaf05462ad804ba951de01",
+          "recorded_at": "2026-11-23T01:50:03Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Refusal text (P3). At the write fence only: when a refused target is a checkpoint path, the refusal names it as the continue checkpoint, says that a write naming only that path is eligible when its path safety and the project checks pass, and that a mixed write should write the checkpoint separately. It gives no split or widen remedy for that path. Other refused paths keep the shared remedy, and the shared remedy that membership prints is unchanged.",
-        "status": "proposed",
-        "id": "clause.5"
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e3e72a43cce3b79bf0aaf05462ad804ba951de01",
+          "recorded_at": "2026-11-23T01:50:03Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Docs (P1). `resilience/continue-here.md` says the write hook admits the checkpoint as a process-owned path for storage only, and that its narratives authorize no product change.",
-        "status": "proposed",
-        "id": "clause.6"
+        "status": "completed",
+        "id": "clause.6",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e3e72a43cce3b79bf0aaf05462ad804ba951de01",
+          "recorded_at": "2026-11-23T01:50:03Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "A Write, Edit or patch whose every mutation target is `xbrief/continue.xbrief.json` or `vbrief/continue.vbrief.json` is allowed with code `write-checkpoint-ready`, both with an active story whose `file_scope` does not name the checkpoint and with no active story, and the story's extra-path allowance is unchanged.",
-        "status": "proposed",
-        "id": "clause.7"
+        "status": "completed",
+        "id": "clause.7",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e3e72a43cce3b79bf0aaf05462ad804ba951de01",
+          "recorded_at": "2026-11-23T01:50:03Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "A checkpoint write that authz, project runtime-authority deny paths, ritual or occupancy refuse today is still refused.",
-        "status": "proposed",
-        "id": "clause.8"
+        "status": "completed",
+        "id": "clause.8",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e3e72a43cce3b79bf0aaf05462ad804ba951de01",
+          "recorded_at": "2026-11-23T01:50:03Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "The exemption does not admit: a case variant of the checkpoint name, any other file under `xbrief/` or `vbrief/`, a target whose harvested path has a `..` component, a target through a link on any component (leaf, parent or dangling), an existing checkpoint with more than one hard link, a patch that moves a product path into or out of the checkpoint, or a write with any non-checkpoint target.",
-        "status": "proposed",
-        "id": "clause.9"
+        "status": "completed",
+        "id": "clause.9",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e3e72a43cce3b79bf0aaf05462ad804ba951de01",
+          "recorded_at": "2026-11-23T01:50:03Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "A commit that stages the checkpoint alone, or the checkpoint with a covered product path, passes the commit scope-cover and spends no extra-path allowance.",
-        "status": "proposed",
-        "id": "clause.10"
+        "status": "completed",
+        "id": "clause.10",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e3e72a43cce3b79bf0aaf05462ad804ba951de01",
+          "recorded_at": "2026-11-23T01:50:03Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "When the write fence refuses a checkpoint path, the refusal names the continue checkpoint and contains no split or widen remedy for that path; the remedy for other refused paths and the remedy membership prints are unchanged.",
-        "status": "proposed",
-        "id": "clause.11"
+        "status": "completed",
+        "id": "clause.11",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e3e72a43cce3b79bf0aaf05462ad804ba951de01",
+          "recorded_at": "2026-11-23T01:50:03Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "`resilience/continue-here.md` states that the checkpoint admission is for storage only and that checkpoint narratives authorize no product change.",
-        "status": "proposed",
-        "id": "clause.12"
+        "status": "completed",
+        "id": "clause.12",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e3e72a43cce3b79bf0aaf05462ad804ba951de01",
+          "recorded_at": "2026-11-23T01:50:03Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Tests cover each item above.",
-        "status": "proposed",
-        "id": "clause.13"
+        "status": "completed",
+        "id": "clause.13",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e3e72a43cce3b79bf0aaf05462ad804ba951de01",
+          "recorded_at": "2026-11-23T01:50:03Z",
+          "recorded_by": "scope:complete"
+        }
       }
     ],
     "tags": [
@@ -526,9 +617,38 @@
         "leanCommentId": 7052398730,
         "harvestDigest": "206cffda9cd354e40f92f70b2e83ff67a31c5b2a2ca09a977fe090f65f04479a",
         "slice": null
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "70ac7ff5d7e160ff0d7c72f463cb5a190e76f9c2",
+        "prNumber": 7126,
+        "prBase": "master",
+        "mergeCommit": "e3e72a43cce3b79bf0aaf05462ad804ba951de01",
+        "deliveryBranch": "master",
+        "deliveryCommit": "e3e72a43cce3b79bf0aaf05462ad804ba951de01",
+        "verifiedAt": "2026-11-23T01:50:03Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:OWEwZDY5MDktOTZkNS00NjFiLWIzMTUtODg5ZjNlZjFkNTI0",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          7115
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-23T01:50:03Z",
+      "completedSessionId": "host:claude:v1:OWEwZDY5MDktOTZkNS00NjFiLWIzMTUtODg5ZjNlZjFkNTI0",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-23T01:50:03Z"
       }
     },
     "id": "github.issue.6520669074",
-    "updated": "2026-11-22T22:14:07Z"
+    "updated": "2026-11-23T01:50:03Z"
   }
 }
