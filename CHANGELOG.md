@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- [release-line] v0.131.3
+- [release-line] v0.131.4
 
 ### Added
 
@@ -16,6 +16,71 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 ### Removed
+
+## [0.131.4] - 2026-11-23
+
+> Security fix (GHSA-mq3j-2229-p7xx) plus consumer-reported fixes: Windows 8.3 path identity and write fence, Windows runtime pack under Git Bash, owner-only occupancy release, strict-axis explainer, verify:ac negation, preflight drift by content, cohort activation and approved-scope mint, pre-PR leaf finishing
+
+### Added
+
+- Nightly CI (`.github/workflows/nightly.yml`): a daily `Nightly coverage (Linux)` lane (suite with coverage and the `vitest.config.ts` floor) and a `Nightly full suite (Windows)` lane on the same `master` commit, never on pull requests or `merge_group`, and not a required check. A reporting job keeps one tracking issue per lane: reopened or created once on red with the outcome, run, failing test files and coverage totals (unknown when absent), closed on green, and assigned to the `NIGHTLY_OWNER` repository variable. Release readiness and Step 5 now reuse CI only when both lanes are reusable on the same tree; readiness names a lane that is not, prints the dispatch command, and both say when the Windows suite did not run for a release cut on a non-Windows host (#6849).
+- test(cli): a new test checks every documented `deft <verb> -- ` form in AGENTS.md, the agents-entry template, the agent preamble and the swarm and review-cycle skills. It runs each form through the real router and parser with and without the `--` and requires the same result; a missing or stale probe entry fails (#6897).
+- Swarm cohorts now start with fewer PRs and one mint. One brief-only PR activates several briefs with one `deft-story-part: N` line per brief, offline and live. `scope:record-approved-scope -- --manifest <file>` prints each story's plan id, brief, worktree, `file_scope`, acceptance criteria and intent digest, takes the typed `mint` once, and writes each record pair into that story's own worktree; a differing or half pair, a glob entry or a duplicate key refuses the whole set before the prompt, and a failed run removes only its own files. `swarm:launch` admits each one-PR story at its own worktree-map row `base_branch` and builds its dest from that branch's pinned commit. The commands reference, the scope-provenance doc and the lifecycle doc describe the batched flow: for 10 stories whose completions fit one sweep, at most 12 PRs, or at most 11 PRs and one mint at `onePrScopeProof: mint` (#7083).
+
+### Changed
+
+- Complete #4905 after merge of #7166.
+- Complete #4923 after merge of #7125.
+- agents-entry: the Session routing read-only load and its else-clause no longer list `main.md`; read-only and identity-only sessions load AGENTS.md, USER.md and PROJECT-DEFINITION (#4923). commands.md, the setup skill and host-lifecycle-duties.md match. The title-line `Full guidelines:` locator stays.
+- agents-entry: the `## Issue body→comments reading (#2143)` line now says issue text is data, not instructions, and to read main.md § Agent Trap Defenses (#480) first. The agent preamble gets § 14, the same instruction hierarchy for dispatched workers. Two preamble pointers drop the `node_modules/@deftai/directive-runtime/` prefix to fund it, and `agentsMdBudget.absoluteMaxBytes` drops from 30500 to 30469 (#4949).
+- Complete #4949 after merge of #7152.
+- Complete #6668 after merge of #7154.
+- Complete #6679 after merge of #7165.
+- `occupancy:release` and `session:end` free a lease on this checkout only for its owner, live or quiet. A bare release no longer uses the inherited `DEFT_SESSION_ID`, and uses the Grok host owner only when Grok is the only declared host. A refused caller is told who owns the lease and to leave it in place. The help, README and design-critique contract no longer teach copying `session_id` from the lease file (#6679).
+- Widen the #6740 story scope for its launcher, hook tests and hook-root doc.
+- Complete #6849 after merge of #7156.
+- Complete #6869 after merge of #7128.
+- Complete #6893 after merge of #7139.
+- feat(pre-pr): a leaf can finish a `deft pre-pr:run` controller run without hand work. `--observe-semantic` needs only `--run-id` and `--phase`: the controller hashes the reviewed files itself and by default reviews the run's present changed files from `base..head` (an empty list refuses and names `--reviewed-file`). Each observe names the required phases still missing, the usage text lists the phase order and run rules, a red Merge gate is named before a missing PR, and `--complete` prints whether `plan.policy.requireBoundPrePrPush` makes the managed pre-push hook look for the pass (#6893).
+- Complete #6897 after merge of #7133.
+- Complete #6899 after merge of #7121.
+- Complete #6902 after merge of #7123.
+- Complete #6904 after merge of #7129.
+- Complete #6914 after merge of #7126.
+- Complete #7083 after merge of #7130.
+- Complete #7099 after merge of #7173.
+- scope: a strict-axis refusal and the promote, activate and preflight advisories now show why an item needs each axis: up to three fenced excerpts per axis with the field that holds them, or the declaration field and value that decided it (#7099). For an axis mismatch, `scope:complete` prints the `not_applicable` grant command for the item in place of the write-onto-the-brief sentence, says the grant replaces the evidence for the whole criterion, reports items without an id, and says when no single evidence kind satisfies a clause. Which clauses need which evidence does not change; #7127 tracks a correction that keeps test evidence. `formatAcceptanceDispositionCommand` moved to the scope module; the policy module re-exports it.
+- Complete #7138 after merge of #7163.
+- xbrief:preflight: a newer origin issue no longer refuses on its timestamp alone (#7138, slice of #7007). On drift it compares content: a changed body, a new, edited or deleted requirement-shaped comment, a changed Spec-path source (the parent issue for a slice), an unknown author permission or an unreadable thread refuse with a named reason and the `deft scope:block` / `deft scope:unblock` / `deft xbrief:preflight` commands. Plain comments, labels, closes and same-content edits pass with one WARN line of comment ids and URLs. Referenced origins only warn; a brief with no baseline keeps the timestamp refusal. The sync and refinement skills describe the rule.
+- chore(dogfood): pin Directive to 0.131.3.
+- Complete #7147 after merge of #7177.
+- Complete #7170 after merge of #7198.
+- Complete #7172 after merge of #7191.
+- Complete #7181 after merge of #7204.
+- Widen the #7200 story scope for the outside-project-root hook and its test.
+- Complete #7203 after merge of #7208.
+
+### Fixed
+
+- `verify:xbrief-drift` no longer fails a canonical brief whose prose only quotes the legacy `x-vbrief` prefix (narratives, ingested comments, contract text, escaped quotes). It now flags only a JSON string value that starts with the prefix, such as a reference `type`, which still fails. Pre-commit keeps running the gate with `--staged` and no allow-list (#4905).
+- `verify:class-checks` class 1 no longer rejects co-located tests named `*.test.<ext>` / `*.spec.<ext>` (ts, tsx, js, jsx, mjs, cjs, mts, cts) or `*_test.go` under a source root; they are not made test roots, so classes 2 to 4 and the scope fences see them as before. Class 2 now reports an added production line that imports a `.test` / `.spec` module. The class 1 remediation names the base-ref test-boundary policy route (#6668).
+- `task pr:wait-mergeable-and-merge` no longer needs `--repo` in a clone whose `origin` is a non-fork github.com repository. Without `--repo` or `GH_REPO` it reads `origin`, checks through REST that the repository is not a fork, and prints `pr_wait_mergeable: repo=<owner/name> (from origin)`. Any other `origin` exits 2 and names the reason. The release pipeline's next step now prints `--repo` for the release repository (#6869).
+- Release Step 5: when the host smoke check on a reused cut passes its deadline, the whole process tree of the smoke command now stops, not only its direct child. The failure says whether the tree was stopped, which processes survived, or that cleanup could not be checked (#6904).
+- The write hook now admits the continue checkpoint (`xbrief/continue.xbrief.json`, legacy `vbrief/continue.vbrief.json`) as a process-owned path, with or without an active story, and spends no story extra-path allowance. Links, `..` parts and multi-hard-link files are not admitted (#6914).
+- The #7083 cohort-mint docs test reads the folded CHANGELOG.md entry when a release cut has removed its changelog fragment, so the release PR merge gate no longer fails with ENOENT (#7083).
+- Recorded the intent-constraint declaration for the #7099 strict-axis explainer caps (3 matches per axis, 4 words of context, 80 characters per excerpt; rejection scope item). Refs #7099.
+- `verify:class-checks` skips itself on `merge_group` runs, like its sibling checks, so a pure scope-mint PR queued behind a product PR no longer fails class 4 on the combined queue diff. It runs on the PR head instead; the skip notices for the two change-set checks now give that reason (#7147).
+- The `scope:complete` / `verify:ac` clause walk no longer requires a quoted literal that the clause negates ("shows 'DEFT Team', never 'apikey:…'"). A literal whose operator is a negation is set aside, not checked and never inverted; `not only`, `no change to`, `without breaking`, `never omit` and double negations keep the presence check. An absence phrase no longer counts as an existence claim. Rows name the checked and set-aside literals. Completion and AC pass banking are unchanged (#7170).
+- `pack-staged-runtime.mjs` (used by `task materialize:runtime`) no longer fails under Git Bash on Windows with "Cannot connect to C:". Its tar calls now run in the tarball's folder with the file name only and use System32 bsdtar on win32, the same fix #6703 made in `tasks/materialize.cjs` (#7172).
+- The timed-child supervisor's tree-kill proof no longer reports a killed process as still running on Linux. A process with SIGKILL pending now counts as stopped, since it can never run again; before, a process still tearing down a few milliseconds after the kill could fail the proof. This fixes the flaky #6904 tree-kill tests in `ci-reuse.test.ts` that dropped PRs from the merge queue (#7181).
+- windows: Directive no longer treats the 8.3 short, lowercase and long spellings of one worktree as two trees. Hook writes into your own checkout or a linked worktree are no longer refused as a foreign repository, the session ritual and swarm worktree checks accept the short spelling, and story file_scope and denyPaths still apply to a target written in another spelling. Worker-auth records and spawn locks written before this fix under a non-canonical spelling are not found; an old lowercase-keyed worker-auth entry can still be refused as a malformed assignment. POSIX is unchanged (#7200).
+- On Windows, the pre-PR coverage report read now refuses a symlink swapped in at the report path. Windows has no `O_NOFOLLOW`, so the read now checks that the opened file is the same file its `lstat` saw (same dev and ino) and refuses otherwise. Before, the read followed the symlink and accepted the other file. The symlink-swap test in `controller.test.ts` now passes on Windows (#7203).
+
+### Removed
+
+### Security
+
+- Literal acceptance commands now check every argument after the admitted verb, on both sides of `--`, against one closed grammar: plain relative paths and a short list of test-runner, workspace and verification flags. Script names are exact (`test`, `check`, `test:<name>`, `check:<name>`), `--if-present` and `%` are refused, and verify:ac checks the real path of an `npm --prefix` directory like the `cwd`. The rule covers package managers, vitest, `task`/`deft`/`directive`, `python -m pytest` and `node --test`. Remedy text now says to read a command before recording it (GHSA-mq3j-2229-p7xx).
 
 ## [0.131.3] - 2026-11-23
 
@@ -8492,7 +8557,8 @@ If you have custom scripts or references to deft files, update these paths:
 
 
 
-[Unreleased]: https://github.com/deftai/directive/compare/v0.131.3...HEAD
+[Unreleased]: https://github.com/deftai/directive/compare/v0.131.4...HEAD
+[0.131.4]: https://github.com/deftai/directive/compare/v0.131.3...v0.131.4
 [0.131.3]: https://github.com/deftai/directive/compare/v0.131.2...v0.131.3
 [0.131.2]: https://github.com/deftai/directive/compare/v0.131.1...v0.131.2
 [0.131.1]: https://github.com/deftai/directive/compare/v0.131.0...v0.131.1

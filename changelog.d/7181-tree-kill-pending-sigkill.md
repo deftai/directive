@@ -1,2 +1,0 @@
-section: Fixed
-- The timed-child supervisor's tree-kill proof no longer reports a killed process as still running on Linux. A process with SIGKILL pending now counts as stopped, since it can never run again; before, a process still tearing down a few milliseconds after the kill could fail the proof. This fixes the flaky #6904 tree-kill tests in `ci-reuse.test.ts` that dropped PRs from the merge queue (#7181).

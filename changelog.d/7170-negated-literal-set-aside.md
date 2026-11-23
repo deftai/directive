@@ -1,2 +1,0 @@
-section: Fixed
-- The `scope:complete` / `verify:ac` clause walk no longer requires a quoted literal that the clause negates ("shows 'DEFT Team', never 'apikey:…'"). A literal whose operator is a negation is set aside, not checked and never inverted; `not only`, `no change to`, `without breaking`, `never omit` and double negations keep the presence check. An absence phrase no longer counts as an existence claim. Rows name the checked and set-aside literals. Completion and AC pass banking are unchanged (#7170).

@@ -1,2 +1,0 @@
-section: Changed
-- `occupancy:release` and `session:end` free a lease on this checkout only for its owner, live or quiet. A bare release no longer uses the inherited `DEFT_SESSION_ID`, and uses the Grok host owner only when Grok is the only declared host. A refused caller is told who owns the lease and to leave it in place. The help, README and design-critique contract no longer teach copying `session_id` from the lease file (#6679).

@@ -13,20 +13,8 @@
 - **#6644** -- bug(scope): acceptance walk gaps: no non-executable pass, disposition grant is deferred-only, no verb to drop non-criterion clauses -- `[running]`
 - **#6647** -- enhancement(cli): flag and path friction across verify, occupancy, xbrief:preflight, session:start and finalize on Windows -- `[running]`
 - **#6613** -- P3-U1a: revert release checks that contradict the #5947 decision (U1a: code removal, release finish step, release skill) -- `[running]`
-- **#4905** -- bug(xbrief): drift gate rejects a canonical brief that only quotes the legacy x-vbrief prefix -- `[running]`
-- **#4923** -- leftover(#4916): stop mandating main.md on rapid / identity-only / read-only -- `[running]`
-- **#4949** -- leftover(#4923): unfunded always-on Personal-wins and #480 trigger -- `[running]`
-- **#6139** -- feat(hooks): every write-gate deny prints exactly one next command -- `[running]`
 - **#6740** -- security(kill-switch): honor the kill switch only when a human mints it -- `[running]`
-- **#6849** -- ci: nightly coverage and Windows full-suite runs that release readiness reuses -- `[running]`
-- **#6869** -- bug(release): pr:wait-mergeable-and-merge needs --repo, and the pin bump leaves a lockfile pnpm refuses -- `[running]`
-- **#6893** -- pre-pr: leaf ergonomics for finishing a controller run (#6888 items 2-4) -- `[running]`
-- **#6897** -- test(cli): guard every documented deft <verb> -- form with a real-parser test -- `[running]`
-- **#6899** -- orphan-active: bound the pending lifecycle-PR scan by the run deadline (#6896 follow-up) -- `[running]`
-- **#6902** -- pre-pr:run ignores --project-root and always uses the cwd store -- `[running]`
-- **#6904** -- release: a timed-out Step 5 smoke check leaves its build and vitest processes running -- `[running]`
-- **#6914** -- [framework-gap] deft-checkpoint cannot write xbrief/continue.xbrief.json while a story is active: the host write hook refuses it as outside file_scope -- `[running]`
-- **#7083** -- feat(scope): cohort activation, approved-scope mint and per-story launch (slice of #7062) -- `[running]`
+- **#7200** -- fix(windows): path identity compares 8.3 short and long spellings in the shared git path helpers (#7199 A) -- `[running]`
 
 ## Proposed
 
@@ -56,34 +44,35 @@ _Scopes not yet promoted to pending. Orientation only — not a substitute for `
 - **#5732** -- leftover(#5727): host/deft-hook admission must refuse undeclared forge-poll before execution (#5229 residual) -- `[proposed]`
 - **#5810** -- [framework-gap] Grok Bot cannot attach to and steer an already-open Grok Build session over ACP -- `[proposed]`
 - **#5812** -- recurrence(#5278): query-before Class A push/PR-open while stop-at:pr-open leaf still live -- `[proposed]`
+- **#6139** -- feat(hooks): every write-gate deny prints exactly one next command -- `[proposed]`
 
 ## Completed
 
-_Showing 25 of 2069 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
+_Showing 25 of 2090 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
 
+- **#7099** -- [framework-gap] scope:complete reads 'deployment' in a test-level criterion as a required deploy axis -- `[completed]`
+- **#7203** -- test(windows): coverage-report symlink-swap test assumes O_NOFOLLOW (#7199 D) -- `[completed]`
+- **#7181** -- test(flaky): #6904 tree-kill tests in ci-reuse.test.ts and the occupancy suite fail intermittently in the queue -- `[completed]`
+- **#7170** -- [framework-gap] scope:complete clause walk requires a quoted token that the clause says must never appear ('never apikey:…') -- `[completed]`
+- **#7172** -- Nightly lane red: Nightly full suite (Windows) -- `[completed]`
+- **#7147** -- bug(class-checks): merge_group runs judge a multi-PR diff, so a mint PR queued behind product fails class 4 -- `[completed]`
+- **#4905** -- bug(xbrief): drift gate rejects a canonical brief that only quotes the legacy x-vbrief prefix -- `[completed]`
+- **#6679** -- enhancement(occupancy): trusted caller identity for a bare occupancy:release outside the hook path -- `[completed]`
+- **#7138** -- [framework-gap] xbrief:preflight hard-refuses active briefs after any comment on the origin issue (slice origin-content-compare) -- `[completed]`
+- **#6668** -- bug(class-checks): test-under-source-root rejects co-located tests with no waiver; pre-PR cannot pass -- `[completed]`
+- **#6849** -- ci: nightly coverage and Windows full-suite runs that release readiness reuses -- `[completed]`
+- **#6893** -- pre-pr: leaf ergonomics for finishing a controller run (#6888 items 2-4) -- `[completed]`
+- **#4949** -- leftover(#4923): unfunded always-on Personal-wins and #480 trigger -- `[completed]`
+- **#7083** -- feat(scope): cohort activation, approved-scope mint and per-story launch (slice of #7062) -- `[completed]`
+- **#6904** -- release: a timed-out Step 5 smoke check leaves its build and vitest processes running -- `[completed]`
+- **#4923** -- leftover(#4916): stop mandating main.md on rapid / identity-only / read-only -- `[completed]`
+- **#6869** -- bug(release): pr:wait-mergeable-and-merge needs --repo, and the pin bump leaves a lockfile pnpm refuses -- `[completed]`
+- **#6914** -- [framework-gap] deft-checkpoint cannot write xbrief/continue.xbrief.json while a story is active: the host write hook refuses it as outside file_scope -- `[completed]`
+- **#6897** -- test(cli): guard every documented deft <verb> -- form with a real-parser test -- `[completed]`
+- **#6902** -- pre-pr:run ignores --project-root and always uses the cwd store -- `[completed]`
+- **#6899** -- orphan-active: bound the pending lifecycle-PR scan by the run deadline (#6896 follow-up) -- `[completed]`
 - **#7085** -- docs+ingest: document sliced leans and the deft-slice child-issue route; name it in the refusal -- `[completed]`
 - **#7082** -- feat(swarm): cohort lifecycle - in-PR completion first, one cohort lifecycle PR (slice of #7062) -- `[completed]`
 - **#7077** -- class-checks class 2 fails any edit to a file that already names a test root (compare against base) -- `[completed]`
 - **#6981** -- security(hooks): Claude Code's PowerShell tool is not a shell tool, so shell-class guards never inspect it -- `[completed]`
-- **#7047** -- [framework-gap] scope:complete #4870 refusal for an issue-ingested brief names no remedy, and the documented remedy (swarm.verify_commands) is fenced -- `[completed]`
-- **#7057** -- session:start leaves tracked .eval/README.md and a current AGENTS.md managed section unchanged -- `[completed]`
-- **#7056** -- upgrade: ask before the vbrief→xbrief data migration (safe interim for #7009) -- `[completed]`
-- **#7029** -- [framework-gap] Absolute core.hooksPath makes every linked worktree run the primary checkout's hooks; breaks commits after the _directive-run.sh rename -- `[completed]`
-- **#6973** -- [framework-gap] The AGENTS.md header completion chokepoint pastes the whole Overview narrative into the one-liner, on any agent write, outside every story file_scope -- `[completed]`
-- **#7031** -- mint audit: keep the terminal mint only where it guards a protected store -- `[completed]`
-- **#6929** -- [framework-gap] swarm:readiness flags 'placeholder' inside file names and domain terms as placeholder text -- `[completed]`
-- **#7001** -- intake: an arc can record a lean that ingest cannot harvest (indented sub-items refuse; #6904) -- `[completed]`
-- **#6871** -- bug(hooks): commit hook and Write hook refuse correct work in other repos and the worktree folder -- `[completed]`
-- **#6872** -- bug(cli): swarm:readiness, scope:activate, issue:ingest --help, scope:decompose and plan-sequence verbs are rough -- `[completed]`
-- **#6878** -- release:run (#6845 S5): publish, draft flip and promote by reconciliation, and the runbook -- `[completed]`
-- **#6877** -- release:run (#6845 S4): enqueue reads, built-in waits and the merge phase -- `[completed]`
-- **#6936** -- [framework-gap] swarm:readiness treats Next.js dynamic-route paths ([id]) in file_scope as globs -- `[completed]`
-- **#6912** -- cli: lone -- after a multi-token verb (cache:clear -- ...) is still rejected (#6887 follow-up) -- `[completed]`
-- **#6876** -- release:run (#6845 S3): the verb, readiness, run record and the single up-front approval -- `[completed]`
-- **#6941** -- fix(hooks): kill-switch mention rule refuses read-only and data-only commands that name the flag file -- `[completed]`
-- **#6864** -- release-publish: installed CLI looks for grants in the runtime package, not the repo (promote-latest denied after a valid mint) -- `[completed]`
-- **#6925** -- [framework-gap] xbrief:preflight does not resolve file:// planRef that xbrief:validate accepts -- `[completed]`
-- **#6970** -- [framework-gap] check --no-suite hardcodes origin master, so the merge-chokepoint gate cannot run in a repo whose default branch is main -- `[completed]`
-- **#6965** -- install: two-pass fixture allowlist drifted from owned-paths (data-schema.json, seed placeholder) -- `[completed]`
-- **#6609** -- bug(ingest): the derived acceptance rung turns every prose sentence of an issue into a clause, even when the body has an explicit Acceptance Criteria list -- `[completed]`
 
