@@ -145,6 +145,41 @@ function moduleSpecifiersOnLine(rawLine: string): string[] {
 }
 
 /**
+ * True when a `/` after `code` starts a regular expression literal, not a
+ * division: nothing precedes it, or an operator, opening bracket or keyword does.
+ */
+function startsRegexLiteral(code: string): boolean {
+  const before = code.trimEnd();
+  if (before.length === 0) return true;
+  if ("([{,;:=!&|?+-*%<>~^".includes(before[before.length - 1] ?? "")) return true;
+  return /(?:^|[^\w$.])(?:return|typeof|case|do|else|in|of|void|yield|await|delete|new|throw)$/.test(
+    before,
+  );
+}
+
+/** Index just past a regex literal that starts at `start` (escapes, classes, flags). */
+function skipRegexLiteral(line: string, start: number): number {
+  let j = start + 1;
+  let inClass = false;
+  while (j < line.length) {
+    const c = line[j];
+    if (c === "\\") {
+      j += 2;
+      continue;
+    }
+    if (c === "[") inClass = true;
+    else if (c === "]") inClass = false;
+    else if (c === "/" && !inClass) {
+      j += 1;
+      while (j < line.length && /[a-z]/i.test(line[j] ?? "")) j += 1;
+      return j;
+    }
+    j += 1;
+  }
+  return line.length;
+}
+
+/**
  * Lex code from `start`, pushing module specifiers to `out`. With `inTemplate`,
  * stop after the `}` that closes a template `${`. Returns the index lexing
  * stopped at (the line length when the line ends or a comment runs to its end).
@@ -161,6 +196,11 @@ function lexSpecifiers(line: string, start: number, inTemplate: boolean, out: st
       if (end === -1) return line.length;
       code += " ";
       i = end + 2;
+      continue;
+    }
+    if (ch === "/" && startsRegexLiteral(code)) {
+      i = skipRegexLiteral(line, i);
+      code += "/r/";
       continue;
     }
     if (ch === "{") depth += 1;
