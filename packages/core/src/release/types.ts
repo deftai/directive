@@ -177,6 +177,8 @@ export interface ReleaseSeams {
     repo: string,
     baseBranch: string,
   ) => import("./ci-reuse.js").CiReuseDecision;
+  /** #6849 -- host platform for the Windows host-boundary line. Production uses process.platform. */
+  readonly hostPlatform?: NodeJS.Platform;
   /** #6791 -- host smoke check of a reused cut. Production uses runHostSmokeCheck. */
   readonly runHostSmoke?: (projectRoot: string) => [boolean, string];
   /**

@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { RunGhFn } from "../pr-merge-readiness/types.js";
 import { RELEASE_CHECK_TIMEOUT_MINUTES } from "./constants.js";
+import { NIGHTLY_COVERAGE_LANE_NAME, NIGHTLY_WINDOWS_LANE_NAME } from "./nightly-reuse.js";
 import {
   ciReuseAtTip,
   formatReadiness,
@@ -48,10 +49,49 @@ function checkRuns(conclusion: string) {
 }
 
 function fakeGh(
-  opts: { conclusion?: string; rateLimit?: boolean; queued?: number[] } = {},
+  opts: {
+    conclusion?: string;
+    rateLimit?: boolean;
+    queued?: number[];
+    /** #6849: Windows lane latest conclusion on the nightly run for TREE. */
+    nightlyWindows?: string;
+  } = {},
 ): RunGhFn {
   return (cmd) => {
     const joined = cmd.join(" ");
+    if (joined.includes("/actions/workflows/nightly.yml/runs")) {
+      return {
+        returncode: 0,
+        stdout: JSON.stringify({
+          workflow_runs: [
+            {
+              id: 77,
+              head_sha: TIP,
+              head_commit: { tree_id: TREE },
+              html_url: "https://github.com/o/r/actions/runs/77",
+            },
+          ],
+        }),
+        stderr: "",
+      };
+    }
+    if (joined.includes("/actions/runs/77/jobs")) {
+      return {
+        returncode: 0,
+        stdout: JSON.stringify({
+          jobs: [
+            { id: 1, name: NIGHTLY_COVERAGE_LANE_NAME, status: "completed", conclusion: "success" },
+            {
+              id: 2,
+              name: NIGHTLY_WINDOWS_LANE_NAME,
+              status: "completed",
+              conclusion: opts.nightlyWindows ?? "success",
+            },
+          ],
+        }),
+        stderr: "",
+      };
+    }
     if (joined.includes("rate_limit")) {
       return opts.rateLimit === false
         ? { returncode: 1, stdout: "", stderr: "HTTP 401" }
@@ -198,6 +238,58 @@ describe("release:run readiness CI lines (#6876 clause 13)", () => {
       tipSha: TIP,
     });
     expect(missing.join("\n")).toContain("the full local check will run at Step 5");
+  });
+
+  it("prints each nightly lane with status, run URL and head SHA (#6849 clause 6)", () => {
+    const reuse = runReleaseReadiness(INPUT, readinessSeams(), fakeGh());
+    expect(reuse.ci.kind).toBe("reuse");
+    const detail = reuse.checks.find((c) => c.name.startsWith("CI reuse"))?.detail ?? "";
+    expect(detail).toContain("Nightly coverage (Linux): reusable");
+    expect(detail).toContain("Nightly full suite (Windows): reusable");
+    expect(detail).toContain("https://github.com/o/r/actions/runs/77");
+    expect(detail).toContain(`head ${TIP}`);
+    expect(detail).not.toMatch(/gh workflow run/);
+  });
+
+  it("names a lane that is not reusable and why, says the full check runs and how long, and prints the dispatch command (#6849 clause 20)", () => {
+    const red = runReleaseReadiness(
+      INPUT,
+      { ...readinessSeams(), platform: "win32" },
+      fakeGh({ nightlyWindows: "failure" }),
+    );
+    expect(red.ok).toBe(true);
+    expect(red.ci.kind).toBe("full");
+    const detail = red.checks.find((c) => c.name.startsWith("CI reuse"))?.detail ?? "";
+    expect(detail).toMatch(
+      new RegExp(
+        `Nightly full suite \\(Windows\\) not reusable \\([^)]*concluded failure\\): the full local Step 5 check will run \\(up to ${RELEASE_CHECK_TIMEOUT_MINUTES} minutes\\)`,
+      ),
+    );
+    expect(detail).not.toMatch(/Nightly coverage \(Linux\) not reusable/);
+    expect(detail).toContain("gh workflow run nightly.yml --repo o/r --ref master");
+    expect(detail).not.toMatch(/Windows suite did not run/);
+  });
+
+  it("says the Windows suite did not run on a non-Windows host when the Windows lane is not reusable (#6849 clause 21)", () => {
+    const red = runReleaseReadiness(
+      INPUT,
+      { ...readinessSeams(), platform: "linux" },
+      fakeGh({ nightlyWindows: "failure" }),
+    );
+    const detail = red.checks.find((c) => c.name.startsWith("CI reuse"))?.detail ?? "";
+    expect(detail).toMatch(/The Windows suite did not run for this release/);
+    const unread = readinessCiLines(
+      { kind: "full", reason: "offline", tipSha: null },
+      { repo: "o/r", baseBranch: "master", platform: "darwin" },
+    ).join("\n");
+    expect(unread).toMatch(/Nightly lanes not reusable \(not read/);
+    expect(unread).toContain("gh workflow run nightly.yml --repo o/r --ref master");
+    expect(unread).toMatch(/runs on darwin, not Windows/);
+    const seamed = ciReuseAtTip(INPUT, fakeGh(), gitSeams(), () => ({
+      reusable: false,
+      lanes: [],
+    }));
+    expect(seamed.kind).toBe("full");
   });
 
   it("falls back to the full check when the tip or its check runs cannot be read", () => {

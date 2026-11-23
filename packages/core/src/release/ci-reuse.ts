@@ -9,8 +9,9 @@
  * nothing here throws.
  *
  * A reused cut runs no host coverage (operator ruling B on #6791): it runs only
- * the short host smoke check below. The nightly coverage lane (#6849) closes
- * that gap.
+ * the short host smoke check below. Reuse also needs both nightly lanes
+ * (#6849, nightly-reuse.ts) reusable on the same tree, so the nightly coverage
+ * lane and the Windows full-suite lane stand in for the skipped local check.
  */
 import { cliSpawnPlan } from "../check/cli-native-gates.js";
 import {
@@ -24,6 +25,12 @@ import { MERGE_GATE_TASK_CHECK_NAME } from "../pr-wait-mergeable/constants.js";
 import { resolvePnpm, sanitizeTsLaneEnv } from "../ts-check-lane/run-lane.js";
 import { RELEASE_CHECK_TIMEOUT_MS } from "./constants.js";
 import { checkGitClean, runGit } from "./git.js";
+import {
+  evaluateNightlyReuse,
+  formatNightlyLanes,
+  NIGHTLY_LANES,
+  type NightlyReuse,
+} from "./nightly-reuse.js";
 import type { ReleaseSeams } from "./types.js";
 
 /** Required CI check name for the TypeScript build and lint job (#6791). */
@@ -65,16 +72,22 @@ export type CiReuseDecision =
       readonly tipSha: string;
       readonly tree: string;
       readonly checks: readonly CiReuseCheck[];
+      /** #6849 nightly lanes read for this tree; absent only in older literals. */
+      readonly nightly?: NightlyReuse | null;
     }
   | {
       readonly kind: "full";
       readonly reason: string;
       readonly tipSha: string | null;
+      /** #6849 nightly lanes, when the rule got as far as reading them. */
+      readonly nightly?: NightlyReuse | null;
     };
 
 export interface EvaluateCiReuseOptions {
   readonly runGh?: RunGhFn;
   readonly env?: NodeJS.ProcessEnv;
+  /** #6849 seam: read the nightly lanes for the input tree. Production uses evaluateNightlyReuse. */
+  readonly evaluateNightly?: (inputTree: string) => NightlyReuse;
 }
 
 function full(reason: string, tipSha: string | null = null): CiReuseDecision {
@@ -165,6 +178,28 @@ export function decideCiReuseFromRuns(
 }
 
 /**
+ * #6849: the nightly conjunct. A check-runs reuse holds only when both nightly
+ * lanes are reusable on the same tree. The nightly read rides on the decision
+ * either way, so readiness and Step 5 print each lane.
+ */
+export function applyNightlyConjunct(
+  decision: CiReuseDecision,
+  nightly: NightlyReuse,
+): CiReuseDecision {
+  if (decision.kind === "full") return { ...decision, nightly };
+  if (nightly.reusable) return { ...decision, nightly };
+  const blocked = nightly.lanes
+    .filter((lane) => !lane.reusable)
+    .map((lane) => `nightly ${lane.label}: ${lane.reason}`);
+  return {
+    kind: "full",
+    reason: `a nightly lane is not reusable (${blocked.join("; ")})`,
+    tipSha: decision.tipSha,
+    nightly,
+  };
+}
+
+/**
  * Evaluate the Step 5 reuse rule against the checkout and GitHub.
  * Exported so the release:run readiness phase (#6876) applies the same rule.
  */
@@ -202,17 +237,29 @@ export function evaluateCiReuse(
       tipSha,
     );
   }
-  const fetched = fetchCheckRunsRest(tipSha, repo, options.runGh ?? seams.runGh ?? defaultRunGh);
+  const runGh = options.runGh ?? seams.runGh ?? defaultRunGh;
+  const fetched = fetchCheckRunsRest(tipSha, repo, runGh);
   if (fetched.error.length > 0) {
     return full(`check runs on tip ${tipSha} unreadable: ${fetched.error}`, tipSha);
   }
-  return decideCiReuseFromRuns(repo, tipSha, tipTree, fetched.checkRuns);
+  const readNightly =
+    options.evaluateNightly ??
+    ((inputTree: string) =>
+      evaluateNightlyReuse(projectRoot, repo, baseBranch, inputTree, runGh, seams));
+  return applyNightlyConjunct(
+    decideCiReuseFromRuns(repo, tipSha, tipTree, fetched.checkRuns),
+    readNightly(headTree),
+  );
 }
 
 /** Lines Step 5 prints for a decision (the SHA and check-run URLs on reuse). */
 export function formatCiReuseDecision(decision: CiReuseDecision): string[] {
   if (decision.kind === "full") {
-    return [`CI reuse: no (${decision.reason}); running the full local check`];
+    const lines = [`CI reuse: no (${decision.reason}); running the full local check`];
+    if (decision.nightly !== undefined && decision.nightly !== null) {
+      lines.push(...formatNightlyLanes(decision.nightly));
+    }
+    return lines;
   }
   const lines = [
     `CI reuse: yes; tip ${decision.tipSha} has the same tree as this release branch, and the latest required checks concluded success`,
@@ -220,7 +267,13 @@ export function formatCiReuseDecision(decision: CiReuseDecision): string[] {
   for (const check of decision.checks) {
     lines.push(`  ${check.name}: ${check.conclusion} ${check.url ?? "(no check-run URL)"}`);
   }
+  if (decision.nightly !== undefined && decision.nightly !== null) {
+    lines.push(...formatNightlyLanes(decision.nightly));
+  }
   lines.push("CI reuse: a reused cut runs no host coverage; only the short host smoke check runs");
+  lines.push(
+    `CI reuse: the nightly ${NIGHTLY_LANES.map((lane) => lane.label).join(" and ")} lanes ran on this tree instead`,
+  );
   return lines;
 }
 

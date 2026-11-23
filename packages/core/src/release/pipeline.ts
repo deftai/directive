@@ -53,6 +53,7 @@ import {
   runGit,
 } from "./git.js";
 import { checkVbriefLifecycleSyncNative, runBuildNative } from "./native-steps.js";
+import { windowsSuiteSkippedLine } from "./nightly-reuse.js";
 import { todayIso } from "./paths.js";
 import { runReleaseCheck } from "./preflight.js";
 import {
@@ -191,6 +192,14 @@ function evaluateStep5CiReuse(config: ReleaseConfig, seams: ReleaseSeams): CiReu
   const change = formatCiReuseChange(config.ciReuseAtReadiness, decision);
   if (change !== null) writeEscapedReleaseLine(change);
   for (const line of formatCiReuseDecision(decision)) writeEscapedReleaseLine(line);
+  // #6849 host boundary: say so when the local fallback does not test Windows.
+  if (decision.kind === "full") {
+    const windows = windowsSuiteSkippedLine(
+      decision.nightly,
+      seams.hostPlatform ?? process.platform,
+    );
+    if (windows !== null) writeEscapedReleaseLine(windows);
+  }
   return decision;
 }
 

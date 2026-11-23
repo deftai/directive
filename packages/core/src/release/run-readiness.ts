@@ -7,14 +7,29 @@
  * reported, never refused. The CI rule only reports here: readiness says that
  * reuse is provisional and how long the full local check can take, and when
  * the rule does not hold it says, before the mint, that the full check will run.
+ * #6849: readiness also prints each nightly lane (status, run URL, head SHA),
+ * names a lane that is not reusable and why, and prints the command that
+ * starts the nightly workflow.
  */
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fetchCheckRunsRest } from "../pr-merge-readiness/gh.js";
 import type { RunGhFn } from "../pr-merge-readiness/types.js";
-import { type CiReuseDecision, decideCiReuseFromRuns, formatCiReuseDecision } from "./ci-reuse.js";
+import {
+  applyNightlyConjunct,
+  type CiReuseDecision,
+  decideCiReuseFromRuns,
+  formatCiReuseDecision,
+} from "./ci-reuse.js";
 import { RELEASE_CHECK_TIMEOUT_MINUTES } from "./constants.js";
 import { checkGitClean, runGit } from "./git.js";
+import {
+  evaluateNightlyReuse,
+  formatNightlyLanes,
+  type NightlyReuse,
+  nightlyDispatchCommand,
+  windowsSuiteSkippedLine,
+} from "./nightly-reuse.js";
 import type { ReleaseSeams } from "./types.js";
 
 export type ReadinessStatus = "ok" | "fail" | "report";
@@ -49,6 +64,10 @@ export interface ReadinessSeams {
   readonly tagFree: (version: string, repo: string, projectRoot: string) => [boolean, string];
   readonly readFile?: (path: string) => string;
   readonly listDir?: (path: string) => readonly string[];
+  /** #6849 seam: read the nightly lanes for a tree. Production uses evaluateNightlyReuse. */
+  readonly evaluateNightly?: (inputTree: string) => NightlyReuse;
+  /** #6849 seam: the host platform for the Windows host-boundary line. */
+  readonly platform?: NodeJS.Platform;
 }
 
 function ghOk(runGh: RunGhFn, args: readonly string[]): { ok: boolean; out: string } {
@@ -113,6 +132,7 @@ export function ciReuseAtTip(
   input: ReadinessInput,
   runGh: RunGhFn,
   seams: ReleaseSeams = {},
+  evaluateNightly?: (inputTree: string) => NightlyReuse,
 ): CiReuseDecision {
   const { projectRoot, baseBranch, repo } = input;
   if (process.env.DEFT_NO_NETWORK === "1") {
@@ -149,11 +169,56 @@ export function ciReuseAtTip(
       tipSha,
     };
   }
-  return decideCiReuseFromRuns(repo, tipSha, tipTree, fetched.checkRuns);
+  const readNightly =
+    evaluateNightly ??
+    ((tree: string) => evaluateNightlyReuse(projectRoot, repo, baseBranch, tree, runGh, seams));
+  return applyNightlyConjunct(
+    decideCiReuseFromRuns(repo, tipSha, tipTree, fetched.checkRuns),
+    readNightly(tipTree),
+  );
+}
+
+/** Where readiness runs, for the nightly lines (#6849). */
+export interface ReadinessCiContext {
+  readonly repo: string;
+  readonly baseBranch: string;
+  readonly platform: NodeJS.Platform;
+}
+
+/**
+ * #6849: before the mint, name each nightly lane that is not reusable and why,
+ * say the full local Step 5 check will run and about how long, print the
+ * command that starts the nightly workflow, and print the Windows host line.
+ */
+export function readinessNightlyLines(
+  decision: CiReuseDecision,
+  context: ReadinessCiContext,
+): string[] {
+  const nightly = decision.nightly ?? null;
+  const blocked =
+    nightly === null
+      ? [{ label: "lanes", reason: "not read before the CI reuse rule stopped" }]
+      : nightly.lanes.filter((lane) => !lane.reusable);
+  const lines = blocked.map(
+    (lane) =>
+      `Nightly ${lane.label} not reusable (${lane.reason}): the full local Step 5 check will run ` +
+      `(up to ${RELEASE_CHECK_TIMEOUT_MINUTES} minutes).`,
+  );
+  if (blocked.length > 0) {
+    lines.push(
+      `Start the nightly workflow on ${context.baseBranch}: ${nightlyDispatchCommand(context.repo, context.baseBranch)}`,
+    );
+  }
+  const windows = windowsSuiteSkippedLine(nightly, context.platform);
+  if (windows !== null) lines.push(windows);
+  return lines;
 }
 
 /** Lines readiness prints for the CI rule (lean item 3; clause 13). */
-export function readinessCiLines(decision: CiReuseDecision): string[] {
+export function readinessCiLines(
+  decision: CiReuseDecision,
+  context: ReadinessCiContext | null = null,
+): string[] {
   const lines = [
     "CI reuse is provisional: Step 5 evaluates the rule again on the release branch and " +
       "continues either way without a prompt.",
@@ -164,9 +229,13 @@ export function readinessCiLines(decision: CiReuseDecision): string[] {
     lines.push(
       `CI reuse does not hold at readiness (${decision.reason}): the full local check will run at Step 5.`,
     );
+    if (decision.nightly !== undefined && decision.nightly !== null) {
+      lines.push(...formatNightlyLanes(decision.nightly));
+    }
   } else {
     lines.push(...formatCiReuseDecision(decision));
   }
+  if (context !== null) lines.push(...readinessNightlyLines(decision, context));
   return lines;
 }
 
@@ -299,11 +368,15 @@ export function runReleaseReadiness(
   const dry = seams.dryRun(input);
   add("Phase 2 dry run", dry === 0, dry === 0 ? "dry run passed" : `dry run exited ${String(dry)}`);
 
-  const ci = ciReuseAtTip(input, runGh, release);
+  const ci = ciReuseAtTip(input, runGh, release, seams.evaluateNightly);
   checks.push({
     name: "CI reuse rule (item 3)",
     status: "report",
-    detail: readinessCiLines(ci).join("\n"),
+    detail: readinessCiLines(ci, {
+      repo: input.repo,
+      baseBranch: input.baseBranch,
+      platform: seams.platform ?? process.platform,
+    }).join("\n"),
   });
 
   checks.push({

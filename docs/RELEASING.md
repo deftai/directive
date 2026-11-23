@@ -45,7 +45,7 @@ deft release:run X.Y.Z --expires <ISO> [--promote-latest] [--summary "<text>"]
 
 Run it on a clean primary checkout on the default branch, after each agent has released its own lease on the primary. In order:
 
-1. **Readiness**, before any write: the Phase 1 checks, the Phase 2 dry run, a free tag, consistent version files and the CI rule (§ Step 5 CI reuse (#6791)). It says whether Step 5 will reuse CI or run the full local check, and about how long that takes. A failed check refuses. Queued PRs and armed auto-merge are reported, not refused.
+1. **Readiness**, before any write: the Phase 1 checks, the Phase 2 dry run, a free tag, consistent version files and the CI rule (§ Step 5 CI reuse (#6791)). It says whether Step 5 will reuse CI or run the full local check, and about how long that takes. It prints each nightly lane (#6849) and, when one is not reusable, which lane and why and the command that starts the nightly workflow. A failed check refuses. Queued PRs and armed auto-merge are reported, not refused.
 2. **Setup and the local cut**: the release branch from the fetched tip B, `session:start --primary-claim-exception=release-cut`, the cut context, then Steps 1 to 9 with no push.
 3. **Approve** (the one human act): the run shows the version, B, the release tree T and the promoted CHANGELOG section, then mints one `release-publish` grant for `X.Y.Z@<T>` with your `--expires` (and, with `--promote-latest`, one `release-promote-latest` grant). Type `mint` at the TTY. Without a TTY it prints the mint commands and stops: mint them from your own terminal, then run `deft release:run X.Y.Z --resume`.
 4. **Release PR**: push and open it, wait with `pr:watch` until CLEAN, then `pr:wait-mergeable-and-merge --wait`. It enqueues only while the origin tip is still B and the merge queue is empty; otherwise it stops without enqueueing. A failed required check is re-run once per run.
@@ -140,14 +140,32 @@ The warn period is counted per release, not per consumer, and no per-consumer wa
 
 ## Step 5 CI reuse (#6791)
 
-Step 5 reuses CI, with no flag, citation or prompt, when both hold:
+Step 5 reuses CI, with no flag, citation or prompt, when all three hold:
 
 - The clean Step 5 input tree (the release branch HEAD before Step 6 writes) is identical to the tree of the fetched `origin/<base>` tip.
 - The latest run of each required check on that tip SHA (`TypeScript (build + lint)`, `Merge gate (task check)`) completed `success`. A missing, pending, failed or re-running latest attempt never reuses an older success.
+- Both nightly lanes are reusable on that tree (§ Nightly coverage and Windows lanes (#6849)).
 
-On reuse, Step 5 prints the tip SHA and the check-run URLs and runs only the **host smoke check**: `pnpm run build`, then `pnpm exec vitest run` without coverage on a fixed small set of host test files (`RELEASE_HOST_SMOKE_TEST_FILES` in `packages/core/src/release/ci-reuse.ts`: release spawn, release paths, the check-lane runner and the reuse rule). It takes a few minutes. A failed smoke check fails Step 5.
+On reuse, Step 5 prints the tip SHA, the check-run URLs and both nightly run URLs, and runs only the **host smoke check**: `pnpm run build`, then `pnpm exec vitest run` without coverage on a fixed small set of host test files (`RELEASE_HOST_SMOKE_TEST_FILES` in `packages/core/src/release/ci-reuse.ts`: release spawn, release paths, the check-lane runner and the reuse rule). It takes a few minutes. A failed smoke check fails Step 5.
 
-**A reused cut runs no host coverage** (operator ruling B on #6791). The nightly coverage lane (#6849) closes that gap. When the rule does not hold, or a read fails, Step 5 prints why and runs the full local check with host coverage as below. Under `deft release:run` (#6876), Step 5 also prints when its decision changed since readiness. `--skip-ci` stays incident-only.
+**A reused cut runs no host coverage** (operator ruling B on #6791). The nightly coverage lane measured the same tree instead, and the nightly Windows lane ran the full suite on it. When the rule does not hold, or a read fails, Step 5 prints why and runs the full local check with host coverage as below. Under `deft release:run` (#6876), Step 5 also prints when its decision changed since readiness. `--skip-ci` stays incident-only.
+
+## Nightly coverage and Windows lanes (#6849)
+
+**Where they run.** `.github/workflows/nightly.yml` runs once a day (and on `workflow_dispatch`) on the `master` tip, never on pull requests or `merge_group`, so PR and queue time do not change. It is not a required check. Both lanes check out the same commit:
+
+- `Nightly coverage (Linux)`: `pnpm run test` (vitest with `--coverage` and the `vitest.config.ts` floor) on `ubuntu-latest`, 60-minute limit. It uploads `coverage/coverage-final.json`.
+- `Nightly full suite (Windows)`: `pnpm exec vitest run` without coverage, both vitest projects, on `windows-latest`, 240-minute limit. The coverage floor is read on Linux only.
+
+Both lanes use the merge gate preparation (Node from `.nvmrc`, corepack pnpm, frozen install, Task, uv, tip dogfood materialize). A lane fails as a setup failure, before any test runs, unless `task --version` succeeds and `packages/cli/dist/bin.js` exists.
+
+**Reuse rule.** Readiness and Step 5 read the nightly runs (`packages/core/src/release/nightly-reuse.ts`). For each lane the witness is the newest nightly run whose head commit tree equals the clean Step 5 input tree. The lane is reusable only when the latest attempt of that lane in that run concluded `success`. A pending, failed or missing latest attempt is not reusable, an older success is never used, and a green run on an ancestor with a different tree never counts. Readiness prints each lane's status, run URL and head SHA.
+
+**Fallback.** When a lane is not reusable, readiness says before the mint which lane and why, that the full local Step 5 check will run and about how long, and prints the command that starts the workflow on `master` (`gh workflow run nightly.yml --repo deftai/directive --ref master`). Step 5 evaluates the rule again and continues without a prompt either way: it runs the full local check with host coverage.
+
+**Windows host boundary.** When that fallback runs on a host that is not Windows and the Windows lane is not reusable, readiness and Step 5 print that the Windows suite did not run for this release. Nothing refuses.
+
+**Red lanes.** A reporting job runs after both lanes and classifies each one as `passed`, `test-failure`, `setup-failure`, `timed-out-or-cancelled` or `report-unavailable`. Each lane has one durable tracking issue (found by a hidden body marker among issues opened by `github-actions[bot]`). A red lane reopens it, or creates it once, and comments with the outcome, SHA, run id and attempt, run URL, failing test files and, on the coverage lane, the four coverage totals; a value the run did not produce is written as unknown. A passed lane comments on and closes an open issue. One comment per run id and attempt. The issue is assigned to the login in the `NIGHTLY_OWNER` repository variable; when it is unset, the run summary says no one was assigned. These issues are not coverage-debt issues and do not feed the Step 5 hatch.
 
 ## Windows Step 5 host coverage decision (#6041; reverses #5026)
 
@@ -239,7 +257,7 @@ Canonical agent contract: `skills/deft-directive-release/SKILL.md` § **Step 5 b
 
 ## Routine vs hard cut for Step 5 (#2953)
 
-Step 5 has one rule, and no mode or flag changes it. When the clean Step 5 input tree is identical to a fetched tip whose latest required checks succeeded, Step 5 reuses CI on its own and runs only the host smoke check, with no host coverage (§ Step 5 CI reuse (#6791)). Otherwise it runs the full `task check` with host `--coverage` (#6041), where the branch-hairline auto-hatch and `--allow-coverage-debt=#N` apply. `deft release:run` asks for no choice: readiness says which path Step 5 will take, and Step 5 says again if that changed.
+Step 5 has one rule, and no mode or flag changes it. When the clean Step 5 input tree is identical to a fetched tip whose latest required checks succeeded, and both nightly lanes are reusable on that tree (#6849), Step 5 reuses CI on its own and runs only the host smoke check, with no host coverage (§ Step 5 CI reuse (#6791)). Otherwise it runs the full `task check` with host `--coverage` (#6041), where the branch-hairline auto-hatch and `--allow-coverage-debt=#N` apply. `deft release:run` asks for no choice: readiness says which path Step 5 will take, and Step 5 says again if that changed.
 
 There is no routine-cut skip path. `--skip-ci` with `--allow-skip-ci=#N` (#2652) is incident-only (a tracked hang or an untested ship under review), is never passed by `deft release:run`, and prints a loud WARN. Silent soft-pass of coverage is forbidden.
 
