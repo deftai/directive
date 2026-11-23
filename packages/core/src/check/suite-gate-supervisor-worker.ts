@@ -9,17 +9,21 @@ import {
   appendBoundedCapture,
   boundedCaptureText,
   createBoundedCapture,
-  isPidAlive,
+  isPidRunning,
   killDescendantTree,
   type SupervisedGatePlan,
   type SupervisedGateResult,
   superviseChild,
+  type TreeCleanupOutcome,
 } from "./suite-gate-supervisor-lib.js";
 
 export interface TimedChildHandle {
   readonly exitCode: number | null;
   readonly pid?: number;
 }
+
+/** Lists the direct children of `pid`; `null` means the listing failed (#6904). */
+export type ListDirectChildren = (pid: number) => number[] | null;
 
 export interface TimedChildPlan {
   readonly command: string;
@@ -31,8 +35,17 @@ export interface TimedChildPlan {
   readonly windowsVerbatimArguments?: boolean;
   readonly killTree?: (pid: number, handle: TimedChildHandle) => void;
   readonly listDescendants?: (pid: number) => number[];
+  /** Test seam for the descendant scan (#6904); `null` is a failed listing. */
+  readonly listDirect?: ListDirectChildren;
+  /** Test seam for the descendant scan budget (#6904). */
+  readonly scanBudgetMs?: number;
   readonly isPidAlive?: (pid: number) => boolean;
 }
+
+/** Tagged timed-mode port messages (#6904). Suite mode posts the bare result. */
+export type TimedChildMessage =
+  | { readonly kind: "spawned"; readonly pid: number }
+  | { readonly kind: "result"; readonly result: SupervisedGateResult };
 
 /** Null when the child already exited (avoid taskkill on a recycled PID). */
 export function confirmChildHandleForKill(child: TimedChildHandle): number | null {
@@ -41,13 +54,23 @@ export function confirmChildHandleForKill(child: TimedChildHandle): number | nul
   return child.pid;
 }
 
-function listDirectChildPids(pid: number, platform: NodeJS.Platform, timeoutMs = 5_000): number[] {
+/**
+ * Direct children of `pid`, or `null` when the listing failed (#6904): a spawn
+ * error (missing `wmic` or `pgrep`), a timeout, or an exit status other than
+ * success or `pgrep`'s no-match status 1.
+ */
+function listDirectChildPids(
+  pid: number,
+  platform: NodeJS.Platform,
+  timeoutMs = 5_000,
+): number[] | null {
   if (platform === "win32") {
     const result = spawnSync(
       "wmic",
       ["process", "where", `ParentProcessId=${pid}`, "get", "ProcessId", "/VALUE"],
       { encoding: "utf8", windowsHide: true, timeout: timeoutMs },
     );
+    if (result.error !== undefined || result.status !== 0) return null;
     const text = `${result.stdout ?? ""}\n${result.stderr ?? ""}`;
     const ids: number[] = [];
     for (const match of text.matchAll(/ProcessId=(\d+)/g)) {
@@ -60,6 +83,7 @@ function listDirectChildPids(pid: number, platform: NodeJS.Platform, timeoutMs =
     encoding: "utf8",
     timeout: timeoutMs,
   });
+  if (result.error !== undefined || (result.status !== 0 && result.status !== 1)) return null;
   const ids: number[] = [];
   for (const line of (result.stdout ?? "").split(/\r?\n/)) {
     const n = Number(line.trim());
@@ -68,27 +92,50 @@ function listDirectChildPids(pid: number, platform: NodeJS.Platform, timeoutMs =
   return ids;
 }
 
-export function listDescendantPids(
+/**
+ * Walk the descendants of `rootPid` and say whether the walk completed
+ * (#6904). `complete` is false when the budget runs out before the walk ends
+ * or when any listing fails.
+ */
+export function scanDescendantPids(
   rootPid: number,
   platform: NodeJS.Platform,
-  listDirect: (pid: number) => number[] = (pid) => listDirectChildPids(pid, platform),
+  listDirect: ListDirectChildren = (pid) => listDirectChildPids(pid, platform),
   budgetMs?: number,
-): number[] {
+): { pids: number[]; complete: boolean } {
   const visited = new Set<number>([rootPid]);
   const found: number[] = [];
   const stack = [rootPid];
   const deadline = budgetMs !== undefined ? Date.now() + budgetMs : Number.POSITIVE_INFINITY;
+  let complete = true;
   while (stack.length > 0) {
-    if (Date.now() >= deadline) break;
+    if (Date.now() >= deadline) {
+      complete = false;
+      break;
+    }
     const current = stack.pop() as number;
-    for (const child of listDirect(current)) {
+    const children = listDirect(current);
+    if (children === null) {
+      complete = false;
+      continue;
+    }
+    for (const child of children) {
       if (visited.has(child)) continue;
       visited.add(child);
       found.push(child);
       stack.push(child);
     }
   }
-  return found;
+  return { pids: found, complete };
+}
+
+export function listDescendantPids(
+  rootPid: number,
+  platform: NodeJS.Platform,
+  listDirect: ListDirectChildren = (pid) => listDirectChildPids(pid, platform),
+  budgetMs?: number,
+): number[] {
+  return scanDescendantPids(rootPid, platform, listDirect, budgetMs).pids;
 }
 
 export function killTreeAndProveEmpty(
@@ -96,25 +143,28 @@ export function killTreeAndProveEmpty(
   seams: {
     readonly platform?: NodeJS.Platform;
     readonly killTree?: (target: number) => void;
+    /** Legacy list seam; its list counts as a completed scan. */
     readonly listDescendants?: (target: number) => number[];
+    readonly listDirect?: ListDirectChildren;
+    readonly scanBudgetMs?: number;
     readonly isPidAlive?: (target: number) => boolean;
   } = {},
-): { remaining: number[] } {
+): { remaining: number[]; scanComplete: boolean } {
   const platform = seams.platform ?? process.platform;
   const kill = seams.killTree ?? ((target: number) => killDescendantTree(target, { platform }));
-  const list =
-    seams.listDescendants ??
-    ((target: number) =>
-      listDescendantPids(
-        target,
-        platform,
-        (childPid) => listDirectChildPids(childPid, platform),
-        5_000,
-      ));
-  const alive = seams.isPidAlive ?? isPidAlive;
+  const scan =
+    seams.listDescendants !== undefined
+      ? { pids: seams.listDescendants(pid), complete: true }
+      : scanDescendantPids(
+          pid,
+          platform,
+          seams.listDirect ?? ((childPid) => listDirectChildPids(childPid, platform)),
+          seams.scanBudgetMs ?? 5_000,
+        );
+  const alive = seams.isPidAlive ?? ((target: number) => isPidRunning(target, platform));
   // Snapshot while the tree is intact, then kill root/group first. Post-kill
   // pgrep -P from a dead root cannot see reparented process groups (#4801 P1).
-  const snapshot = [pid, ...list(pid)];
+  const snapshot = [pid, ...scan.pids];
   kill(pid);
   let remaining = snapshot.filter(alive);
   if (remaining.length > 0) {
@@ -123,11 +173,64 @@ export function killTreeAndProveEmpty(
     }
     remaining = snapshot.filter(alive);
   }
-  return { remaining };
+  return { remaining, scanComplete: scan.complete };
+}
+
+/** What the deadline kill found, before the root's exit event (#6904). */
+export interface DeadlineCleanup {
+  /** Set when no kill proof ran: the child had exited, or the `killTree` seam ran. */
+  readonly unverified: boolean;
+  readonly rootPid?: number;
+  readonly remaining: readonly number[];
+  readonly scanComplete: boolean;
+}
+
+/**
+ * The deadline kill (#4801 / #6904). Only this worker kills, from its live
+ * child handle. When the child already exited, nothing is killed.
+ */
+export function runDeadlineCleanup(
+  handle: TimedChildHandle,
+  plan: TimedChildPlan,
+  platform: NodeJS.Platform,
+  killProof: typeof killTreeAndProveEmpty = killTreeAndProveEmpty,
+): DeadlineCleanup {
+  const pid = confirmChildHandleForKill(handle);
+  if (pid === null) return { unverified: true, remaining: [], scanComplete: false };
+  if (plan.killTree !== undefined) {
+    plan.killTree(pid, handle);
+    return { unverified: true, rootPid: pid, remaining: [], scanComplete: false };
+  }
+  const proof = killProof(pid, {
+    platform,
+    listDescendants: plan.listDescendants,
+    listDirect: plan.listDirect,
+    scanBudgetMs: plan.scanBudgetMs,
+    isPidAlive: plan.isPidAlive,
+  });
+  return { unverified: false, rootPid: pid, ...proof };
+}
+
+/**
+ * Cleanup outcome once the root's exit event arrived (#6904). The root has
+ * exited by then, so it is dropped; the other PIDs from the deadline kill are
+ * checked again, since a killed process can take a moment to exit.
+ */
+export function settleTreeCleanup(
+  cleanup: DeadlineCleanup,
+  alive: (pid: number) => boolean,
+): { treeCleanup: TreeCleanupOutcome; survivorPids?: readonly number[] } {
+  if (cleanup.unverified) return { treeCleanup: "unverified" };
+  const survivors = cleanup.remaining.filter((pid) => pid !== cleanup.rootPid && alive(pid));
+  if (survivors.length > 0) return { treeCleanup: "survivors", survivorPids: survivors };
+  return { treeCleanup: cleanup.scanComplete ? "stopped" : "unverified" };
 }
 
 /** Tee-optional hang kill: spawn + timeout + tree-kill, no suite tee files. */
-export async function superviseTimedChild(plan: TimedChildPlan): Promise<SupervisedGateResult> {
+export async function superviseTimedChild(
+  plan: TimedChildPlan,
+  hooks: { readonly onSpawn?: (pid: number) => void } = {},
+): Promise<SupervisedGateResult> {
   const platform = plan.platform ?? process.platform;
   const stdoutCap = createBoundedCapture();
   const stderrCap = createBoundedCapture();
@@ -139,6 +242,7 @@ export async function superviseTimedChild(plan: TimedChildPlan): Promise<Supervi
     windowsHide: true,
     ...(plan.windowsVerbatimArguments === true ? { windowsVerbatimArguments: true as const } : {}),
   });
+  if (child.pid !== undefined) hooks.onSpawn?.(child.pid);
   child.stdout?.on("data", (chunk: Buffer) => {
     appendBoundedCapture(stdoutCap, chunk);
   });
@@ -147,22 +251,12 @@ export async function superviseTimedChild(plan: TimedChildPlan): Promise<Supervi
   });
 
   let timedOut = false;
+  let cleanup: DeadlineCleanup | undefined;
   let timer: ReturnType<typeof setTimeout> | undefined;
   if (plan.timeoutMs !== undefined) {
     timer = setTimeout(() => {
       timedOut = true;
-      const pid = confirmChildHandleForKill(child);
-      if (pid === null) return;
-      const handle = { exitCode: child.exitCode, pid: child.pid };
-      if (plan.killTree !== undefined) {
-        plan.killTree(pid, handle);
-        return;
-      }
-      killTreeAndProveEmpty(pid, {
-        platform,
-        listDescendants: plan.listDescendants,
-        isPidAlive: plan.isPidAlive,
-      });
+      cleanup = runDeadlineCleanup({ exitCode: child.exitCode, pid: child.pid }, plan, platform);
     }, plan.timeoutMs);
   }
 
@@ -179,6 +273,11 @@ export async function superviseTimedChild(plan: TimedChildPlan): Promise<Supervi
   const stderr = boundedCaptureText(stderrCap);
   const emptyTee = { teePath: "", teeRel: "" };
   if (timedOut) {
+    const alive = plan.isPidAlive ?? ((pid: number) => isPidRunning(pid, platform));
+    const settled = settleTreeCleanup(
+      cleanup ?? { unverified: true, remaining: [], scanComplete: false },
+      alive,
+    );
     return {
       exitCode: 124,
       timedOut: true,
@@ -186,6 +285,7 @@ export async function superviseTimedChild(plan: TimedChildPlan): Promise<Supervi
       stdout,
       stderr,
       ...emptyTee,
+      ...settled,
     };
   }
   if (exit.error !== undefined) {
@@ -232,7 +332,12 @@ export function isSuiteGateSupervisorWorker(): boolean {
 }
 
 function postWorkerResult(payload: WorkerPayload, result: SupervisedGateResult): void {
-  payload.port.postMessage(result);
+  if (payload.mode === "timed") {
+    const message: TimedChildMessage = { kind: "result", result };
+    payload.port.postMessage(message);
+  } else {
+    payload.port.postMessage(result);
+  }
   Atomics.store(payload.signal, 0, 1);
   Atomics.notify(payload.signal, 0);
 }
@@ -241,7 +346,12 @@ if (!isMainThread) {
   const payload = workerData as WorkerPayload;
   const work =
     payload.mode === "timed"
-      ? superviseTimedChild(payload.plan as TimedChildPlan)
+      ? superviseTimedChild(payload.plan as TimedChildPlan, {
+          onSpawn: (pid) => {
+            const message: TimedChildMessage = { kind: "spawned", pid };
+            payload.port.postMessage(message);
+          },
+        })
       : superviseChild(payload.plan as SupervisedGatePlan);
 
   void work

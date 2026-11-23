@@ -106,6 +106,15 @@ export interface SupervisedGatePlan {
   readonly killTree?: (pid: number) => void;
 }
 
+/**
+ * What the timed-child supervisor proved about the process tree after a
+ * deadline kill (#6904). `stopped`: the descendant scan completed and no
+ * process is left. `survivors`: a known process is still alive. `unverified`:
+ * the scan failed or ran out of time, the child had already exited, a test
+ * kill seam ran, or the worker gave no result.
+ */
+export type TreeCleanupOutcome = "stopped" | "survivors" | "unverified";
+
 export interface SupervisedGateResult {
   readonly exitCode: number;
   readonly timedOut: boolean;
@@ -115,6 +124,15 @@ export interface SupervisedGateResult {
   readonly teePath: string;
   readonly teeRel: string;
   readonly spawnError?: string;
+  /** Set only when a timed child hit its deadline or gave no result (#6904). */
+  readonly treeCleanup?: TreeCleanupOutcome;
+  /** PIDs still alive after the kill passes when `treeCleanup` is `survivors`. */
+  readonly survivorPids?: readonly number[];
+  /**
+   * The child PID the worker reported at spawn, when the worker gave no result
+   * (#6904). Shown only; the calling thread never kills it (PID reuse).
+   */
+  readonly lastReportedPid?: number;
 }
 
 export function sanitizeSessionDirName(sessionId: string | undefined): string {
@@ -152,6 +170,32 @@ export function isPidAlive(pid: number): boolean {
   } catch {
     return false;
   }
+}
+
+/**
+ * Like `isPidAlive`, but a Linux zombie (state Z or X in `/proc/<pid>/stat`)
+ * counts as not running (#6904). A killed process stays a zombie until its
+ * parent reaps it, and `kill(pid, 0)` still succeeds on a zombie, so the
+ * tree-kill proof would report a dead process as a survivor.
+ */
+export function isPidRunning(
+  pid: number,
+  platform: NodeJS.Platform = process.platform,
+  readStat: (path: string) => string = (path) => readFileSync(path, "utf8"),
+): boolean {
+  if (!isPidAlive(pid)) return false;
+  if (platform !== "linux") return true;
+  let stat: string;
+  try {
+    stat = readStat(`/proc/${pid}/stat`);
+  } catch {
+    return isPidAlive(pid);
+  }
+  const state = stat
+    .slice(stat.lastIndexOf(")") + 1)
+    .trim()
+    .charAt(0);
+  return state !== "Z" && state !== "X";
 }
 
 export function ownerPidFromTeeName(fileName: string): number | null {

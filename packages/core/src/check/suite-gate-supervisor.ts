@@ -11,15 +11,21 @@
 import { existsSync } from "node:fs";
 import { sep } from "node:path";
 import { fileURLToPath } from "node:url";
-import { MessageChannel, receiveMessageOnPort, Worker } from "node:worker_threads";
+import {
+  MessageChannel,
+  type MessagePort,
+  receiveMessageOnPort,
+  Worker,
+} from "node:worker_threads";
 import {
   bindWorkerFailureToWaiter,
   mintSuiteRunId,
   pruneSuiteTees,
   type SupervisedGatePlan,
   type SupervisedGateResult,
+  type TreeCleanupOutcome,
 } from "./suite-gate-supervisor-lib.js";
-import type { TimedChildPlan } from "./suite-gate-supervisor-worker.js";
+import type { TimedChildMessage, TimedChildPlan } from "./suite-gate-supervisor-worker.js";
 
 export {
   appendBoundedCapture,
@@ -27,6 +33,7 @@ export {
   bindWorkerFailureToWaiter,
   boundedCaptureText,
   createBoundedCapture,
+  isPidRunning,
   type KillTreeSeams,
   killDescendantTree,
   mintSuiteRunId,
@@ -45,15 +52,22 @@ export {
   suiteActuallyRan,
   suiteTeeRelativePath,
   superviseChild,
+  type TreeCleanupOutcome,
   touchTeeMtime,
 } from "./suite-gate-supervisor-lib.js";
 
 export {
   confirmChildHandleForKill,
+  type DeadlineCleanup,
   killTreeAndProveEmpty,
+  type ListDirectChildren,
   listDescendantPids,
+  runDeadlineCleanup,
+  scanDescendantPids,
+  settleTreeCleanup,
   superviseTimedChild,
   type TimedChildHandle,
+  type TimedChildMessage,
   type TimedChildPlan,
 } from "./suite-gate-supervisor-worker.js";
 
@@ -187,34 +201,73 @@ export function runTimedChild(plan: TimedChildPlan): SupervisedGateResult {
   const waitMs = plan.timeoutMs !== undefined ? plan.timeoutMs + 15_000 : 60 * 60 * 1000;
   try {
     const waitResult = Atomics.wait(signal, 0, 0, waitMs);
-    if (waitResult === "timed-out") {
-      return {
-        exitCode: 124,
-        timedOut: true,
-        signal: null,
-        stdout: "",
-        stderr: failure.failure ?? "timed-child supervisor worker did not notify before backstop",
-        teePath: "",
-        teeRel: "",
-        spawnError: failure.failure,
-      };
-    }
-    const received = receiveMessageOnPort(channel.port1);
-    if (received === undefined) {
-      return {
-        exitCode: 1,
-        timedOut: false,
-        signal: null,
-        stdout: "",
-        stderr: failure.failure ?? "timed-child supervisor worker produced no result",
-        teePath: "",
-        teeRel: "",
-        spawnError: failure.failure,
-      };
-    }
-    return received.message as SupervisedGateResult;
+    return collectTimedChildResult(channel.port1, {
+      backstopExpired: waitResult === "timed-out",
+      failure: failure.failure,
+      timeoutArmed: plan.timeoutMs !== undefined,
+    });
   } finally {
     channel.port1.close();
     void worker.terminate();
   }
+}
+
+/**
+ * Read every queued timed-mode message (#6904): take the `result` message as
+ * the result and remember the last `spawned` PID. With no result, return a
+ * failure; when a timeout was armed it carries `treeCleanup: unverified` and
+ * the last reported PID. The PID is shown to the operator only: this function
+ * has no kill path, and the calling thread never kills (PID reuse, #6943).
+ */
+export function collectTimedChildResult(
+  port: MessagePort,
+  wait: {
+    readonly backstopExpired: boolean;
+    readonly failure?: string;
+    readonly timeoutArmed: boolean;
+  },
+): SupervisedGateResult {
+  let result: SupervisedGateResult | undefined;
+  let lastReportedPid: number | undefined;
+  for (;;) {
+    const received = receiveMessageOnPort(port);
+    if (received === undefined) break;
+    const message = received.message as TimedChildMessage;
+    if (message.kind === "result") result = message.result;
+    else if (message.kind === "spawned") lastReportedPid = message.pid;
+  }
+  if (result !== undefined) return result;
+  const cleanup: {
+    treeCleanup?: TreeCleanupOutcome;
+    lastReportedPid?: number;
+  } = wait.timeoutArmed
+    ? {
+        treeCleanup: "unverified",
+        ...(lastReportedPid !== undefined ? { lastReportedPid } : {}),
+      }
+    : {};
+  if (wait.backstopExpired) {
+    return {
+      exitCode: 124,
+      timedOut: true,
+      signal: null,
+      stdout: "",
+      stderr: wait.failure ?? "timed-child supervisor worker did not notify before backstop",
+      teePath: "",
+      teeRel: "",
+      spawnError: wait.failure,
+      ...cleanup,
+    };
+  }
+  return {
+    exitCode: 1,
+    timedOut: false,
+    signal: null,
+    stdout: "",
+    stderr: wait.failure ?? "timed-child supervisor worker produced no result",
+    teePath: "",
+    teeRel: "",
+    spawnError: wait.failure,
+    ...cleanup,
+  };
 }
