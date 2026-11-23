@@ -9,14 +9,10 @@
 
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import { defaultGitRunner, type GitRunner, gitCommonDir } from "./git.js";
+import { defaultGitRunner, type GitRunner, gitCommonDir, sameWorktreePath } from "./git.js";
 
-function sameTree(left: string, right: string): boolean {
-  const a = resolve(left);
-  const b = resolve(right);
-  if (process.platform === "win32") return a.toLowerCase() === b.toLowerCase();
-  return a === b;
-}
+/** Shared worktree compare: resolve, win32 fold, win32 physical identity (#7200). */
+const sameTree = sameWorktreePath;
 
 /** True when `projectRoot` is the non-linked clone (`dirname(git-common-dir)`). */
 export function isMainWorktreePath(

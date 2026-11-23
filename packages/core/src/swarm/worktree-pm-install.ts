@@ -11,6 +11,7 @@ import {
   HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE,
   HOST_HOOK_OUTER_PIN_HOOK_BIN_REL,
 } from "../init-deposit/host-hook-outer.js";
+import { sameWorktreePath } from "../session/git.js";
 import { isLinkedWorktreePath, mainWorktreeRoot } from "../session/main-worktree.js";
 import {
   liveOccupancyOnTree,
@@ -141,12 +142,8 @@ function hasRuntimePin(pkg: Record<string, unknown>): boolean {
   return false;
 }
 
-function sameTree(left: string, right: string): boolean {
-  const a = resolve(left);
-  const b = resolve(right);
-  if (process.platform === "win32") return a.toLowerCase() === b.toLowerCase();
-  return a === b;
-}
+/** Shared worktree compare: resolve, win32 fold, win32 physical identity (#7200). */
+const sameTree = sameWorktreePath;
 
 /** True when the deposited-outer-visible hook-bin exists under the worktree. */
 export function outerVisibleRuntimePinExists(worktreePath: string): boolean {

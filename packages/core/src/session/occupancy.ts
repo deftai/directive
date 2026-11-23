@@ -79,7 +79,7 @@ import { assertWriteTargetSafe } from "../fs/projection-containment.js";
 import { assertAppendLockOwned, type LockDeps, withAppendLock } from "../slice/lock.js";
 import { SWARM_WORKER_ROLES, type SwarmWorkerRole } from "../swarm/routing.js";
 import { recordChildOccupancyLease } from "./child-occupancy.js";
-import { worktreePathOrNull } from "./git.js";
+import { canonicalPathIdentity, worktreePathOrNull } from "./git.js";
 import {
   ambientHostSessionOwner,
   canonicalHostSessionId,
@@ -1162,6 +1162,11 @@ export function occupancyWorktreeMatches(recordedPath: string, projectRoot: stri
 
 /** Resolve, then follow symlinks when the path exists so aliases of one checkout match. */
 function occupancyCanonicalPath(p: string): string {
+  // win32: native spelling, so an 8.3 alias matches the long path (#7200).
+  if (process.platform === "win32") {
+    const identity = canonicalPathIdentity(p);
+    if (identity !== null) return identity;
+  }
   const absolute = resolve(p);
   try {
     return realpathSync(absolute);

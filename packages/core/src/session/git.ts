@@ -1,6 +1,6 @@
 import { execFileSync, spawnSync } from "node:child_process";
-import { existsSync, statSync } from "node:fs";
-import { dirname, isAbsolute, resolve } from "node:path";
+import { existsSync, realpathSync, statSync } from "node:fs";
+import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 import { resolveCaptureFailureStderr, SUBPROCESS_MAX_BUFFER } from "../subprocess/max-buffer.js";
 
 export interface GitRunResult {
@@ -223,10 +223,92 @@ export function gitHead(
   return { head: stdout, error: null };
 }
 
+/** Native path resolver; injectable so tests can force a non-ENOENT failure. */
+export type NativeRealpath = (path: string) => string;
+
+/**
+ * Physical identity of `path` on Windows (#7200): its native on-disk spelling
+ * from `realpathSync.native`, which expands 8.3 short names, fixes letter case
+ * and follows junctions. When the path does not exist yet (ENOENT or ENOTDIR),
+ * the nearest existing ancestor is resolved and the missing rest is appended
+ * unchanged. Any other failure returns null: no answer, and no answer never
+ * makes two paths equal. Case is kept as the file system reports it and is
+ * never folded, so two case-distinct folders stay distinct.
+ *
+ * Sites call this on win32 only; POSIX paths keep the compare they use today.
+ * Write-target containment and the write fence do not use it (#4023).
+ */
+export function canonicalPathIdentity(
+  path: string,
+  realpathNative: NativeRealpath = realpathSync.native,
+): string | null {
+  const missing: string[] = [];
+  let cursor = resolve(path);
+  for (;;) {
+    try {
+      const real = realpathNative(cursor);
+      return missing.length === 0 ? real : join(real, ...missing);
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException | null)?.code;
+      if (code !== "ENOENT" && code !== "ENOTDIR") return null;
+      const parent = dirname(cursor);
+      if (parent === cursor) return null;
+      missing.unshift(basename(cursor));
+      cursor = parent;
+    }
+  }
+}
+
+function strictPathEqual(left: string, right: string): boolean {
+  return left === right;
+}
+
+/**
+ * True when `left` and `right` name one path. `sameUnder` is the compare the
+ * site used before #7200 (strict equality by default); a match there stays a
+ * match. On win32 two paths also match when both canonical forms resolve and
+ * are equal. A null canonical form adds no equality. POSIX never reaches the
+ * helper.
+ */
+export function samePathIdentity(
+  left: string,
+  right: string,
+  sameUnder: (left: string, right: string) => boolean = strictPathEqual,
+): boolean {
+  if (sameUnder(left, right)) return true;
+  if (process.platform !== "win32") return false;
+  const a = canonicalPathIdentity(left);
+  if (a === null) return false;
+  const b = canonicalPathIdentity(right);
+  return b !== null && a === b;
+}
+
+function sameResolvedTree(left: string, right: string): boolean {
+  const a = resolve(left);
+  const b = resolve(right);
+  if (process.platform === "win32") return a.toLowerCase() === b.toLowerCase();
+  return a === b;
+}
+
+/**
+ * Shared worktree compare (#7200): `resolve` on both sides, a case fold on
+ * win32 (as every local copy did before), plus the win32 physical identity
+ * test of {@link samePathIdentity}. POSIX behavior is unchanged.
+ */
+export function sameWorktreePath(left: string, right: string): boolean {
+  return samePathIdentity(left, right, sameResolvedTree);
+}
+
+/** On win32, git-reported paths take their canonical form; else unchanged. */
+function win32CanonicalOr(path: string): string {
+  if (process.platform !== "win32") return path;
+  return canonicalPathIdentity(path) ?? path;
+}
+
 export function worktreePath(projectRoot: string, runGit: GitRunner = defaultGitRunner): string {
   const { code, stdout } = runGit(projectRoot, ["rev-parse", "--show-toplevel"]);
   if (code === 0 && stdout) {
-    return resolve(stdout);
+    return win32CanonicalOr(resolve(stdout));
   }
   return resolve(projectRoot);
 }
@@ -266,7 +348,7 @@ export function worktreePathOrNull(
   const { code, stdout } = runGit(startDir, ["rev-parse", "--show-toplevel"]);
   const trimmed = stdout.trim();
   if (code !== 0 || trimmed.length === 0) return null;
-  return resolve(trimmed);
+  return win32CanonicalOr(resolve(trimmed));
 }
 
 /** Absolute `--git-common-dir` for `projectRoot`, or null on failure. */
@@ -277,7 +359,10 @@ export function gitCommonDir(
   const { code, stdout } = runGit(projectRoot, ["rev-parse", "--git-common-dir"]);
   const trimmed = stdout.trim();
   if (code !== 0 || trimmed.length === 0) return null;
-  return isAbsolute(trimmed) ? resolve(trimmed) : resolve(projectRoot, trimmed);
+  // A main worktree prints a relative `.git`, joined here onto the caller's
+  // spelling; on win32 the canonical form makes an 8.3 or lowercase caller
+  // agree with a linked worktree, whose common dir git prints absolute (#7200).
+  return win32CanonicalOr(isAbsolute(trimmed) ? resolve(trimmed) : resolve(projectRoot, trimmed));
 }
 
 /** True when `ancestor` is reachable from `descendant` (same commit counts). */

@@ -25,6 +25,7 @@ import {
 } from "../intake/github-auth-modes.js";
 import { hasArtifactSuffix, stripArtifactSuffix } from "../layout/resolve.js";
 import {
+  canonicalPathIdentity,
   defaultGitRunner,
   type GitRunner,
   gitCommonDir,
@@ -156,7 +157,20 @@ export function mintCredentialDeliveryId(): string {
   return randomUUID();
 }
 
+/**
+ * Hash input for worker-auth records. On win32 it is the native on-disk
+ * spelling (#7200), so the 8.3, lowercase and long spellings of one worktree
+ * give one key, and git's long spelling keeps the key it had before. Records
+ * written before #7200 under another spelling are unsupported: nothing looks
+ * up a pre-fix key. Such an entry is not always silently absent; an old
+ * lowercase-keyed index entry can still be refused as a malformed assignment
+ * (index record name does not match the dest hash), as it could be before.
+ */
 export function canonicalWorktreePath(worktreePath: string): string {
+  if (process.platform === "win32") {
+    const identity = canonicalPathIdentity(worktreePath);
+    if (identity !== null) return identity;
+  }
   const abs = resolve(worktreePath);
   try {
     return realpathSync(abs);

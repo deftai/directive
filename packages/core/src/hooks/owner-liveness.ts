@@ -52,6 +52,7 @@
  */
 
 import { resolve } from "node:path";
+import { samePathIdentity } from "../session/git.js";
 import {
   heartbeatOccupancy,
   isOccupancyExpired,
@@ -111,7 +112,7 @@ export function restampOwnerLivenessOnHookEvent(input: OwnerLivenessInput): Owne
   // Owner only. A granted member's presence is not the owner's presence, and
   // `heartbeatOccupancy` refuses it anyway — checking here keeps the reason honest.
   if (record.sessionId !== owner) return skip("not-owner");
-  if (resolve(record.worktreePath) !== root) return skip("foreign-worktree");
+  if (!samePathIdentity(resolve(record.worktreePath), root)) return skip("foreign-worktree");
   // Same floor the write gate uses, for the same reason: the hook runs on a
   // large fraction of tool calls, so an unconditional renew would rewrite the
   // lease file continuously without lengthening the safe window at all.

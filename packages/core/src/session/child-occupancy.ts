@@ -19,6 +19,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
 import { isAbsolute, join, relative, resolve } from "node:path";
 import { containedRemove, containedWrite } from "../fs/contained-write.js";
 import type { LockDeps } from "../slice/lock.js";
+import { sameWorktreePath } from "./git.js";
 import { hookHostIdentitySource } from "./host-session-owner.js";
 import { stableJson } from "./json.js";
 import { isLinkedWorktreePath, mainWorktreeRoot } from "./main-worktree.js";
@@ -263,12 +264,8 @@ function removeChildOccupancyLease(storeRoot: string, agentId: string): void {
   containedRemove({ root, target: join(...relpath) });
 }
 
-function sameTree(left: string, right: string): boolean {
-  const a = resolve(left);
-  const b = resolve(right);
-  if (process.platform === "win32") return a.toLowerCase() === b.toLowerCase();
-  return a === b;
-}
+/** Shared worktree compare: resolve, win32 fold, win32 physical identity (#7200). */
+const sameTree = sameWorktreePath;
 
 function isSpawnPendingPlaceholder(worktreePath: string, storeRoot: string): boolean {
   const pendingRoot = join(resolve(storeRoot), ".deft", "spawn-pending");

@@ -9,6 +9,7 @@
 
 import { existsSync, mkdirSync } from "node:fs";
 import { dirname, isAbsolute, join, resolve as pathResolve } from "node:path";
+import { samePathIdentity } from "../session/git.js";
 import { isLinkedWorktreePath, mainWorktreeRoot } from "../session/main-worktree.js";
 import { ensureSubagentStatusDir } from "./subagent-status-dir.js";
 import type { TextCaptureResult } from "./subprocess.js";
@@ -163,7 +164,11 @@ export function destPlaceImplementSpawn(input: DestPlaceImplementSpawnInput): De
     }
     const repoMain = mainWorktreeRoot(repoRoot);
     const destMain = mainWorktreeRoot(worktreePath);
-    if (repoMain === null || destMain === null || pathResolve(repoMain) !== pathResolve(destMain)) {
+    if (
+      repoMain === null ||
+      destMain === null ||
+      !samePathIdentity(pathResolve(repoMain), pathResolve(destMain))
+    ) {
       return {
         ok: false,
         code: "foreign-worktree",

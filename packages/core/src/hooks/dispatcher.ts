@@ -86,6 +86,7 @@ import {
   type GitRunner,
   gitCommonDir,
   memoizeGitRunner,
+  samePathIdentity,
   worktreePathOrNull,
 } from "../session/git.js";
 import { isLinkedWorktreePath } from "../session/main-worktree.js";
@@ -1413,6 +1414,9 @@ export function admitEffectiveHookRoot(
   if (candidateRaw === null) return admitPayload(payload, null);
   const candidate = normalizeHookProjectRoot(candidateRaw);
   if (candidate === payload) return admitPayload(payload, candidate);
+  // win32: an 8.3, case or junction spelling of the same checkout is that
+  // checkout; the effective root is git's spelling, the candidate (#7200).
+  if (samePathIdentity(candidate, payload)) return admitPayload(candidate, candidate);
   const payloadCommon = gitCommonDir(payload, runGit);
   if (payloadCommon === null) {
     // No containment question exists: payloadRoot is not a repository, so there
@@ -1424,7 +1428,12 @@ export function admitEffectiveHookRoot(
   if (candidateCommon === null) {
     return { root: payload, foreign: true, candidate, refusal: "unproven-identity" };
   }
-  if (normalizeHookProjectRoot(payloadCommon) === normalizeHookProjectRoot(candidateCommon)) {
+  if (
+    samePathIdentity(
+      normalizeHookProjectRoot(payloadCommon),
+      normalizeHookProjectRoot(candidateCommon),
+    )
+  ) {
     return { root: candidate, foreign: false, candidate, refusal: null };
   }
   return { root: payload, foreign: true, candidate, refusal: "foreign-repository" };
@@ -1448,7 +1457,10 @@ export function admitMutationTargetSet(
     if (next.foreign) return next;
     admitted.push(next);
   }
-  const roots = [...new Set(admitted.map((item) => item.root))];
+  const roots: string[] = [];
+  for (const item of admitted) {
+    if (!roots.some((root) => samePathIdentity(root, item.root))) roots.push(item.root);
+  }
   if (roots.length > 1) {
     return {
       root: payload,

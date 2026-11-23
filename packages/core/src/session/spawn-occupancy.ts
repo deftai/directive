@@ -38,7 +38,13 @@ import {
   listChildOccupancyLeases,
   recordChildOccupancyLease,
 } from "./child-occupancy.js";
-import { defaultGitRunner, type GitRunner, gitCommonDir } from "./git.js";
+import {
+  canonicalPathIdentity,
+  defaultGitRunner,
+  type GitRunner,
+  gitCommonDir,
+  sameWorktreePath,
+} from "./git.js";
 import { isLinkedWorktreePath, isMainWorktreePath, mainWorktreeRoot } from "./main-worktree.js";
 import {
   evaluateOccupancyWriteGate,
@@ -791,6 +797,13 @@ export function evaluateImplementSpawnOccupancy(
 }
 
 function reservationDigestKey(destPath: string): string {
+  // win32: one key for every spelling of the dest (8.3, case, junction), still
+  // folded (#7200). A lock written before #7200 under another spelling is not
+  // looked up; that split is what two spellings already caused.
+  if (process.platform === "win32") {
+    const identity = canonicalPathIdentity(destPath);
+    if (identity !== null) return identity.toLowerCase();
+  }
   const lexical = resolve(destPath);
   const missing: string[] = [];
   let cursor = lexical;
@@ -976,12 +989,8 @@ function releaseLockIfIncarnation(
   return true;
 }
 
-function sameTree(left: string, right: string): boolean {
-  const a = resolve(left);
-  const b = resolve(right);
-  if (process.platform === "win32") return a.toLowerCase() === b.toLowerCase();
-  return a === b;
-}
+/** Shared worktree compare: resolve, win32 fold, win32 physical identity (#7200). */
+const sameTree = sameWorktreePath;
 
 /**
  * True when `candidate` is a dispatcher-allocated child of `storeRoot`.

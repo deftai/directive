@@ -24,9 +24,18 @@ shipped: the [outside-every-checkout class](#the-outside-every-checkout-class-63
 | A proven different repository | refuse `foreign-repository` | — (deny) |
 | **No Git toplevel at all** | **admit** | **payload root** |
 
+On Windows, roots compare by physical identity (#7200): the payload root, the candidate toplevel
+and both `--git-common-dir` values pass through `canonicalPathIdentity` (`realpathSync.native`), so
+an 8.3 short spelling, another letter case or a junction spelling of the same checkout is that
+checkout. When the match is found only this way, the effective root is the candidate (git's
+spelling). No case fold applies to roots, so two case-distinct folders stay two repositories, and a
+path whose native form cannot be read adds no equality. Write targets are still not canonicalized
+(#4023, below). POSIX roots compare as before.
+
 Set level: `admitMutationTargetSet` admits every member of one mutation (the declared ApplyPatch
 path plus every path in the patch body), short-circuits on the first refused member, and then
-requires **one unique** effective root across the members. Two admitted roots is a
+requires **one unique** effective root across the members (on Windows, two spellings of one root
+count once). Two admitted roots is a
 `worktree-span` refusal, so occupancy and ritual cannot follow only the declared path.
 
 The last row is the subject of #4013. It fires for any destination whose nearest existing ancestor
@@ -213,7 +222,8 @@ shift the class the same way: a junction into a linked worktree admits that work
 into a non-repository directory falls back to the payload root.
 
 Recorded, not fixed by #4013. Canonicalization changes admission classification, so it needs its own
-arc: **#4023**.
+arc: **#4023**. The Windows root identity of #7200 does not change this: it applies to roots, not to
+write targets.
 
 ## What a narrowing would have to define
 
