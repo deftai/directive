@@ -28,6 +28,13 @@ import {
   soleLandsWithProductMove,
 } from "../scope/lands-with-product.js";
 import { resolveDefaultBaseRef as resolvePrAwareBaseRef } from "../scope-provenance/evaluate.js";
+import {
+  admitSignedRecord,
+  resolveRecordApprovalLevel,
+  type SignedLevel,
+  signedLevelNote,
+  signedLevelRefusal,
+} from "../scope-provenance/record-stamp.js";
 import { defaultGitRunner } from "../session/git.js";
 import { type FactDelta, newFacts, uncoveredDeltas } from "./diff.js";
 import { extractConstraintFacts, isProductionSourcePath, surfaceSnapshot } from "./extract.js";
@@ -105,6 +112,8 @@ export interface EvaluateOptions {
   readonly repo?: string;
   /** Injected gh runner for PR body REST (tests). */
   readonly runGh?: RunGhFn;
+  /** Injected signed level (tests); default walks `.deft/approvers.json` history (#6945). */
+  readonly approvalLevel?: SignedLevel;
 }
 
 function runGit(projectRoot: string, args: readonly string[]): string | null {
@@ -581,6 +590,7 @@ export function evaluateIntentConstraint(options: EvaluateOptions = {}): Evaluat
   }
 
   const parsedRecords: IntentConstraintRecord[] = [];
+  const sourceOf = new Map<IntentConstraintRecord, { rel: string; text: string }>();
   for (const [rel, text] of baseRecords) {
     let raw: unknown;
     try {
@@ -598,6 +608,20 @@ export function evaluateIntentConstraint(options: EvaluateOptions = {}): Evaluat
       return attach(config(`${rel}: ${parsed.error}`), origin, candidateMode, quiet);
     }
     parsedRecords.push(parsed);
+    sourceOf.set(parsed, { rel, text });
+  }
+
+  // Signed level (#6945): a trust file on the merge base's history means a
+  // record is approved only by a valid signature, however it was merged.
+  const level = resolveRecordApprovalLevel(projectRoot, mergeBaseSha, options.approvalLevel);
+  if (level.level === "signed" && !level.ok) {
+    const message = signedLevelRefusal(level);
+    return attach(
+      level.code === 2 ? config(message) : fail(`verify:intent-constraint: ${message}`),
+      origin,
+      candidateMode,
+      quiet,
+    );
   }
 
   const running = listRunningPlanIds(projectRoot);
@@ -683,6 +707,34 @@ export function evaluateIntentConstraint(options: EvaluateOptions = {}): Evaluat
     );
   }
 
+  let signedNote = "";
+  if (level.level === "signed" && level.ok) {
+    const source = sourceOf.get(mint);
+    const admitted =
+      source === undefined
+        ? { ok: false as const, reason: "selected record has no merge-base source" }
+        : admitSignedRecord(level, {
+            kind: "intent-constraint",
+            recordRel: source.rel,
+            text: source.text,
+            planId: mint.planId,
+            xbriefRelPath: mint.xbriefRelPath,
+            changeKind: null,
+            contractDigest: mint.contractDigest,
+          });
+    if (!admitted.ok) {
+      return attach(
+        fail(
+          `verify:intent-constraint: no approved merge-base mint for planId ${mint.planId}; ${allFacts}. ${admitted.reason}`,
+        ),
+        origin,
+        candidateMode,
+        quiet,
+      );
+    }
+    signedNote = signedLevelNote(level, admitted.approver);
+  }
+
   const leftover = uncoveredDeltas(deltas, mint.constraints);
   if (leftover.length > 0) {
     const listed = `${String(leftover.length)} uncovered fact(s): ${formatIntentFacts(leftover)}`;
@@ -696,7 +748,7 @@ export function evaluateIntentConstraint(options: EvaluateOptions = {}): Evaluat
 
   return attach(
     ok(
-      `verify:intent-constraint: merge-base mint covers ${String(deltas.length)} new fact(s) in ${String(production.length)} production file(s).`,
+      `verify:intent-constraint: merge-base mint covers ${String(deltas.length)} new fact(s) in ${String(production.length)} production file(s).${signedNote}`,
       false,
       quiet,
       production,

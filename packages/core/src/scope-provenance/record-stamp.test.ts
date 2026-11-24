@@ -1,12 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { isHumanApprovalStamp } from "./digest.js";
 import {
+  admitSignedRecord,
   DECLARED_RECORD_WRITER_VERBS,
   DECLARED_STAMP_KIND,
   INTENT_CONSTRAINT_WRITER_VERB,
   isDeclaredRecordStamp,
   isRecordStamp,
   OBSERVABLE_SCOPE_WRITER_VERB,
+  signedLevelRefusal,
 } from "./record-stamp.js";
 
 const declared = (mintedVia: string, actor = "agent:leaf") => ({
@@ -70,5 +72,51 @@ describe("declared record stamps (#7031)", () => {
     for (const verb of DECLARED_RECORD_WRITER_VERBS) {
       expect(isHumanApprovalStamp(declared(verb, "scott"))).toBe(false);
     }
+  });
+});
+
+describe("signed level admission (#6945)", () => {
+  const level = {
+    level: "signed" as const,
+    ok: true as const,
+    repo: "deftai/directive",
+    trust: {
+      body: {
+        repo: "deftai/directive",
+        rp: { id: "approve.example.com", origins: ["https://approve.example.com"] },
+        approvers: [],
+      },
+      rootKind: "packed",
+      epochStart: "abc",
+      attested: [],
+    },
+  };
+
+  it("treats a record with no approval as absent and states the honest claim", () => {
+    const result = admitSignedRecord(level, {
+      kind: "observable-scope",
+      recordRel: ".deft/observable-scope/story-1.json",
+      text: JSON.stringify({ schema: "deft.observable-scope.v1", planId: "story-1" }),
+      planId: "story-1",
+      xbriefRelPath: "xbrief/active/story.xbrief.json",
+      changeKind: "fields-only",
+      contractDigest: "a".repeat(64),
+    });
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.reason).toMatch(/treated as absent/);
+    expect(result.reason).toMatch(/user-verified gesture by an enrolled authenticator/);
+    expect(result.reason).toMatch(/credentials the agent does not hold/);
+  });
+
+  it("names a broken trust file with the same claim", () => {
+    const text = signedLevelRefusal({
+      level: "signed",
+      ok: false,
+      code: 1,
+      reason: "deleted at abc",
+    });
+    expect(text).toMatch(/deleted at abc/);
+    expect(text).toMatch(/#6207/);
   });
 });

@@ -26,7 +26,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { basename, dirname, relative, resolve } from "node:path";
-import { containedWrite, resolveContainedTarget } from "@deftai/directive-core";
+import { approvers, containedWrite, resolveContainedTarget } from "@deftai/directive-core";
 import { resolveRepo } from "@deftai/directive-core/dist/triage/queue/repo.js";
 import {
   buildIntentConstraintRecord,
@@ -44,6 +44,7 @@ import {
   parseObservableChangeContract,
   parseObservableScopeRecord,
 } from "@deftai/directive-core/observable-scope";
+import { buildCeremonyLink, formatCeremonyOutput } from "./approvers-link.js";
 import { type HumanPresenceMintSeams, refuseMintWhileUatActive } from "./human-presence-mint.js";
 import { isPathInsideRoot } from "./scope-record-approved-scope.js";
 
@@ -60,6 +61,8 @@ export interface RecordCohortSeams extends HumanPresenceMintSeams {
   readonly repo?: string | null;
   /** Hard-link publish step (tests simulate a file system without hard links). */
   readonly link?: (from: string, to: string) => void;
+  /** Injected signed level (tests). Absent: the record verb resolves it. */
+  readonly approvalLevel?: approvers.SignedLevel;
 }
 
 export interface RecordCohortArgs {
@@ -69,6 +72,12 @@ export interface RecordCohortArgs {
   /** Declared-by display name; may name an agent (#7031). */
   readonly actor: string;
   readonly quiet: boolean;
+  /** Set only at the signed level (#6945). Absent keeps the declared writer. */
+  readonly signed?: {
+    readonly level: Extract<approvers.SignedLevel, { readonly ok: true }>;
+    readonly phase: "request" | "assertion";
+    readonly approval?: approvers.RecordApproval;
+  };
 }
 
 interface ParsedContract {
@@ -419,6 +428,150 @@ function publishExclusive(
   }
 }
 
+/**
+ * Signed level (#6945): `--request` prints the ceremony link and writes
+ * nothing. `--assertion` verifies the blob against the merge-base trust file
+ * and writes exactly the frozen set, replacing a record whose old approval
+ * no longer verifies. Records carry no `cohortDigest`: that key is refused
+ * at the signed level.
+ */
+function runSigned(
+  kind: CohortRecordKind,
+  spec: KindSpec,
+  projectRoot: string,
+  args: RecordCohortArgs,
+  targets: readonly CohortTarget[],
+): number {
+  const signed = args.signed;
+  if (signed === undefined) return 2;
+  if (targets.length === 0) {
+    process.stderr.write(`${spec.errPrefix}: no records to approve.\n`);
+    return 2;
+  }
+  const entries = targets.map((target) =>
+    approvers.buildRecordApprovalEntry({
+      kind,
+      planId: target.planId,
+      xbriefRelPath: target.xbriefRelPath,
+      recordRel: target.recordRel,
+      changeKind: kind === "intent-constraint" ? null : target.contract.changeKind,
+      contractDigest: target.contractDigest,
+    }),
+  );
+  if (signed.phase === "request") {
+    const origin = signed.level.trust.body.rp.origins[0];
+    if (origin === undefined) {
+      process.stderr.write(`${spec.errPrefix}: trust file has no ceremony origin.\n`);
+      return 2;
+    }
+    const link = buildCeremonyLink(origin, {
+      schema: "deft.ceremony-request.v1",
+      mode: "approve",
+      repo: signed.level.repo,
+      rp: signed.level.trust.body.rp,
+      entries,
+      credentialIds: signed.level.trust.body.approvers.map((approver) => approver.credentialId),
+    });
+    if ("error" in link) {
+      process.stderr.write(`${spec.errPrefix}: ${link.error}\n`);
+      return 2;
+    }
+    process.stdout.write(`${formatCeremonyOutput(link)}\n`);
+    return 0;
+  }
+  const approval = signed.approval;
+  if (approval === undefined) {
+    process.stderr.write(`${spec.errPrefix}: --assertion needs a blob.\n`);
+    return 2;
+  }
+  if (
+    approval.payload.repo !== signed.level.repo ||
+    approval.payload.entries.length !== entries.length ||
+    entries.some((entry) => !approvers.payloadHasEntry(approval.payload, entry))
+  ) {
+    process.stderr.write(
+      `${spec.errPrefix}: the assertion is not an approval of exactly this set. ` +
+        `${approvers.SIGNED_APPROVAL_CLAIM}\n`,
+    );
+    return 1;
+  }
+  let approver = "";
+  const rows: { target: CohortTarget; data: string }[] = [];
+  for (const target of targets) {
+    const withApproval = { ...target.record, approval };
+    const result = approvers.verifyRecordApproval({
+      kind,
+      record: withApproval,
+      recordRel: target.recordRel,
+      planId: target.planId,
+      xbriefRelPath: target.xbriefRelPath,
+      changeKind: kind === "intent-constraint" ? null : target.contract.changeKind,
+      contractDigest: target.contractDigest,
+      repo: signed.level.repo,
+      body: signed.level.trust.body,
+    });
+    if (!result.ok) {
+      process.stderr.write(
+        `${spec.errPrefix}: ${target.recordRel} is not approved: ${result.reason}. ${approvers.SIGNED_APPROVAL_CLAIM}\n`,
+      );
+      return 1;
+    }
+    approver = result.approver;
+    rows.push({ target, data: `${JSON.stringify(withApproval, null, 2)}\n` });
+  }
+  const previous = new Map<string, string | null>();
+  for (const row of rows) {
+    previous.set(
+      row.target.recordAbs,
+      existsSync(row.target.recordAbs) ? readFileSync(row.target.recordAbs, "utf8") : null,
+    );
+  }
+  const written: string[] = [];
+  for (const row of rows) {
+    try {
+      mkdirSync(dirname(row.target.recordAbs), { recursive: true });
+      containedWrite({
+        root: projectRoot,
+        target: row.target.recordAbs,
+        data: row.data,
+        mode: previous.get(row.target.recordAbs) === null ? "create" : "replace",
+        mutation: false,
+      });
+      written.push(row.target.recordAbs);
+    } catch (err: unknown) {
+      for (const path of written) {
+        const prior = previous.get(path);
+        try {
+          if (prior === null || prior === undefined) unlinkSync(path);
+          else {
+            containedWrite({
+              root: projectRoot,
+              target: path,
+              data: prior,
+              mode: "replace",
+              mutation: false,
+            });
+          }
+        } catch {
+          // best-effort restore
+        }
+      }
+      process.stderr.write(
+        `${spec.errPrefix}: writing ${row.target.recordRel} failed (${errorText(err)}); ` +
+          "restored records this run changed.\n",
+      );
+      return 1;
+    }
+  }
+  if (!args.quiet) {
+    process.stdout.write(
+      `${written.map((path) => `Wrote ${path}`).join("\n")}\n` +
+        `Signed level: approved by ${approver}. ${approvers.SIGNED_APPROVAL_CLAIM}\n`,
+    );
+  }
+  return 0;
+}
+
 /** Run the cohort form for one record kind (#6937). Returns the exit code. */
 export function runRecordCohort(
   kind: CohortRecordKind,
@@ -525,6 +678,10 @@ export function runRecordCohort(
     }
   }
   if (problems.length > 0) return refuseBeforePrompt(spec, problems, false);
+
+  if (args.signed !== undefined) {
+    return runSigned(kind, spec, projectRoot, args, targets);
+  }
 
   const fresh: CohortTarget[] = [];
   const already: CohortTarget[] = [];

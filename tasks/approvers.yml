@@ -1,0 +1,24 @@
+version: '3'
+
+# tasks/approvers.yml -- signed approver enrollment (#6945).
+# No terminal step. --assertion is the page's combined blob.
+
+vars:
+  DEFT_ROOT: '{{joinPath .TASKFILE_DIR ".."}}'
+
+tasks:
+  enroll:
+    desc: "Enroll a WebAuthn approver into .deft/approvers.json (#6945). Root when the file is absent (--origin required); otherwise an add. --re-root is the lost-all-keys path. With no --assertion, prints the ceremony link and writes nothing."
+    dir: '{{.USER_WORKING_DIR}}'
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'approvers:enroll --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'
+
+  remove:
+    desc: "Remove one enrolled approver from .deft/approvers.json (#6945). With no --assertion, prints the ceremony link and writes nothing. Dropping the last attested credential is refused."
+    dir: '{{.USER_WORKING_DIR}}'
+    cmds:
+      - task: :engine:invoke
+        vars:
+          ENGINE_CMD: 'approvers:remove --project-root "{{.USER_WORKING_DIR}}" {{.CLI_ARGS}}'

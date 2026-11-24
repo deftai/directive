@@ -77,6 +77,8 @@ const HANDLER_KEYS = [
 /** CLI modules in packages/cli/src (excluding parity harnesses and bin/index). */
 export const CLI_MODULE_VERBS = [
   "agents-refresh",
+  "approvers-enroll",
+  "approvers-remove",
   "cache",
   "check",
   "capacity-backfill",
@@ -448,6 +450,8 @@ export const VERB_ALIASES: Readonly<Record<string, string>> = {
   "scope:record-approved-scope": "scope-record-approved-scope",
   "scope:record-observable-scope": "scope-record-observable-scope",
   "scope:record-intent-constraint": "scope-record-intent-constraint",
+  "approvers:enroll": "approvers-enroll",
+  "approvers:remove": "approvers-remove",
   "verify:consumer-check-contract": "verify-consumer-check-contract",
   "coverage:hotspots": "coverage-hotspots",
   "verify:branch": "verify-branch",
@@ -3203,6 +3207,8 @@ const SCOPE_COMMAND_NAMES = [
   "scope:record-approved-scope",
   "scope:record-observable-scope",
   "scope:record-intent-constraint",
+  "approvers:enroll",
+  "approvers:remove",
 ] as const;
 
 /**

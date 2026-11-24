@@ -169,7 +169,7 @@ tasks:
           ENGINE_CMD: 'scope:record-approved-scope {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"'
 
   record-observable-scope:
-    desc: "Record human-minted observable UI contract under .deft/observable-scope/<plan-id>.json (#4495 / #3110). Requires --actor <human> --confirm. Refuses agent stamps and worker-declared baselineRef. Commit on merge base before the UI change PR."
+    desc: "Write a declared observable-scope record (#4495 / #7031). At the signed level (#6945) pass --request (writes nothing) or --assertion <blob>. Without .deft/approvers.json the declared write is unchanged."
     dir: '{{.USER_WORKING_DIR}}'
     cmds:
       - task: :engine:invoke
@@ -177,7 +177,7 @@ tasks:
           ENGINE_CMD: 'scope:record-observable-scope {{.CLI_ARGS}} --project-root "{{.USER_WORKING_DIR}}"'
 
   record-intent-constraint:
-    desc: "Record human-minted intent-constraint contract under .deft/intent-constraint/<plan-id>.json (#4541 / #3110). Requires --actor <human> --confirm. Refuses agent stamps and worker-declared baselineRef. Commit on merge base before the implementation change PR."
+    desc: "Write a declared intent-constraint record (#4541 / #7031). At the signed level (#6945) pass --request (writes nothing) or --assertion <blob>. Without .deft/approvers.json the declared write is unchanged."
     dir: '{{.USER_WORKING_DIR}}'
     cmds:
       - task: :engine:invoke

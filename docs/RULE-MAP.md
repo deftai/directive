@@ -8,8 +8,8 @@ Maintainer-facing map of how Directive's rules are layered and grouped. This is 
 
 ## Overview
 
-- **Rules:** 25 groupings, 293 documents
-- **Tasks:** 67 namespaces, 293 Taskfile declarations (includes + unlisted tasks/*.yml, not `task --list`)
+- **Rules:** 25 groupings, 294 documents
+- **Tasks:** 68 namespaces, 295 Taskfile declarations (includes + unlisted tasks/*.yml, not `task --list`)
 - **Packs:** 6 source-of-truth packs (721 entries from rules|lessons|patterns|skills|strategies|entries)
 
 Three layers: **Rules** (lazy-loaded guidance under `content/`), **Tasks** (the Taskfile gates that enforce them), and the **Lifecycle** that ties them together.
@@ -24,7 +24,7 @@ Three layers: **Rules** (lazy-loaded guidance under `content/`), **Tasks** (the 
 | contracts | Interface/behavioral contracts the framework enforces. | 16 | 235 | 16 | 149 | 0 | 6 |
 | conventions | Cross-cutting naming, formatting, and repo conventions. | 4 | 16 | 2 | 16 | 0 | 3 |
 | deployments | Provider-specific deployment playbooks (AWS, Azure, GCP, Cloudflare, Vercel, fly.io…). | 52 | 107 | 74 | 24 | 13 | 6 |
-| docs | Explanatory docs and the framework glossary. | 49 | 34 | 17 | 69 | 1 | 3 |
+| docs | Explanatory docs and the framework glossary. | 50 | 34 | 17 | 69 | 1 | 3 |
 | events | Event and signal definitions used across the framework. | 1 | 0 | 0 | 0 | 0 | 0 |
 | incidents | Incident handling and postmortem guidance. | 2 | 0 | 0 | 0 | 0 | 0 |
 | interfaces | Interface definitions and boundaries. | 4 | 119 | 66 | 37 | 2 | 9 |
@@ -131,6 +131,7 @@ _Explanatory docs and the framework glossary._
 - `BROWNFIELD.md` — Adding Deft to an existing codebase is the harder path and the one most likely to go wrong without guidance. This guide walks you through the steps, what changes, and how to preserve existing spec content.
 - `SUPPORT.md` — This page is a **symptom index**. It is not a second recovery ladder.
 - `agent-docs.md` — Guidance for structuring the AGENTS.md (and its reference docs) of a project directive creates or maintains. Unlike most style advice, the patterns here are **empirically measured**, not opinion: Augment Code's April 2026 AuggieBench…
+- `approvers.md` — Refs: #6945 · Related: [observable-scope.md](../content/docs/observable-scope.md), [intent-constraint.md](../content/docs/intent-constraint.md), [scope-provenance.md](../content/docs/scope-provenance.md) (#5862 reserved)
 - **assets/** (0 files)
 - `capabilities.md` — Generated view over existing registries. Overlay: `content/docs/capability-overlay.json`. Membership: `in_the_public_index` and status `current` or `compatibility` and canonical kind not `none`. Same-PR documentation rule:…
 - `consumer-check-contract.md` — Refs: #3145 · Related: #3070 consumer gate integrity, #1519 check:consumer · Policy: #3314 coverageDebt / checkResume (reserved)
@@ -374,6 +375,7 @@ _Reusable document/scaffold templates._
 _Tooling standards (telemetry, search, formatters, the Taskfile contract)._
 
 - `RWLDL.md` — Iterative code refinement by alternating micro (detailed) and macro (high-level) improvements.
+- **approvers/** (0 files)
 - `greptile.md` — **Scope:** Configuring the Greptile AI code review bot for use with deft projects.
 - `installer.md` — The Go installer (`cmd/deft-install/`, `deft-install`) is **deleted** (AC10.10). Do not download or run it.
 - `package-manager-network.md` — **Scope:** How Directive's own tooling (session ritual, doctor, read-only flows) treats npm/pnpm registry access as an explicit, security-sensitive, opt-in operation. Applies to Directive's own code, not to a consumer project's own…
@@ -410,6 +412,7 @@ _How agents prove work is done: gates, validators, coverage, review._
 | Namespace | Purpose | Tasks |
 |---|--:|--:|
 | agent | Sub-agent heartbeat sweep (#1365 / #2824). Three-state exit (0 ok / 1 stale-or-malformed / 2 config). Alias for the raw subagent-monitor… | 1 |
+| approvers | Enroll a WebAuthn approver into .deft/approvers.json (#6945). Root when the file is absent (--origin required); otherwise an add.… | 2 |
 | architecture | System-of-record architecture preflight. Run before stateful implementation: task architecture:sor-preflight -- --story-path <path> | 1 |
 | cache | Cache an entry -- task cache:put -- <source> <key> --raw-file PATH [--ttl-seconds N] | 8 |
 | capacity | Capacity allocation accounting surface (#1419 Delivery Slice 4). | 2 |

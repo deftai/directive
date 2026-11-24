@@ -148,6 +148,18 @@ fact found mid-build still needs a record PR on the merge base before the
 product PR, because the product check reads the record from the merge base and
 refuses a same-PR record.
 
+### Signed level (#6945)
+
+With `.deft/approvers.json` on the merge base, those two commands no longer
+treat a declared stamp as enough. `--request` prints a ceremony link and
+writes nothing. `--assertion` writes the records only after the blob verifies
+against an enrolled key. There is still no terminal step. A record without a
+valid approval is not approved, including one merged under
+`DEFT_ALLOW_BOT_MERGE`, `policy:allow-bot-merge`, or a plain `gh pr merge`.
+A valid approval proves a user-verified gesture by an enrolled authenticator over exactly this set. The human read it only if the page ran on a device the agent does not drive and was deployed with credentials the agent does not hold. Without the trust file, the declared write above is unchanged.
+`approvers:enroll` and `approvers:remove` are the same kind of command: no
+terminal step, and they accept only the page's combined blob.
+
 ## Gate-override hatch (#5542 / #5674)
 
 Mint + admission APIs for an audited interactive override bound to a coverage-
