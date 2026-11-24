@@ -1,0 +1,130 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Isolate vb-cov-cli temp fixture cleanup and finalize pathspecs when vbrief/ is absent.",
+    "created": "2026-11-24T18:00:00Z",
+    "updated": "2026-11-24T17:47:53Z"
+  },
+  "plan": {
+    "title": "fix(test): isolate vb-cov-cli fixture + finalize pathspecs when vbrief absent",
+    "status": "running",
+    "id": "github.issue.6587893970",
+    "narratives": {
+      "Overview": "Stop Merge-gate flake from leftover vb-cov-cli proposed-in-active fixtures, and let finalize-cohort stage only existing xbrief/ and/or vbrief/ trees.",
+      "Description": "coverage-boost.test.ts must always rmSync its temp root; commitLifecycleMoves must not pathspec a missing vbrief/.",
+      "UserStory": "As a maintainer, mint/remint Merge gate stays green when validate CLI tests fail mid-run, and swarm finalize leftover works in checkouts without vbrief/.",
+      "ImplementationPlan": "try/finally around vb-cov-cli fixture; conditional git status/add pathspecs; update finalize-cohort-batch-7082 expectations; changelog.d Fixed."
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "coverage-boost validate CLI test wraps fixture root in try/finally and always removes it.",
+        "status": "proposed"
+      },
+      {
+        "id": "clause.2",
+        "title": "finalize-cohort commitLifecycleMoves uses git status/add pathspecs only for existing xbrief/ and/or vbrief/.",
+        "status": "proposed"
+      },
+      {
+        "id": "clause.3",
+        "title": "finalize-cohort-batch-7082 (and related) tests expect conditional pathspecs.",
+        "status": "proposed"
+      },
+      {
+        "id": "clause.4",
+        "title": "changelog.d fragment section Fixed for the flake and pathspec fix.",
+        "status": "proposed"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 4 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "coverage-boost validate CLI test wraps fixture root in try/finally and always removes it.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "finalize-cohort commitLifecycleMoves uses git status/add pathspecs only for existing xbrief/ and/or vbrief/.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "finalize-cohort-batch-7082 (and related) tests expect conditional pathspecs.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "changelog.d fragment section Fixed for the flake and pathspec fix.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "size": "small",
+        "file_scope": [
+          "packages/core/src/vbrief-validate/coverage-boost.test.ts",
+          "packages/core/src/swarm/finalize-cohort.ts",
+          "packages/core/src/swarm/finalize-cohort-batch-7082.test.ts",
+          "changelog.d/7292-merge-gate-temp-isolation.md",
+          ".deft/approved-scope/github.issue.6587893970.json",
+          ".deft/approved-scope/github.issue.6587893970.intent.json"
+        ],
+        "file_scope_confidence": "high",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/vbrief-validate/coverage-boost.test.ts packages/core/src/swarm/finalize-cohort-batch-7082.test.ts"
+        ],
+        "depends_on": []
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6587893970,
+        "origin": "deftai/directive#7292",
+        "id": "github.issue.6587893970"
+      },
+      "intended_placement": {
+        "files": [
+          "packages/core/src/vbrief-validate/coverage-boost.test.ts",
+          "packages/core/src/swarm/finalize-cohort.ts",
+          "packages/core/src/swarm/finalize-cohort-batch-7082.test.ts",
+          "changelog.d/7292-merge-gate-temp-isolation.md",
+          ".deft/approved-scope/github.issue.6587893970.json",
+          ".deft/approved-scope/github.issue.6587893970.intent.json"
+        ],
+        "module_boundary": "packages/core"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/7292",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #7292"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/7291",
+        "type": "x-xbrief/github-issue",
+        "title": "Residual deeper hygiene #7291"
+      }
+    ],
+    "updated": "2026-11-24T17:47:53Z"
+  }
+}

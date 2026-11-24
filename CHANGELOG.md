@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Activate the running brief for merge-gate temp-fixture isolation and finalize pathspec fix (#7292).
+
 - Record reminted approved file permissions for missing-runtime outer install admit. This records approval only; it does not change product behavior (#7275).
 - Record reminted approved file permissions for obs-scope rediscovery scrub. This records approval only; it does not change product behavior (#7272).
 - Record reminted approved file permissions for acceptance-disposition deferral walk. This records approval only; it does not change product behavior (#7254).
