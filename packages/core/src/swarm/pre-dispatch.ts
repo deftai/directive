@@ -9,7 +9,7 @@
  * then pre-dispatch begin again — never concurrent dual active.
  */
 
-import { existsSync, readFileSync, realpathSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, realpathSync, statSync } from "node:fs";
 import { isAbsolute, join, normalize, resolve } from "node:path";
 import {
   type AttemptTrigger,
@@ -31,7 +31,13 @@ import {
 } from "../delivery-attempt/index.js";
 import { listActiveLifecycleArtifacts, matchPinnedActiveScope } from "../hooks/scope.js";
 import { briefOwnsIssue } from "../intake/residual-identity.js";
-import { defaultScratchDir } from "../orchestration/subagent-monitor.js";
+import {
+  DEFAULT_THRESHOLD_MINUTES,
+  defaultScratchDir,
+  isHeartbeatScratchFilename,
+  parseHeartbeatFile,
+  recordOk,
+} from "../orchestration/subagent-monitor.js";
 import {
   defaultFirstSeenDir,
   defaultSteerDir,
@@ -317,19 +323,48 @@ function targetLiveOccupantSessionId(
 }
 
 /**
- * Orphan repair-admit only when the attempt never received a worker/run identity
- * and the dest worktree has no live occupancy (#7274 Greptile P1).
- * Null workerId alone is not proof — begin often omits it while a leaf is live.
+ * Fresh non-terminal heartbeat under the dest scratch dir (#7274 Greptile P1).
+ * Occupancy can be missing while a leaf still pulses subagent-status.
+ */
+function targetHasLiveHeartbeat(
+  input: Pick<SwarmPreDispatchInput, "projectRoot" | "targetId" | "now">,
+): boolean {
+  const target = resolveStoryBindingTarget(input.projectRoot, input.targetId);
+  if (!target.ok) return false;
+  const scratch = defaultScratchDir(target.worktreePath);
+  if (!existsSync(scratch)) return false;
+  const now = input.now !== undefined ? new Date(input.now) : new Date();
+  if (Number.isNaN(now.getTime())) return false;
+  const thresholdSeconds = DEFAULT_THRESHOLD_MINUTES * 60;
+  let names: string[];
+  try {
+    names = readdirSync(scratch).filter((n) => isHeartbeatScratchFilename(n));
+  } catch {
+    return false;
+  }
+  for (const name of names) {
+    const rec = parseHeartbeatFile(join(scratch, name), { now, thresholdSeconds });
+    if (recordOk(rec) && !rec.is_terminal) return true;
+  }
+  return false;
+}
+
+/**
+ * Orphan repair-admit only for exactly one active attempt that never received a
+ * worker/run identity, with no live dest occupancy and no live heartbeat
+ * (#7274 Greptile P1). Null workerId alone is not proof — begin often omits it
+ * while a leaf is live.
  */
 function orphanRepairEligible(
   actives: readonly DeliveryAttemptRecord[],
   input: Pick<SwarmPreDispatchInput, "projectRoot" | "targetId" | "now">,
 ): boolean {
-  if (actives.length === 0) return false;
-  if (!actives.every((a) => !attemptHasAttachedWorker(a) && !attemptHasExternalRunId(a))) {
-    return false;
-  }
-  return targetLiveOccupantSessionId(input) === null;
+  if (actives.length !== 1) return false;
+  const only = actives[0];
+  if (only === undefined) return false;
+  if (attemptHasAttachedWorker(only) || attemptHasExternalRunId(only)) return false;
+  if (targetLiveOccupantSessionId(input) !== null) return false;
+  return !targetHasLiveHeartbeat(input);
 }
 
 /**
@@ -413,10 +448,12 @@ function classifyDuplicateActiveHint(
   actives: readonly DeliveryAttemptRecord[],
   bindingMissing: boolean,
   liveOccupantId: string | null,
+  liveHeartbeat: boolean,
 ): DuplicateActiveHintKind {
   if (
     actives.some((a) => attemptHasAttachedWorker(a) || attemptHasExternalRunId(a)) ||
-    liveOccupantId !== null
+    liveOccupantId !== null ||
+    liveHeartbeat
   ) {
     return "pre-cancel";
   }
@@ -787,8 +824,9 @@ function runBegin(input: SwarmPreDispatchInput): SwarmPreDispatchResult {
       });
       const actives = activeAttempts(current);
 
-      // P3: orphan repair-admit — missing binding + this unit active + no worker
-      // and no live dest occupancy (null workerId alone is not proof).
+      // P3: orphan repair-admit — missing binding + exactly one active + no
+      // worker/run id + no live dest occupancy/heartbeat (null workerId alone
+      // is not proof).
       if (actives.length > 0) {
         const bindingMissing = storyBindingMissingForAttempts(
           input,
@@ -897,6 +935,7 @@ function runBegin(input: SwarmPreDispatchInput): SwarmPreDispatchResult {
                 activeRows,
                 bindingMissing,
                 targetLiveOccupantSessionId(input),
+                targetHasLiveHeartbeat(input),
               )
             : undefined;
         const binding =
