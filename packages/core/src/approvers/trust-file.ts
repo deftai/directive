@@ -248,6 +248,11 @@ export interface VersionContext {
   /** Commit that holds this version, for messages and the epoch start. */
   readonly at: string;
   readonly verifyRegistration?: RegistrationVerifier;
+  /**
+   * Wall-clock certificate validity for root/re-root registrations. History
+   * replay sets false; a live enrollment leaves the default (true).
+   */
+  readonly checkCertificateValidity?: boolean;
 }
 
 export type VersionResult =
@@ -306,7 +311,12 @@ function verifyRootProof(
     ),
   );
   const verifier =
-    ctx.verifyRegistration ?? ((input) => verifyAttestedRegistration(input, { expectedChallenge }));
+    ctx.verifyRegistration ??
+    ((input) =>
+      verifyAttestedRegistration(input, {
+        expectedChallenge,
+        checkCertificateValidity: ctx.checkCertificateValidity !== false,
+      }));
   const reg = verifier({
     attestationObject: proof.registration.attestationObject,
     clientDataJSON: proof.registration.clientDataJSON,

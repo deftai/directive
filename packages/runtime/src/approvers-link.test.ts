@@ -151,13 +151,13 @@ describe("decideSignedWrite (#6945)", () => {
     rmSync(dir, { recursive: true, force: true });
   });
 
-  it("resolves a non-repository as unsigned and reports a merge-base failure", () => {
+  it("resolves a non-repository and a local unsigned git repo as unsigned", () => {
     const plain = mkdtempSync(join(tmpdir(), "approvers-plain-"));
     expect(resolveCliSignedLevel(plain)).toEqual({ level: "none" });
     rmSync(plain, { recursive: true, force: true });
     const repo = mkdtempSync(join(tmpdir(), "approvers-git-"));
     execFileSync("git", ["init", repo], { stdio: "ignore" });
-    expect(resolveCliSignedLevel(repo)).toMatchObject({ level: "signed", ok: false, code: 2 });
+    expect(resolveCliSignedLevel(repo)).toEqual({ level: "none" });
     rmSync(repo, { recursive: true, force: true });
   });
 

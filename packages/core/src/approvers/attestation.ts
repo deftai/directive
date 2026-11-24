@@ -78,6 +78,9 @@ interface ProfileInput {
   /** SPKI DER of the credential key. */
   readonly credentialSpki: Uint8Array;
   readonly roots: readonly VendorRoot[];
+  /** True for a live enrollment; false when replaying accepted history. */
+  readonly checkCertificateValidity: boolean;
+  readonly now: number;
 }
 
 type Profile = (input: ProfileInput) => string | null;
@@ -183,15 +186,21 @@ function validityError(cert: X509Certificate, now: number): string | null {
   return null;
 }
 
-/** Null when the chain ends at a vendored root that is inside its validity window. */
+/**
+ * Null when the chain ends at a vendored root. Wall-clock validity is checked
+ * only for a new enrollment; historical proofs keep verifying after a root
+ * certificate expires so re-root recovery stays possible.
+ */
 function chainError(
   certs: readonly X509Certificate[],
   roots: readonly VendorRoot[],
+  options: { readonly checkCertificateValidity: boolean; readonly now: number },
 ): string | null {
-  const now = Date.now();
-  for (const cert of certs) {
-    const expired = validityError(cert, now);
-    if (expired !== null) return expired;
+  if (options.checkCertificateValidity) {
+    for (const cert of certs) {
+      const expired = validityError(cert, options.now);
+      if (expired !== null) return expired;
+    }
   }
   for (let i = 0; i + 1 < certs.length; i += 1) {
     const child = certs[i]!;
@@ -213,7 +222,7 @@ function chainError(
     const matchesSelf = last.fingerprint256 === anchor.fingerprint256;
     const matchesIssuer = last.checkIssued(anchor) && last.verify(anchor.publicKey);
     if (!matchesSelf && !matchesIssuer) continue;
-    return validityError(anchor, now);
+    return options.checkCertificateValidity ? validityError(anchor, options.now) : null;
   }
   return "x5c chain does not end at a vendored vendor root";
 }
@@ -278,7 +287,10 @@ const packedProfile: Profile = (input) => {
   if (bytesEqual(spkiOf(leaf.publicKey), input.credentialSpki)) {
     return "the credential key must not be the attestation signer";
   }
-  return chainError(certs, input.roots);
+  return chainError(certs, input.roots, {
+    checkCertificateValidity: input.checkCertificateValidity,
+    now: input.now,
+  });
 };
 
 /** Format profiles a root registration may pass. `none` is never a profile. */
@@ -298,9 +310,18 @@ export function verifyAttestedRegistration(
     readonly roots?: readonly VendorRoot[];
     /** Raw challenge bytes. A captured registration for another challenge is refused. */
     readonly expectedChallenge: Uint8Array;
+    /**
+     * When true (default), certificates must be inside their validity window
+     * at `now`. Historical trust replay sets this false so an expired root
+     * certificate does not block reading accepted history or re-root recovery.
+     */
+    readonly checkCertificateValidity?: boolean;
+    readonly now?: number;
   },
 ): RegistrationResult {
   const roots = options.roots ?? VENDOR_ROOTS;
+  const checkCertificateValidity = options.checkCertificateValidity !== false;
+  const now = options.now ?? Date.now();
   const refuse = (reason: string): RegistrationResult => ({ ok: false, reason });
   const attBytes = base64urlDecode(input.attestationObject);
   const clientBytes = base64urlDecode(input.clientDataJSON);
@@ -361,6 +382,8 @@ export function verifyAttestedRegistration(
     clientDataHash: sha256(clientBytes),
     credentialSpki,
     roots,
+    checkCertificateValidity,
+    now,
   });
   if (profileError !== null) return refuse(profileError);
   return {

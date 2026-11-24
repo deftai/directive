@@ -186,8 +186,10 @@ function insideWorkTree(projectRoot: string): boolean {
 
 /**
  * Merge base for the record verbs. A directory that is not a work tree stays
- * on HEAD and resolves as unsigned. A work tree uses the intent-constraint
- * base resolver and reports a failure instead of reading HEAD.
+ * on HEAD and resolves as unsigned. A work tree without trust history stays on
+ * HEAD so local declared writes still work without an origin remote. Once
+ * trust history exists, the delivery merge base is required and signed repos
+ * fail closed when it cannot be resolved.
  */
 export function resolveCliSignedLevel(
   projectRoot: string,
@@ -195,6 +197,10 @@ export function resolveCliSignedLevel(
 ): approvers.SignedLevel {
   if (!insideWorkTree(projectRoot)) {
     return approvers.resolveSignedLevel(projectRoot, "HEAD", { env });
+  }
+  const headLevel = approvers.resolveSignedLevel(projectRoot, "HEAD", { env });
+  if (headLevel.level === "none") {
+    return headLevel;
   }
   const base = resolveMergeBase(projectRoot);
   if (typeof base !== "string") {
@@ -239,6 +245,7 @@ export function loadCliTrustState(
       const next = approvers.applyTrustVersion(state, parsed, {
         at: version.commit,
         verifyRegistration: options.verifyRegistration,
+        checkCertificateValidity: false,
       });
       if (!next.ok) return { error: next.reason };
       state = next.state;

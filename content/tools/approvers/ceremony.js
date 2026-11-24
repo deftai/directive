@@ -249,22 +249,30 @@ export function decodeRequest(fragment) {
   if (bytes === null) return { error: "fragment is not canonical base64url" };
   if (bytes.length > MAX_REQUEST_BYTES) return { error: "request is too large; split the cohort" };
   try {
-    return { request: JSON.parse(new TextDecoder().decode(bytes)) };
+    return { request: JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes)) };
   } catch (err) {
     return { error: "fragment is not JSON: " + String(err) };
   }
 }
 
+function fieldLine(key, value) {
+  const text = value === null || value === undefined ? "" : String(value);
+  if (text.indexOf("\n") >= 0 || text.indexOf("\r") >= 0) {
+    throw new Error(key + " must not contain a newline");
+  }
+  return key + " " + text;
+}
+
 export function shownApprove(request) {
-  const lines = ["repo " + request.repo];
+  const lines = [fieldLine("repo", request.repo)];
   request.entries.forEach(function (entry, index) {
     lines.push("entry " + String(index + 1));
-    lines.push("kind " + entry.kind);
-    lines.push("planId " + entry.planId);
-    lines.push("xbriefRelPath " + entry.xbriefRelPath);
-    lines.push("recordRel " + entry.recordRel);
-    lines.push("changeKind " + (entry.changeKind === null ? "null" : entry.changeKind));
-    lines.push("contractDigest " + entry.contractDigest);
+    lines.push(fieldLine("kind", entry.kind));
+    lines.push(fieldLine("planId", entry.planId));
+    lines.push(fieldLine("xbriefRelPath", entry.xbriefRelPath));
+    lines.push(fieldLine("recordRel", entry.recordRel));
+    lines.push(fieldLine("changeKind", entry.changeKind === null ? "null" : entry.changeKind));
+    lines.push(fieldLine("contractDigest", entry.contractDigest));
   });
   return lines.join("\n");
 }
@@ -307,23 +315,35 @@ export async function challengeFromShown(shown) {
   return base64urlEncode(await sha256Bytes(canonicalBytes(payload)));
 }
 
-export function shownTrust(request, created) {
+export function shownTrust(request, members) {
   const lines = [
-    "mode " + request.mode,
-    "repo " + request.repo,
-    "rp " + request.rp.id,
-    "name " + (request.name || ""),
-    "credential " + (request.credentialId || ""),
+    fieldLine("mode", request.mode),
+    fieldLine("repo", request.repo),
+    fieldLine("rp", request.rp.id),
   ];
-  const previous = request.predecessor && request.predecessor.approvers ? request.predecessor.approvers : [];
-  for (const approver of previous) {
-    if (request.mode === "remove" && approver.credentialId === request.credentialId) continue;
-    lines.push("keeps " + approver.name + " " + approver.credentialId);
+  const origins = request.rp && Array.isArray(request.rp.origins) ? request.rp.origins : [];
+  for (const origin of origins) {
+    lines.push(fieldLine("origin", origin));
   }
-  if (created) {
-    lines.push("new " + created.name + " " + created.aaguid + " " + String(created.backupEligible));
+  if (request.name) lines.push(fieldLine("name", request.name));
+  if (request.credentialId) lines.push(fieldLine("credential", request.credentialId));
+  const list = Array.isArray(members) ? members : [];
+  for (const approver of list) {
+    lines.push(
+      fieldLine("member", approver.name + " " + approver.credentialId + " " + approver.aaguid + " " + String(approver.backupEligible)),
+    );
   }
   return lines.join("\n");
+}
+
+function resultingMembers(request, created) {
+  const previous = request.predecessor && request.predecessor.approvers ? request.predecessor.approvers : [];
+  if (request.mode === "remove") {
+    return previous.filter(function (approver) { return approver.credentialId !== request.credentialId; });
+  }
+  const rooting = request.mode === "re-root" || !request.predecessor;
+  if (rooting) return created ? [created] : [];
+  return created ? previous.concat([created]) : previous;
 }
 
 function b64urlToBuffer(text) {
@@ -540,7 +560,12 @@ async function boot() {
   if (location.href.length <= QR_URL_MAX && qr) qr.textContent = "qr: " + location.href;
   let busy = false;
   if (request.mode === "approve") {
-    set.textContent = shownApprove(request);
+    try {
+      set.textContent = shownApprove(request);
+    } catch (err) {
+      status.textContent = String(err);
+      return;
+    }
     button.textContent = "Approve";
     button.addEventListener("click", async function () {
       if (busy) return;
@@ -577,7 +602,12 @@ async function boot() {
     });
     return;
   }
-  set.textContent = shownTrust(request);
+  try {
+    set.textContent = shownTrust(request, resultingMembers(request, null));
+  } catch (err) {
+    status.textContent = String(err);
+    return;
+  }
   button.textContent = request.mode === "remove" ? "Remove" : "Enroll";
   button.addEventListener("click", async function () {
     if (busy) return;
@@ -618,20 +648,17 @@ async function boot() {
           attestationObject: base64urlEncode(new Uint8Array(createdCred.response.attestationObject)),
           clientDataJSON: base64urlEncode(new Uint8Array(createdCred.response.clientDataJSON)),
         };
-        set.textContent = shownTrust(request, created);
       }
       const previous = request.predecessor && request.predecessor.approvers ? request.predecessor.approvers : [];
       const rooting = request.mode === "re-root" || !request.predecessor;
-      let nextApprovers;
+      const nextApprovers = resultingMembers(request, created);
+      set.textContent = shownTrust(request, nextApprovers);
       let allowIds;
       if (request.mode === "remove") {
-        nextApprovers = previous.filter(function (approver) { return approver.credentialId !== request.credentialId; });
         allowIds = previous.map(function (approver) { return approver.credentialId; });
       } else if (rooting) {
-        nextApprovers = [created];
         allowIds = [created.credentialId];
       } else {
-        nextApprovers = previous.concat([created]);
         allowIds = previous.map(function (approver) { return approver.credentialId; });
       }
       const body = { repo: request.repo, rp: request.rp, approvers: nextApprovers };

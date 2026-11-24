@@ -195,6 +195,8 @@ export function verifyTrustHistory(
     const next = applyTrustVersion(state, parsed, {
       at: version.commit,
       verifyRegistration: options.verifyRegistration,
+      // Accepted history must keep verifying after a root certificate expires.
+      checkCertificateValidity: false,
     });
     if (!next.ok) return { ok: false, reason: next.reason };
     state = next.state;

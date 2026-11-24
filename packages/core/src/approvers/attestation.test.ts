@@ -434,6 +434,17 @@ describe("verifyAttestedRegistration (#6945)", () => {
       }),
     ).toMatchObject({ ok: false, reason: expect.stringMatching(/validity/) });
   });
+
+  it("replays an expired historical root when certificate validity is not checked", () => {
+    const anchor = makeRegistration({ rootNotAfter: "210101000000Z" });
+    expect(
+      verifyAttestedRegistration(anchor.input, {
+        roots: anchor.roots,
+        expectedChallenge: CHALLENGE,
+        checkCertificateValidity: false,
+      }),
+    ).toMatchObject({ ok: true });
+  });
 });
 
 describe("vendored roots (#6945)", () => {
