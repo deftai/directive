@@ -332,7 +332,7 @@ describe("acceptance-disposition template (#6318)", () => {
     }
   });
 
-  it("ignores grants for another plan, malformed records and plans with no id or store", () => {
+  it("ignores grants for another plan, malformed records and plans with no id", () => {
     const { dest } = cloneWithDest();
     writeBrief(dest);
     const minted = mint(dest);
@@ -363,10 +363,80 @@ describe("acceptance-disposition template (#6318)", () => {
     expect(
       resolveAcceptanceDispositionGrants({ projectRoot: dest, plan: plan(), now: LATER }),
     ).toEqual({ ok: true, covers: [] });
+  });
+
+  it("#7254: no main clone yields empty covers; an unreadable grant file refuses", () => {
     const notGit = mkdtempSync(join(tmpdir(), "disposition-nogit-"));
     bases.push(notGit);
     expect(
-      resolveAcceptanceDispositionGrants({ projectRoot: notGit, plan: plan(), now: LATER }),
+      resolveAcceptanceDispositionGrants({
+        projectRoot: notGit,
+        plan: plan(),
+        now: LATER,
+      }),
+    ).toEqual({ ok: true, covers: [] });
+
+    const { dest } = cloneWithDest();
+    const root = resolveRoot(dest);
+    const grantsDir = join(root, ".deft", "authz", "grants");
+    mkdirSync(grantsDir, { recursive: true });
+    // Directory named *.json makes readFileSync fail (EISDIR) on every platform.
+    mkdirSync(join(grantsDir, "unreadable-grant.json"));
+    const refused = resolveAcceptanceDispositionGrants({
+      projectRoot: dest,
+      plan: plan(),
+      now: LATER,
+    });
+    expect(refused).toMatchObject({
+      ok: false,
+      reason: expect.stringMatching(/grant unreadable/),
+    });
+  });
+
+  it("#7254: unused grant with disagreeing plan identifiers for this plan.id refuses", () => {
+    const { dest } = cloneWithDest();
+    writeBrief(dest);
+    const minted = mint(dest);
+    if (!minted.ok) throw new Error(minted.reason);
+    const root = resolveRoot(dest);
+    const grant = loadGrant(root, minted.grant.id);
+    if (grant === null) throw new Error("grant missing");
+    saveGrant(root, {
+      ...grant,
+      scope: {
+        ...grant.scope,
+        planRef: "github.issue.9999",
+        surfaces: grant.scope.surfaces.map((s) =>
+          s.startsWith("acceptance-disposition:plan:")
+            ? `acceptance-disposition:plan:${plan().id}`
+            : s,
+        ),
+      },
+    });
+    const refused = resolveAcceptanceDispositionGrants({
+      projectRoot: dest,
+      plan: plan(),
+      now: LATER,
+    });
+    expect(refused).toMatchObject({
+      ok: false,
+      reason: expect.stringMatching(new RegExp(`${minted.grant.id}.*disagreeing plan identifiers`)),
+    });
+    // Wholly other-plan grant does not block this completion.
+    saveGrant(root, {
+      ...grant,
+      scope: {
+        ...grant.scope,
+        planRef: "github.issue.9999",
+        surfaces: grant.scope.surfaces.map((s) =>
+          s.startsWith("acceptance-disposition:plan:")
+            ? "acceptance-disposition:plan:github.issue.9999"
+            : s,
+        ),
+      },
+    });
+    expect(
+      resolveAcceptanceDispositionGrants({ projectRoot: dest, plan: plan(), now: LATER }),
     ).toEqual({ ok: true, covers: [] });
   });
 
