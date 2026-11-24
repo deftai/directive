@@ -1,0 +1,487 @@
+{
+  "schemaVersion": 1,
+  "algo": "intent-extract-v1",
+  "plan": {
+    "title": "[framework-gap] Spawn ignores a destination story-binding and still fails on the session root's active briefs",
+    "narratives": {
+      "Description": "[framework-gap] Spawn ignores a destination story-binding and still fails on the session root's active briefs",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/7271",
+      "Overview": "## What happened\n\nTwo evolution stories were in linked worktrees of the session repo. `swarm:pre-dispatch` began an attempt and wrote the story-binding:\n\n```\nstory-binding: .../visage-delegator-wiring -> story.1840-desk-p6-visage-delegator-wiring\nstory-binding: .../files-listing-blob-sha -> story.1840-desk-p6-files-listing-blob-sha\n```\n\n`spawn_subagent` with `cwd` set to those worktrees was still refused:\n\n```\nMultiple active xBRIEF artifacts are eligible («untrusted:2026-07-31-divx-oauth-registration-path.xbrief.json», …).\nThe write fence cannot bind the first-sorted story.\nParent/operator: for a linked worktree, run swarm:pre-dispatch before spawn (begin records the worktree's story, #6379)\n```\n\nPre-dispatch had already been run. The session root is a full clone with many active briefs. `resolveWorktreeStoryBinding` returns none for a non-linked root, so the hook never reads the destination worktree's binding.\n\n## Expected\n\nWhen spawn `cwd` is a linked worktree with a story-binding record, that record selects the story. The session root's other active briefs do not fail the spawn. The recovery text should not tell the operator to run a command they already ran.\n\n## Not the same as\n\n#7256 is the approved-scope mint being read from the primary checkout. #4771 is `DEFT_ACTIVE_SCOPE` not reaching a patch process. This is the multi-active fence at spawn time ignoring a binding that #6379 said was the pin.\n\n## Evidence\n\n2026-11-24, Grok session on deftai/evolution. Attempts `att-5d9eb3b6f21ff869` (delegator, evolution#2187) and `att-3b7dbaa9b467d11a` (files listing, evolution#2188). The hook text is `formatMultipleActiveMessage` in `vendor/directive-core/dist/hooks/scope.js`. The binding reader is `resolveWorktreeStoryBinding` in the same file, which returns none when the scanned root is not a linked worktree.\n\n",
+      "Labels": "bug, swarm, agent-experience, process, harness, urgent, dogfood, design-critique:ingest-ready, framework-gap, core-capabilities, promise:gates, promise:swarm",
+      "UserStory": "## What happened\n\nTwo evolution stories were in linked worktrees of the session repo. `swarm:pre-dispatch` began an attempt and wrote the story-binding:\n\n```\nstory-binding: .../visage-delegator-wiring -> story.1840-desk-p6-visage-delegator-wiring\nstory-binding: .../files-listing-blob-sha -> story.1840-desk-p6-files-listing-blob-sha\n```\n\n`spawn_subagent` with `cwd` set to those worktrees was still refused:\n\n```\nMultiple active xBRIEF artifacts are eligible («untrusted:2026-07-31-divx-oauth-registration-path.xbrief.json», …).\nThe write fence cannot bind the first-sorted story.\nParent/operator: for a linked worktree, run swarm:pre-dispatch before spawn (begin records the worktree's story, #6379)\n```\n\nPre-dispatch had already been run. The session root is a full clone with many active briefs. `resolveWorktreeStoryBinding` returns none for a non-linked root, so the hook never reads the destination worktree's binding.\n\n## Expected\n\nWhen spawn `cwd` is a linked worktree with a story-binding record, that record selects the story. The session root's other active briefs do not fail the spawn. The recovery text should not tell the operator to run a command they already ran.\n\n## Not the same as\n\n#7256 is the approved-scope mint being read from the primary checkout. #4771 is `DEFT_ACTIVE_SCOPE` not reaching a patch process. This is the multi-active fence at spawn time ignoring a binding that #6379 said was the pin.\n\n## Evidence\n\n2026-11-24, Grok session on deftai/evolution. Attempts `att-5d9eb3b6f21ff869` (delegator, evolution#2187) and `att-3b7dbaa9b467d11a` (files listing, evolution#2188). The hook text is `formatMultipleActiveMessage` in `vendor/directive-core/dist/hooks/scope.js`. The binding reader is `resolveWorktreeStoryBinding` in the same file, which returns none when the scanned root is not a linked worktree.\n\n",
+      "ImplementationPlan": "Implement Prefer-A Bound comment 7133385593 limbs; tests; changelog.d."
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "For spawn tools, resolveWorktreeStoryBinding against occupancy-validated spawnConsult.destPath linked worktree."
+      },
+      {
+        "id": "clause.2",
+        "title": "When binding is kind bound, short-circuit spawn scope selection to that story; do not re-enter session-root multi-active competition."
+      },
+      {
+        "id": "clause.3",
+        "title": "Carry destination story through scope/fence reads for spawn allow; refused dest bindings must not fall back to parent story."
+      },
+      {
+        "id": "clause.4",
+        "title": "When dest story-binding or worker-auth is present, deny recovery must not prescribe PRE_DISPATCH_BEGIN_REPAIR."
+      },
+      {
+        "id": "clause.5",
+        "title": "Regression: parent/session root distinct from dest with >=2 eligible session actives; spawn allow with binding; refuse accurately when both sources removed."
+      },
+      {
+        "id": "clause.6",
+        "title": "changelog.d fragment. Keep #7256 mint-admission as adjacent keep-out."
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/7271",
+        "type": "x-xbrief/github-issue"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/comments/7133385593",
+        "type": "x-xbrief/github-comment"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "story-binding: .../visage-delegator-wiring -> story.1840-desk-p6-visage-delegator-wiring",
+          "reason": "shell metacharacter \">\" is not allowed in literal AC commands",
+          "sourceSpan": "fence@L7"
+        },
+        {
+          "command": "story-binding: .../files-listing-blob-sha -> story.1840-desk-p6-files-listing-blob-sha",
+          "reason": "shell metacharacter \">\" is not allowed in literal AC commands",
+          "sourceSpan": "fence@L7"
+        },
+        {
+          "command": "Parent/operator: for a linked worktree, run swarm:pre-dispatch before spawn (begin records the worktree's story, #6379)",
+          "reason": "shell metacharacter \"(\" is not allowed in literal AC commands",
+          "sourceSpan": "fence@L14"
+        }
+      ],
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/hooks/dispatcher.ts",
+          "packages/core/src/hooks/dispatcher-spawn-dest.test.ts",
+          "packages/core/src/swarm/story-binding-record.ts",
+          "changelog.d/7271-spawn-dest-story-binding.md"
+        ]
+      },
+      "intended_placement": {
+        "files": [
+          "packages/core/src/hooks/dispatcher.ts",
+          "packages/core/src/hooks/dispatcher-spawn-dest.test.ts",
+          "packages/core/src/swarm/story-binding-record.ts",
+          "changelog.d/7271-spawn-dest-story-binding.md"
+        ],
+        "module_boundary": "packages/core/src",
+        "cohesion_exemption": "Bound-localized change in existing hot modules for Prefer-A Bound #7271"
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because spawn into a pre-dispatched linked worktree still fails the session-root multi-active fence, and the recovery text tells the operator to re-run a command already run (#6379 miss at spawn consult).\nmechanism-shaped: true\ncharter: open critique\narc-mode: no-ingest\nspend-recommend: N≥3\nspend: N≥3\nspend-ask: resolved\nyolo-standing: yes\npain: P1, P2, P3\ndual-stop-reserved: first post-lean pain-audit of asserted coverage in-cap via evaluateDualStopParentPath; raise after reserved spent\nverification-path: pin-read dest=.deft-scratch/worktrees/arc-7271 dispatch-sha=60e8921207e77d526c9392a6da1e83345d77a6de\nclosed-findings:\n\n## Stop 1 — Gate\n\nP1: spawn_subagent with cwd set to a linked worktree that already has a swarm:pre-dispatch story-binding still fails with formatMultipleActiveMessage against the session root actives, because resolveWorktreeStoryBinding runs on payloadRoot (not linked) and returns none.\n\nP2: the deny recovery tells Parent/operator to run swarm:pre-dispatch begin before spawn even when begin already wrote the dest binding (#6379), so the operator is told to re-run a completed step.\n\nP3: the dest story-binding / worker-auth record is never the selector for that spawn path while effectiveRoot stays the session root, so multi-active competition on the primary checkout decides the spawn.\n\n## Not the same as\n\n- #7256 cohort mint admission root vs dest cwd\n- #4771 DEFT_ACTIVE_SCOPE not reaching a patch process\n- #6379 begin writer of the story-binding (already present; spawn does not honor it)",
+          "id": 7133251395,
+          "html_url": "https://github.com/deftai/directive/issues/7271#issuecomment-7133251395",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T13:43:49Z",
+          "updated_at": "2026-11-24T13:43:49Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: parent\n```\n\nPrefer-A draft\nconflict_group: spawn-dest-story-binding-selects-over-session-multi-active\nTarget-digest: sha256:7cec3cfe4a0570a398177cf92beb2b29f5c56d401f5ce8fadc00e27b5d554a5a\narc-mode: no-ingest\nspend: N≥3\nyolo-standing: yes\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\n## In plain English\n\nWhen you spawn a worker into a linked worktree that already has a story binding from pre-dispatch, that binding must pick the story. Extra active briefs on the session root must not block that spawn, and the error text must not tell you to re-run pre-dispatch when the binding is already there.\n\n## Bound remedy\n\n1. For spawn tools, when the spawn dest cwd/destPath is a linked worktree, call resolveWorktreeStoryBinding against that dest root (not only against payloadRoot).\n2. When that binding is kind bound, use that story path for spawn scope/fence selection so session-root multi-active competition does not refuse the spawn.\n3. When the dest already has a readable story-binding or worker-auth assignment, spawn deny recovery must not prescribe re-running swarm:pre-dispatch begin; name the actual miss instead.\n4. Add a regression where the session root has ≥2 eligible actives and a linked dest has a binding: spawn into that dest allows that story; removing the binding refuses with accurate recovery.\n5. Keep #7256 dest mint-admission, #4771 env-pin patch propagation, and the #6379 begin writer as adjacent keep-outs (this arc honors the existing binding at spawn).\n\n## Acceptance Criteria\n\n- A1: spawn into a linked dest with a valid story-binding (or worker-auth assignment) succeeds for that story while the session/payload root has multiple eligible actives.\n- A2: the same spawn without a dest binding still fails closed, and recovery does not claim pre-dispatch was missing when a binding file is present and readable.\n- A3: non-spawn writes on the primary/session root keep today multi-active fence behavior.\n- A4: fixture covers allow + refuse paths with parent/session root distinct from dest.\n\n## Reject / Not proposed\n\n- Fixing only by requiring DEFT_ACTIVE_SCOPE on the parent process.\n- Scanning session-root actives to guess the dest story without a dest binding/assignment.\n- Treating a non-linked caller cwd as story-binding authority.\n- Changing #7256 mint admission or #4771 patch-process env propagation in this arc.\n- Weakening multi-active protection for ordinary primary writes.",
+          "id": 7133251882,
+          "html_url": "https://github.com/deftai/directive/issues/7271#issuecomment-7133251882",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T13:43:50Z",
+          "updated_at": "2026-11-24T13:54:39Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: parent\n```\n\nspend-amend: N=2\nreason: Operator cue \"claude is not available so limit n to 2\"; Claude launch-probe returns weekly limit (resets Nov 25, 9pm America/Chicago). Reduced panel Codex+Grok only. Not a blocking-verdict cut.\nprior-spend: N≥3\nseat-families: grok, codex\nid-ceiling: 7133251882\nrefs: #5478 unavailable/hang-class containment; ARC_SPENDS has no N=2 token so amend is parent comment.",
+          "id": 7133252415,
+          "html_url": "https://github.com/deftai/directive/issues/7271#issuecomment-7133252415",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T13:43:51Z",
+          "updated_at": "2026-11-24T13:43:51Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: parent\n```\n\npanel-deposit\nspend: N=2\nseat-families: grok, codex\nlauncher: grok | codex\nid-ceiling: 7133251882\nSHA at dispatch: 60e8921207e77d526c9392a6da1e83345d77a6de\narc-mode: no-ingest\nverification-path: pin-read dest=.deft-scratch/worktrees/arc-7271\nTarget: https://github.com/deftai/directive/issues/7271\nTarget-kind: issue\nRound: 1 critic\nCharter: open critique\nMateriality-bar: open\nCritic role: fresh\nreduced-panel: yes (Claude unavailable / weekly limit; operator n=2)",
+          "id": 7133252935,
+          "html_url": "https://github.com/deftai/directive/issues/7271#issuecomment-7133252935",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T13:43:53Z",
+          "updated_at": "2026-11-24T13:43:53Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\n\nVerdict: accept-with-nits for Prefer-A draft 7133251882.\n\nThe proposed destination-binding selector addresses the reported failure without changing the begin writer. At dispatch SHA 60e8921207e77d526c9392a6da1e83345d77a6de, dispatcher.ts passes effectiveRoot to resolveWorktreeStoryBinding, and scope.ts immediately returns none for a non-linked root. Reading the occupancy-validated spawnConsult.destPath is the right direction. Preserve the resolver's worker-auth-first precedence and its refuse outcomes; a refused destination binding must not fall back to a parent story.\n\nNit 1 — Make the scope/fence root contract explicit. In packages/core/src/hooks/dispatcher.ts, the subsequent inspectActiveScope(effectiveRoot, ...) and requirePositiveGoverningAllow -> loadFence(effectiveRoot, scope.path) still use the parent root. Merely changing the resolver argument produces a destination absolute path that scope.ts::matchPinnedActiveScope cannot match against the parent's active candidates. State that the selected destination story and its scope/fence reads use a consistent destination context, while unrelated occupancy/ritual/mint admission remains unchanged. Exercise the real scope and fence loaders in the distinct-root regression, with the bound story absent from the parent's active directory, so a mocked ready result cannot hide this mismatch.\n\nNit 2 — Qualify the missing-binding acceptance case. dispatcher.ts::uniqueActiveBasenameFromDestPath already supplies a basename pin when the destination contains exactly one active brief. Removing its binding can therefore still allow a matching parent brief despite multiple parent actives. For the stated regression, give the destination multiple eligible actives and remove both possible assignment sources (worker-auth and story-binding). If A2 instead intends every unbound linked destination to refuse, explicitly identify that as a change to the existing basename fallback; it does not follow from adding destination binding lookup alone.\n\nFor recovery, keep missing, invalid, and conflicting bindings distinct: scope.ts::resolveWorktreeStoryBinding already has targeted refusal messages. A readable but malformed record is not a valid binding, and its existing rewrite repair should not be accidentally suppressed by a file-presence check. A valid binding with an eligibility or pin conflict should report that actual miss rather than the generic formatMultipleActiveMessage pre-dispatch advice.\n\nPrefer-A remains the appropriate single remedy; no parallel alternative or writer change is needed.",
+          "id": 7133345706,
+          "html_url": "https://github.com/deftai/directive/issues/7271#issuecomment-7133345706",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T13:47:38Z",
+          "updated_at": "2026-11-24T13:47:38Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: critic\n```\n\nverdict: accept-with-nits\ntarget: Prefer-A draft 7133251882\nrelieves-check: P1, P2, P3\n\n## Verdict\n\nPrefer-A is the right bound remedy for Stop 1. Spawn today hardcodes `effectiveRoot = payloadRoot` (`dispatcher.ts` spawn admission), then calls `resolveWorktreeStoryBinding(effectiveRoot, …)` so a non-linked session root returns `none` (`scope.ts` linked predicate). Scope falls through to `inspectActiveScope(payloadRoot)` and `formatMultipleActiveMessage` (P1/P3). That message always stamps `PRE_DISPATCH_BEGIN_REPAIR` (P2) even when begin already wrote the dest record. Calling the existing resolver against the occupancy-validated dest, honoring `bound`, and fixing recovery when a dest binding/assignment is already readable, with #7256/#4771/#6379 writer keep-outs, is mechanism-shaped and sufficient. Do not open a parallel Prefer-B.\n\n## Nits (must land with Prefer-A)\n\n1. **Dest-bound must not re-enter session-root multi-active.** After `resolveWorktreeStoryBinding(destPath)` returns `kind: \"bound\"`, do not pass the dest absolute brief path as `boundPath` into `inspectActiveScope(payloadRoot)`. `matchPinnedActiveScope` path-shaped pins fail closed when the dest brief is not a session-root active path (`scope.ts`), so A1 would still refuse. Mirror the existing `landsWithProductMove` short-circuit in `dispatcher.ts` (ready scope = binding.path) or inspect against the dest root. Session-root multi-active competition must not run on a dest-bound hit.\n\n2. **Consult root = occupancy-validated `spawnConsult.destPath`.** Prefer-A's \"dest cwd/destPath\" must mean the path already proven by `consultImplementSpawnOccupancy`, not a raw payload cwd. Keep spawn admission `effectiveRoot = payloadRoot` (no dest-root-swap; `#4215` stay-out). Only the story-binding consult (and the bound short-circuit above) retargets to dest.\n\n3. **P2 recovery gate.** When a dest story-binding or worker-auth assignment is present and readable, spawn deny copy must not prescribe `PRE_DISPATCH_BEGIN_REPAIR` (`formatMultipleActiveMessage` / spawn overlay). Name the actual miss (ineligible, ambiguous, pin conflict, etc.). Happy-path bound selection already avoids that message; A2 still needs the false-repair closed when deny happens with a readable dest binding.\n\n4. **A4 fixture shape.** Regression must use parent/session root distinct from dest, ≥2 eligible actives on the session root, and dest actives non-unique by basename (shared `xbrief/active` tree content). Basename-only `uniqueActiveBasenameFromDestPath` is insufficient coverage for this gap; assert allow with binding present and refuse with accurate recovery when the binding is removed.\n\n## Keep-outs (agree)\n\n#7256 mint admission, #4771 env-pin patch propagation, and the #6379 begin writer stay adjacent. This arc honors the existing dest binding at spawn consult.",
+          "id": 7133364717,
+          "html_url": "https://github.com/deftai/directive/issues/7271#issuecomment-7133364717",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T13:48:24Z",
+          "updated_at": "2026-11-24T13:48:24Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: parent\n```\n\nPrefer-A Bound\nconflict_group: spawn-dest-story-binding-selects-over-session-multi-active\nTarget-digest: sha256:7cec3cfe4a0570a398177cf92beb2b29f5c56d401f5ce8fadc00e27b5d554a5a\narc-mode: no-ingest\nspend: N=2\nyolo-standing: yes\nsuccessor-of: 7133251882\nround-1: Codex 7133345706; Grok 7133364717\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\n## In plain English\n\nWhen a worker is spawned into a linked worktree that already has a story binding, that binding picks the story. Extra active briefs on the session checkout no longer block that spawn. If something still fails and the binding is already there, the error names the real problem instead of telling you to re-run pre-dispatch.\n\n## Bound remedy\n\n1. For spawn tools, call resolveWorktreeStoryBinding against the occupancy-validated spawnConsult.destPath linked worktree (not a raw payload cwd; keep spawn admission effectiveRoot = payloadRoot for occupancy/ritual; no dest-root-swap #4215).\n2. When that binding is kind bound, short-circuit spawn scope selection to that story path the same way landsWithProductMove does (ready scope = binding.path), or inspect against the dest root; do not pass a dest absolute brief path as boundPath into inspectActiveScope(payloadRoot), and do not re-enter session-root multi-active competition on a dest-bound hit.\n3. Carry that destination story with a consistent destination context through scope/fence reads used for the spawn allow; refused destination bindings must not fall back to a parent/session story; preserve worker-auth-first precedence and existing refuse outcomes.\n4. When a dest story-binding or worker-auth assignment is present and readable, spawn deny recovery must not prescribe PRE_DISPATCH_BEGIN_REPAIR / re-run pre-dispatch; name the actual miss (ineligible, ambiguous, pin conflict, etc.). A readable but malformed record keeps its existing rewrite repair and is not treated as a valid binding by mere file presence.\n5. Add a regression with parent/session root distinct from dest, ≥2 eligible actives on the session root, and dest actives non-unique by basename: spawn allow with binding present; with both worker-auth and story-binding removed, refuse with accurate recovery (basename-only uniqueActiveBasenameFromDestPath is not sufficient coverage).\n6. Keep #7256 dest mint-admission, #4771 env-pin patch propagation, and the #6379 begin writer as adjacent keep-outs.\n\n## Acceptance Criteria\n\n- A1: spawn into a linked dest with a valid story-binding (or worker-auth assignment) succeeds for that story while the session/payload root has multiple eligible actives, including when the bound story is absent from the parent's active directory.\n- A2: with both dest assignment sources removed (worker-auth and story-binding) and dest actives non-unique by basename, spawn fails closed with recovery that does not claim pre-dispatch was missing when a readable dest binding/assignment remains; malformed readable records keep rewrite repair.\n- A3: non-spawn writes on the primary/session root keep today multi-active fence behavior; refused dest bindings do not fall back to a parent story.\n- A4: fixture exercises real scope and fence loaders through the spawn dispatcher with parent/session root distinct from dest (allow + refuse).\n\n## Reject / Not proposed\n\n- Fixing only by requiring DEFT_ACTIVE_SCOPE on the parent process.\n- Scanning session-root actives to guess the dest story without a dest binding/assignment.\n- Treating a non-linked or raw caller cwd as story-binding authority.\n- Dest-root-swapping spawn admission effectiveRoot (#4215 stay-out).\n- Changing #7256 mint admission or #4771 patch-process env propagation in this arc.\n- Weakening multi-active protection for ordinary primary writes.\n- Falling back to a parent story after a refused destination binding.",
+          "id": 7133385593,
+          "html_url": "https://github.com/deftai/directive/issues/7271#issuecomment-7133385593",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T13:49:15Z",
+          "updated_at": "2026-11-24T13:54:41Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3\nfinding-classes: none\nharvest-changed: false\nharvest-digest: sha256:a0bc7f2fae00e040b0abc606f1df535b194bb9acb305d6d9e5ccf6b22c5102a3\n\nPain-audit verdict: Prefer-A Bound 7133385593 relieves all three Stop 1 pains in 7133251395. No false-relief finding or additional remedy is required. This is a design audit, not a claim that the fix is implemented.\n\npain-P1: Relieved. With occupancy/ritual and the existing admission prerequisites satisfied, the dispatcher consults the validated linked spawnConsult.destPath. The resolver reads worker-auth first, otherwise the existing story-binding record, resolves the assigned eligible story in that destination, and returns bound. Bound limbs 2-3 then select that story without inspecting the parent's competing actives and use the destination context for the real scope/fence reads. A positive governing story allow can therefore reach the existing spawn reservation/allow path even when the parent has multiple actives and lacks the selected brief. Retargeting only the resolver would not suffice; the Bound explicitly includes the downstream context fix.\n\npain-P2: Relieved. That successful path never emits formatMultipleActiveMessage. For a remaining refusal with a readable assignment, limb 4 requires the actual eligibility, ambiguity, or pin-conflict reason rather than the generic missing-pre-dispatch advice. Missing assignment and malformed record remain distinct: a malformed record can still require its existing rewrite repair. Validate the present-but-refused cases separately from A2's both-records-removed case; an absent-record fixture alone cannot demonstrate the present-record recovery requirement. This is verification of the existing Bound obligation, not a harvest change.\n\npain-P3: Relieved. The authoritative selector becomes the destination's validated assignment, with worker-auth-first precedence and no parent-story fallback after a destination refusal. The parent's active-set ordering cannot decide a bound spawn. Keeping effectiveRoot at the payload root for occupancy/ritual does not defeat this relief because the Bound separately carries destination context through story selection and fence loading. The story-binding remains a selector, not a new authorization grant.\n\nChecked dispatcher.ts, scope.ts, and swarm/story-binding-record.ts at 60e8921207e77d526c9392a6da1e83345d77a6de. Existing independent authorization/fence failures remain legitimate refusals; #7256 mint admission, #4771 environment propagation, and the #6379 writer remain outside this remedy. Inputs were limited to issue comments at or below 7133385593.",
+          "id": 7133425225,
+          "html_url": "https://github.com/deftai/directive/issues/7271#issuecomment-7133425225",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T13:50:52Z",
+          "updated_at": "2026-11-24T13:55:57Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3\nfinding-classes: none\nharvest-changed: true\nharvest-digest: sha256:a0bc7f2fae00e040b0abc606f1df535b194bb9acb305d6d9e5ccf6b22c5102a3\n\n## Pain-audit Prefer-A Bound 7133385593 vs Stop 1 (7133251395)\n\nPin-read at dispatch SHA 60e8921207e77d526c9392a6da1e83345d77a6de: `packages/core/src/hooks/dispatcher.ts`, `packages/core/src/hooks/scope.ts`, `packages/core/src/swarm/story-binding-record.ts`.\n\n### pain-P1 — relieved (concrete admit path)\n\nToday spawn admission keeps `effectiveRoot = payloadRoot`, then `resolveWorktreeStoryBinding(effectiveRoot, …)` (`dispatcher.ts` ~3083). On the session root the linked predicate returns `none` (`scope.ts`), so selection falls through to `inspectActiveScope(payloadRoot)` and `formatMultipleActiveMessage` when ≥2 eligible actives compete.\n\nBound items 1–2 + A1/A4 admit: call `resolveWorktreeStoryBinding` against occupancy-validated `spawnConsult.destPath`; on `kind: \"bound\"`, short-circuit ready scope = `binding.path` the same way `landsWithProductMove` already does. Do not pass the dest absolute brief as `boundPath` into `inspectActiveScope(payloadRoot)` (path-shaped pins fail closed there via `matchPinnedActiveScope`). After Prefer-A ships, a dest-bound spawn no longer dies on session-root multi-active.\n\n### pain-P2 — relieved (concrete admit path)\n\n`formatMultipleActiveMessage` always stamps `PRE_DISPATCH_BEGIN_REPAIR` (`scope.ts`), so the P1 miss also lies that begin is missing when the dest record is already present.\n\nBound item 4 + A2 admit: happy-path dest-bound selection never reaches that message; on any remaining spawn deny while a dest story-binding or worker-auth assignment is present and readable, recovery must name the real miss (ineligible, ambiguous, pin conflict, etc.) and must not prescribe begin re-run. Malformed readable records keep existing rewrite repair and are not treated as valid by mere file presence. False-repair closed.\n\n### pain-P3 — relieved (concrete admit path)\n\nP3 is the selector gap under P1: while `effectiveRoot` stays the session root, dest worker-auth / story-binding never selects, so primary multi-active decides the spawn.\n\nBound items 1–3 + A1/A3 admit: dest binding becomes the spawn selector without dest-root-swap (`#4215` stay-out); occupancy/ritual stay on payloadRoot; destination context carries through scope/fence reads for the allow; refused dest bindings do not fall back to a parent/session story; worker-auth-first precedence preserved. Non-spawn primary writes keep today’s multi-active fence.\n\n### Harvest note\n\nBound harvest changed vs Prefer-A draft 7133251882: absorbed round-1 Codex/Grok nits — occupancy-validated `spawnConsult.destPath` (not raw cwd), dest-bound short-circuit so session multi-active does not re-enter, consistent destination scope/fence context, A2 dual-source removal + non-unique dest basename (basename-only `uniqueActiveBasenameFromDestPath` is not coverage), malformed vs valid binding distinction. Keep-outs `#7256` / `#4771` / `#6379` writer unchanged.\n\nNo false-relief found against P1–P3. No residual that blocks bind/chip from this seat.\n\n",
+          "id": 7133458475,
+          "html_url": "https://github.com/deftai/directive/issues/7271#issuecomment-7133458475",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T13:52:12Z",
+          "updated_at": "2026-11-24T13:55:59Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Evidence | Status |\n|---|---|---|\n| Prefer-A Bound 7133385593 relieves P1–P3 | Stop 1 7133251395; Round-1 Codex 7133345706 + Grok 7133364717 accept-with-nits absorbed into Bound; PA Codex 7133425225 + Grok 7133458475 finding-classes:none | verified |\n| Reduced panel N=2 (Codex+Grok) | Operator cue limit n to 2; Claude weekly limit; spend-amend 7133252415; panel-deposit 7133252935 | verified |\n| Dest pin-read | .deft-scratch/worktrees/arc-7271 @ 60e8921207e77d526c9392a6da1e83345d77a6de | verified |\n| Keep-outs #7256 / #4771 / #6379 writer | Bound Reject / Not proposed + both PA seats | verified |\n\nreduced-panel: yes (Claude unavailable)\ncited-lean: 7133385593\npa: 7133425225, 7133458475",
+          "id": 7133488688,
+          "html_url": "https://github.com/deftai/directive/issues/7271#issuecomment-7133488688",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T13:53:25Z",
+          "updated_at": "2026-11-24T13:53:25Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: parent\n```\n\ndesign-critique: synthesis accepted, because Prefer-A Bound 7133385593 relieves Stop 1 P1–P3 with concrete dest-binding spawn selection, and both pain-audits returned finding-classes: none.\n\n## In plain English\n\nSpawn into a pre-bound linked worktree will use that binding to pick the story, even when the session root has many actives, and errors will stop telling you to re-run pre-dispatch when the binding is already there. Design is locked for ingest; building it is a later step.\n\ncompleted-arc: yes\ncited lean: #issuecomment-7133385593\nsuccessor lean: 7133385593\nverified-claims table: (this thread; see Verified-claims table comment)\npain-audits: 7133425225, 7133458475\narc-mode: no-ingest\nspend: N=2\nyolo-standing: yes\ndispatch-sha: 60e8921207e77d526c9392a6da1e83345d77a6de\ndest: .deft-scratch/worktrees/arc-7271",
+          "id": 7133489215,
+          "html_url": "https://github.com/deftai/directive/issues/7271#issuecomment-7133489215",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T13:53:26Z",
+          "updated_at": "2026-11-24T13:53:26Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6580876982,
+        "origin": "deftai/directive#7271",
+        "id": "github.issue.6580876982"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "7cec3cfe4a0570a398177cf92beb2b29f5c56d401f5ce8fadc00e27b5d554a5a"
+      },
+      "kind": "story"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "derived_reason": "derived 6 independently testable clauses from the task statement before product edit (#3323)",
+      "source_rung": "derived",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "For spawn tools, resolveWorktreeStoryBinding against occupancy-validated spawnConsult.destPath linked worktree.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "When binding is kind bound, short-circuit spawn scope selection to that story; do not re-enter session-root multi-active competition.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Carry destination story through scope/fence reads for spawn allow; refused dest bindings must not fall back to parent story.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "When dest story-binding or worker-auth is present, deny recovery must not prescribe PRE_DISPATCH_BEGIN_REPAIR.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Regression: parent/session root distinct from dest with >=2 eligible session actives; spawn allow with binding; refuse accurately when both sources removed.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "changelog.d fragment. Keep #7256 mint-admission as adjacent keep-out.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.6580876982"
+  },
+  "approvedRepos": [
+    "deftai/directive"
+  ],
+  "unknownPaths": [
+    "metadata.intended_placement",
+    "metadata.issueCommentThread",
+    "metadata.kind",
+    "metadata.literal_acceptance_commands",
+    "metadata.literal_acceptance_rejected",
+    "metadata.x-directive/admitted-target-digest",
+    "metadata.x-directive/plan-id"
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "xbriefRelPath": "xbrief/active/2026-11-24-7271-framework-gap-spawn-ignores-a-destination-story-binding-and.xbrief.json",
+  "planId": "github.issue.6580876982",
+  "approvedAt": "2026-11-24T14:47:07Z",
+  "fileScope": [
+    "changelog.d/7271-spawn-dest-story-binding.md",
+    "packages/core/src/hooks/dispatcher-spawn-dest.test.ts",
+    "packages/core/src/hooks/dispatcher.ts",
+    "packages/core/src/swarm/story-binding-record.ts"
+  ],
+  "fileScopeDigest": "b3a01f0a707b65aeffa23a591358fc8f8d57ed0a9feaa353ce3f135d6193ba13",
+  "humanApproval": {
+    "kind": "operator",
+    "actor": "MScottAdams",
+    "mintedAt": "2026-11-24T14:47:07Z",
+    "mintedVia": "scope:record-approved-scope"
+  },
+  "intentDigest": "f17dd2439b82d7263b04fb59246dfe30cf523912564ac5414213078bd0986982",
+  "digestAlgo": "intent-extract-v1",
+  "authHashV1": "sha256:7a92902f595c210d5fb5e672caa77fcddc2c35c4b4c8f6ea52ae8c6b8d3d871f"
+}

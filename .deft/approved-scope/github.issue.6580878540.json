@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "xbriefRelPath": "xbrief/active/2026-11-24-7275-framework-gap-a-checkout-with-no-runtime-cannot-run-the-inst.xbrief.json",
+  "planId": "github.issue.6580878540",
+  "approvedAt": "2026-11-24T14:46:47Z",
+  "fileScope": [
+    "changelog.d/7275-missing-runtime-outer-admits-install.md",
+    "packages/cli/src/entry-guard-parity.test.ts",
+    "packages/core/src/init-deposit/host-hook-outer.ts",
+    "packages/core/src/install-health/recovery-admit.test.ts",
+    "packages/core/src/install-health/recovery-admit.ts",
+    "packages/runtime/src/hook-identity-failclosed.test.ts"
+  ],
+  "fileScopeDigest": "8f2f22338f13fbfa70b86be225922e368df1013b15c753e460296968bedea7a7",
+  "humanApproval": {
+    "kind": "operator",
+    "actor": "MScottAdams",
+    "mintedAt": "2026-11-24T14:46:47Z",
+    "mintedVia": "scope:record-approved-scope"
+  },
+  "intentDigest": "2b964be1128d08ed0c25016a58cdcef14e7a0a5fbd33785a6ff4d783f72fdd50",
+  "digestAlgo": "intent-extract-v1",
+  "authHashV1": "sha256:232508d50ffd5a0f0a32170e00fe8315a4eca6c5d12029e57fd9b78a334088a5"
+}
