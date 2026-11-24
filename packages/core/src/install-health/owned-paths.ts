@@ -786,25 +786,51 @@ const NPM_LOCK_ROOT_DEP_FIELDS: ReadonlySet<string> = new Set([
   "bundledDependencies",
 ]);
 
+/** Root `packages[""]` object, when this lockfile has one. */
+function npmLockRootPackagesEntry(
+  lock: Record<string, unknown>,
+): Record<string, unknown> | undefined {
+  const root = isPlainObject(lock.packages) ? lock.packages[""] : undefined;
+  return isPlainObject(root) ? root : undefined;
+}
+
+/**
+ * True when the root entry records `package.json`'s `name`. npm writes that
+ * field only when the manifest declares one (lockfileVersion 2+).
+ */
+function npmLockRootCarriesName(lock: Record<string, unknown>): boolean {
+  const root = npmLockRootPackagesEntry(lock);
+  return root !== undefined && Object.hasOwn(root, "name");
+}
+
 /**
  * The pin follow-through check looks only at dependencies. The app's own
  * fields (top-level `name` / `version`, and the root `packages[""]` entry
  * apart from its dependency maps) must also be unchanged. `lockfileVersion`
  * and `requires` may move with the package manager.
+ *
+ * When both locks have a root entry and neither carries `name`, npm derived
+ * the top-level `name` from the folder (#7233). That label is package-manager
+ * metadata too. A root entry that carries `name` is the app's declared name,
+ * so a change stays mixed. A missing root entry (lockfileVersion 1) keeps the
+ * top-level `name` as app metadata.
  */
 function npmLockAppMetadataEqual(beforeRaw: string, afterRaw: string): boolean {
   const b = parseJsonObjectOrEmpty(beforeRaw);
   const a = parseJsonObjectOrEmpty(afterRaw);
   if (b === undefined || a === undefined) return false;
+  const folderDerivedName =
+    npmLockRootPackagesEntry(b) !== undefined &&
+    npmLockRootPackagesEntry(a) !== undefined &&
+    !npmLockRootCarriesName(b) &&
+    !npmLockRootCarriesName(a);
+  const ignoredTop = new Set<string>(["packages", "dependencies", "lockfileVersion", "requires"]);
+  if (folderDerivedName) ignoredTop.add("name");
   const topLevel = (lock: Record<string, unknown>): Record<string, unknown> =>
-    Object.fromEntries(
-      Object.entries(lock).filter(
-        ([k]) => !["packages", "dependencies", "lockfileVersion", "requires"].includes(k),
-      ),
-    );
+    Object.fromEntries(Object.entries(lock).filter(([k]) => !ignoredTop.has(k)));
   const rootEntry = (lock: Record<string, unknown>): Record<string, unknown> => {
-    const root = isPlainObject(lock.packages) ? lock.packages[""] : undefined;
-    if (!isPlainObject(root)) return {};
+    const root = npmLockRootPackagesEntry(lock);
+    if (root === undefined) return {};
     return Object.fromEntries(
       Object.entries(root).filter(([k]) => !NPM_LOCK_ROOT_DEP_FIELDS.has(k)),
     );
