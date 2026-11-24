@@ -701,11 +701,23 @@ function executableStringBodies(words: readonly ShellWord[]): string[] {
  */
 function callShowsCommitWord(command: string): boolean {
   const joined = shellWithoutHereDocBodies(command).replace(/\\\r?\n/g, "");
-  return tokenizeShellCommand(joined).some((segment) => {
-    const words = commandWords(segment);
+  // Walk wrappers (`timeout` → `bash -c`, …) the same way readCall does (#7305).
+  const pending: (readonly ShellWord[])[] = tokenizeShellCommand(joined).map(commandWords);
+  for (let i = 0; i < pending.length; i++) {
+    const words = pending[i];
+    if (words === undefined) continue;
     if (wordsShowExactCommit(words)) return true;
-    return executableStringBodies(words).some((body) => textShowsExactCommitWord(body));
-  });
+    if (executableStringBodies(words).some((body) => textShowsExactCommitWord(body))) return true;
+    let k = 0;
+    while (k < words.length && isAssignmentWord(words[k]?.value ?? "")) k++;
+    const word = words[k];
+    if (word === undefined || isUnreadableCommandWord(word)) continue;
+    const name = programName(word);
+    if (!WRAPPER_VALUE_OPTIONS.has(name)) continue;
+    const wrapped = readWrapper(words, k, name);
+    if (wrapped?.kind === "wrapped") pending.push(wrapped.words);
+  }
+  return false;
 }
 
 /** A `-c`, `env -S` or `eval` string: a literal one is read next, any other is refused. */
