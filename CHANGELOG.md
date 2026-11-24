@@ -13,6 +13,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Activate the running brief for missing-runtime outer install admit (#7275).
+- Activate the running brief for obs-scope rediscovery scrub (#7272).
+- Activate the running brief for acceptance-disposition deferral walk (#7254).
+- Activate the running brief for pre-dispatch binding-store lock repair (#7274).
+- Activate the running brief for spawn dest story-binding selection (#7271).
+
 - Record approved file permissions for dest-worktree mint spawn admission. This records approval only; it does not change product behavior (#7256 / #7257).
 
 - Prepare dest-worktree mint admission so overnight bulk builders can start from a linked-worktree mint without a second mint pass (#7256 / #7257).
