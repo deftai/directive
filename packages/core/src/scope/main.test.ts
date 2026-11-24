@@ -827,12 +827,10 @@ describe("slow-path scope:complete gate (#7252)", () => {
     const gate = evaluateSlowPathCompleteGate({
       projectRoot: root,
       repository: "acme/app",
-      fetchPrPayload: (pr) =>
-        pr === 11 ? { merged_at: "2026-01-02T00:00:00Z" } : null,
+      fetchPrPayload: (pr) => (pr === 11 ? { merged_at: "2026-01-02T00:00:00Z" } : null),
       discoverDelivery: () => ({
         ok: false,
-        message:
-          "closing-PR discovery returned unparseable JSON for acme/app#1002",
+        message: "closing-PR discovery returned unparseable JSON for acme/app#1002",
       }),
     });
     expect(gate.refuse).toBe(true);
@@ -855,8 +853,7 @@ describe("slow-path scope:complete gate (#7252)", () => {
     const gate = evaluateSlowPathCompleteGate({
       projectRoot: root,
       repository: "acme/app",
-      fetchPrPayload: (pr) =>
-        pr === 11 ? { merged_at: "2026-01-02T00:00:00Z" } : null,
+      fetchPrPayload: (pr) => (pr === 11 ? { merged_at: "2026-01-02T00:00:00Z" } : null),
       discoverDelivery: () => ({
         ok: false,
         message: "closing-PR discovery failed for acme/app#1002: HTTP 502",
@@ -882,8 +879,7 @@ describe("slow-path scope:complete gate (#7252)", () => {
     const gate = evaluateSlowPathCompleteGate({
       projectRoot: root,
       repository: "acme/app",
-      fetchPrPayload: (pr) =>
-        pr === 11 ? { merged_at: "2026-01-02T00:00:00Z" } : null,
+      fetchPrPayload: (pr) => (pr === 11 ? { merged_at: "2026-01-02T00:00:00Z" } : null),
       discoverDelivery: () => ({
         ok: false,
         message:
