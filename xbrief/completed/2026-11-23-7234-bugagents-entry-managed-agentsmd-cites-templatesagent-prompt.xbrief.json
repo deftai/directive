@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #7234",
-    "updated": "2026-11-23T23:09:15Z"
+    "updated": "2026-11-24T02:27:28Z"
   },
   "plan": {
     "title": "bug(agents-entry): managed AGENTS.md cites templates/agent-prompt-preamble.md, which does not exist in a consumer project (regression from #7152)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(agents-entry): managed AGENTS.md cites templates/agent-prompt-preamble.md, which does not exist in a consumer project (regression from #7152)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/7234",
@@ -15,13 +15,27 @@
     "items": [
       {
         "title": "Given a consumer install, when AGENTS.md is rendered, then each `templates/…` and `main.md` reference in the managed section resolves to an existing file from the project root (`node_modules/@deftai/directive-runtime/…`).",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d58253c49a783ac50e13983655bef0a4f1068d28",
+          "recorded_at": "2026-11-24T02:27:28Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "A content-contract test fails if a managed-section path reference does not resolve in a consumer layout.",
-        "status": "proposed",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d58253c49a783ac50e13983655bef0a4f1068d28",
+          "recorded_at": "2026-11-24T02:27:28Z",
+          "recorded_by": "scope:complete"
+        }
       }
     ],
     "references": [
@@ -108,9 +122,38 @@
         ],
         "conflict_group": "agents-entry",
         "model_tier": "high"
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "a035f30083378a2f805ead4dad533887b9b680cf",
+        "prNumber": 7247,
+        "prBase": "master",
+        "mergeCommit": "d58253c49a783ac50e13983655bef0a4f1068d28",
+        "deliveryBranch": "master",
+        "deliveryCommit": "d58253c49a783ac50e13983655bef0a4f1068d28",
+        "verifiedAt": "2026-11-24T02:27:28Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMjBiNWQtOWRiNy03MjMzLThiZmMtNDA4MmMxNTNlMDA0",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          7243
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-24T02:27:28Z",
+      "completedSessionId": "host:grok:v1:MDFhMjBiNWQtOWRiNy03MjMzLThiZmMtNDA4MmMxNTNlMDA0",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-24T02:27:28Z"
       }
     },
     "id": "github.issue.6569775443",
-    "updated": "2026-11-23T23:09:15Z"
+    "updated": "2026-11-24T02:27:28Z"
   }
 }
