@@ -93,7 +93,8 @@
           ".deft/approved-scope/github.issue.6587893970.json",
           ".deft/approved-scope/github.issue.6587893970.intent.json"
         ],
-        "module_boundary": "packages/core"
+        "module_boundary": "packages/core/src/swarm + packages/core/src/vbrief-validate",
+        "cohesion_exemption": "Hot-path finalize-cohort.ts already >1000 lines; change is localized pathspec existence check for missing vbrief/ (#7292). Test isolation is try/finally only."
       }
     },
     "references": [
