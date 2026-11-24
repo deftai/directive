@@ -10,7 +10,7 @@
  * do not grow evaluateN3LaunchProbe into a watchdog.
  */
 
-export type SeatLauncher = "spawn_subagent" | "grok" | "claude" | "codex" | "paste-ready";
+export type SeatLauncher = "spawn_subagent" | "grok" | "claude" | "codex" | "agy" | "paste-ready";
 
 export type ClaimedSeat = {
   /** Parent-claimed family at dispatch. Not inferred from a model slug. */
@@ -21,6 +21,8 @@ export type ClaimedSeat = {
 export type PathProbe = {
   claude: boolean;
   codex: boolean;
+  /** Optional so pre-#7245 callers stay valid; refuse paste-ready only when true. */
+  agy?: boolean;
 };
 
 export type PanelSeatFailureCode = "missing-families" | "same-family" | "paste-ready-first";
@@ -66,7 +68,11 @@ export function evaluatePanelSeatComposition(input: {
   for (const seat of seats) {
     if (seat.launcher !== "paste-ready") continue;
     const family = normalizeFamily(seat.family);
-    if ((family === "claude" && input.path.claude) || (family === "codex" && input.path.codex)) {
+    if (
+      (family === "claude" && input.path.claude) ||
+      (family === "codex" && input.path.codex) ||
+      (family === "agy" && input.path.agy === true)
+    ) {
       return {
         ok: false,
         code: "paste-ready-first",
@@ -80,6 +86,42 @@ export function evaluatePanelSeatComposition(input: {
 
 /** Existing Verification pong prompt. Launch probe reuses it with critic bypass flags. */
 export const BENIGN_PONG_PROMPT = "Do not use tools. Reply with the single word: pong";
+
+/** Prefer-A #7245: published agy critic model. Claude / GPT / Hydrogen slugs do not discharge. */
+export const AGY_CRITIC_MODEL = "gemini-3.8-flash-high";
+
+/** Published agy launch-probe argv (stdin closed; cwd = arc dest). */
+export const AGY_PONG_ARGV = `agy -p "${BENIGN_PONG_PROMPT}" --model gemini-3.8-flash-high --output-format json --print-timeout 2m --sandbox`;
+
+/** Published agy short-pointer critic argv (stdin closed; cwd = arc dest). */
+export const AGY_SHORT_POINTER_ARGV =
+  'agy -p "Read and follow <envelope-path>" --model gemini-3.8-flash-high --output-format json --print-timeout 2m --sandbox';
+
+export function agyModelDischargesSeat(model: string): boolean {
+  return model.trim().toLowerCase() === AGY_CRITIC_MODEL;
+}
+
+export type AgySeatCompletionInput = {
+  /** Recorded pointer-envelope issue-comment URL under AGY_CRITIC_MODEL. */
+  commentUrl: string | null;
+  model: string;
+};
+
+export type AgySeatCompletionVerdict =
+  | { ok: true }
+  | { ok: false; reason: "model-miss" | "missing-comment-url" };
+
+/** Seat completion requires the pinned model plus one recorded comment URL. */
+export function evaluateAgySeatCompletion(input: AgySeatCompletionInput): AgySeatCompletionVerdict {
+  if (!agyModelDischargesSeat(input.model)) {
+    return { ok: false, reason: "model-miss" };
+  }
+  const url = input.commentUrl?.trim() ?? "";
+  if (url.length === 0) {
+    return { ok: false, reason: "missing-comment-url" };
+  }
+  return { ok: true };
+}
 
 export type LaunchProbeArgvClass = "critic-bypass" | "auth-pong" | "envelope";
 

@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
+import {
+  AGY_CRITIC_MODEL,
+  AGY_PONG_ARGV,
+  AGY_SHORT_POINTER_ARGV,
+  agyModelDischargesSeat,
+  evaluateAgySeatCompletion,
+  evaluatePanelSeatComposition,
+} from "../design-critique/panel-seat-families.js";
 import { classifyProductDestForms } from "./dest-form.js";
-import { classifyLauncherFamilyArgv, NOT_LAUNCHER } from "./launcher-argv.js";
+import { classifyLauncherFamilyArgv, LAUNCHER_FAMILIES, NOT_LAUNCHER } from "./launcher-argv.js";
 import { isSpawnTool, SPAWN_TOOL_NAMES } from "./tools.js";
 
 describe("classifyLauncherFamilyArgv (#4219)", () => {
@@ -217,5 +225,115 @@ describe("classifyLauncherFamilyArgv (#4219)", () => {
     expect(SPAWN_TOOL_NAMES).not.toContain("grok");
     expect(isSpawnTool("run_terminal_command")).toBe(false);
     expect(isSpawnTool("monitor")).toBe(false);
+  });
+
+  it("admits agy on LAUNCHER_FAMILIES (#7245)", () => {
+    expect(LAUNCHER_FAMILIES).toContain("agy");
+  });
+
+  it("classifies agy -p worker argv; dest from payload cwd (#7245)", () => {
+    expect(
+      classifyLauncherFamilyArgv(
+        'agy -p "Read and follow /e.md" --model gemini-3.8-flash-high --output-format json --print-timeout 2m --sandbox',
+        { payloadCwd: "/wt" },
+      ),
+    ).toEqual({ kind: "launcher", family: "agy", dest: "/wt" });
+  });
+
+  it("classifies dest-absent agy worker argv (#7245)", () => {
+    expect(
+      classifyLauncherFamilyArgv(
+        'agy -p "Do not use tools. Reply with the single word: pong" --model gemini-3.8-flash-high --output-format json --print-timeout 2m --sandbox',
+      ),
+    ).toEqual({ kind: "launcher", family: "agy", dest: null });
+  });
+
+  it("does not classify bare agy, agy models, or agy --version (#7245)", () => {
+    expect(classifyLauncherFamilyArgv("agy")).toEqual(NOT_LAUNCHER);
+    expect(classifyLauncherFamilyArgv("agy models")).toEqual(NOT_LAUNCHER);
+    expect(classifyLauncherFamilyArgv("agy --version")).toEqual(NOT_LAUNCHER);
+    expect(classifyLauncherFamilyArgv("agy.exe --help")).toEqual(NOT_LAUNCHER);
+  });
+
+  it("classifies path-prefixed agy.exe print argv (#7245)", () => {
+    expect(
+      classifyLauncherFamilyArgv(
+        'C:\\\\agy\\\\bin\\\\agy.exe --print "pong" --model gemini-3.8-flash-high --sandbox',
+        { payloadCwd: "C:\\wt" },
+      ),
+    ).toEqual({ kind: "launcher", family: "agy", dest: "C:\\wt" });
+  });
+
+  it("does not classify compound agy argv as an allowable launcher (#7245)", () => {
+    expect(
+      classifyLauncherFamilyArgv('agy -p "pong" --sandbox && git reset --hard', {
+        payloadCwd: "/wt",
+      }),
+    ).toEqual({ kind: "compound", family: "agy" });
+  });
+});
+
+describe("agy critic seat (#7245)", () => {
+  it("publishes pong and short-pointer argv pinned to gemini-3.8-flash-high", () => {
+    expect(AGY_CRITIC_MODEL).toBe("gemini-3.8-flash-high");
+    expect(AGY_PONG_ARGV).toContain("--model gemini-3.8-flash-high");
+    expect(AGY_PONG_ARGV).toContain("--print-timeout 2m");
+    expect(AGY_PONG_ARGV).toContain("--sandbox");
+    expect(AGY_SHORT_POINTER_ARGV).toContain("Read and follow <envelope-path>");
+    expect(AGY_SHORT_POINTER_ARGV).toContain("--model gemini-3.8-flash-high");
+    expect(classifyLauncherFamilyArgv(AGY_PONG_ARGV, { payloadCwd: "/wt" })).toEqual({
+      kind: "launcher",
+      family: "agy",
+      dest: "/wt",
+    });
+    expect(classifyLauncherFamilyArgv(AGY_SHORT_POINTER_ARGV, { payloadCwd: "/wt" })).toEqual({
+      kind: "launcher",
+      family: "agy",
+      dest: "/wt",
+    });
+  });
+
+  it("refuses paste-ready only for claimed family agy when path.agy resolves", () => {
+    const refused = evaluatePanelSeatComposition({
+      claimedSeats: [{ family: "agy", launcher: "paste-ready" }],
+      path: { claude: true, codex: true, agy: true },
+    });
+    expect(refused.ok).toBe(false);
+    if (refused.ok) return;
+    expect(refused.code).toBe("paste-ready-first");
+
+    const allowedAbsent = evaluatePanelSeatComposition({
+      claimedSeats: [{ family: "agy", launcher: "paste-ready" }],
+      path: { claude: true, codex: true, agy: false },
+    });
+    expect(allowedAbsent).toEqual({ ok: true });
+
+    const otherFamilyUnchanged = evaluatePanelSeatComposition({
+      claimedSeats: [{ family: "claude", launcher: "paste-ready" }],
+      path: { claude: false, codex: false, agy: true },
+    });
+    expect(otherFamilyUnchanged).toEqual({ ok: true });
+  });
+
+  it("treats Claude, GPT, and Hydrogen slugs as model misses; completion needs a comment URL", () => {
+    expect(agyModelDischargesSeat("gemini-3.8-flash-high")).toBe(true);
+    expect(agyModelDischargesSeat("claude-sonnet-4-6")).toBe(false);
+    expect(agyModelDischargesSeat("gpt-oss-120b-medium")).toBe(false);
+    expect(agyModelDischargesSeat("gemini-4-hydrogen-medium")).toBe(false);
+    expect(
+      evaluateAgySeatCompletion({
+        model: "gemini-3.8-flash-high",
+        commentUrl: "https://github.com/deftai/directive/issues/7245#issuecomment-1",
+      }),
+    ).toEqual({ ok: true });
+    expect(evaluateAgySeatCompletion({ model: "gemini-3.8-flash-high", commentUrl: null })).toEqual(
+      { ok: false, reason: "missing-comment-url" },
+    );
+    expect(
+      evaluateAgySeatCompletion({
+        model: "gemini-4-hydrogen-medium",
+        commentUrl: "https://github.com/deftai/directive/issues/7245#issuecomment-1",
+      }),
+    ).toEqual({ ok: false, reason: "model-miss" });
   });
 });

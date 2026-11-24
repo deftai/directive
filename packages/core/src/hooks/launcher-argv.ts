@@ -1,11 +1,11 @@
 /**
- * Launcher-family worker argv classification (#4219).
+ * Launcher-family worker argv classification (#4219 / #7245).
  *
- * Inspects shell command contents for grok / claude / codex worker launches.
+ * Inspects shell command contents for grok / claude / codex / agy worker launches.
  * Lives ahead of the shell branch. Not a dest-form. Not SPAWN_TOOL_NAMES.
  */
 
-export const LAUNCHER_FAMILIES = ["grok", "claude", "codex"] as const;
+export const LAUNCHER_FAMILIES = ["grok", "claude", "codex", "agy"] as const;
 export type LauncherFamily = (typeof LAUNCHER_FAMILIES)[number];
 
 export type LauncherArgvClass =
@@ -65,14 +65,32 @@ const CLAUDE_WORKER_FLAGS = new Set([
   "--output-format",
 ]);
 
+const AGY_WORKER_FLAGS = new Set(["-p", "--print", "--prompt"]);
+
+const AGY_NON_WORKER_SUBCOMMANDS = new Set([
+  "acp",
+  "agent",
+  "agents",
+  "changelog",
+  "help",
+  "install",
+  "mcp",
+  "mic-serve",
+  "models",
+  "plugin",
+  "plugins",
+  "remote-control",
+  "update",
+]);
+
 export interface ClassifyLauncherArgvOptions {
-  /** Shell payload cwd. Used only for claude dest (published form has no dest flag). */
+  /** Shell payload cwd. Used for claude/agy dest (published forms have no dest flag). */
   readonly payloadCwd?: string | null;
 }
 
 /**
  * Classify launcher-family worker argv. Dest for grok/codex is argv-only;
- * claude may use payload cwd. Do not inherit parent cwd for grok/codex (#4066).
+ * claude/agy may use payload cwd. Do not inherit parent cwd for grok/codex (#4066).
  */
 export function classifyLauncherFamilyArgv(
   command: string,
@@ -156,7 +174,7 @@ function classifyLauncherSegment(segment: string, payloadCwd: string | null): La
 function launcherFamilyFromBin(token: string): LauncherFamily | null {
   const base = token.replace(/\\/g, "/").split("/").pop() ?? "";
   const name = base.replace(/\.exe$/i, "").toLowerCase();
-  if (name === "grok" || name === "claude" || name === "codex") return name;
+  if (name === "grok" || name === "claude" || name === "codex" || name === "agy") return name;
   return null;
 }
 
@@ -168,6 +186,13 @@ function isWorkerLaunch(family: LauncherFamily, rest: readonly string[]): boolea
   }
   if (family === "claude") {
     return rest.some((token) => CLAUDE_WORKER_FLAGS.has(flagName(token)));
+  }
+  if (family === "agy") {
+    const first = rest.find((token) => !token.startsWith("-") && !isEnvAssign(token));
+    if (first !== undefined && AGY_NON_WORKER_SUBCOMMANDS.has(first.toLowerCase())) {
+      return false;
+    }
+    return rest.some((token) => AGY_WORKER_FLAGS.has(flagName(token)));
   }
   const first = rest.find((token) => !token.startsWith("-") && !isEnvAssign(token));
   if (first !== undefined && GROK_NON_WORKER_SUBCOMMANDS.has(first.toLowerCase())) {
@@ -183,6 +208,7 @@ function destFromArgv(
 ): string | null {
   if (family === "grok") return destFlagValue(rest, GROK_DEST_FLAGS);
   if (family === "codex") return destFlagValue(rest, CODEX_DEST_FLAGS);
+  if (family === "agy") return emptyToNull(payloadCwd);
   return destFlagValue(rest, CLAUDE_DEST_FLAGS) ?? emptyToNull(payloadCwd);
 }
 
