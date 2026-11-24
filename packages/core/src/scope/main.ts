@@ -31,7 +31,8 @@ import {
   liveRunGh,
   type NonDeliveryDisposition,
   resolvePlanGithubIssueRef,
-} from "./delivery-evidence.js";import {
+} from "./delivery-evidence.js";
+import {
   batchDemote,
   DEFAULT_OLDER_THAN_DAYS,
   demoteOne,
@@ -61,6 +62,7 @@ import {
 export interface MergedActiveStory {
   readonly prNumber: number;
   readonly cohortId: string;
+  readonly repository: string;
 }
 
 /** Result of the one-story complete slow-path gate (#7252). */
@@ -98,12 +100,33 @@ function cohortIdForPlan(plan: Record<string, unknown>, repo: string | null): st
   return planId.length > 0 ? planId : "unknown";
 }
 
-function isMergedPrPayload(payload: Record<string, unknown> | null): boolean {
-  if (payload === null) {
-    return false;
-  }
+function isMergedPrPayload(payload: Record<string, unknown>): boolean {
   const mergedAt = payload.merged_at;
   return typeof mergedAt === "string" && mergedAt.trim().length > 0;
+}
+
+/** Keep --repo with each PR so mixed-repository finalize commands stay valid. */
+function formatSlowPathFinalizeMessage(merged: readonly MergedActiveStory[]): string {
+  const byRepo = new Map<string, MergedActiveStory[]>();
+  for (const row of merged) {
+    const list = byRepo.get(row.repository) ?? [];
+    list.push(row);
+    byRepo.set(row.repository, list);
+  }
+  const commands: string[] = [];
+  for (const [repo, rows] of [...byRepo.entries()].sort(([a], [b]) => a.localeCompare(b))) {
+    const prList = [...new Set(rows.map((r) => r.prNumber))].sort((a, b) => a - b).join(",");
+    const cohortList = [...new Set(rows.map((r) => r.cohortId))].sort().join(",");
+    commands.push(
+      `deft swarm:finalize-cohort -- --pr ${prList} --cohort ${cohortList} --repo ${repo}`,
+    );
+  }
+  if (commands.length === 1) {
+    return `slow-path: ${commands[0] ?? ""}`;
+  }
+  return `slow-path: mixed repositories — run separately:\n${commands
+    .map((cmd) => `  ${cmd}`)
+    .join("\n")}`;
 }
 
 /**
@@ -122,6 +145,7 @@ export function evaluateSlowPathCompleteGate(args: {
   }
   const briefs = (args.listBriefs ?? (() => listActiveRunningBriefs(args.projectRoot)))();
   const fallbackRepo = (args.repository ?? resolveRepoForSlowPath(args.projectRoot) ?? "").trim();
+  // liveRunGh: ghx can cache a PR as open after merge and under-count here.
   const fetchPr =
     args.fetchPrPayload ??
     ((prNumber, repository) =>
@@ -153,17 +177,16 @@ export function evaluateSlowPathCompleteGate(args: {
     merged.push({
       prNumber,
       cohortId: cohortIdForPlan(brief.plan, repo),
+      repository: repo,
     });
   }
   if (merged.length < 2) {
     return { refuse: false };
   }
-  const prList = [...new Set(merged.map((row) => row.prNumber))].sort((a, b) => a - b).join(",");
-  const cohortList = [...new Set(merged.map((row) => row.cohortId))].sort().join(",");
   return {
     refuse: true,
     merged,
-    message: `slow-path: deft swarm:finalize-cohort -- --pr ${prList} --cohort ${cohortList}`,
+    message: formatSlowPathFinalizeMessage(merged),
   };
 }
 

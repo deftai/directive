@@ -624,10 +624,14 @@ describe("slow-path scope:complete gate (#7252)", () => {
     }
   });
 
-  function writeRunning(name: string, opts: { id: string; productPr?: number }): string {
+  function writeRunning(
+    name: string,
+    opts: { id: string; productPr?: number; repository?: string },
+  ): string {
     const active = join(root, "xbrief", "active");
     mkdirSync(active, { recursive: true });
     const file = join(active, name);
+    const repository = opts.repository;
     writeFileSync(
       file,
       formatBriefJson(
@@ -637,6 +641,16 @@ describe("slow-path scope:complete gate (#7252)", () => {
           id: opts.id,
           items: [],
           acceptance: { commands: [], none_stated: true },
+          ...(repository !== undefined
+            ? {
+                references: [
+                  {
+                    type: "x-xbrief/github-issue",
+                    uri: `https://github.com/${repository}/issues/${opts.id}`,
+                  },
+                ],
+              }
+            : {}),
           ...(opts.productPr !== undefined
             ? { metadata: { productPullRequest: opts.productPr } }
             : {}),
@@ -672,7 +686,42 @@ describe("slow-path scope:complete gate (#7252)", () => {
     expect(gate.refuse).toBe(true);
     if (gate.refuse) {
       expect(gate.message).toBe(
-        "slow-path: deft swarm:finalize-cohort -- --pr 11,12 --cohort 1001,1002",
+        "slow-path: deft swarm:finalize-cohort -- --pr 11,12 --cohort 1001,1002 --repo acme/app",
+      );
+      expect(gate.merged.map((row) => row.repository)).toEqual(["acme/app", "acme/app"]);
+    }
+  });
+
+  it("keeps repository names on mixed-repo finalize commands", () => {
+    root = mkdtempSync(join(tmpdir(), "slow-path-mixed-"));
+    writeRunning("2026-01-01-a.xbrief.json", {
+      id: "1001",
+      productPr: 11,
+      repository: "acme/app",
+    });
+    writeRunning("2026-01-01-b.xbrief.json", {
+      id: "1002",
+      productPr: 11,
+      repository: "other/kit",
+    });
+    const seen: string[] = [];
+    const gate = evaluateSlowPathCompleteGate({
+      projectRoot: root,
+      repository: "acme/app",
+      fetchPrPayload: (pr, repository) => {
+        seen.push(`${repository}#${String(pr)}`);
+        return { merged_at: "2026-01-02T00:00:00Z" };
+      },
+    });
+    expect(seen.sort()).toEqual(["acme/app#11", "other/kit#11"]);
+    expect(gate.refuse).toBe(true);
+    if (gate.refuse) {
+      expect(gate.message).toBe(
+        [
+          "slow-path: mixed repositories — run separately:",
+          "  deft swarm:finalize-cohort -- --pr 11 --cohort 1001 --repo acme/app",
+          "  deft swarm:finalize-cohort -- --pr 11 --cohort 1002 --repo other/kit",
+        ].join("\n"),
       );
     }
   });
@@ -718,15 +767,16 @@ describe("slow-path scope:complete gate (#7252)", () => {
     slowPathCompleteGateSeam.evaluate = () => ({
       refuse: true,
       merged: [
-        { prNumber: 11, cohortId: "1001" },
-        { prNumber: 12, cohortId: "1002" },
+        { prNumber: 11, cohortId: "1001", repository: "acme/app" },
+        { prNumber: 12, cohortId: "1002", repository: "acme/app" },
       ],
-      message: "slow-path: deft swarm:finalize-cohort -- --pr 11,12 --cohort 1001,1002",
+      message:
+        "slow-path: deft swarm:finalize-cohort -- --pr 11,12 --cohort 1001,1002 --repo acme/app",
     });
     try {
       expect(lifecycleMain(["complete", file, "--project-root", root])).toBe(1);
       expect(err.join("")).toContain(
-        "slow-path: deft swarm:finalize-cohort -- --pr 11,12 --cohort 1001,1002",
+        "slow-path: deft swarm:finalize-cohort -- --pr 11,12 --cohort 1001,1002 --repo acme/app",
       );
     } finally {
       slowPathCompleteGateSeam.evaluate = previous;
