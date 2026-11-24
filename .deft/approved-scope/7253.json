@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "xbriefRelPath": "xbrief/active/2026-11-24-7253-explain-mint-and-off.xbrief.json",
+  "planId": "7253",
+  "approvedAt": "2026-11-24T03:48:39Z",
+  "fileScope": [
+    "AGENTS.md",
+    "changelog.d/7253-explain-mint-and-off.md",
+    "content/docs/directive-lifecycle.md",
+    "content/templates/agents-entry.md"
+  ],
+  "fileScopeDigest": "8af0192a056e4e3b727d49c5df9a38794b11dfd134a683ae770afdf492a0dcc6",
+  "humanApproval": {
+    "kind": "operator",
+    "actor": "MScottAdams",
+    "mintedAt": "2026-11-24T03:48:39Z",
+    "mintedVia": "scope:record-approved-scope"
+  },
+  "intentDigest": "12a98ef4b509081d263f58ebbbd7e90ffca89bf11efb61298e8a9ecde25b9f35",
+  "digestAlgo": "intent-extract-v1",
+  "authHashV1": "sha256:73f7b3bca4a7d030ffd7f0e6bfa1417cc20ae0a01933a6e0ea65ad0d467ad777"
+}

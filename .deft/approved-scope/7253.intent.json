@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "algo": "intent-extract-v1",
+  "plan": {
+    "title": "Tell the operator the mint and off tradeoff before a batch",
+    "narratives": {
+      "Overview": "Agent entry and the cohort lifecycle doc explain mint and off, including finalize.",
+      "Description": ""
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "An agent reads onePrScopeProof and explains mint and off, including the shared finalize, and does not pick a route in silence."
+      }
+    ],
+    "metadata": {
+      "kind": "scope",
+      "swarm": {
+        "file_scope": [
+          "AGENTS.md",
+          "changelog.d/7253-explain-mint-and-off.md",
+          "content/docs/directive-lifecycle.md",
+          "content/templates/agents-entry.md"
+        ]
+      }
+    },
+    "id": "7253",
+    "acceptance": {
+      "commands": [],
+      "none_stated": true
+    }
+  },
+  "approvedRepos": [
+    "deftai/directive"
+  ],
+  "unknownPaths": [
+    "metadata.kind"
+  ]
+}
