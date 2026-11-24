@@ -3,7 +3,7 @@
     "version": "0.8",
     "description": "Explain the mint and off batch routes before a batch, and do not pick one in silence.",
     "created": "2026-11-24T03:40:00Z",
-    "updated": "2026-11-24T07:25:27.900Z"
+    "updated": "2026-11-24T07:28:20.917Z"
   },
   "plan": {
     "title": "Tell the operator the mint and off tradeoff before a batch",
@@ -34,9 +34,16 @@
         "size": "small",
         "file_scope_confidence": "high",
         "depends_on": []
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6573950395,
+        "origin": "deftai/directive#7253",
+        "id": "github.issue.6573950395"
       }
     },
-    "id": "7253",
+    "id": "github.issue.6573950395",
     "acceptance": {
       "commands": [],
       "none_stated": true
