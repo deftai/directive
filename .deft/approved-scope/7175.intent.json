@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "algo": "intent-extract-v1",
+  "plan": {
+    "title": "Admit npm and pnpm verification commands at scope complete",
+    "narratives": {
+      "Overview": "Scope brief for Admit npm and pnpm verification commands at scope complete.",
+      "Description": ""
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "npm and pnpm run build, run lint, and run typecheck are admitted without a positional, a double-dash, a runner flag, --if-present, or pnpm --filter."
+      },
+      {
+        "id": "clause.2",
+        "title": "npm audit and pnpm audit are admitted only through the closed flag table, and npx tsc and pnpm exec tsc stay refused."
+      },
+      {
+        "id": "clause.3",
+        "title": "Rewriting a structured record to npm run typecheck clears that record's old rejection and leaves unrelated rejections in place."
+      }
+    ],
+    "metadata": {
+      "kind": "scope",
+      "xbriefCreate": true,
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/literal-acceptance/safety.ts",
+          "packages/core/src/literal-acceptance/safety-branches.test.ts",
+          "packages/core/src/literal-acceptance/literal-acceptance.test.ts",
+          "changelog.d/7175-verification-commands.md"
+        ]
+      }
+    },
+    "id": "7175",
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 3 independently testable clauses from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "npm and pnpm run build, run lint, and run typecheck are admitted without a positional, a double-dash, a runner flag, --if-present, or pnpm --filter.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "npm audit and pnpm audit are admitted only through the closed flag table, and npx tsc and pnpm exec tsc stay refused.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Rewriting a structured record to npm run typecheck clears that record's old rejection and leaves unrelated rejections in place.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    }
+  },
+  "approvedRepos": [
+    "deftai/directive"
+  ],
+  "unknownPaths": [
+    "metadata.kind",
+    "metadata.xbriefCreate"
+  ]
+}
