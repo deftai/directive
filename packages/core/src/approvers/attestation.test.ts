@@ -1,4 +1,10 @@
-import { createHash, generateKeyPairSync, type KeyObject, sign, X509Certificate } from "node:crypto";
+import {
+  createHash,
+  generateKeyPairSync,
+  type KeyObject,
+  sign,
+  X509Certificate,
+} from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { verifyAttestedRegistration } from "./attestation.js";
 import { base64urlDecode, base64urlEncode } from "./canonical.js";
@@ -7,13 +13,20 @@ import { VENDOR_ROOTS, type VendorRoot } from "./vendor-roots.js";
 import { FLAG_AT, FLAG_BE, FLAG_UP, FLAG_UV, spkiOf } from "./webauthn.js";
 
 const RP: ApproversRp = { id: "approve.example.com", origins: ["https://approve.example.com"] };
+/** Raw bytes whose base64url is the fixture clientData challenge `Y2hhbGxlbmdl`. */
+const CHALLENGE = new TextEncoder().encode("challenge");
 const AAGUID = Buffer.from("cb69481e8ff7403993ec0a2729a154a8", "hex");
 
 // --- DER builder (test only: certificates are made in memory per run) ---
 function tlv(tag: number, ...parts: Buffer[]): Buffer {
   const body = Buffer.concat(parts);
   const n = body.length;
-  const len = n < 128 ? Buffer.from([n]) : n < 256 ? Buffer.from([0x81, n]) : Buffer.from([0x82, n >> 8, n & 255]);
+  const len =
+    n < 128
+      ? Buffer.from([n])
+      : n < 256
+        ? Buffer.from([0x81, n])
+        : Buffer.from([0x82, n >> 8, n & 255]);
   return Buffer.concat([Buffer.from([tag]), len, body]);
 }
 const seq = (...p: Buffer[]) => tlv(0x30, ...p);
@@ -36,11 +49,17 @@ function oid(dotted: string): Buffer {
   return tlv(0x06, Buffer.from(bytes));
 }
 function name(fields: [string, string][]): Buffer {
-  const ids: Record<string, string> = { C: "2.5.4.6", O: "2.5.4.10", OU: "2.5.4.11", CN: "2.5.4.3" };
-  return seq(...fields.map(([k, v]) => set(seq(oid(ids[k]!), tlv(k === "C" ? 0x13 : 0x0c, Buffer.from(v))))));
+  const ids: Record<string, string> = {
+    C: "2.5.4.6",
+    O: "2.5.4.10",
+    OU: "2.5.4.11",
+    CN: "2.5.4.3",
+  };
+  return seq(
+    ...fields.map(([k, v]) => set(seq(oid(ids[k]!), tlv(k === "C" ? 0x13 : 0x0c, Buffer.from(v))))),
+  );
 }
 const ECDSA_SHA256 = seq(oid("1.2.840.10045.4.3.2"));
-const VALIDITY = seq(tlv(0x17, Buffer.from("200101000000Z")), tlv(0x17, Buffer.from("491231235959Z")));
 
 interface CertSpec {
   subject: [string, string][];
@@ -51,11 +70,17 @@ interface CertSpec {
   aaguid?: Buffer | null;
   version1?: boolean;
   serial: number;
+  notBefore?: string;
+  notAfter?: string;
 }
 
 function cert(spec: CertSpec): Buffer {
   const exts: Buffer[] = [
-    seq(oid("2.5.29.19"), ...(spec.ca ? [bool(true)] : []), octet(spec.ca ? seq(bool(true)) : seq())),
+    seq(
+      oid("2.5.29.19"),
+      ...(spec.ca ? [bool(true)] : []),
+      octet(spec.ca ? seq(bool(true)) : seq()),
+    ),
   ];
   if (spec.aaguid !== undefined && spec.aaguid !== null) {
     exts.push(seq(oid("1.3.6.1.4.1.45724.1.1.4"), octet(octet(spec.aaguid))));
@@ -65,7 +90,10 @@ function cert(spec: CertSpec): Buffer {
     int(spec.serial),
     ECDSA_SHA256,
     name(spec.issuer),
-    VALIDITY,
+    seq(
+      tlv(0x17, Buffer.from(spec.notBefore ?? "200101000000Z")),
+      tlv(0x17, Buffer.from(spec.notAfter ?? "491231235959Z")),
+    ),
     name(spec.subject),
     spec.key.export({ type: "spki", format: "der" }),
     ...(spec.version1 === true ? [] : [tlv(0xa3, seq(...exts))]),
@@ -82,8 +110,10 @@ function cbor(value: unknown): Buffer {
     return Buffer.from([(major << 5) | 25, n >> 8, n & 255]);
   };
   if (typeof value === "number") return value >= 0 ? head(0, value) : head(1, -1 - value);
-  if (value instanceof Uint8Array) return Buffer.concat([head(2, value.length), Buffer.from(value)]);
-  if (typeof value === "string") return Buffer.concat([head(3, Buffer.byteLength(value)), Buffer.from(value)]);
+  if (value instanceof Uint8Array)
+    return Buffer.concat([head(2, value.length), Buffer.from(value)]);
+  if (typeof value === "string")
+    return Buffer.concat([head(3, Buffer.byteLength(value)), Buffer.from(value)]);
   if (Array.isArray(value)) return Buffer.concat([head(4, value.length), ...value.map(cbor)]);
   if (value instanceof Map) {
     const parts = [head(5, value.size)];
@@ -131,11 +161,21 @@ interface RegOptions {
   origin?: string;
   tamper?: boolean;
   version1?: boolean;
+  rootNotAfter?: string;
+  leafNotBefore?: string;
 }
 
 function makeRegistration(opts: RegOptions = {}) {
   const root = ec();
-  const rootDer = cert({ subject: ROOT_NAME, issuer: ROOT_NAME, key: root.publicKey, issuerKey: root.privateKey, ca: true, serial: 1 });
+  const rootDer = cert({
+    subject: ROOT_NAME,
+    issuer: ROOT_NAME,
+    key: root.publicKey,
+    issuerKey: root.privateKey,
+    ca: true,
+    serial: 1,
+    notAfter: opts.rootNotAfter,
+  });
   const rootCert = new X509Certificate(rootDer);
   const vendorRoot: VendorRoot = {
     vendor: "Test",
@@ -152,7 +192,16 @@ function makeRegistration(opts: RegOptions = {}) {
   if (opts.intermediate === true) {
     const mid = ec();
     const midName: [string, string][] = [["CN", "Test Intermediate"]];
-    chain.push(cert({ subject: midName, issuer: ROOT_NAME, key: mid.publicKey, issuerKey: root.privateKey, ca: true, serial: 2 }));
+    chain.push(
+      cert({
+        subject: midName,
+        issuer: ROOT_NAME,
+        key: mid.publicKey,
+        issuerKey: root.privateKey,
+        ca: true,
+        serial: 2,
+      }),
+    );
     issuerKey = mid.privateKey;
     issuerName = midName;
   }
@@ -165,6 +214,7 @@ function makeRegistration(opts: RegOptions = {}) {
     aaguid: opts.leafAaguid === undefined ? AAGUID : opts.leafAaguid,
     version1: opts.version1,
     serial: 3,
+    notBefore: opts.leafNotBefore,
   });
   const credId = Buffer.from("root-credential");
   const authData = Buffer.concat([
@@ -176,10 +226,20 @@ function makeRegistration(opts: RegOptions = {}) {
     coseEc(credential.publicKey),
   ]);
   const clientData = Buffer.from(
-    JSON.stringify({ type: "webauthn.create", challenge: "Y2hhbGxlbmdl", origin: opts.origin ?? RP.origins[0] }),
+    JSON.stringify({
+      type: "webauthn.create",
+      challenge: "Y2hhbGxlbmdl",
+      origin: opts.origin ?? RP.origins[0],
+    }),
   );
-  const sig = sign("sha256", Buffer.concat([authData, sha(clientData)]), { key: leafKey.privateKey, dsaEncoding: "der" });
-  const attStmt = new Map<string, unknown>([["alg", -7], ["sig", sig]]);
+  const sig = sign("sha256", Buffer.concat([authData, sha(clientData)]), {
+    key: leafKey.privateKey,
+    dsaEncoding: "der",
+  });
+  const attStmt = new Map<string, unknown>([
+    ["alg", -7],
+    ["sig", sig],
+  ]);
   if (opts.noX5c !== true) attStmt.set("x5c", [leafDer, ...chain]);
   const signedAuth = opts.tamper === true ? Buffer.from(authData) : authData;
   if (opts.tamper === true) signedAuth[33] = 9;
@@ -191,7 +251,11 @@ function makeRegistration(opts: RegOptions = {}) {
     ]),
   );
   return {
-    input: { attestationObject: base64urlEncode(attestationObject), clientDataJSON: base64urlEncode(clientData), rp: RP },
+    input: {
+      attestationObject: base64urlEncode(attestationObject),
+      clientDataJSON: base64urlEncode(clientData),
+      rp: RP,
+    },
     roots: [vendorRoot],
     credential,
   };
@@ -200,7 +264,10 @@ function makeRegistration(opts: RegOptions = {}) {
 describe("verifyAttestedRegistration (#6945)", () => {
   it("accepts a packed registration that chains to a vendored root", () => {
     const reg = makeRegistration();
-    const result = verifyAttestedRegistration(reg.input, { roots: reg.roots });
+    const result = verifyAttestedRegistration(reg.input, {
+      roots: reg.roots,
+      expectedChallenge: CHALLENGE,
+    });
     expect(result).toMatchObject({ ok: true });
     if (!result.ok) return;
     expect(result.registration.fmt).toBe("packed");
@@ -211,29 +278,43 @@ describe("verifyAttestedRegistration (#6945)", () => {
   });
 
   it("accepts a chain through an intermediate and reports backup eligibility", () => {
-    const reg = makeRegistration({ intermediate: true, flags: FLAG_UP | FLAG_UV | FLAG_AT | FLAG_BE });
-    const result = verifyAttestedRegistration(reg.input, { roots: reg.roots });
+    const reg = makeRegistration({
+      intermediate: true,
+      flags: FLAG_UP | FLAG_UV | FLAG_AT | FLAG_BE,
+    });
+    const result = verifyAttestedRegistration(reg.input, {
+      roots: reg.roots,
+      expectedChallenge: CHALLENGE,
+    });
     expect(result.ok && result.registration.backupEligible).toBe(true);
   });
 
   it("refuses a chain that does not end at a vendored root, including the shipped roots", () => {
     const reg = makeRegistration();
     const other = makeRegistration();
-    expect(verifyAttestedRegistration(reg.input, { roots: other.roots })).toMatchObject({
+    expect(
+      verifyAttestedRegistration(reg.input, { roots: other.roots, expectedChallenge: CHALLENGE }),
+    ).toMatchObject({
       ok: false,
       reason: expect.stringMatching(/vendored vendor root/),
     });
-    expect(verifyAttestedRegistration(reg.input)).toMatchObject({ ok: false });
+    expect(verifyAttestedRegistration(reg.input, { expectedChallenge: CHALLENGE })).toMatchObject({
+      ok: false,
+    });
   });
 
   it("refuses none and self attestation", () => {
     const none = makeRegistration({ fmt: "none" });
-    expect(verifyAttestedRegistration(none.input, { roots: none.roots })).toMatchObject({
+    expect(
+      verifyAttestedRegistration(none.input, { roots: none.roots, expectedChallenge: CHALLENGE }),
+    ).toMatchObject({
       ok: false,
       reason: expect.stringMatching(/none attestation/),
     });
     const self = makeRegistration({ noX5c: true });
-    expect(verifyAttestedRegistration(self.input, { roots: self.roots })).toMatchObject({
+    expect(
+      verifyAttestedRegistration(self.input, { roots: self.roots, expectedChallenge: CHALLENGE }),
+    ).toMatchObject({
       ok: false,
       reason: expect.stringMatching(/self attestation/),
     });
@@ -241,7 +322,9 @@ describe("verifyAttestedRegistration (#6945)", () => {
 
   it("refuses a format with no profile instead of downgrading it", () => {
     const reg = makeRegistration({ fmt: "tpm" });
-    expect(verifyAttestedRegistration(reg.input, { roots: reg.roots })).toMatchObject({
+    expect(
+      verifyAttestedRegistration(reg.input, { roots: reg.roots, expectedChallenge: CHALLENGE }),
+    ).toMatchObject({
       ok: false,
       reason: expect.stringMatching(/no profile/),
     });
@@ -250,7 +333,9 @@ describe("verifyAttestedRegistration (#6945)", () => {
   it("refuses a leaf whose AAGUID is missing or differs", () => {
     for (const leafAaguid of [null, Buffer.alloc(16, 1)]) {
       const reg = makeRegistration({ leafAaguid });
-      expect(verifyAttestedRegistration(reg.input, { roots: reg.roots })).toMatchObject({
+      expect(
+        verifyAttestedRegistration(reg.input, { roots: reg.roots, expectedChallenge: CHALLENGE }),
+      ).toMatchObject({
         ok: false,
         reason: expect.stringMatching(/AAGUID/),
       });
@@ -258,18 +343,31 @@ describe("verifyAttestedRegistration (#6945)", () => {
   });
 
   it("refuses a leaf without the attestation OU, a v1 leaf, and a leaf that is the credential key", () => {
-    const ou = makeRegistration({ leafSubject: [["C", "SE"], ["O", "X"], ["OU", "Other"], ["CN", "Y"]] });
-    expect(verifyAttestedRegistration(ou.input, { roots: ou.roots })).toMatchObject({
+    const ou = makeRegistration({
+      leafSubject: [
+        ["C", "SE"],
+        ["O", "X"],
+        ["OU", "Other"],
+        ["CN", "Y"],
+      ],
+    });
+    expect(
+      verifyAttestedRegistration(ou.input, { roots: ou.roots, expectedChallenge: CHALLENGE }),
+    ).toMatchObject({
       ok: false,
       reason: expect.stringMatching(/OU/),
     });
     const v1 = makeRegistration({ version1: true });
-    expect(verifyAttestedRegistration(v1.input, { roots: v1.roots })).toMatchObject({
+    expect(
+      verifyAttestedRegistration(v1.input, { roots: v1.roots, expectedChallenge: CHALLENGE }),
+    ).toMatchObject({
       ok: false,
       reason: expect.stringMatching(/version 3/),
     });
     const same = makeRegistration({ leafIsCredential: true });
-    expect(verifyAttestedRegistration(same.input, { roots: same.roots })).toMatchObject({
+    expect(
+      verifyAttestedRegistration(same.input, { roots: same.roots, expectedChallenge: CHALLENGE }),
+    ).toMatchObject({
       ok: false,
       reason: expect.stringMatching(/must not be the attestation signer/),
     });
@@ -277,17 +375,64 @@ describe("verifyAttestedRegistration (#6945)", () => {
 
   it("refuses altered authenticator data, a wrong origin and a missing UV flag", () => {
     const tampered = makeRegistration({ tamper: true });
-    expect(verifyAttestedRegistration(tampered.input, { roots: tampered.roots })).toMatchObject({
+    expect(
+      verifyAttestedRegistration(tampered.input, {
+        roots: tampered.roots,
+        expectedChallenge: CHALLENGE,
+      }),
+    ).toMatchObject({
       ok: false,
       reason: expect.stringMatching(/signature does not verify/),
     });
     const origin = makeRegistration({ origin: "https://evil.example.com" });
-    expect(verifyAttestedRegistration(origin.input, { roots: origin.roots })).toMatchObject({ ok: false });
+    expect(
+      verifyAttestedRegistration(origin.input, {
+        roots: origin.roots,
+        expectedChallenge: CHALLENGE,
+      }),
+    ).toMatchObject({ ok: false });
     const noUv = makeRegistration({ flags: FLAG_UP | FLAG_AT });
-    expect(verifyAttestedRegistration(noUv.input, { roots: noUv.roots })).toMatchObject({
+    expect(
+      verifyAttestedRegistration(noUv.input, { roots: noUv.roots, expectedChallenge: CHALLENGE }),
+    ).toMatchObject({
       ok: false,
       reason: expect.stringMatching(/user-verified/),
     });
+  });
+
+  it("refuses a registration whose challenge is not the expected one", () => {
+    const reg = makeRegistration();
+    expect(
+      verifyAttestedRegistration(reg.input, {
+        roots: reg.roots,
+        expectedChallenge: new TextEncoder().encode("other"),
+      }),
+    ).toMatchObject({ ok: false, reason: expect.stringMatching(/challenge/) });
+  });
+
+  it("refuses clientDataJSON that is not valid UTF-8", () => {
+    const reg = makeRegistration();
+    const bad = base64urlEncode(Uint8Array.from([0xff, 0xfe, 0xfd]));
+    expect(
+      verifyAttestedRegistration(
+        { ...reg.input, clientDataJSON: bad },
+        { roots: reg.roots, expectedChallenge: CHALLENGE },
+      ),
+    ).toMatchObject({ ok: false, reason: expect.stringMatching(/clientDataJSON/) });
+  });
+
+  it("refuses a certificate outside its validity period, including the anchor", () => {
+    const leaf = makeRegistration({ leafNotBefore: "490101000000Z" });
+    expect(
+      verifyAttestedRegistration(leaf.input, { roots: leaf.roots, expectedChallenge: CHALLENGE }),
+    ).toMatchObject({ ok: false, reason: expect.stringMatching(/validity/) });
+    const anchor = makeRegistration({ rootNotAfter: "210101000000Z" });
+    expect(
+      verifyAttestedRegistration(anchor.input, {
+        roots: anchor.roots,
+        expectedChallenge: CHALLENGE,
+      }),
+    ).toMatchObject({ ok: false, reason: expect.stringMatching(/validity/) });
   });
 });
 

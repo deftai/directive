@@ -174,8 +174,25 @@ function keyFitsAlg(cert: X509Certificate, alg: SupportedCoseAlg): boolean {
   return key.asymmetricKeyType === "ed25519";
 }
 
-/** Null when the chain ends at a vendored root. */
-function chainError(certs: readonly X509Certificate[], roots: readonly VendorRoot[]): string | null {
+/** Null when `now` is inside the certificate's validity window. */
+function validityError(cert: X509Certificate, now: number): string | null {
+  const from = Date.parse(cert.validFrom);
+  const to = Date.parse(cert.validTo);
+  if (!Number.isFinite(from) || !Number.isFinite(to)) return "certificate validity is unreadable";
+  if (now < from || now > to) return "certificate is outside its validity period";
+  return null;
+}
+
+/** Null when the chain ends at a vendored root that is inside its validity window. */
+function chainError(
+  certs: readonly X509Certificate[],
+  roots: readonly VendorRoot[],
+): string | null {
+  const now = Date.now();
+  for (const cert of certs) {
+    const expired = validityError(cert, now);
+    if (expired !== null) return expired;
+  }
   for (let i = 0; i + 1 < certs.length; i += 1) {
     const child = certs[i]!;
     const parent = certs[i + 1]!;
@@ -193,8 +210,10 @@ function chainError(certs: readonly X509Certificate[], roots: readonly VendorRoo
       continue;
     }
     if (anchor.fingerprint256 !== root.sha256) continue;
-    if (last.fingerprint256 === anchor.fingerprint256) return null;
-    if (last.checkIssued(anchor) && last.verify(anchor.publicKey)) return null;
+    const matchesSelf = last.fingerprint256 === anchor.fingerprint256;
+    const matchesIssuer = last.checkIssued(anchor) && last.verify(anchor.publicKey);
+    if (!matchesSelf && !matchesIssuer) continue;
+    return validityError(anchor, now);
   }
   return "x5c chain does not end at a vendored vendor root";
 }
@@ -275,15 +294,21 @@ export const ATTESTATION_PROFILES: Readonly<Record<string, Profile>> = {
  */
 export function verifyAttestedRegistration(
   input: RegistrationInput,
-  options: { readonly roots?: readonly VendorRoot[] } = {},
+  options: {
+    readonly roots?: readonly VendorRoot[];
+    /** Raw challenge bytes. A captured registration for another challenge is refused. */
+    readonly expectedChallenge: Uint8Array;
+  },
 ): RegistrationResult {
   const roots = options.roots ?? VENDOR_ROOTS;
   const refuse = (reason: string): RegistrationResult => ({ ok: false, reason });
   const attBytes = base64urlDecode(input.attestationObject);
   const clientBytes = base64urlDecode(input.clientDataJSON);
-  if (attBytes === null || clientBytes === null) return refuse("registration fields must be base64url");
+  if (attBytes === null || clientBytes === null)
+    return refuse("registration fields must be base64url");
   const clientError = checkClientData(parseClientData(clientBytes), {
     type: "webauthn.create",
+    challenge: options.expectedChallenge,
     rp: input.rp,
   });
   if (clientError !== null) return refuse(clientError);
@@ -300,12 +325,17 @@ export function verifyAttestedRegistration(
   const fmt = attObj.get("fmt");
   const attStmt = attObj.get("attStmt");
   const authDataBytes = attObj.get("authData");
-  if (typeof fmt !== "string" || !(attStmt instanceof Map) || !(authDataBytes instanceof Uint8Array)) {
+  if (
+    typeof fmt !== "string" ||
+    !(attStmt instanceof Map) ||
+    !(authDataBytes instanceof Uint8Array)
+  ) {
     return refuse("attestationObject must hold fmt, attStmt and authData");
   }
   if (fmt === "none") return refuse("none attestation cannot root a trust file");
   const profile = ATTESTATION_PROFILES[fmt];
-  if (profile === undefined) return refuse(`attestation format ${fmt} has no profile in this release`);
+  if (profile === undefined)
+    return refuse(`attestation format ${fmt} has no profile in this release`);
   let auth: AuthenticatorData;
   try {
     auth = parseAuthenticatorData(authDataBytes);

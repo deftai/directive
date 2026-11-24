@@ -16,8 +16,10 @@ import {
   APPROVERS_TRANSITION_SCHEMA,
   type ApprovalRecordKind,
   RECORD_APPROVAL_SCHEMA,
+  REGISTRATION_CHALLENGE_SCHEMA,
   type RecordApprovalEntry,
   type RecordApprovalPayload,
+  type RegistrationChallengePayload,
   type TransitionPayload,
 } from "./types.js";
 
@@ -189,7 +191,8 @@ export function recordApprovalPayloadError(raw: unknown): string | null {
   if (Object.keys(raw).sort().join(",") !== "entries,repo,schema") {
     return "payload keys must be exactly schema, repo, entries";
   }
-  if (raw.schema !== RECORD_APPROVAL_SCHEMA) return `payload schema must be ${RECORD_APPROVAL_SCHEMA}`;
+  if (raw.schema !== RECORD_APPROVAL_SCHEMA)
+    return `payload schema must be ${RECORD_APPROVAL_SCHEMA}`;
   if (!isRepoSlug(raw.repo)) return "payload repo must be a lowercase owner/repo slug";
   if (!Array.isArray(raw.entries) || raw.entries.length === 0) {
     return "payload entries must be a non-empty array";
@@ -227,6 +230,25 @@ export function buildTransitionPayload(input: {
     repo: normalizeRepoSlug(input.repo),
     predecessorDigest: input.predecessorDigest,
     bodyDigest: input.bodyDigest,
+  };
+}
+
+/**
+ * Build the create() challenge for a root or re-root. The credential id is
+ * not an input: create() has not returned yet.
+ */
+export function buildRegistrationChallengePayload(input: {
+  readonly repo: string;
+  readonly rpId: string;
+  readonly name: string;
+  readonly predecessorDigest: string | null;
+}): RegistrationChallengePayload {
+  return {
+    schema: REGISTRATION_CHALLENGE_SCHEMA,
+    repo: normalizeRepoSlug(input.repo),
+    rpId: input.rpId,
+    name: input.name,
+    predecessorDigest: input.predecessorDigest,
   };
 }
 

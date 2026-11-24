@@ -85,7 +85,8 @@ function cbor(value: unknown): Buffer {
     return Buffer.from([(major << 5) | 25, n >> 8, n & 255]);
   };
   if (typeof value === "number") return value >= 0 ? head(0, value) : head(1, -1 - value);
-  if (value instanceof Uint8Array) return Buffer.concat([head(2, value.length), Buffer.from(value)]);
+  if (value instanceof Uint8Array)
+    return Buffer.concat([head(2, value.length), Buffer.from(value)]);
   if (typeof value === "string") {
     const b = Buffer.from(value, "utf8");
     return Buffer.concat([head(3, b.length), b]);
@@ -102,10 +103,33 @@ function coseOf(alg: SupportedCoseAlg, publicKey: KeyObject): Buffer {
   const jwk = publicKey.export({ format: "jwk" });
   const b = (s: string | undefined) => base64urlDecode(s ?? "")!;
   if (alg === -7) {
-    return cbor(new Map<number, unknown>([[1, 2], [3, -7], [-1, 1], [-2, b(jwk.x)], [-3, b(jwk.y)]]));
+    return cbor(
+      new Map<number, unknown>([
+        [1, 2],
+        [3, -7],
+        [-1, 1],
+        [-2, b(jwk.x)],
+        [-3, b(jwk.y)],
+      ]),
+    );
   }
-  if (alg === -257) return cbor(new Map<number, unknown>([[1, 3], [3, -257], [-1, b(jwk.n)], [-2, b(jwk.e)]]));
-  return cbor(new Map<number, unknown>([[1, 1], [3, -8], [-1, 6], [-2, b(jwk.x)]]));
+  if (alg === -257)
+    return cbor(
+      new Map<number, unknown>([
+        [1, 3],
+        [3, -257],
+        [-1, b(jwk.n)],
+        [-2, b(jwk.e)],
+      ]),
+    );
+  return cbor(
+    new Map<number, unknown>([
+      [1, 1],
+      [3, -8],
+      [-1, 6],
+      [-2, b(jwk.x)],
+    ]),
+  );
 }
 
 describe("verifyAssertion (#6945)", () => {
@@ -131,8 +155,12 @@ describe("verifyAssertion (#6945)", () => {
 
   it("refuses an unknown origin, a wrong rp.id, crossOrigin true and a create ceremony", () => {
     const { publicKey, privateKey } = keyPair(-7);
-    expect(check(publicKey, assertion(privateKey, { origin: "https://evil.example.com" }))).toMatch(/origin/);
-    expect(check(publicKey, assertion(privateKey, { rpId: "evil.example.com" }))).toMatch(/rpIdHash/);
+    expect(check(publicKey, assertion(privateKey, { origin: "https://evil.example.com" }))).toMatch(
+      /origin/,
+    );
+    expect(check(publicKey, assertion(privateKey, { rpId: "evil.example.com" }))).toMatch(
+      /rpIdHash/,
+    );
     expect(check(publicKey, assertion(privateKey, { crossOrigin: true }))).toMatch(/crossOrigin/);
     expect(check(publicKey, assertion(privateKey, { crossOrigin: false }))).toBeNull();
     expect(check(publicKey, assertion(privateKey, { type: "webauthn.create" }))).toMatch(/type/);
@@ -153,8 +181,20 @@ describe("verifyAssertion (#6945)", () => {
 
 describe("CBOR and authenticator data (#6945)", () => {
   it("decodes maps and refuses tags, floats, indefinite lengths and duplicate keys", () => {
-    const decoded = decodeCbor(cbor(new Map<unknown, unknown>([["fmt", "none"], [1, -7]])));
-    expect(decoded.value).toEqual(new Map<unknown, unknown>([["fmt", "none"], [1, -7]]));
+    const decoded = decodeCbor(
+      cbor(
+        new Map<unknown, unknown>([
+          ["fmt", "none"],
+          [1, -7],
+        ]),
+      ),
+    );
+    expect(decoded.value).toEqual(
+      new Map<unknown, unknown>([
+        ["fmt", "none"],
+        [1, -7],
+      ]),
+    );
     expect(() => decodeCbor(Uint8Array.from([0xc0, 0x00]))).toThrow(CborError);
     expect(() => decodeCbor(Uint8Array.from([0xf9, 0x3c, 0x00]))).toThrow(CborError);
     expect(() => decodeCbor(Uint8Array.from([0x9f, 0xff]))).toThrow(CborError);
@@ -179,7 +219,9 @@ describe("CBOR and authenticator data (#6945)", () => {
       const converted = coseToPublicKey(parsed.attested!.cosePublicKey);
       expect(converted.alg).toBe(alg);
       expect(Buffer.from(spkiOf(converted.key)).equals(Buffer.from(spkiOf(publicKey)))).toBe(true);
-      expect(() => parseAuthenticatorData(Buffer.concat([auth, Buffer.from([0])]))).toThrow(/trailing/);
+      expect(() => parseAuthenticatorData(Buffer.concat([auth, Buffer.from([0])]))).toThrow(
+        /trailing/,
+      );
     });
   }
 });

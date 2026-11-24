@@ -48,11 +48,21 @@ function sha(b: Uint8Array): Buffer {
 }
 
 function assertOver(signer: Soft, payload: Uint8Array, rp: ApproversRp = RP): AssertionProof {
-  const auth = Buffer.concat([sha(Buffer.from(rp.id)), Buffer.from([FLAG_UP | FLAG_UV, 0, 0, 0, 1])]);
+  const auth = Buffer.concat([
+    sha(Buffer.from(rp.id)),
+    Buffer.from([FLAG_UP | FLAG_UV, 0, 0, 0, 1]),
+  ]);
   const client = Buffer.from(
-    JSON.stringify({ type: "webauthn.get", challenge: base64urlEncode(sha(payload)), origin: rp.origins[0] }),
+    JSON.stringify({
+      type: "webauthn.get",
+      challenge: base64urlEncode(sha(payload)),
+      origin: rp.origins[0],
+    }),
   );
-  const sig = sign("sha256", Buffer.concat([auth, sha(client)]), { key: signer.privateKey, dsaEncoding: "der" });
+  const sig = sign("sha256", Buffer.concat([auth, sha(client)]), {
+    key: signer.privateKey,
+    dsaEncoding: "der",
+  });
   return {
     authenticatorData: base64urlEncode(auth),
     clientDataJSON: base64urlEncode(client),
@@ -60,33 +70,62 @@ function assertOver(signer: Soft, payload: Uint8Array, rp: ApproversRp = RP): As
   };
 }
 
-const PLACEHOLDER: AssertionProof = { authenticatorData: "AA", clientDataJSON: "AA", signature: "AA" };
+const PLACEHOLDER: AssertionProof = {
+  authenticatorData: "AA",
+  clientDataJSON: "AA",
+  signature: "AA",
+};
 
-function rootFile(key: Soft, kind: "root" | "re-root" = "root", prev: ApproversFile | null = null): ApproversFile {
+function rootFile(
+  key: Soft,
+  kind: "root" | "re-root" = "root",
+  prev: ApproversFile | null = null,
+): ApproversFile {
   const draft: ApproversFile = {
     schema: "deft.approvers.v1",
     body: { repo: REPO, rp: RP, approvers: [key.approver] },
     proof: {
       kind,
       credentialId: key.approver.credentialId,
-      registration: { attestationObject: `att-${key.approver.credentialId}`, clientDataJSON: "e30" },
+      registration: {
+        attestationObject: `att-${key.approver.credentialId}`,
+        clientDataJSON: "e30",
+      },
       assertion: PLACEHOLDER,
     },
   };
-  return { ...draft, proof: { ...draft.proof, assertion: assertOver(key, transitionPayloadBytes(draft, prev)) } } as ApproversFile;
+  return {
+    ...draft,
+    proof: { ...draft.proof, assertion: assertOver(key, transitionPayloadBytes(draft, prev)) },
+  } as ApproversFile;
 }
 
-function transition(prev: ApproversFile, approvers: Approver[], signer: Soft, opts: { rp?: ApproversRp; signedPrev?: ApproversFile } = {}): ApproversFile {
+function transition(
+  prev: ApproversFile,
+  approvers: Approver[],
+  signer: Soft,
+  opts: { rp?: ApproversRp; signedPrev?: ApproversFile } = {},
+): ApproversFile {
   const draft: ApproversFile = {
     schema: "deft.approvers.v1",
     body: { repo: REPO, rp: opts.rp ?? prev.body.rp, approvers },
-    proof: { kind: "transition", credentialId: signer.approver.credentialId, assertion: PLACEHOLDER },
+    proof: {
+      kind: "transition",
+      credentialId: signer.approver.credentialId,
+      assertion: PLACEHOLDER,
+    },
   };
-  const assertion = assertOver(signer, transitionPayloadBytes(draft, opts.signedPrev ?? prev), prev.body.rp);
+  const assertion = assertOver(
+    signer,
+    transitionPayloadBytes(draft, opts.signedPrev ?? prev),
+    prev.body.rp,
+  );
   return { ...draft, proof: { ...draft.proof, assertion } } as ApproversFile;
 }
 
-function chain(files: ApproversFile[]): { ok: true; state: TrustChainState } | { ok: false; reason: string } {
+function chain(
+  files: ApproversFile[],
+): { ok: true; state: TrustChainState } | { ok: false; reason: string } {
   let state: TrustChainState | null = null;
   for (const [i, file] of files.entries()) {
     const r = applyTrustVersion(state, file, { at: `c${i}`, verifyRegistration: stubVerifier });
@@ -100,19 +139,30 @@ describe("parseApproversFile (#6945)", () => {
   it("parses a root file and refuses unknown keys at every level", () => {
     const file = rootFile(soft("yubikey", true));
     expect(parseApproversFile(JSON.stringify(file))).toEqual(file);
-    expect(parseApproversFile(JSON.stringify({ ...file, level: "signed" }))).toMatchObject({ error: /exactly/ });
+    expect(parseApproversFile(JSON.stringify({ ...file, level: "signed" }))).toMatchObject({
+      error: /exactly/,
+    });
     const bodyExtra = { ...file, body: { ...file.body, rootKind: "packed" } };
     expect(parseApproversFile(JSON.stringify(bodyExtra))).toMatchObject({ error: /exactly/ });
-    const apExtra = { ...file, body: { ...file.body, approvers: [{ ...file.body.approvers[0], attested: true }] } };
+    const apExtra = {
+      ...file,
+      body: { ...file.body, approvers: [{ ...file.body.approvers[0], attested: true }] },
+    };
     expect(parseApproversFile(JSON.stringify(apExtra))).toMatchObject({ error: /exactly/ });
   });
 
   it("refuses a localhost rp, an http origin and an origin off rp.id", () => {
     const file = rootFile(soft("yubikey", true));
     const withRp = (rp: unknown) => JSON.stringify({ ...file, body: { ...file.body, rp } });
-    expect(parseApproversFile(withRp({ id: "localhost", origins: ["https://localhost"] }))).toMatchObject({ error: /localhost/ });
-    expect(parseApproversFile(withRp({ id: RP.id, origins: ["http://approve.example.com"] }))).toMatchObject({ error: /https/ });
-    expect(parseApproversFile(withRp({ id: RP.id, origins: ["https://evil.example.org"] }))).toMatchObject({ error: /not on rp.id/ });
+    expect(
+      parseApproversFile(withRp({ id: "localhost", origins: ["https://localhost"] })),
+    ).toMatchObject({ error: /localhost/ });
+    expect(
+      parseApproversFile(withRp({ id: RP.id, origins: ["http://approve.example.com"] })),
+    ).toMatchObject({ error: /https/ });
+    expect(
+      parseApproversFile(withRp({ id: RP.id, origins: ["https://evil.example.org"] })),
+    ).toMatchObject({ error: /not on rp.id/ });
   });
 });
 
@@ -124,7 +174,10 @@ describe("applyTrustVersion (#6945)", () => {
   });
 
   it("refuses a root whose registration has none or self attestation", () => {
-    expect(chain([rootFile(soft("phone", false))])).toMatchObject({ ok: false, reason: /none attestation/ });
+    expect(chain([rootFile(soft("phone", false))])).toMatchObject({
+      ok: false,
+      reason: /none attestation/,
+    });
   });
 
   it("refuses a first version that is not a root, and a later root", () => {
@@ -132,13 +185,19 @@ describe("applyTrustVersion (#6945)", () => {
     const root = rootFile(key);
     const t = transition(root, [key.approver], key);
     expect(chain([t])).toMatchObject({ ok: false, reason: /first trust-file version/ });
-    expect(chain([root, rootFile(soft("yubikey2", true))])).toMatchObject({ ok: false, reason: /only the first version/ });
+    expect(chain([root, rootFile(soft("yubikey2", true))])).toMatchObject({
+      ok: false,
+      reason: /only the first version/,
+    });
   });
 
   it("refuses a root whose registration differs from the listed approver", () => {
     const key = soft("yubikey", true);
     const root = rootFile(key);
-    const lying = { ...root, body: { ...root.body, approvers: [{ ...key.approver, backupEligible: true }] } };
+    const lying = {
+      ...root,
+      body: { ...root.body, approvers: [{ ...key.approver, backupEligible: true }] },
+    };
     expect(chain([lying as ApproversFile])).toMatchObject({ ok: false });
   });
 
@@ -176,7 +235,10 @@ describe("applyTrustVersion (#6945)", () => {
     const key = soft("yubikey", true);
     const root = rootFile(key);
     const swapped = { ...key.approver, publicKey: soft("x", false).approver.publicKey };
-    expect(chain([root, transition(root, [swapped], key)])).toMatchObject({ ok: false, reason: /not change its key/ });
+    expect(chain([root, transition(root, [swapped], key)])).toMatchObject({
+      ok: false,
+      reason: /not change its key/,
+    });
     const renamed = { ...key.approver, name: "renamed" };
     expect(chain([root, transition(root, [renamed], key)]).ok).toBe(true);
   });
@@ -187,7 +249,10 @@ describe("applyTrustVersion (#6945)", () => {
     const root = rootFile(key);
     const b = transition(root, [key.approver, phone.approver], key);
     const c = transition(b, [key.approver], key, { signedPrev: root });
-    expect(chain([root, b, c])).toMatchObject({ ok: false, reason: /transition assertion refused/ });
+    expect(chain([root, b, c])).toMatchObject({
+      ok: false,
+      reason: /transition assertion refused/,
+    });
   });
 
   it("moves the page only by a signed change verified at the old rp", () => {
@@ -228,7 +293,9 @@ describe("applyTrustVersion (#6945)", () => {
     const root = rootFile(key);
     const fresh = soft("yubikey-new", true);
     const reroot = rootFile(fresh, "re-root", root);
-    expect(chain([root, reroot, transition(reroot, [fresh.approver, key.approver], fresh)])).toMatchObject({
+    expect(
+      chain([root, reroot, transition(reroot, [fresh.approver, key.approver], fresh)]),
+    ).toMatchObject({
       ok: false,
       reason: /earlier epoch/,
     });

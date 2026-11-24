@@ -133,7 +133,8 @@ export function verifyRecordApproval(input: RecordApprovalCheck): RecordApproval
   };
   const credentialId = approval.credentialId as string;
   const approver = input.body.approvers.find((a) => a.credentialId === credentialId);
-  if (approver === undefined) return refuse("approval credential is not enrolled in .deft/approvers.json");
+  if (approver === undefined)
+    return refuse("approval credential is not enrolled in .deft/approvers.json");
   const error = verifyAssertion({
     payloadBytes: canonicalBytes(rebuilt),
     rp: input.body.rp,

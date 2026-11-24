@@ -15,6 +15,12 @@ export const APPROVERS_FILE_SCHEMA = "deft.approvers.v1";
 export const RECORD_APPROVAL_SCHEMA = "deft.record-approval.v1";
 /** Domain tag of a trust-file transition payload (also signs a root or re-root). */
 export const APPROVERS_TRANSITION_SCHEMA = "deft.approvers-transition.v1";
+/**
+ * Domain tag of the WebAuthn create() challenge for a root or re-root.
+ * The new key is not known until create() returns, so this payload is not
+ * the transition the assertion signs.
+ */
+export const REGISTRATION_CHALLENGE_SCHEMA = "deft.registration-challenge.v1";
 
 /** COSE algorithm ids accepted for enrolled credentials. */
 export const COSE_ALG_ES256 = -7;
@@ -116,6 +122,19 @@ export interface TransitionPayload {
   /** Digest of the preceding version; null only for the first root. */
   readonly predecessorDigest: string | null;
   readonly bodyDigest: string;
+}
+
+/**
+ * The bytes a root or re-root create() challenge is. Recomputable without
+ * the new credential, so a captured registration cannot be replayed against
+ * a different name, repo, origin host, or predecessor.
+ */
+export interface RegistrationChallengePayload {
+  readonly schema: typeof REGISTRATION_CHALLENGE_SCHEMA;
+  readonly repo: string;
+  readonly rpId: string;
+  readonly name: string;
+  readonly predecessorDigest: string | null;
 }
 
 /** The `approval` field a record carries at the signed level. */

@@ -15,8 +15,8 @@
  * The walk reads git only: no forge read and no network read.
  */
 import { execFileSync } from "node:child_process";
-import { normalizeRepoSlug } from "./canonical.js";
 import type { RegistrationVerifier } from "./attestation.js";
+import { normalizeRepoSlug } from "./canonical.js";
 import {
   applyTrustVersion,
   computeVersionDigest,
@@ -76,20 +76,33 @@ function git(projectRoot: string, args: readonly string[], input?: string): stri
  */
 export function loadTrustHistory(projectRoot: string, mergeBase: string): TrustHistoryLoad {
   // One spawn: "true|false" then the commit; fails when the merge base is not a commit.
-  const resolved = git(projectRoot, ["rev-parse", "--is-shallow-repository", `${mergeBase}^{commit}`]);
+  const resolved = git(projectRoot, [
+    "rev-parse",
+    "--is-shallow-repository",
+    `${mergeBase}^{commit}`,
+  ]);
   const [shallowFlag, base] = (resolved ?? "").split("\n").map((l) => l.trim());
   if (base === undefined || base.length === 0) return { kind: "absent" };
   const touched = git(projectRoot, ["log", "-1", "--format=%H", base, "--", APPROVERS_FILE_REL]);
   if (touched === null) return { kind: "error", reason: "git log of .deft/approvers.json failed" };
   if (touched.trim().length === 0) return { kind: "absent" };
   if (shallowFlag === "true") return { kind: "shallow" };
-  if (shallowFlag !== "false") return { kind: "error", reason: "could not tell whether the clone is shallow" };
+  if (shallowFlag !== "false")
+    return { kind: "error", reason: "could not tell whether the clone is shallow" };
   const listed = git(projectRoot, ["rev-list", "--first-parent", "--reverse", base]);
   if (listed === null) return { kind: "error", reason: "git rev-list of the merge base failed" };
-  const commits = listed.split("\n").map((l) => l.trim()).filter((l) => l.length > 0);
+  const commits = listed
+    .split("\n")
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0);
   const query = commits.map((c) => `${c}:${APPROVERS_FILE_REL}`).join("\n");
-  const checked = git(projectRoot, ["cat-file", "--batch-check=%(objectname) %(objecttype)"], `${query}\n`);
-  if (checked === null) return { kind: "error", reason: "git cat-file over the first-parent history failed" };
+  const checked = git(
+    projectRoot,
+    ["cat-file", "--batch-check=%(objectname) %(objecttype)"],
+    `${query}\n`,
+  );
+  if (checked === null)
+    return { kind: "error", reason: "git cat-file over the first-parent history failed" };
   const lines = checked.split("\n").filter((l) => l.length > 0);
   if (lines.length !== commits.length) {
     return { kind: "error", reason: "git cat-file returned an unexpected line count" };
@@ -114,10 +127,14 @@ export function loadTrustHistory(projectRoot: string, mergeBase: string): TrustH
   const blobs = readBlobs(projectRoot, [
     ...new Set(steps.map((s) => s.oid).filter((o): o is string => o !== null && o.length > 0)),
   ]);
-  if (blobs === null) return { kind: "error", reason: "git cat-file could not read trust-file versions" };
+  if (blobs === null)
+    return { kind: "error", reason: "git cat-file could not read trust-file versions" };
   return {
     kind: "versions",
-    versions: steps.map((s) => ({ commit: s.commit, text: s.oid === null ? null : (blobs.get(s.oid) ?? "") })),
+    versions: steps.map((s) => ({
+      commit: s.commit,
+      text: s.oid === null ? null : (blobs.get(s.oid) ?? ""),
+    })),
   };
 }
 
@@ -167,7 +184,10 @@ export function verifyTrustHistory(
     }
     const parsed = parseApproversFile(version.text);
     if ("error" in parsed) {
-      return { ok: false, reason: `.deft/approvers.json at ${version.commit} is malformed: ${parsed.error}` };
+      return {
+        ok: false,
+        reason: `.deft/approvers.json at ${version.commit} is malformed: ${parsed.error}`,
+      };
     }
     firstSeen ??= version.commit;
     const digest = computeVersionDigest(parsed);
@@ -190,7 +210,8 @@ export function verifyTrustHistory(
   };
 }
 
-const GITHUB_REMOTE = /^(?:https?:\/\/|ssh:\/\/|git:\/\/)?(?:[^@/]+@)?[^/:]+[:/](.+?)(?:\.git)?\/?$/;
+const GITHUB_REMOTE =
+  /^(?:https?:\/\/|ssh:\/\/|git:\/\/)?(?:[^@/]+@)?[^/:]+[:/](.+?)(?:\.git)?\/?$/;
 
 /**
  * The repository the payload names: `GITHUB_REPOSITORY`, else the origin
@@ -201,7 +222,8 @@ export function resolveApprovalRepo(
   env: Readonly<Record<string, string | undefined>> = process.env,
 ): string | null {
   const fromEnv = env.GITHUB_REPOSITORY?.trim();
-  if (fromEnv !== undefined && /^[^/\s]+\/[^/\s]+$/.test(fromEnv)) return normalizeRepoSlug(fromEnv);
+  if (fromEnv !== undefined && /^[^/\s]+\/[^/\s]+$/.test(fromEnv))
+    return normalizeRepoSlug(fromEnv);
   const url = git(projectRoot, ["remote", "get-url", "origin"])?.trim();
   return url === undefined ? null : parseRemoteRepo(url);
 }
@@ -219,7 +241,12 @@ export function parseRemoteRepo(url: string): string | null {
 /** The approval level a merge base puts a repository at. */
 export type SignedLevel =
   | { readonly level: "none" }
-  | { readonly level: "signed"; readonly ok: true; readonly repo: string; readonly trust: VerifiedTrust }
+  | {
+      readonly level: "signed";
+      readonly ok: true;
+      readonly repo: string;
+      readonly trust: VerifiedTrust;
+    }
   | { readonly level: "signed"; readonly ok: false; readonly code: 1 | 2; readonly reason: string };
 
 /**
@@ -256,7 +283,9 @@ export function signedLevelFromLoad(
     };
   }
   if (load.kind === "error") return { level: "signed", ok: false, code: 2, reason: load.reason };
-  const chain = verifyTrustHistory(load.versions, { verifyRegistration: options.verifyRegistration });
+  const chain = verifyTrustHistory(load.versions, {
+    verifyRegistration: options.verifyRegistration,
+  });
   if (!chain.ok) return { level: "signed", ok: false, code: 1, reason: chain.reason };
   const repo = repoOf();
   if (repo === null) {

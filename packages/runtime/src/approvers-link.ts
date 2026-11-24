@@ -10,6 +10,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { approvers } from "@deftai/directive-core";
+import { resolveMergeBase } from "@deftai/directive-core/intent-constraint";
 
 export const CEREMONY_REQUEST_SCHEMA = "deft.ceremony-request.v1";
 export const CEREMONY_PATH = "/ceremony.html";
@@ -26,6 +27,8 @@ export interface CeremonyRequest {
   readonly entries?: readonly approvers.RecordApprovalEntry[];
   readonly name?: string;
   readonly credentialId?: string;
+  /** Enrolled credential ids. Approve uses them as allowCredentials. */
+  readonly credentialIds?: readonly string[];
   readonly predecessorDigest?: string | null;
   readonly predecessor?: approvers.ApproversBody | null;
 }
@@ -169,27 +172,41 @@ export function decideSignedWrite(
   return { kind: "assertion", level, approval };
 }
 
-/** Merge base for the record verbs. A non-repository returns HEAD and resolves as unsigned. */
+function insideWorkTree(projectRoot: string): boolean {
+  try {
+    const out = execFileSync("git", ["-C", projectRoot, "rev-parse", "--is-inside-work-tree"], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+    return out === "true";
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Merge base for the record verbs. A directory that is not a work tree stays
+ * on HEAD and resolves as unsigned. A work tree uses the intent-constraint
+ * base resolver and reports a failure instead of reading HEAD.
+ */
 export function resolveCliSignedLevel(
   projectRoot: string,
   env: Readonly<Record<string, string | undefined>> = process.env,
 ): approvers.SignedLevel {
-  let base = "HEAD";
-  try {
-    const out = execFileSync("git", ["-C", projectRoot, "merge-base", "HEAD", "origin/master"], {
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "ignore"],
-    }).trim();
-    if (out.length > 0) base = out;
-  } catch {
-    base = "HEAD";
+  if (!insideWorkTree(projectRoot)) {
+    return approvers.resolveSignedLevel(projectRoot, "HEAD", { env });
+  }
+  const base = resolveMergeBase(projectRoot);
+  if (typeof base !== "string") {
+    return { level: "signed", ok: false, code: 2, reason: base.error };
   }
   return approvers.resolveSignedLevel(projectRoot, base, { env });
 }
 
 /**
- * Trust state the enroll and remove verbs sign against: history at HEAD, then
- * a working-tree file that is not that version yet.
+ * Trust state the enroll and remove verbs sign against. Only versions in the
+ * git history verification reads count. An uncommitted trust file is refused
+ * so it cannot become the predecessor of another change.
  */
 export function loadCliTrustState(
   projectRoot: string,
@@ -237,16 +254,12 @@ export function loadCliTrustState(
     }
     const parsed = approvers.parseApproversFile(text);
     if ("error" in parsed) return { error: parsed.error };
-    if (
-      state === null ||
-      approvers.computeVersionDigest(parsed) !== approvers.computeVersionDigest(state.file)
-    ) {
-      const next = approvers.applyTrustVersion(state, parsed, {
-        at: "working-tree",
-        verifyRegistration: options.verifyRegistration,
-      });
-      if (!next.ok) return { error: next.reason };
-      state = next.state;
+    const committed = state === null ? null : approvers.computeVersionDigest(state.file);
+    if (committed !== approvers.computeVersionDigest(parsed)) {
+      return {
+        error:
+          "commit .deft/approvers.json before another change; verification reads git history, and an uncommitted trust file cannot be the predecessor",
+      };
     }
   }
   return { state };

@@ -1,12 +1,19 @@
+import { execFileSync } from "node:child_process";
+import { generateKeyPairSync } from "node:crypto";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { approvers } from "@deftai/directive-core";
 import { describe, expect, it } from "vitest";
 import {
   buildCeremonyLink,
   decideSignedWrite,
   formatCeremonyOutput,
+  loadCliTrustState,
   MAX_REQUEST_BYTES,
   parseRecordAssertion,
   QR_URL_MAX,
+  resolveCliSignedLevel,
 } from "./approvers-link.js";
 
 const rp = { id: "approve.example.com", origins: ["https://approve.example.com"] as const };
@@ -110,6 +117,48 @@ describe("decideSignedWrite (#6945)", () => {
 
   it("keeps the declared write when there is no trust file", () => {
     expect(decideSignedWrite({ level: "none" }, false, null)).toEqual({ kind: "declared" });
+  });
+
+  it("refuses an uncommitted trust file as the predecessor", () => {
+    const dir = mkdtempSync(join(tmpdir(), "approvers-link-"));
+    const { publicKey } = generateKeyPairSync("ec", { namedCurve: "P-256" });
+    const file = {
+      schema: "deft.approvers.v1",
+      body: {
+        repo: "deftai/directive",
+        rp,
+        approvers: [
+          {
+            name: "scott",
+            credentialId: "Y3JlZA",
+            publicKey: approvers.base64urlEncode(approvers.spkiOf(publicKey)),
+            alg: -7,
+            aaguid: "cb69481e-8ff7-4039-93ec-0a2729a154a8",
+            backupEligible: false,
+          },
+        ],
+      },
+      proof: {
+        kind: "root",
+        credentialId: "Y3JlZA",
+        registration: { attestationObject: "YQ", clientDataJSON: "YQ" },
+        assertion: { authenticatorData: "YQ", clientDataJSON: "YQ", signature: "YQ" },
+      },
+    };
+    mkdirSync(join(dir, ".deft"));
+    writeFileSync(join(dir, ".deft", "approvers.json"), JSON.stringify(file));
+    expect(loadCliTrustState(dir)).toMatchObject({ error: /commit \.deft\/approvers\.json/ });
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("resolves a non-repository as unsigned and reports a merge-base failure", () => {
+    const plain = mkdtempSync(join(tmpdir(), "approvers-plain-"));
+    expect(resolveCliSignedLevel(plain)).toEqual({ level: "none" });
+    rmSync(plain, { recursive: true, force: true });
+    const repo = mkdtempSync(join(tmpdir(), "approvers-git-"));
+    execFileSync("git", ["init", repo], { stdio: "ignore" });
+    expect(resolveCliSignedLevel(repo)).toMatchObject({ level: "signed", ok: false, code: 2 });
+    rmSync(repo, { recursive: true, force: true });
   });
 
   it("refuses --request when unsigned, and refuses a bare write when signed", () => {

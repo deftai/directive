@@ -13,22 +13,32 @@
  * Attested credentials are the ones a root or re-root introduced; a
  * transition that leaves none of them in the set is refused.
  */
-import { base64urlDecode, buildTransitionPayload, canonicalBytes, isRepoSlug } from "./canonical.js";
+
+import { type RegistrationVerifier, verifyAttestedRegistration } from "./attestation.js";
 import {
-  type RegistrationVerifier,
-  verifyAttestedRegistration,
-} from "./attestation.js";
+  base64urlDecode,
+  buildRegistrationChallengePayload,
+  buildTransitionPayload,
+  canonicalBytes,
+  isRepoSlug,
+} from "./canonical.js";
 import {
+  APPROVERS_FILE_REL,
+  APPROVERS_FILE_SCHEMA,
   type Approver,
   type ApproversBody,
   type ApproversFile,
-  APPROVERS_FILE_REL,
-  APPROVERS_FILE_SCHEMA,
   type ApproversRp,
   type AssertionProof,
   type TrustProof,
 } from "./types.js";
-import { isSupportedAlg, publicKeyFromSpki, sha256Hex, verifyAssertion } from "./webauthn.js";
+import {
+  isSupportedAlg,
+  publicKeyFromSpki,
+  sha256,
+  sha256Hex,
+  verifyAssertion,
+} from "./webauthn.js";
 
 const AAGUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const RP_ID = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$/;
@@ -37,7 +47,11 @@ function isObject(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
-function exactKeys(value: Record<string, unknown>, keys: readonly string[], label: string): string | null {
+function exactKeys(
+  value: Record<string, unknown>,
+  keys: readonly string[],
+  label: string,
+): string | null {
   const have = Object.keys(value).sort().join(",");
   const want = [...keys].sort().join(",");
   return have === want ? null : `${label} keys must be exactly ${[...keys].join(", ")}`;
@@ -71,8 +85,10 @@ function rpError(raw: unknown): string | null {
   if (!isObject(raw)) return "body.rp must be an object";
   const keys = exactKeys(raw, ["id", "origins"], "body.rp");
   if (keys !== null) return keys;
-  if (typeof raw.id !== "string" || !RP_ID.test(raw.id)) return "body.rp.id must be a lowercase host name";
-  if (raw.id === "localhost" || raw.id.endsWith(".localhost")) return "body.rp.id must not be localhost";
+  if (typeof raw.id !== "string" || !RP_ID.test(raw.id))
+    return "body.rp.id must be a lowercase host name";
+  if (raw.id === "localhost" || raw.id.endsWith(".localhost"))
+    return "body.rp.id must not be localhost";
   if (!Array.isArray(raw.origins) || raw.origins.length === 0) {
     return "body.rp.origins must be a non-empty array";
   }
@@ -92,11 +108,16 @@ function approverError(raw: unknown): string | null {
     "approver",
   );
   if (keys !== null) return keys;
-  if (typeof raw.name !== "string" || raw.name.trim().length === 0 || raw.name !== raw.name.trim()) {
+  if (
+    typeof raw.name !== "string" ||
+    raw.name.trim().length === 0 ||
+    raw.name !== raw.name.trim()
+  ) {
     return "approver name must be a non-empty trimmed string";
   }
   if (!nonEmptyB64(raw.credentialId)) return "approver credentialId must be base64url";
-  if (!isSupportedAlg(raw.alg)) return "approver alg must be -7 (ES256), -257 (RS256) or -8 (EdDSA)";
+  if (!isSupportedAlg(raw.alg))
+    return "approver alg must be -7 (ES256), -257 (RS256) or -8 (EdDSA)";
   if (typeof raw.publicKey !== "string" || publicKeyFromSpki(raw.publicKey, raw.alg) === null) {
     return `approver ${String(raw.name)} publicKey does not parse for its alg`;
   }
@@ -144,7 +165,11 @@ function proofError(raw: unknown): string | null {
     const keys = exactKeys(raw, ["kind", "credentialId", "assertion"], "transition proof");
     if (keys !== null) return keys;
   } else if (raw.kind === "root" || raw.kind === "re-root") {
-    const keys = exactKeys(raw, ["kind", "credentialId", "registration", "assertion"], `${raw.kind} proof`);
+    const keys = exactKeys(
+      raw,
+      ["kind", "credentialId", "registration", "assertion"],
+      `${raw.kind} proof`,
+    );
     if (keys !== null) return keys;
     const reg = raw.registration;
     if (!isObject(reg)) return "proof.registration must be an object";
@@ -171,7 +196,8 @@ export function parseApproversFile(text: string): ApproversFile | { error: strin
   if (!isObject(raw)) return { error: `${APPROVERS_FILE_REL} must be a JSON object` };
   const keys = exactKeys(raw, ["schema", "body", "proof"], APPROVERS_FILE_REL);
   if (keys !== null) return { error: keys };
-  if (raw.schema !== APPROVERS_FILE_SCHEMA) return { error: `schema must be ${APPROVERS_FILE_SCHEMA}` };
+  if (raw.schema !== APPROVERS_FILE_SCHEMA)
+    return { error: `schema must be ${APPROVERS_FILE_SCHEMA}` };
   const body = bodyError(raw.body);
   if (body !== null) return { error: body };
   const proof = proofError(raw.proof);
@@ -190,7 +216,10 @@ export function computeVersionDigest(file: ApproversFile): string {
 }
 
 /** The canonical bytes a version's proof signs. */
-export function transitionPayloadBytes(file: ApproversFile, predecessor: ApproversFile | null): Uint8Array {
+export function transitionPayloadBytes(
+  file: ApproversFile,
+  predecessor: ApproversFile | null,
+): Uint8Array {
   return canonicalBytes(
     buildTransitionPayload({
       repo: file.body.repo,
@@ -266,7 +295,18 @@ function verifyRootProof(
   if (approver.credentialId !== proof.credentialId) {
     return { ok: false, reason: `${label} proof credential is not the listed approver` };
   }
-  const verifier = ctx.verifyRegistration ?? ((input) => verifyAttestedRegistration(input));
+  const expectedChallenge = sha256(
+    canonicalBytes(
+      buildRegistrationChallengePayload({
+        repo: file.body.repo,
+        rpId: file.body.rp.id,
+        name: approver.name,
+        predecessorDigest: predecessor === null ? null : computeVersionDigest(predecessor),
+      }),
+    ),
+  );
+  const verifier =
+    ctx.verifyRegistration ?? ((input) => verifyAttestedRegistration(input, { expectedChallenge }));
   const reg = verifier({
     attestationObject: proof.registration.attestationObject,
     clientDataJSON: proof.registration.clientDataJSON,
@@ -283,7 +323,12 @@ function verifyRootProof(
   ) {
     return { ok: false, reason: `${label} registration does not match the listed approver` };
   }
-  const error = checkAssertion(proof.assertion, approver, file.body.rp, transitionPayloadBytes(file, predecessor));
+  const error = checkAssertion(
+    proof.assertion,
+    approver,
+    file.body.rp,
+    transitionPayloadBytes(file, predecessor),
+  );
   if (error !== null) return { ok: false, reason: `${label} assertion refused: ${error}` };
   return { ok: true, fmt: r.fmt };
 }
@@ -297,7 +342,10 @@ export function applyTrustVersion(
   file: ApproversFile,
   ctx: VersionContext,
 ): VersionResult {
-  const refuse = (reason: string): VersionResult => ({ ok: false, reason: `${reason} (at ${ctx.at})` });
+  const refuse = (reason: string): VersionResult => ({
+    ok: false,
+    reason: `${reason} (at ${ctx.at})`,
+  });
   const ids = file.body.approvers.map((a) => a.credentialId);
   if (state === null) {
     if (file.proof.kind !== "root") {
@@ -319,7 +367,9 @@ export function applyTrustVersion(
   }
   const prev = state.file;
   if (file.proof.kind === "root") {
-    return refuse("only the first version may be a root; a later version is a transition or re-root");
+    return refuse(
+      "only the first version may be a root; a later version is a transition or re-root",
+    );
   }
   if (file.proof.kind === "re-root") {
     if (state.everEnrolled.has(file.proof.credentialId)) {
@@ -343,15 +393,24 @@ export function applyTrustVersion(
   if (signer === undefined) {
     return refuse("a transition must be signed by a credential of the preceding version");
   }
-  const error = checkAssertion(file.proof.assertion, signer, prev.body.rp, transitionPayloadBytes(file, prev));
+  const error = checkAssertion(
+    file.proof.assertion,
+    signer,
+    prev.body.rp,
+    transitionPayloadBytes(file, prev),
+  );
   if (error !== null) return refuse(`transition assertion refused: ${error}`);
   for (const next of file.body.approvers) {
     const before = prev.body.approvers.find((a) => a.credentialId === next.credentialId);
     if (before !== undefined && !sameKey(before, next)) {
-      return refuse(`a transition may rename credential ${next.credentialId} but not change its key`);
+      return refuse(
+        `a transition may rename credential ${next.credentialId} but not change its key`,
+      );
     }
     if (before === undefined && state.priorEpochs.has(next.credentialId)) {
-      return refuse(`credential ${next.credentialId} belongs to an earlier epoch; a re-root does not bring it back`);
+      return refuse(
+        `credential ${next.credentialId} belongs to an earlier epoch; a re-root does not bring it back`,
+      );
     }
   }
   const attested = new Set([...state.attested].filter((id) => ids.includes(id)));

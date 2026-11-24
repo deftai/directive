@@ -48,14 +48,32 @@ const stubVerifier: RegistrationVerifier = (input) => {
 };
 const sha = (b: Uint8Array) => createHash("sha256").update(b).digest();
 function assertOver(signer: Soft, payload: Uint8Array): AssertionProof {
-  const auth = Buffer.concat([sha(Buffer.from(RP.id)), Buffer.from([FLAG_UP | FLAG_UV, 0, 0, 0, 1])]);
+  const auth = Buffer.concat([
+    sha(Buffer.from(RP.id)),
+    Buffer.from([FLAG_UP | FLAG_UV, 0, 0, 0, 1]),
+  ]);
   const client = Buffer.from(
-    JSON.stringify({ type: "webauthn.get", challenge: base64urlEncode(sha(payload)), origin: RP.origins[0] }),
+    JSON.stringify({
+      type: "webauthn.get",
+      challenge: base64urlEncode(sha(payload)),
+      origin: RP.origins[0],
+    }),
   );
-  const sig = sign("sha256", Buffer.concat([auth, sha(client)]), { key: signer.privateKey, dsaEncoding: "der" });
-  return { authenticatorData: base64urlEncode(auth), clientDataJSON: base64urlEncode(client), signature: base64urlEncode(sig) };
+  const sig = sign("sha256", Buffer.concat([auth, sha(client)]), {
+    key: signer.privateKey,
+    dsaEncoding: "der",
+  });
+  return {
+    authenticatorData: base64urlEncode(auth),
+    clientDataJSON: base64urlEncode(client),
+    signature: base64urlEncode(sig),
+  };
 }
-const PLACEHOLDER: AssertionProof = { authenticatorData: "AA", clientDataJSON: "AA", signature: "AA" };
+const PLACEHOLDER: AssertionProof = {
+  authenticatorData: "AA",
+  clientDataJSON: "AA",
+  signature: "AA",
+};
 function rootFile(key: Soft): ApproversFile {
   const draft: ApproversFile = {
     schema: "deft.approvers.v1",
@@ -63,19 +81,32 @@ function rootFile(key: Soft): ApproversFile {
     proof: {
       kind: "root",
       credentialId: key.approver.credentialId,
-      registration: { attestationObject: `att-${key.approver.credentialId}`, clientDataJSON: "e30" },
+      registration: {
+        attestationObject: `att-${key.approver.credentialId}`,
+        clientDataJSON: "e30",
+      },
       assertion: PLACEHOLDER,
     },
   };
-  return { ...draft, proof: { ...draft.proof, assertion: assertOver(key, transitionPayloadBytes(draft, null)) } } as ApproversFile;
+  return {
+    ...draft,
+    proof: { ...draft.proof, assertion: assertOver(key, transitionPayloadBytes(draft, null)) },
+  } as ApproversFile;
 }
 function transition(prev: ApproversFile, approvers: Approver[], signer: Soft): ApproversFile {
   const draft: ApproversFile = {
     schema: "deft.approvers.v1",
     body: { repo: REPO, rp: RP, approvers },
-    proof: { kind: "transition", credentialId: signer.approver.credentialId, assertion: PLACEHOLDER },
+    proof: {
+      kind: "transition",
+      credentialId: signer.approver.credentialId,
+      assertion: PLACEHOLDER,
+    },
   };
-  return { ...draft, proof: { ...draft.proof, assertion: assertOver(signer, transitionPayloadBytes(draft, prev)) } } as ApproversFile;
+  return {
+    ...draft,
+    proof: { ...draft.proof, assertion: assertOver(signer, transitionPayloadBytes(draft, prev)) },
+  } as ApproversFile;
 }
 const text = (f: ApproversFile) => `${JSON.stringify(f, null, 2)}\n`;
 
@@ -94,7 +125,11 @@ describe("verifyTrustHistory (#6945)", () => {
   it("accepts a root then signed transitions", () => {
     const { v1, v2, v3 } = fixture();
     const result = verifyTrustHistory(
-      [{ commit: "a", text: text(v1) }, { commit: "b", text: text(v2) }, { commit: "c", text: text(v3) }],
+      [
+        { commit: "a", text: text(v1) },
+        { commit: "b", text: text(v2) },
+        { commit: "c", text: text(v3) },
+      ],
       opts,
     );
     expect(result).toMatchObject({ ok: true, rootKind: "packed", epochStart: "a" });
@@ -103,7 +138,11 @@ describe("verifyTrustHistory (#6945)", () => {
   it("refuses a rollback to an earlier version", () => {
     const { v1, v2, v3 } = fixture();
     const toRoot = verifyTrustHistory(
-      [{ commit: "a", text: text(v1) }, { commit: "b", text: text(v2) }, { commit: "c", text: text(v1) }],
+      [
+        { commit: "a", text: text(v1) },
+        { commit: "b", text: text(v2) },
+        { commit: "c", text: text(v1) },
+      ],
       opts,
     );
     expect(toRoot).toMatchObject({ ok: false, reason: /only the first version may be a root/ });
@@ -121,9 +160,17 @@ describe("verifyTrustHistory (#6945)", () => {
 
   it("refuses two transitions from one predecessor", () => {
     const { key, phone, v1, v2 } = fixture();
-    const sibling = transition(v1, [key.approver, phone.approver, soft("other", false).approver], key);
+    const sibling = transition(
+      v1,
+      [key.approver, phone.approver, soft("other", false).approver],
+      key,
+    );
     const result = verifyTrustHistory(
-      [{ commit: "a", text: text(v1) }, { commit: "b", text: text(v2) }, { commit: "c", text: text(sibling) }],
+      [
+        { commit: "a", text: text(v1) },
+        { commit: "b", text: text(v2) },
+        { commit: "c", text: text(sibling) },
+      ],
       opts,
     );
     expect(result).toMatchObject({ ok: false, reason: /transition assertion refused/ });
@@ -131,11 +178,27 @@ describe("verifyTrustHistory (#6945)", () => {
 
   it("refuses a file deleted or broken after its first appearance", () => {
     const { v1 } = fixture();
-    expect(verifyTrustHistory([{ commit: "a", text: text(v1) }, { commit: "b", text: null }], opts)).toMatchObject({
+    expect(
+      verifyTrustHistory(
+        [
+          { commit: "a", text: text(v1) },
+          { commit: "b", text: null },
+        ],
+        opts,
+      ),
+    ).toMatchObject({
       ok: false,
       reason: /deleted at b/,
     });
-    expect(verifyTrustHistory([{ commit: "a", text: text(v1) }, { commit: "b", text: "{" }], opts)).toMatchObject({
+    expect(
+      verifyTrustHistory(
+        [
+          { commit: "a", text: text(v1) },
+          { commit: "b", text: "{" },
+        ],
+        opts,
+      ),
+    ).toMatchObject({
       ok: false,
       reason: /malformed/,
     });
@@ -144,7 +207,10 @@ describe("verifyTrustHistory (#6945)", () => {
   it("treats a whitespace-only rewrite as no change", () => {
     const { v1 } = fixture();
     const result = verifyTrustHistory(
-      [{ commit: "a", text: text(v1) }, { commit: "b", text: JSON.stringify(v1) }],
+      [
+        { commit: "a", text: text(v1) },
+        { commit: "b", text: JSON.stringify(v1) },
+      ],
       opts,
     );
     expect(result.ok).toBe(true);
@@ -157,7 +223,11 @@ describe("signedLevelFromLoad (#6945)", () => {
 
   it("is none for an absent history and signed for a verified chain", () => {
     expect(signedLevelFromLoad({ kind: "absent" }, () => REPO, opts)).toEqual({ level: "none" });
-    expect(signedLevelFromLoad(load, () => REPO, opts)).toMatchObject({ level: "signed", ok: true, repo: REPO });
+    expect(signedLevelFromLoad(load, () => REPO, opts)).toMatchObject({
+      level: "signed",
+      ok: true,
+      repo: REPO,
+    });
   });
 
   it("refuses a shallow clone with a full-history remediation", () => {
@@ -170,7 +240,11 @@ describe("signedLevelFromLoad (#6945)", () => {
   });
 
   it("refuses when the repository cannot be resolved or differs from the trust file", () => {
-    expect(signedLevelFromLoad(load, () => null, opts)).toMatchObject({ ok: false, code: 2, reason: /GITHUB_REPOSITORY/ });
+    expect(signedLevelFromLoad(load, () => null, opts)).toMatchObject({
+      ok: false,
+      code: 2,
+      reason: /GITHUB_REPOSITORY/,
+    });
     expect(signedLevelFromLoad(load, () => "other/repo", opts)).toMatchObject({
       ok: false,
       code: 1,
@@ -200,7 +274,13 @@ function git(root: string, args: string[]): string {
     cwd: root,
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
-    env: { ...process.env, GIT_AUTHOR_NAME: "t", GIT_AUTHOR_EMAIL: "t@e.com", GIT_COMMITTER_NAME: "t", GIT_COMMITTER_EMAIL: "t@e.com" },
+    env: {
+      ...process.env,
+      GIT_AUTHOR_NAME: "t",
+      GIT_AUTHOR_EMAIL: "t@e.com",
+      GIT_COMMITTER_NAME: "t",
+      GIT_COMMITTER_EMAIL: "t@e.com",
+    },
   }).trim();
 }
 function commitAll(root: string, files: Record<string, string | null>, msg: string): string {
@@ -241,7 +321,16 @@ describe("loadTrustHistory over git (#6945)", () => {
     ids.deleted = commitAll(repo, { [F]: null }, "delete");
     clone = mkdtempSync(join(tmpdir(), "approvers-shallow-"));
     roots.push(clone);
-    git(clone, ["clone", "-q", "--depth", "1", "--branch", "at-merge", `file://${repo.replace(/\\/g, "/")}`, "."]);
+    git(clone, [
+      "clone",
+      "-q",
+      "--depth",
+      "1",
+      "--branch",
+      "at-merge",
+      `file://${repo.replace(/\\/g, "/")}`,
+      ".",
+    ]);
     loads.before = loadTrustHistory(repo, ids.before);
     loads.unknown = loadTrustHistory(repo, "no-such-ref");
     loads.merge = loadTrustHistory(repo, ids.merge);
@@ -260,15 +349,25 @@ describe("loadTrustHistory over git (#6945)", () => {
 
   it("walks first-parent versions, including one merged from a side branch", () => {
     const load = loads.merge!;
-    expect(load.kind === "versions" && load.versions.map((v) => v.commit)).toEqual([ids.root, ids.merge]);
+    expect(load.kind === "versions" && load.versions.map((v) => v.commit)).toEqual([
+      ids.root,
+      ids.merge,
+    ]);
     const level = signedLevelFromLoad(load, () => REPO, opts);
     expect(level.level === "signed" && level.ok && level.trust.epochStart).toBe(ids.root);
   });
 
   it("keeps the signed level after the file is deleted", () => {
     const load = loads.deleted!;
-    expect(load.kind === "versions" && load.versions.at(-1)).toEqual({ commit: ids.deleted, text: null });
-    expect(signedLevelFromLoad(load, () => REPO, opts)).toMatchObject({ ok: false, code: 1, reason: /deleted/ });
+    expect(load.kind === "versions" && load.versions.at(-1)).toEqual({
+      commit: ids.deleted,
+      text: null,
+    });
+    expect(signedLevelFromLoad(load, () => REPO, opts)).toMatchObject({
+      ok: false,
+      code: 1,
+      reason: /deleted/,
+    });
   });
 
   it("reports a shallow clone", () => {

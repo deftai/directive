@@ -14,6 +14,7 @@ export {
   base64urlEncode,
   buildRecordApprovalEntry,
   buildRecordApprovalPayload,
+  buildRegistrationChallengePayload,
   buildTransitionPayload,
   CanonicalEncodingError,
   canonicalBytes,

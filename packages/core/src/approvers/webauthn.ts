@@ -5,7 +5,13 @@
  * credential algorithms: ES256, RS256 and Ed25519. Keys are stored as
  * SubjectPublicKeyInfo DER; COSE keys from registrations are converted once.
  */
-import { createHash, createPublicKey, constants as cryptoConstants, type KeyObject, verify } from "node:crypto";
+import {
+  createHash,
+  createPublicKey,
+  constants as cryptoConstants,
+  type KeyObject,
+  verify,
+} from "node:crypto";
 import { base64urlDecode, base64urlEncode } from "./canonical.js";
 import {
   type ApproversRp,
@@ -173,7 +179,8 @@ export function parseAuthenticatorData(bytes: Uint8Array): AuthenticatorData {
   if (bytes.length < 37) throw new CborError("authenticatorData shorter than 37 bytes");
   const rpIdHash = bytes.slice(0, 32);
   const flags = bytes[32]!;
-  const signCount = ((bytes[33]! << 24) >>> 0) + (bytes[34]! << 16) + (bytes[35]! << 8) + bytes[36]!;
+  const signCount =
+    ((bytes[33]! << 24) >>> 0) + (bytes[34]! << 16) + (bytes[35]! << 8) + bytes[36]!;
   let pos = 37;
   let attested: AttestedCredentialData | null = null;
   if ((flags & FLAG_AT) !== 0) {
@@ -214,7 +221,8 @@ export function coseToPublicKey(cose: Uint8Array): { alg: SupportedCoseAlg; key:
     if (map.get(-1) !== 1) throw new CborError("ES256 key must use curve P-256");
     const x = coseBytes(map, -2);
     const y = coseBytes(map, -3);
-    if (x.length !== 32 || y.length !== 32) throw new CborError("P-256 coordinates must be 32 bytes");
+    if (x.length !== 32 || y.length !== 32)
+      throw new CborError("P-256 coordinates must be 32 bytes");
     const key = createPublicKey({
       key: { kty: "EC", crv: "P-256", x: base64urlEncode(x), y: base64urlEncode(y) },
       format: "jwk",
@@ -283,12 +291,7 @@ export function verifyCoseSignature(
       return verify("sha256", data, { key, dsaEncoding: "der" }, signature);
     }
     if (alg === COSE_ALG_RS256) {
-      return verify(
-        "sha256",
-        data,
-        { key, padding: cryptoConstants.RSA_PKCS1_PADDING },
-        signature,
-      );
+      return verify("sha256", data, { key, padding: cryptoConstants.RSA_PKCS1_PADDING }, signature);
     }
     return verify(null, data, key, signature);
   } catch {
@@ -320,7 +323,12 @@ export function parseClientData(bytes: Uint8Array): ClientData | null {
   ) {
     return null;
   }
-  return { type: rec.type, challenge: rec.challenge, origin: rec.origin, crossOrigin: rec.crossOrigin };
+  return {
+    type: rec.type,
+    challenge: rec.challenge,
+    origin: rec.origin,
+    crossOrigin: rec.crossOrigin,
+  };
 }
 
 /**

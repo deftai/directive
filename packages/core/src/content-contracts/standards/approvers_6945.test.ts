@@ -102,10 +102,65 @@ describe("signed approval docs (#6945)", () => {
     const source = read("content/tools/approvers/ceremony.js");
     const enroll = source.indexOf("navigator.credentials.create");
     const sign = source.lastIndexOf("navigator.credentials.get");
+    const approveGet = source.indexOf("navigator.credentials.get");
+    const secondGet = source.indexOf("navigator.credentials.get", approveGet + 1);
     expect(enroll).toBeGreaterThan(0);
     expect(sign).toBeGreaterThan(enroll);
-    expect(source).toContain("allowCredentials");
+    expect(source.slice(approveGet, secondGet)).toContain("allowCredentials");
+    expect(source).toContain("button.disabled = true");
+    expect(source).toContain("if (busy) return");
+    expect(source).toContain("deft.approvers.v1");
+    expect(source).toContain("deft.registration-challenge.v1");
+    expect(source).not.toContain("crypto.getRandomValues(new Uint8Array(32))");
     expect(read("content/tools/approvers/ceremony.html")).toContain("frame-ancestors 'none'");
     expect(source).toContain("split the cohort");
+  });
+
+  it("converts a COSE key to the same SPKI the verifier stores", async () => {
+    const { generateKeyPairSync } = await import("node:crypto");
+    const { spkiOf } = await import("../../approvers/webauthn.js");
+    const { base64urlDecode } = await import("../../approvers/canonical.js");
+    const page = (await import("../../../../../content/tools/approvers/ceremony.js")) as {
+      coseKeyToSpki: (cose: Uint8Array) => { alg: number; spki: Uint8Array };
+    };
+    const head = (major: number, n: number) => Uint8Array.from([(major << 5) | n]);
+    const cint = (n: number) => (n >= 0 ? head(0, n) : head(1, -1 - n));
+    const cbytes = (bytes: Uint8Array) => {
+      const out = new Uint8Array(2 + bytes.length);
+      out[0] = (2 << 5) | 24;
+      out[1] = bytes.length;
+      out.set(bytes, 2);
+      return out;
+    };
+    const cmap = (pairs: readonly (readonly [number, number | Uint8Array])[]) => {
+      const parts = [head(5, pairs.length)];
+      for (const [key, value] of pairs) {
+        parts.push(cint(key));
+        parts.push(typeof value === "number" ? cint(value) : cbytes(value));
+      }
+      const len = parts.reduce((n, part) => n + part.length, 0);
+      const out = new Uint8Array(len);
+      let offset = 0;
+      for (const part of parts) {
+        out.set(part, offset);
+        offset += part.length;
+      }
+      return out;
+    };
+    const ec = generateKeyPairSync("ec", { namedCurve: "P-256" });
+    const jwk = ec.publicKey.export({ format: "jwk" });
+    const x = base64urlDecode(String(jwk.x));
+    const y = base64urlDecode(String(jwk.y));
+    if (x === null || y === null) throw new Error("jwk");
+    const cose = cmap([
+      [1, 2],
+      [3, -7],
+      [-1, 1],
+      [-2, x],
+      [-3, y],
+    ]);
+    const spki = page.coseKeyToSpki(cose);
+    expect(spki.alg).toBe(-7);
+    expect(Buffer.from(spki.spki)).toEqual(Buffer.from(spkiOf(ec.publicKey)));
   });
 });

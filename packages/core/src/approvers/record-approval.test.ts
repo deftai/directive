@@ -57,7 +57,10 @@ interface ApproveOptions {
 
 function approve(entries: RecordApprovalEntry[], key: Soft, opts: ApproveOptions = {}) {
   const payload = buildRecordApprovalPayload(opts.repo ?? REPO, entries);
-  const auth = Buffer.concat([sha(Buffer.from(RP.id)), Buffer.from([opts.flags ?? FLAG_UP | FLAG_UV, 0, 0, 0, 1])]);
+  const auth = Buffer.concat([
+    sha(Buffer.from(RP.id)),
+    Buffer.from([opts.flags ?? FLAG_UP | FLAG_UV, 0, 0, 0, 1]),
+  ]);
   const client = Buffer.from(
     JSON.stringify({
       type: "webauthn.get",
@@ -88,14 +91,24 @@ function observableRecord(approval: unknown, over: Record<string, unknown> = {})
     changeKind: "fields-only",
     oracle: { provider: "parse5+typescript", version: 1 },
     allowedChanges: [],
-    humanApproval: { kind: "declared", actor: "agent", mintedAt: "2026-11-23T00:00:00Z", mintedVia: "scope:record-observable-scope" },
+    humanApproval: {
+      kind: "declared",
+      actor: "agent",
+      mintedAt: "2026-11-23T00:00:00Z",
+      mintedVia: "scope:record-observable-scope",
+    },
     contractDigest: D1,
     ...(approval === undefined ? {} : { approval }),
     ...over,
   };
 }
 
-function check(record: unknown, body: ApproversBody, entry: RecordApprovalEntry = OBS_ENTRY, repo = REPO) {
+function check(
+  record: unknown,
+  body: ApproversBody,
+  entry: RecordApprovalEntry = OBS_ENTRY,
+  repo = REPO,
+) {
   return verifyRecordApproval({
     kind: entry.kind,
     record,
@@ -139,14 +152,21 @@ describe("verifyRecordApproval (#6945)", () => {
   });
 
   it("refuses a record without an approval: hand-written, TTY-minted or merged by any route", () => {
-    expect(check(observableRecord(undefined), body)).toMatchObject({ ok: false, reason: /no approval/ });
-    const legacy = observableRecord(undefined, { humanApproval: { kind: "operator", actor: "scott", mintedAt: "x" } });
+    expect(check(observableRecord(undefined), body)).toMatchObject({
+      ok: false,
+      reason: /no approval/,
+    });
+    const legacy = observableRecord(undefined, {
+      humanApproval: { kind: "operator", actor: "scott", mintedAt: "x" },
+    });
     expect(check(legacy, body)).toMatchObject({ ok: false, reason: /no approval/ });
   });
 
   it("refuses a signature by a key that is not the enrolled one", () => {
     const agent = soft("agent");
-    expect(check(observableRecord(approve([OBS_ENTRY], key, { signer: agent })), body)).toMatchObject({
+    expect(
+      check(observableRecord(approve([OBS_ENTRY], key, { signer: agent })), body),
+    ).toMatchObject({
       ok: false,
       reason: /signature does not verify/,
     });
@@ -158,18 +178,33 @@ describe("verifyRecordApproval (#6945)", () => {
 
   it("refuses another repository's approval pasted in", () => {
     const pasted = approve([OBS_ENTRY], key, { repo: "someone/else" });
-    expect(check(observableRecord(pasted), body)).toMatchObject({ ok: false, reason: /names repository/ });
+    expect(check(observableRecord(pasted), body)).toMatchObject({
+      ok: false,
+      reason: /names repository/,
+    });
     const relabeled = { ...pasted, payload: { ...pasted.payload, repo: REPO } };
-    expect(check(observableRecord(relabeled), body)).toMatchObject({ ok: false, reason: /challenge/ });
+    expect(check(observableRecord(relabeled), body)).toMatchObject({
+      ok: false,
+      reason: /challenge/,
+    });
   });
 
   it("refuses an unknown origin, crossOrigin true and a missing UV flag", () => {
-    expect(check(observableRecord(approve([OBS_ENTRY], key, { origin: "https://evil.example.com" })), body).ok).toBe(false);
-    expect(check(observableRecord(approve([OBS_ENTRY], key, { crossOrigin: true })), body)).toMatchObject({
+    expect(
+      check(
+        observableRecord(approve([OBS_ENTRY], key, { origin: "https://evil.example.com" })),
+        body,
+      ).ok,
+    ).toBe(false);
+    expect(
+      check(observableRecord(approve([OBS_ENTRY], key, { crossOrigin: true })), body),
+    ).toMatchObject({
       ok: false,
       reason: /crossOrigin/,
     });
-    expect(check(observableRecord(approve([OBS_ENTRY], key, { flags: FLAG_UP })), body)).toMatchObject({
+    expect(
+      check(observableRecord(approve([OBS_ENTRY], key, { flags: FLAG_UP })), body),
+    ).toMatchObject({
       ok: false,
       reason: /user-verified/,
     });
@@ -197,8 +232,14 @@ describe("verifyRecordApproval (#6945)", () => {
       reason: /does not hold/,
     });
     const approval = approve([OBS_ENTRY], key);
-    const widened = { ...approval, payload: buildRecordApprovalPayload(REPO, [OBS_ENTRY, INT_ENTRY]) };
-    expect(check(observableRecord(widened), body)).toMatchObject({ ok: false, reason: /challenge/ });
+    const widened = {
+      ...approval,
+      payload: buildRecordApprovalPayload(REPO, [OBS_ENTRY, INT_ENTRY]),
+    };
+    expect(check(observableRecord(widened), body)).toMatchObject({
+      ok: false,
+      reason: /challenge/,
+    });
   });
 
   it("refuses unknown record keys and unknown approval keys", () => {
@@ -214,7 +255,9 @@ describe("verifyRecordApproval (#6945)", () => {
   });
 
   it("states what a valid approval proves and the residuals", () => {
-    expect(SIGNED_APPROVAL_CLAIM).toMatch(/user-verified gesture by an enrolled authenticator over exactly this set/);
+    expect(SIGNED_APPROVAL_CLAIM).toMatch(
+      /user-verified gesture by an enrolled authenticator over exactly this set/,
+    );
     expect(SIGNED_APPROVAL_CLAIM).toMatch(/device the agent does not drive/);
     expect(SIGNED_APPROVAL_CLAIM).toMatch(/credentials the agent does not hold/);
     expect(SIGNED_APPROVAL_CLAIM).toMatch(/deleting a record does not revoke it/);

@@ -6,6 +6,7 @@ import {
   base64urlEncode,
   buildRecordApprovalEntry,
   buildRecordApprovalPayload,
+  buildRegistrationChallengePayload,
   buildTransitionPayload,
   CanonicalEncodingError,
   canonicalBytes,
@@ -68,7 +69,9 @@ describe("canonical encoding (#6945)", () => {
       predecessorDigest: null,
       bodyDigest: "3".repeat(64),
     });
-    expect(canonicalJson(root)).toBe(vectors.payloads.find((v) => v.name === "transition-root")!.canonical);
+    expect(canonicalJson(root)).toBe(
+      vectors.payloads.find((v) => v.name === "transition-root")!.canonical,
+    );
     const next = buildTransitionPayload({
       repo: "deftai/directive",
       predecessorDigest: "4".repeat(64),
@@ -97,26 +100,61 @@ describe("canonical encoding (#6945)", () => {
     expect(base64urlDecode("A")).toBeNull();
   });
 
+  it("builds a registration challenge that does not depend on the new credential", () => {
+    const payload = buildRegistrationChallengePayload({
+      repo: "DeftAI/Directive",
+      rpId: "approve.example.com",
+      name: "scott",
+      predecessorDigest: null,
+    });
+    expect(payload.schema).toBe("deft.registration-challenge.v1");
+    expect(payload.repo).toBe("deftai/directive");
+    expect(canonicalJson(payload)).toBe(
+      canonicalJson({
+        schema: "deft.registration-challenge.v1",
+        repo: "deftai/directive",
+        rpId: "approve.example.com",
+        name: "scott",
+        predecessorDigest: null,
+      }),
+    );
+    expect(recordApprovalPayloadError(payload)).not.toBeNull();
+  });
+
   it("keeps record approvals and transitions in separate domains", () => {
     const a = buildRecordApprovalPayload("deftai/directive", [entry()]);
-    const t = buildTransitionPayload({ repo: "deftai/directive", predecessorDigest: null, bodyDigest: D1 });
+    const t = buildTransitionPayload({
+      repo: "deftai/directive",
+      predecessorDigest: null,
+      bodyDigest: D1,
+    });
     expect(a.schema).toBe("deft.record-approval.v1");
     expect(t.schema).toBe("deft.approvers-transition.v1");
     expect(recordApprovalPayloadError(t)).not.toBeNull();
   });
 
   it("refuses duplicates, unsorted entries, extra keys and bad digests", () => {
-    expect(() => buildRecordApprovalPayload("deftai/directive", [entry(), entry()])).toThrow(/twice/);
+    expect(() => buildRecordApprovalPayload("deftai/directive", [entry(), entry()])).toThrow(
+      /twice/,
+    );
     const two = buildRecordApprovalPayload("deftai/directive", [
       entry(),
-      entry({ kind: "intent-constraint", recordRel: ".deft/intent-constraint/x.json", changeKind: null }),
+      entry({
+        kind: "intent-constraint",
+        recordRel: ".deft/intent-constraint/x.json",
+        changeKind: null,
+      }),
     ]);
-    expect(recordApprovalPayloadError({ ...two, entries: [...two.entries].reverse() })).toMatch(/sorted/);
-    expect(recordApprovalPayloadError({ ...two, extra: 1 })).toMatch(/exactly/);
-    expect(recordApprovalPayloadError({ ...two, entries: [{ ...entry(), note: "x" }] })).toMatch(/exactly/);
-    expect(recordApprovalPayloadError({ ...two, entries: [entry({ contractDigest: "ABC" })] })).toMatch(
-      /contractDigest/,
+    expect(recordApprovalPayloadError({ ...two, entries: [...two.entries].reverse() })).toMatch(
+      /sorted/,
     );
+    expect(recordApprovalPayloadError({ ...two, extra: 1 })).toMatch(/exactly/);
+    expect(recordApprovalPayloadError({ ...two, entries: [{ ...entry(), note: "x" }] })).toMatch(
+      /exactly/,
+    );
+    expect(
+      recordApprovalPayloadError({ ...two, entries: [entry({ contractDigest: "ABC" })] }),
+    ).toMatch(/contractDigest/);
     expect(recordApprovalPayloadError({ ...two, repo: "DeftAI/Directive" })).toMatch(/lowercase/);
     expect(recordApprovalPayloadError({ ...two, entries: [] })).toMatch(/non-empty/);
   });

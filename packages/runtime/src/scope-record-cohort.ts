@@ -470,6 +470,7 @@ function runSigned(
       repo: signed.level.repo,
       rp: signed.level.trust.body.rp,
       entries,
+      credentialIds: signed.level.trust.body.approvers.map((approver) => approver.credentialId),
     });
     if ("error" in link) {
       process.stderr.write(`${spec.errPrefix}: ${link.error}\n`);
