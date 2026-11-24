@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "xbriefRelPath": "xbrief/active/2026-11-24-7254-framework-gap-acceptance-disposition-deferral-is-never-appli.xbrief.json",
   "planId": "github.issue.6574186917",
-  "approvedAt": "2026-11-24T14:46:55Z",
+  "approvedAt": "2026-11-24T17:12:18Z",
   "fileScope": [
     "changelog.d/7254-acceptance-disposition-deferral-walk.md",
     "packages/core/src/policy/acceptance-disposition-grant.ts",
@@ -14,10 +14,10 @@
   "humanApproval": {
     "kind": "operator",
     "actor": "MScottAdams",
-    "mintedAt": "2026-11-24T14:46:55Z",
+    "mintedAt": "2026-11-24T17:12:18Z",
     "mintedVia": "scope:record-approved-scope"
   },
-  "intentDigest": "35612d19484fb4eb012edd60ae6854b11ac4c6b5c5c83d243006d8bcd4933175",
+  "intentDigest": "29ff5c67f144a3061490984c3822ee34ec6467b504b9236fe0db62e9944d87c5",
   "digestAlgo": "intent-extract-v1",
   "authHashV1": "sha256:4c80064eb7571d6cdd151c815e9a81d8bd5be37bbb4629bede3b7150f85566cb"
 }

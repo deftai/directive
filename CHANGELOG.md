@@ -13,6 +13,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Record reminted approved file permissions for missing-runtime outer install admit. This records approval only; it does not change product behavior (#7275).
+- Record reminted approved file permissions for obs-scope rediscovery scrub. This records approval only; it does not change product behavior (#7272).
+- Record reminted approved file permissions for acceptance-disposition deferral walk. This records approval only; it does not change product behavior (#7254).
+- Record reminted approved file permissions for pre-dispatch binding-store lock repair. This records approval only; it does not change product behavior (#7274).
+- Record reminted approved file permissions for spawn dest story-binding selection. This records approval only; it does not change product behavior (#7271).
+- Record reminted approved file permissions for foreign linked-worktree spawn admit. This records approval only; it does not change product behavior (#7270).
+- Record reminted approved file permissions for the exact-word commit gate. This records approval only; it does not change product behavior (#7273).
+
 - Activate the running brief for foreign linked-worktree spawn admit (#7270).
 - Activate the running brief for the exact-word commit gate (#7273).
 

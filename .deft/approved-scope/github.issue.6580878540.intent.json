@@ -64,7 +64,8 @@
           "packages/cli/src/entry-guard-parity.test.ts",
           "packages/runtime/src/hook-identity-failclosed.test.ts",
           "changelog.d/7275-missing-runtime-outer-admits-install.md"
-        ]
+        ],
+        "missing_traces_justification": "Prefer-A Bound limbs are the acceptance surface; traces deferred to product PR evidence."
       },
       "intended_placement": {
         "files": [

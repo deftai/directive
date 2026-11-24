@@ -63,7 +63,8 @@
           "packages/core/src/scope/acceptance-grant-walk.test.ts",
           "packages/core/src/scope/transition.test.ts",
           "changelog.d/7254-acceptance-disposition-deferral-walk.md"
-        ]
+        ],
+        "missing_traces_justification": "Prefer-A Bound limbs are the acceptance surface; traces deferred to product PR evidence."
       },
       "intended_placement": {
         "files": [

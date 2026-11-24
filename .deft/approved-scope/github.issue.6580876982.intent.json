@@ -72,7 +72,8 @@
           "packages/core/src/hooks/dispatcher-spawn-dest.test.ts",
           "packages/core/src/swarm/story-binding-record.ts",
           "changelog.d/7271-spawn-dest-story-binding.md"
-        ]
+        ],
+        "missing_traces_justification": "Prefer-A Bound limbs are the acceptance surface; traces deferred to product PR evidence."
       },
       "intended_placement": {
         "files": [

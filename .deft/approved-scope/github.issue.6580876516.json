@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "xbriefRelPath": "xbrief/active/2026-11-24-7270-framework-gap-spawn-refuses-a-linked-worktree-of-the-other-r.xbrief.json",
   "planId": "github.issue.6580876516",
-  "approvedAt": "2026-11-24T15:09:58Z",
+  "approvedAt": "2026-11-24T17:12:29Z",
   "fileScope": [
     "changelog.d/7270-foreign-cross-repo-spawn.md",
     "packages/core/src/session/spawn-occupancy.test.ts",
@@ -15,7 +15,7 @@
   "humanApproval": {
     "kind": "operator",
     "actor": "MScottAdams",
-    "mintedAt": "2026-11-24T15:09:58Z",
+    "mintedAt": "2026-11-24T17:12:29Z",
     "mintedVia": "scope:record-approved-scope"
   },
   "intentDigest": "54b3e0f1b5c01400992e92a25aa93a5e76dceb30a93c3b33fc7eb03db170c9d1",

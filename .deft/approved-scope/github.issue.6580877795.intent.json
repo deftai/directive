@@ -12,28 +12,23 @@
     "items": [
       {
         "id": "clause.1",
-        "title": "```quarantined\nNarrow `callShowsCommitWord` so needsCommitWord arms only when a decoded shell word's value is exactly `commit` (any case), including #6871 quote/continuation recombinations. Apply that same exact-word check inside executable-string payloads (`sh`/`bash`/`zsh`/`pwsh -c`, `eval`, `env -S`). Do not use substring `/commit/i` on pathspecs, filenames, or data/here-string bodies. Do not implement the detector as `recognizedCommits.length > 0`.\n```",
-        "artifact_path": "packages/core/src/hooks/commit-target.ts"
+        "title": "```quarantined\nNarrow `callShowsCommitWord` so needsCommitWord arms only when a decoded shell word's value is exactly `commit` (any case), including #6871 quote/continuation recombinations. Apply that same exact-word check inside executable-string payloads (`sh`/`bash`/`zsh`/`pwsh -c`, `eval`, `env -S`). Do not use substring `/commit/i` on pathspecs, filenames, or data/here-string bodies. Do not implement the detector as `recognizedCommits.length > 0`.\n```"
       },
       {
         "id": "clause.2",
-        "title": "```quarantined\nWhen `resolveOneCommit` sees one literal absolute `git -C` path, use that named path as the sole chdir authority for that commit and ignore preceding reaching `cd` segments (same absolute or different). Still refuse multiple `-C` on one git invocation, `--git-dir`/`--work-tree`, and location-env prefixes.\n```",
-        "artifact_path": "packages/core/src/hooks/commit-target.ts"
+        "title": "```quarantined\nWhen `resolveOneCommit` sees one literal absolute `git -C` path, use that named path as the sole chdir authority for that commit and ignore preceding reaching `cd` segments (same absolute or different). Still refuse multiple `-C` on one git invocation, `--git-dir`/`--work-tree`, and location-env prefixes.\n```"
       },
       {
         "id": "clause.3",
-        "title": "Suppress a needsCommitWord signal from an expanding non-git command word only when that signal is a borrowed lifecycle false-positive and the same call also has a recognized `git commit` that resolves to a named absolute target — then return the named target (all such commits must agree). Do not suppress an independently commit-shaped opaque signal: `$GIT commit`, `timeout … $CMD commit`, expanding git subcommands, or expanding executable-string payloads that contain exact-word `commit`. A named visible commit never cancels those.",
-        "artifact_path": "packages/core/src/hooks/commit-target.ts"
+        "title": "Suppress a needsCommitWord signal from an expanding non-git command word only when that signal is a borrowed lifecycle false-positive and the same call also has a recognized `git commit` that resolves to a named absolute target — then return the named target (all such commits must agree). Do not suppress an independently commit-shaped opaque signal: `$GIT commit`, `timeout … $CMD commit`, expanding git subcommands, or expanding executable-string payloads that contain exact-word `commit`. A named visible commit never cancels those."
       },
       {
         "id": "clause.4",
-        "title": "```quarantined\nRegressions: `$BIN scope:promote --path with-commit-in-name` → null; `cd <abs>; git -C <abs> commit` and `cd <absA>; git -C <absB> commit` → named from `-C`; `$BIN scope:promote; git -C <abs> commit -m x` → named `<abs>`; `$GIT commit -m x`, `timeout 5 $CMD commit -m x`, `bash -c \"$GIT commit -m x\"`, `eval \"$GIT commit -m x\"`, `env -S \"$GIT commit -m x\"` stay unresolvable alone and stay unresolvable alongside `git -C <abs> commit -m x`; relative/`~`/expanding `-C` paths stay unresolvable.\n```",
-        "artifact_path": "packages/core/src/hooks/commit-target.test.ts"
+        "title": "```quarantined\nRegressions: `$BIN scope:promote --path with-commit-in-name` → null; `cd <abs>; git -C <abs> commit` and `cd <absA>; git -C <absB> commit` → named from `-C`; `$BIN scope:promote; git -C <abs> commit -m x` → named `<abs>`; `$GIT commit -m x`, `timeout 5 $CMD commit -m x`, `bash -c \"$GIT commit -m x\"`, `eval \"$GIT commit -m x\"`, `env -S \"$GIT commit -m x\"` stay unresolvable alone and stay unresolvable alongside `git -C <abs> commit -m x`; relative/`~`/expanding `-C` paths stay unresolvable.\n```"
       },
       {
         "id": "clause.5",
-        "title": "Update `COMMIT_TARGET_ACCEPTED_FORMS` and `content/docs/hook-root-admission.md` (§ Commit targets / The commit word) to that exact boundary: exact-word detection including executable-string payloads; `git -C <absolute>` enough with a prior `cd`; lifecycle `$BIN` plus later named commit admitted; opaque commit-shaped wrappers refused even next to a named commit; hand-expanding every binary path not required for the admitted cases.",
-        "artifact_path": "content/docs/hook-root-admission.md"
+        "title": "Update `COMMIT_TARGET_ACCEPTED_FORMS` and `content/docs/hook-root-admission.md` (§ Commit targets / The commit word) to that exact boundary: exact-word detection including executable-string payloads; `git -C <absolute>` enough with a prior `cd`; lifecycle `$BIN` plus later named commit admitted; opaque commit-shaped wrappers refused even next to a named commit; hand-expanding every binary path not required for the admitted cases."
       }
     ],
     "references": [
@@ -607,7 +602,6 @@
     "deftai/directive"
   ],
   "unknownPaths": [
-    "items[].artifact_path",
     "metadata.intended_placement",
     "metadata.issueBody",
     "metadata.issueCommentThread",
