@@ -3,11 +3,11 @@
     "version": "0.8",
     "description": "Admit Antigravity CLI as a design-critique critic seat",
     "created": "2026-11-24T04:00:00Z",
-    "updated": "2026-11-24T20:03:49Z"
+    "updated": "2026-11-24T22:22:26Z"
   },
   "plan": {
     "title": "Admit Antigravity CLI as a design-critique critic seat",
-    "status": "running",
+    "status": "completed",
     "id": "7245",
     "narratives": {
       "Overview": "Admit agy as its own critic-seat family on SeatLauncher and launcher-argv.",
@@ -19,11 +19,18 @@
         "status": "completed",
         "id": "clause.1",
         "x-directive/requires": "merge",
-        "x-directive/evidence": {
-          "kind": "test",
-          "pointer": "packages/core/src/hooks/launcher-argv.test.ts",
-          "recorded_at": "2026-11-24T20:03:49Z",
-          "recorded_by": "scope:stamp-evidence"
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "agy critic seat shipped in product PR #7301; Bound covered by launcher-argv.test.ts",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "operator",
+            "mintedAt": "2026-11-24T22:15:06Z",
+            "mintedVia": "deft authz:grant",
+            "eventRef": "template:acceptance-disposition",
+            "grantId": "grant-20261124221506-3687a5"
+          },
+          "recorded_at": "2026-11-24T22:22:26Z"
         }
       }
     ],
@@ -43,7 +50,37 @@
         "file_scope_confidence": "medium",
         "depends_on": []
       },
-      "productPullRequest": 7301
+      "productPullRequest": 7301,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "97c6d75bff096e52103c8da2f8cbe47525d03b49",
+        "prNumber": 7301,
+        "prBase": "master",
+        "mergeCommit": "0138674c6b010384e2196aa911aaccb986c891ed",
+        "deliveryBranch": "master",
+        "deliveryCommit": "8bae99c608dcf7e9c846d48fa5575e5d8acd249a",
+        "verifiedAt": "2026-11-24T22:22:26Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          7303
+        ],
+        "competingMarkedPrs": [
+          7280
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-24T22:22:26Z",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-24T22:22:26Z"
+      }
     },
     "acceptance": {
       "commands": [],
@@ -69,6 +106,7 @@
         "uri": "https://github.com/deftai/directive/issues/7245",
         "type": "x-xbrief/github-issue"
       }
-    ]
+    ],
+    "updated": "2026-11-24T22:22:26Z"
   }
 }
