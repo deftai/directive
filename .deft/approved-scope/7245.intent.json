@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "algo": "intent-extract-v1",
+  "plan": {
+    "title": "Admit Antigravity CLI as a design-critique critic seat",
+    "id": "7245",
+    "narratives": {
+      "Overview": "Admit agy as its own critic-seat family on SeatLauncher and launcher-argv.",
+      "Description": ""
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "agy is admitted as its own critic-seat family on SeatLauncher and the existing launcher-argv classifier without a new swarm worker role."
+      }
+    ],
+    "metadata": {
+      "kind": "scope",
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/design-critique/panel-seat-families.ts",
+          "packages/core/src/hooks/launcher-argv.ts",
+          "packages/core/src/hooks/launcher-argv.test.ts",
+          "changelog.d/7245-admit-agy-critic-seat.md"
+        ]
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true
+    }
+  },
+  "approvedRepos": [
+    "deftai/directive"
+  ],
+  "unknownPaths": [
+    "metadata.kind"
+  ]
+}

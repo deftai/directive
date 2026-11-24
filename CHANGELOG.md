@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Record approved file permissions for admitting the Antigravity (agy) design-critique critic seat. This records approval only; it does not change product behavior (#7245).
+
 - Activate the running brief for merge-gate temp-fixture isolation and finalize pathspec fix (#7292).
 
 - Record reminted approved file permissions for missing-runtime outer install admit. This records approval only; it does not change product behavior (#7275).
