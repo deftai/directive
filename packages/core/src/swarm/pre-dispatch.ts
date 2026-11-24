@@ -18,6 +18,7 @@ import {
   completeAttempt,
   completeAttemptOnDisk,
   type DeliveryAttemptRecord,
+  type DeliveryUnitLedger,
   evaluatePreDispatch,
   hasActiveAttempt,
   listUnitLedgers,
@@ -46,6 +47,7 @@ import {
   worktreePathOrNull,
 } from "../session/git.js";
 import { isLinkedWorktreePath } from "../session/main-worktree.js";
+import { liveOccupant } from "../session/occupancy.js";
 import { EXIT_CONFIG_ERROR, EXIT_GATE_FAILED, EXIT_OK } from "./constants.js";
 import {
   ensureStoryBindingRecord,
@@ -294,6 +296,92 @@ function attemptHasAttachedWorker(attempt: DeliveryAttemptRecord): boolean {
 }
 
 /**
+ * Live occupancy on the begin target worktree (#7274 / Prefer-A P4).
+ * A missing attempt.workerId is not enough proof the worker is absent — begin
+ * often omits that optional flag while a leaf still holds the dest lease.
+ */
+function targetLiveOccupantSessionId(
+  input: Pick<SwarmPreDispatchInput, "projectRoot" | "targetId" | "now">,
+): string | null {
+  const target = resolveStoryBindingTarget(input.projectRoot, input.targetId);
+  if (!target.ok) return null;
+  const now = input.now !== undefined ? new Date(input.now) : new Date();
+  if (Number.isNaN(now.getTime())) return null;
+  const live = liveOccupant(target.worktreePath, now);
+  const id = live?.sessionId?.trim() ?? "";
+  return id.length > 0 ? id : null;
+}
+
+/** Orphan repair-admit only when no ledger worker and no live dest occupancy. */
+function orphanRepairEligible(
+  actives: readonly DeliveryAttemptRecord[],
+  input: Pick<SwarmPreDispatchInput, "projectRoot" | "targetId" | "now">,
+): boolean {
+  if (actives.length === 0) return false;
+  if (!actives.every((a) => !attemptHasAttachedWorker(a))) return false;
+  return targetLiveOccupantSessionId(input) === null;
+}
+
+/**
+ * Persist begin-supplied worker/run ids onto a repair-admitted active attempt
+ * so later complete/cancel can find it (#7274 Greptile P1).
+ */
+function stampRunningAttemptIdentity(
+  ledger: DeliveryUnitLedger,
+  attemptId: string,
+  input: {
+    readonly workerId?: string | null;
+    readonly externalRunId?: string | null;
+    readonly now?: string;
+  },
+): { ledger: DeliveryUnitLedger; attempt: DeliveryAttemptRecord } {
+  const idx = ledger.attempts.findIndex((a) => a.attemptId === attemptId);
+  const prev = idx >= 0 ? ledger.attempts[idx] : undefined;
+  if (prev === undefined || (prev.status !== "queued" && prev.status !== "running")) {
+    throw new Error(`stampRunningAttemptIdentity: no active attempt ${attemptId}`);
+  }
+  const nextWorker =
+    typeof input.workerId === "string" && input.workerId.trim().length > 0
+      ? input.workerId.trim()
+      : prev.workerId;
+  const nextRun =
+    typeof input.externalRunId === "string" && input.externalRunId.trim().length > 0
+      ? input.externalRunId.trim()
+      : prev.externalRunId;
+  if (nextWorker === prev.workerId && nextRun === prev.externalRunId) {
+    return { ledger, attempt: prev };
+  }
+  const updated: DeliveryAttemptRecord = {
+    ...prev,
+    workerId: nextWorker,
+    externalRunId: nextRun,
+  };
+  const attempts = ledger.attempts.slice();
+  attempts[idx] = updated;
+  return {
+    ledger: {
+      ...ledger,
+      attempts,
+      updatedAt: input.now ?? new Date().toISOString(),
+    },
+    attempt: updated,
+  };
+}
+
+/** Undo beginAttempt override spend when the attempt is rolled back before spawn. */
+function restoreConsumedOverrideQuota(ledger: DeliveryUnitLedger): DeliveryUnitLedger {
+  const override = ledger.override;
+  if (override === null) return ledger;
+  return {
+    ...ledger,
+    override: {
+      ...override,
+      remainingAttempts: override.remainingAttempts + 1,
+    },
+  };
+}
+
+/**
  * True when the target resolves to a linked worktree whose record is missing
  * or omits any of the attempt ids. Unresolvable targets are not repair-eligible
  * (#7274): plain branch/path units without a binding store stay on DENY.
@@ -314,8 +402,11 @@ function storyBindingMissingForAttempts(
 function classifyDuplicateActiveHint(
   actives: readonly DeliveryAttemptRecord[],
   bindingMissing: boolean,
+  liveOccupantId: string | null,
 ): DuplicateActiveHintKind {
-  if (actives.some((a) => attemptHasAttachedWorker(a))) return "pre-cancel";
+  if (actives.some((a) => attemptHasAttachedWorker(a)) || liveOccupantId !== null) {
+    return "pre-cancel";
+  }
   if (bindingMissing) return "binding-repair";
   return "inspect";
 }
@@ -683,14 +774,14 @@ function runBegin(input: SwarmPreDispatchInput): SwarmPreDispatchResult {
       });
       const actives = activeAttempts(current);
 
-      // P3: orphan repair-admit — missing binding + this unit active + no worker.
+      // P3: orphan repair-admit — missing binding + this unit active + no worker
+      // and no live dest occupancy (null workerId alone is not proof).
       if (actives.length > 0) {
         const bindingMissing = storyBindingMissingForAttempts(
           input,
           actives.map((a) => a.attemptId),
         );
-        const noWorker = actives.every((a) => !attemptHasAttachedWorker(a));
-        if (bindingMissing && noWorker) {
+        if (bindingMissing && orphanRepairEligible(actives, input)) {
           const ids = actives.map((a) => a.attemptId);
           const binding = ensureBeginStoryBinding(input, ids);
           if (isStoryBindingStoreLockedDetail(binding)) {
@@ -715,12 +806,51 @@ function runBegin(input: SwarmPreDispatchInput): SwarmPreDispatchResult {
               duplicateActiveHint: "binding-repair",
             });
           }
-          const repaired = actives[0] ?? null;
+          const head = actives[0] ?? null;
+          if (head === null) {
+            return baseResult(input, "begin", {
+              exitCode: EXIT_GATE_FAILED,
+              decision: "DENY_DUPLICATE_ACTIVE",
+              reason: "active attempt exists for unit; binding repair lost the attempt",
+              attempt: null,
+              activeAttemptIds: ids,
+              storyBinding: binding,
+              duplicateActiveHint: "binding-repair",
+            });
+          }
+          // Recheck under the unit lock before admitting (Prefer-A P3 serialize).
+          const refreshed = loadOrCreateUnitLedger(input.projectRoot, {
+            scopeId,
+            targetId,
+            workflowId,
+            now: input.now,
+          });
+          const still = activeAttempts(refreshed);
+          if (
+            !orphanRepairEligible(still, input) ||
+            !still.some((a) => a.attemptId === head.attemptId)
+          ) {
+            return baseResult(input, "begin", {
+              exitCode: EXIT_GATE_FAILED,
+              decision: "DENY_DUPLICATE_ACTIVE",
+              reason: "active attempt exists for unit; repair-admit raced a live worker",
+              attempt: still[0] ?? head,
+              activeAttemptIds: still.map((a) => a.attemptId),
+              storyBinding: binding,
+              duplicateActiveHint: "pre-cancel",
+            });
+          }
+          const stamped = stampRunningAttemptIdentity(refreshed, head.attemptId, {
+            workerId: input.workerId,
+            externalRunId: input.externalRunId,
+            now: input.now,
+          });
+          saveUnitLedger(input.projectRoot, stamped.ledger);
           return baseResult(input, "begin", {
             exitCode: EXIT_OK,
             decision: "ALLOW_RESUME",
-            reason: `repair-admit; attempt ${repaired?.attemptId ?? ids[0]} binding restored`,
-            attempt: repaired,
+            reason: `repair-admit; attempt ${stamped.attempt.attemptId} binding restored`,
+            attempt: stamped.attempt,
             activeAttemptIds: ids,
             storyBinding: binding,
           });
@@ -750,7 +880,11 @@ function runBegin(input: SwarmPreDispatchInput): SwarmPreDispatchResult {
         const bindingMissing = storyBindingMissingForAttempts(input, activeIds);
         const hint =
           decision.decision === "DENY_DUPLICATE_ACTIVE"
-            ? classifyDuplicateActiveHint(activeRows, bindingMissing)
+            ? classifyDuplicateActiveHint(
+                activeRows,
+                bindingMissing,
+                targetLiveOccupantSessionId(input),
+              )
             : undefined;
         const binding =
           decision.decision === "DENY_DUPLICATE_ACTIVE" && activeIds.length > 0
@@ -778,11 +912,15 @@ function runBegin(input: SwarmPreDispatchInput): SwarmPreDispatchResult {
       // P1/P2: bind under the same unit lock; roll back on store-lock exhaustion.
       const binding = ensureBeginStoryBinding(input, [attempt.attemptId]);
       if (isStoryBindingStoreLockedDetail(binding)) {
-        const rolled = completeAttempt(ledger, {
+        let rolled = completeAttempt(ledger, {
           attemptId: attempt.attemptId,
           status: "cancelled",
           now: input.now,
         });
+        // Restore override quota: no worker was dispatched (#7274 Greptile P1).
+        if (decision.decision === "ALLOW_OVERRIDE") {
+          rolled = restoreConsumedOverrideQuota(rolled);
+        }
         saveUnitLedger(input.projectRoot, rolled);
         return baseResult(input, "begin", {
           exitCode: EXIT_GATE_FAILED,
@@ -1063,8 +1201,8 @@ export function formatPreDispatchReport(result: SwarmPreDispatchResult): string 
     } else if (hint === "inspect") {
       lines.push(
         "  hint: do not spawn; an active attempt is already bound for this unit.",
-        "  Inspect/resolve-identity before cancel: task swarm:pre-dispatch status / ledger inspect,",
-        "  then pre-cancel+cancel only when a worker/subagent id is known. REDISPATCH_OK does not lift DENY_DUPLICATE_ACTIVE.",
+        "  Inspect: read `.deft/delivery-attempts/` for this scope+target (active attempt ids above);",
+        "  resolve worker/subagent identity, then pre-cancel+cancel only when known. REDISPATCH_OK does not lift DENY_DUPLICATE_ACTIVE.",
       );
     } else {
       lines.push(
