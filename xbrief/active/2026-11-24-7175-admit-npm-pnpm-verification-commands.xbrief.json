@@ -3,7 +3,7 @@
     "version": "0.8",
     "description": "Admit npm and pnpm build, lint, and typecheck without script arguments, and npm and pnpm audit only through a closed flag table. Keep npx tsc refused.",
     "created": "2026-11-24T02:37:07Z",
-    "updated": "2026-11-24T04:14:04.667Z"
+    "updated": "2026-11-24T04:31:17.502Z"
   },
   "plan": {
     "title": "Admit npm and pnpm verification commands at scope complete",
@@ -84,8 +84,9 @@
     "updated": "2026-11-24T02:39:11Z",
     "references": [
       {
-        "type": "github-issue",
-        "uri": "https://github.com/deftai/directive/issues/7175"
+        "type": "x-xbrief/github-issue",
+        "uri": "https://github.com/deftai/directive/issues/7175",
+        "title": "Issue #7175"
       }
     ]
   }
