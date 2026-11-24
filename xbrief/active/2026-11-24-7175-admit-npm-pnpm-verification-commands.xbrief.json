@@ -3,7 +3,7 @@
     "version": "0.8",
     "description": "Admit npm and pnpm build, lint, and typecheck without script arguments, and npm and pnpm audit only through a closed flag table. Keep npx tsc refused.",
     "created": "2026-11-24T02:37:07Z",
-    "updated": "2026-11-24T04:31:17.502Z"
+    "updated": "2026-11-24T09:51:40Z"
   },
   "plan": {
     "title": "Admit npm and pnpm verification commands at scope complete",
@@ -16,17 +16,38 @@
       {
         "title": "npm and pnpm run build, run lint, and run typecheck are admitted without a positional, a double-dash, a runner flag, --if-present, or pnpm --filter.",
         "status": "proposed",
-        "id": "clause.1"
+        "id": "clause.1",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/literal-acceptance/safety.ts",
+          "recorded_at": "2026-11-24T09:44:58Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
       },
       {
         "title": "npm audit and pnpm audit are admitted only through the closed flag table, and npx tsc and pnpm exec tsc stay refused.",
         "status": "proposed",
-        "id": "clause.2"
+        "id": "clause.2",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/literal-acceptance/safety.ts",
+          "recorded_at": "2026-11-24T09:44:58Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
       },
       {
         "title": "Rewriting a structured record to npm run typecheck clears that record's old rejection and leaves unrelated rejections in place.",
         "status": "proposed",
-        "id": "clause.3"
+        "id": "clause.3",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/literal-acceptance/safety-branches.test.ts",
+          "recorded_at": "2026-11-24T09:44:58Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
       }
     ],
     "metadata": {
@@ -48,7 +69,10 @@
         "file_scope_confidence": "medium",
         "depends_on": []
       },
-      "productPullRequest": 7260
+      "productPullRequest": 7260,
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "capacityBucket": "new-capability"
     },
     "id": "7175",
     "acceptance": {
@@ -60,28 +84,33 @@
         {
           "id": 1,
           "text": "npm and pnpm run build, run lint, and run typecheck are admitted without a positional, a double-dash, a runner flag, --if-present, or pnpm --filter.",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/literal-acceptance/safety.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 2,
           "text": "npm audit and pnpm audit are admitted only through the closed flag table, and npx tsc and pnpm exec tsc stay refused.",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/literal-acceptance/safety.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 3,
           "text": "Rewriting a structured record to npm run typecheck clears that record's old rejection and leaves unrelated rejections in place.",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/literal-acceptance/safety-branches.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         }
       ],
-      "ambiguity_attestation": "none_found"
+      "ambiguity_attestation": "none_found",
+      "sentences": [
+        "npm and pnpm run build, run lint, and run typecheck are admitted without a positional, a double-dash, a runner flag, --if-present, or pnpm --filter.",
+        "npm audit and pnpm audit are admitted only through the closed flag table, and npx tsc and pnpm exec tsc stay refused.",
+        "Rewriting a structured record to npm run typecheck clears that record's old rejection and leaves unrelated rejections in place."
+      ]
     },
-    "updated": "2026-11-24T02:39:11Z",
+    "updated": "2026-11-24T09:51:40Z",
     "references": [
       {
         "type": "x-xbrief/github-issue",
