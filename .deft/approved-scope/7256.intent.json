@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "algo": "intent-extract-v1",
+  "plan": {
+    "title": "Fix bulk mint spawn admission (#7256 / #7257)",
+    "id": "7256",
+    "narratives": {
+      "Overview": "Spawn must read the dest worktree mint when cwd is that worktree. Manifest may mint several stories into one checkout.",
+      "Description": ""
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "When spawn_subagent cwd is a linked worktree of the project, active-scope and one-PR mint admission use that worktree as the fence root so a dest mint admits the spawn."
+      },
+      {
+        "id": "clause.2",
+        "title": "scope:record-approved-scope --manifest may write several distinct planId records into one worktree in one typed mint; plan ids stay unique."
+      }
+    ],
+    "metadata": {
+      "kind": "scope",
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/hooks/dispatcher.ts",
+          "packages/core/src/hooks/dispatcher-spawn-dest.test.ts",
+          "packages/runtime/src/scope-record-approved-scope-cohort.ts",
+          "packages/runtime/src/scope-record-approved-scope-cohort.test.ts",
+          "changelog.d/7256-7257-mint-spawn-admission.md"
+        ]
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true
+    },
+    "references": []
+  },
+  "approvedRepos": [
+    "deftai/directive"
+  ],
+  "unknownPaths": [
+    "metadata.kind"
+  ]
+}

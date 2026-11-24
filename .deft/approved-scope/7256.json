@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "xbriefRelPath": "xbrief/active/2026-11-24-7256-7257-mint-spawn-admission.xbrief.json",
+  "planId": "7256",
+  "approvedAt": "2026-11-24T13:34:27Z",
+  "fileScope": [
+    "changelog.d/7256-7257-mint-spawn-admission.md",
+    "packages/core/src/hooks/dispatcher-spawn-dest.test.ts",
+    "packages/core/src/hooks/dispatcher.ts",
+    "packages/runtime/src/scope-record-approved-scope-cohort.test.ts",
+    "packages/runtime/src/scope-record-approved-scope-cohort.ts"
+  ],
+  "fileScopeDigest": "abe8cf630e1d254480c0b9d3f0a23bd83ea11ced326cc7b26427246bf2279536",
+  "humanApproval": {
+    "kind": "operator",
+    "actor": "MScottAdams",
+    "mintedAt": "2026-11-24T13:34:27Z",
+    "mintedVia": "scope:record-approved-scope"
+  },
+  "intentDigest": "fa2de925c4272e654b42d7b220f3ac181f6181f9824c19b4d3818f39a7f6147d",
+  "digestAlgo": "intent-extract-v1",
+  "authHashV1": "sha256:26dae6fbbbbb8e2741de53e772c85e582a681d75ea81114d65b5b759e79700a6"
+}

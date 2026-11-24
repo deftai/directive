@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Record approved file permissions for dest-worktree mint spawn admission. This records approval only; it does not change product behavior (#7256 / #7257).
+
 - Prepare dest-worktree mint admission so overnight bulk builders can start from a linked-worktree mint without a second mint pass (#7256 / #7257).
 
 ### Fixed
