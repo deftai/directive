@@ -1,13 +1,13 @@
 import { existsSync, readFileSync } from "node:fs";
 import { dirname } from "node:path";
-import {
-  listActiveRunningBriefs,
-  productPullRequestFromPlan,
-} from "../orphan-active/running-briefs.js";
 import { closerSetFromIssueIds } from "../one-pr-unit/closer-set.js";
 import { evaluateOnePrUnit } from "../one-pr-unit/evaluate.js";
 import { exactOriginSetEquals } from "../one-pr-unit/origin-set.js";
 import { listOnePrUnitGrants } from "../one-pr-unit/store.js";
+import {
+  listActiveRunningBriefs,
+  productPullRequestFromPlan,
+} from "../orphan-active/running-briefs.js";
 import { storyIssueOfBrief } from "../pr-closing-keywords/story-issue.js";
 import { defaultRunGh, fetchClosingIssuesReferences } from "../pr-protected-issues/gh.js";
 import { githubOwnerRepoFromRemoteUrl } from "../release/closed-verb-gate.js";
@@ -147,8 +147,7 @@ export function evaluateSlowPathCompleteGate(args: {
   return {
     refuse: true,
     merged,
-    message:
-      `slow-path: deft swarm:finalize-cohort -- --pr ${prList} --cohort ${cohortList}`,
+    message: `slow-path: deft swarm:finalize-cohort -- --pr ${prList} --cohort ${cohortList}`,
   };
 }
 
