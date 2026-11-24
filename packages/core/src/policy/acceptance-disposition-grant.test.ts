@@ -406,9 +406,7 @@ describe("acceptance-disposition template (#6318)", () => {
     });
     expect(refused).toMatchObject({
       ok: false,
-      reason: expect.stringMatching(
-        new RegExp(`${minted.grant.id}.*disagreeing plan identifiers`),
-      ),
+      reason: expect.stringMatching(new RegExp(`${minted.grant.id}.*disagreeing plan identifiers`)),
     });
     // Wholly other-plan grant does not block this completion.
     saveGrant(root, {
