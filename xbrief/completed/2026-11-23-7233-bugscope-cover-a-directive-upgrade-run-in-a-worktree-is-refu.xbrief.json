@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #7233",
-    "updated": "2026-11-23T22:59:24Z"
+    "updated": "2026-11-24T02:20:01Z"
   },
   "plan": {
     "title": "bug(scope-cover): a directive upgrade run in a worktree is refused because npm rewrites the lockfile's top-level name",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(scope-cover): a directive upgrade run in a worktree is refused because npm rewrites the lockfile's top-level name",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/7233",
@@ -17,13 +17,27 @@
     "items": [
       {
         "title": "Given a project whose `package.json` has no `name`, when `directive upgrade` runs in a linked worktree with a different folder name, then the agent's commit of the upgrade deposit (pin, lockfile, generation record, managed AGENTS.md) passes scope-cover with no brief.",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "b6fcfebce7027abed5e65f2941a86de7d22dab4f",
+          "recorded_at": "2026-11-24T02:20:01Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given a lockfile change that also changes the app's own `name` declared in `package.json`, then the verdict stays `mixed`.",
-        "status": "proposed",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "b6fcfebce7027abed5e65f2941a86de7d22dab4f",
+          "recorded_at": "2026-11-24T02:20:01Z",
+          "recorded_by": "scope:complete"
+        }
       }
     ],
     "references": [
@@ -107,9 +121,36 @@
         "github_issue_id": 6569775120,
         "origin": "deftai/directive#7233",
         "id": "github.issue.6569775120"
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "8723ce5287e9d9acbe38a4d82bc99b1dc76e0495",
+        "prNumber": 7246,
+        "prBase": "master",
+        "mergeCommit": "b6fcfebce7027abed5e65f2941a86de7d22dab4f",
+        "deliveryBranch": "master",
+        "deliveryCommit": "d58253c49a783ac50e13983655bef0a4f1068d28",
+        "verifiedAt": "2026-11-24T02:20:01Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          7242
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-24T02:20:01Z",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-24T02:20:01Z"
       }
     },
     "id": "github.issue.6569775120",
-    "updated": "2026-11-23T22:59:24Z"
+    "updated": "2026-11-24T02:20:01Z"
   }
 }
