@@ -928,10 +928,7 @@ function evaluateVerificationScriptRun(
  * named by repo or user config; a refused connection fails the run; a hung
  * connection waits; repo or user config can still force a cannot-fail level.
  */
-function evaluateAuditArgs(
-  tokens: readonly string[],
-  firstToken: string,
-): CommandSafetyResult {
+function evaluateAuditArgs(tokens: readonly string[], firstToken: string): CommandSafetyResult {
   if (tokens[0] !== "audit") {
     return { ok: false, reason: PACKAGE_MANAGER_ARGS_REASON };
   }
@@ -946,7 +943,13 @@ function evaluateAuditArgs(
         reason: "audit admits closed flags only (no positional, no --)",
       };
     }
-    if (/^-[A-Za-z0-9]{2,}$/.test(flag) && !flag.startsWith("--") && flag !== "-P" && flag !== "-D" && flag !== "-w") {
+    if (
+      /^-[A-Za-z0-9]{2,}$/.test(flag) &&
+      !flag.startsWith("--") &&
+      flag !== "-P" &&
+      flag !== "-D" &&
+      flag !== "-w"
+    ) {
       return { ok: false, reason: "audit refuses short-flag clusters" };
     }
     if (flag.includes("=") && !flag.startsWith("--")) {
