@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #7275",
-    "updated": "2026-11-24T14:14:29Z"
+    "updated": "2026-11-24T20:22:42Z"
   },
   "plan": {
     "title": "[framework-gap] A checkout with no runtime cannot run the install that would create it",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "[framework-gap] A checkout with no runtime cannot run the install that would create it",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/7275",
@@ -19,32 +19,74 @@
       {
         "id": "clause.1",
         "title": "When pin hook-bin is absent on tool.before, the deposited outer admits only exact simple project-root installs from PIN_MISMATCH_RECOVERY_COMMANDS.",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/host-hook-outer.test.ts",
+          "recorded_at": "2026-11-24T19:58:42Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
       },
       {
         "id": "clause.2",
         "title": "Mirror pin-mismatch admit gates in the outer (shell tool, simple command, project-root proof); refuse otherwise.",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/host-hook-outer.test.ts",
+          "recorded_at": "2026-11-24T19:58:42Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
       },
       {
         "id": "clause.3",
         "title": "Admitted install uses quietAllow; non-matches stay blocked with lockfile-named guidance that names the install exception.",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/host-hook-outer.test.ts",
+          "recorded_at": "2026-11-24T19:58:42Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
       },
       {
         "id": "clause.4",
         "title": "Do not admit npm i -g @deftai/directive or directive install --repair as missing-runtime recovery.",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/install-health/recovery-admit.test.ts",
+          "recorded_at": "2026-11-24T19:58:42Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
       },
       {
         "id": "clause.5",
         "title": "Fixtures cover exact admit/refuse per host payload; installed-pin path still forwards payload to hook-bin.",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/cli/src/entry-guard-parity.test.ts",
+          "recorded_at": "2026-11-24T19:58:42Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
       },
       {
         "id": "clause.6",
         "title": "changelog.d fragment for the admit.",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/init-deposit/host-hook-outer.test.ts",
+          "recorded_at": "2026-11-24T19:58:42Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
       }
     ],
     "tags": [
@@ -85,6 +127,7 @@
         "parallel_safe": false,
         "size": "medium",
         "file_scope": [
+          "packages/core/src/init-deposit/host-hook-outer.test.ts",
           "packages/core/src/init-deposit/host-hook-outer.ts",
           "packages/core/src/install-health/recovery-admit.ts",
           "packages/core/src/install-health/recovery-admit.test.ts",
@@ -94,7 +137,7 @@
         ],
         "file_scope_confidence": "high",
         "verify_commands": [
-          "pnpm exec vitest related --run"
+          "pnpm exec vitest run packages/core/src/init-deposit/host-hook-outer.test.ts packages/core/src/install-health/recovery-admit.test.ts packages/cli/src/entry-guard-parity.test.ts"
         ],
         "depends_on": [],
         "conflict_group": "missing-runtime-outer-admits-named-project-install",
@@ -445,7 +488,32 @@
         "algorithm": "sha256",
         "sha256": "29926b51f4a646d916cfd551fb9263c952c13147fc39eccecc6d62ae94cf53cf"
       },
-      "kind": "story"
+      "kind": "story",
+      "productPullRequest": 7298,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "ddf880706b3968cb3733cd3cc5157a01adb67f03",
+        "prNumber": 7298,
+        "prBase": "master",
+        "mergeCommit": "09b2db9ff28d68fb4483248a3103738d5ff1ea2d",
+        "deliveryBranch": "master",
+        "deliveryCommit": "0138674c6b010384e2196aa911aaccb986c891ed",
+        "verifiedAt": "2026-11-24T20:22:42Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "identityBasis": "merge-time-mark"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-24T20:22:42Z",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-24T20:22:42Z"
+      }
     },
     "acceptance": {
       "commands": [],
@@ -456,49 +524,57 @@
         {
           "id": 1,
           "text": "When pin hook-bin is absent on tool.before, the deposited outer admits only exact simple project-root installs from PIN_MISMATCH_RECOVERY_COMMANDS.",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/init-deposit/host-hook-outer.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 2,
           "text": "Mirror pin-mismatch admit gates in the outer (shell tool, simple command, project-root proof); refuse otherwise.",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/init-deposit/host-hook-outer.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 3,
           "text": "Admitted install uses quietAllow; non-matches stay blocked with lockfile-named guidance that names the install exception.",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/init-deposit/host-hook-outer.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 4,
           "text": "Do not admit npm i -g @deftai/directive or directive install --repair as missing-runtime recovery.",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/install-health/recovery-admit.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 5,
           "text": "Fixtures cover exact admit/refuse per host payload; installed-pin path still forwards payload to hook-bin.",
-          "artifact_path": null,
+          "artifact_path": "packages/cli/src/entry-guard-parity.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 6,
           "text": "changelog.d fragment for the admit.",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/init-deposit/host-hook-outer.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         }
       ],
-      "ambiguity_attestation": "none_found"
+      "ambiguity_attestation": "none_found",
+      "sentences": [
+        "When pin hook-bin is absent on tool.before, the deposited outer admits only exact simple project-root installs from PIN_MISMATCH_RECOVERY_COMMANDS.",
+        "Mirror pin-mismatch admit gates in the outer (shell tool, simple command, project-root proof); refuse otherwise.",
+        "Admitted install uses quietAllow; non-matches stay blocked with lockfile-named guidance that names the install exception.",
+        "Do not admit npm i -g @deftai/directive or directive install --repair as missing-runtime recovery.",
+        "Fixtures cover exact admit/refuse per host payload; installed-pin path still forwards payload to hook-bin.",
+        "changelog.d fragment for the admit."
+      ]
     },
     "id": "github.issue.6580878540",
-    "updated": "2026-11-24T14:14:29Z"
+    "updated": "2026-11-24T20:22:42Z"
   }
 }
