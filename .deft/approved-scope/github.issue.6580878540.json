@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "xbriefRelPath": "xbrief/active/2026-11-24-7275-framework-gap-a-checkout-with-no-runtime-cannot-run-the-inst.xbrief.json",
   "planId": "github.issue.6580878540",
-  "approvedAt": "2026-11-24T14:46:47Z",
+  "approvedAt": "2026-11-24T17:12:11Z",
   "fileScope": [
     "changelog.d/7275-missing-runtime-outer-admits-install.md",
     "packages/cli/src/entry-guard-parity.test.ts",
@@ -15,10 +15,10 @@
   "humanApproval": {
     "kind": "operator",
     "actor": "MScottAdams",
-    "mintedAt": "2026-11-24T14:46:47Z",
+    "mintedAt": "2026-11-24T17:12:11Z",
     "mintedVia": "scope:record-approved-scope"
   },
-  "intentDigest": "2b964be1128d08ed0c25016a58cdcef14e7a0a5fbd33785a6ff4d783f72fdd50",
+  "intentDigest": "e877d6263450967d944e5c9e7977304f84302446c170e73aa52c93a8177f3fd6",
   "digestAlgo": "intent-extract-v1",
   "authHashV1": "sha256:232508d50ffd5a0f0a32170e00fe8315a4eca6c5d12029e57fd9b78a334088a5"
 }
