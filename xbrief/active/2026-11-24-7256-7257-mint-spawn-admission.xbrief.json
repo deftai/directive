@@ -19,7 +19,7 @@
       {
         "id": "clause.1",
         "title": "When spawn_subagent cwd is a linked worktree of the project, active-scope and one-PR mint admission use that worktree as the fence root so a dest mint admits the spawn.",
-        "status": "done",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/core/src/hooks/dispatcher-spawn-dest.test.ts (merged PR #7283)",
@@ -30,7 +30,7 @@
       {
         "id": "clause.2",
         "title": "scope:record-approved-scope --manifest may write several distinct planId records into one worktree in one typed mint; plan ids stay unique.",
-        "status": "done",
+        "status": "completed",
         "x-directive/evidence": {
           "kind": "test",
           "pointer": "packages/runtime/src/scope-record-approved-scope-cohort.test.ts (merged PR #7283)",
