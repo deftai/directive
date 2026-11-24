@@ -297,7 +297,8 @@ function withStoreLock<T>(
   body: () => T,
   wait?: StoryBindingLockWait,
 ): T | { readonly ok: false; readonly detail: string } {
-  const maxAttempts = wait === undefined ? 1 : (wait.maxAttempts ?? STORY_BINDING_BEGIN_LOCK_MAX_ATTEMPTS);
+  const maxAttempts =
+    wait === undefined ? 1 : (wait.maxAttempts ?? STORY_BINDING_BEGIN_LOCK_MAX_ATTEMPTS);
   const sleepMs = wait?.sleepMs ?? STORY_BINDING_BEGIN_LOCK_SLEEP_MS;
   const maxWaitMs = wait?.maxWaitMs ?? STORY_BINDING_BEGIN_LOCK_MAX_WAIT_MS;
   const sleep = wait?.sleep ?? defaultSleep;

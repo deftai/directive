@@ -553,7 +553,10 @@ function errorText(err: unknown): string {
  * returns one line naming it.
  */
 export function ensureBeginStoryBinding(
-  input: Pick<SwarmPreDispatchInput, "projectRoot" | "scopeId" | "targetId" | "storyBindingLockWait">,
+  input: Pick<
+    SwarmPreDispatchInput,
+    "projectRoot" | "scopeId" | "targetId" | "storyBindingLockWait"
+  >,
   attemptIds: readonly string[],
 ): string {
   try {
@@ -784,8 +787,7 @@ function runBegin(input: SwarmPreDispatchInput): SwarmPreDispatchResult {
         return baseResult(input, "begin", {
           exitCode: EXIT_GATE_FAILED,
           decision: null,
-          reason:
-            `story-binding store lock wait exhausted; attempt ${attempt.attemptId} rolled back`,
+          reason: `story-binding store lock wait exhausted; attempt ${attempt.attemptId} rolled back`,
           attempt: rolled.attempts.find((a) => a.attemptId === attempt.attemptId) ?? null,
           activeAttemptIds: activeAttempts(rolled).map((a) => a.attemptId),
           storyBinding: binding,
