@@ -10,7 +10,7 @@ The gate recognizes the #5056 public shapes: `.deft/presentation-ceiling.json`, 
 
 Merge-base restrictions survive deletion or weakening at head. New restrictions arm immediately, with no head-only grants. Changing an existing record's amendment fields in the same PR refuses. Missing records are distinct from malformed records or failed snapshot reads. The decoder follows #5056's public shapes as of its development commit `9d0455b8b`; this PR does not claim that the separate #5056 evaluator is integrated.
 
-An amendment belongs inside its ceiling object and requires a typed human approval present at merge-base. The enclosing object binds the approval to its grants. A bare `humanOrigin` boolean never grants authority.
+An amendment belongs inside its ceiling object and requires a typed human approval present at merge-base. The enclosing object binds the approval to its grants. A bare `humanOrigin` boolean never grants authority. This approval is presentation-ceiling amendment authority only; it is not an observable-scope or intent-constraint declaration (`scope:record-observable-scope` / `scope:record-intent-constraint` write `kind: "declared"` from any shell under #7031 and do not mint durable-effect grants).
 
 ```json
 {
@@ -24,7 +24,7 @@ An amendment belongs inside its ceiling object and requires a typed human approv
     "kind": "human",
     "actor": "David",
     "mintedAt": "2026-09-28T00:00:00Z",
-    "mintedVia": "in-harness-ask"
+    "mintedVia": "operator-tty"
   }
 }
 ```

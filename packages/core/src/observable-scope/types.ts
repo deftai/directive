@@ -15,7 +15,7 @@ export const OBSERVABLE_SCOPE_RECORD_SCHEMA = "deft.observable-scope.v1";
 export const OBSERVABLE_UI_ARTIFACT_SCHEMA = "deft.observable-ui.v1";
 export const OBSERVABLE_UI_PROVIDER = "parse5+typescript";
 export const OBSERVABLE_UI_PROVIDER_VERSION = 1;
-/** Primary fail path (#5010): restore baseline or in-harness ask; TTY mint is legacy repair only. */
+/** Primary fail path (#7031): restore baseline or write the declared record from any shell; merge is the control. */
 export const OBSERVABLE_SCOPE_REMEDIATION =
   'Restore the baseline markup structure, or write the declaration: put the change on plan["x-directive/observableChange"] and run scope:record-observable-scope from any shell (#7031: no terminal step; it writes kind declared). Land the record on the delivery-branch merge base before the UI-change PR, then rebase the implementation branch onto it; same-PR working-tree-only records are not authoritative. Cohort form (#6937): several brief paths or --manifest <launch-manifest> write the whole set at once, and the records may ride in the activation PR when each matches a brief that PR adds. A declaration is not consent: the record\'s control is the merge that lands it, and only under human merge does a person review it.';
 export const CHANGE_KINDS = ["fields-only", "layout-authorized"] as const;
