@@ -295,6 +295,10 @@ function attemptHasAttachedWorker(attempt: DeliveryAttemptRecord): boolean {
   return typeof attempt.workerId === "string" && attempt.workerId.trim().length > 0;
 }
 
+function attemptHasExternalRunId(attempt: DeliveryAttemptRecord): boolean {
+  return typeof attempt.externalRunId === "string" && attempt.externalRunId.trim().length > 0;
+}
+
 /**
  * Live occupancy on the begin target worktree (#7274 / Prefer-A P4).
  * A missing attempt.workerId is not enough proof the worker is absent — begin
@@ -312,13 +316,19 @@ function targetLiveOccupantSessionId(
   return id.length > 0 ? id : null;
 }
 
-/** Orphan repair-admit only when no ledger worker and no live dest occupancy. */
+/**
+ * Orphan repair-admit only when the attempt never received a worker/run identity
+ * and the dest worktree has no live occupancy (#7274 Greptile P1).
+ * Null workerId alone is not proof — begin often omits it while a leaf is live.
+ */
 function orphanRepairEligible(
   actives: readonly DeliveryAttemptRecord[],
   input: Pick<SwarmPreDispatchInput, "projectRoot" | "targetId" | "now">,
 ): boolean {
   if (actives.length === 0) return false;
-  if (!actives.every((a) => !attemptHasAttachedWorker(a))) return false;
+  if (!actives.every((a) => !attemptHasAttachedWorker(a) && !attemptHasExternalRunId(a))) {
+    return false;
+  }
   return targetLiveOccupantSessionId(input) === null;
 }
 
@@ -404,7 +414,10 @@ function classifyDuplicateActiveHint(
   bindingMissing: boolean,
   liveOccupantId: string | null,
 ): DuplicateActiveHintKind {
-  if (actives.some((a) => attemptHasAttachedWorker(a)) || liveOccupantId !== null) {
+  if (
+    actives.some((a) => attemptHasAttachedWorker(a) || attemptHasExternalRunId(a)) ||
+    liveOccupantId !== null
+  ) {
     return "pre-cancel";
   }
   if (bindingMissing) return "binding-repair";
@@ -909,9 +922,15 @@ function runBegin(input: SwarmPreDispatchInput): SwarmPreDispatchResult {
         consumeOverride: decision.decision === "ALLOW_OVERRIDE",
       });
       saveUnitLedger(input.projectRoot, ledger);
-      // P1/P2: bind under the same unit lock; roll back on store-lock exhaustion.
+      // P1/P2: bind under the same unit lock. Roll back on store/error write failure so
+      // begin never exits spawn-ready unbound. Scope/target miss stays advisory-only
+      // (unit may not be a linked worktree).
       const binding = ensureBeginStoryBinding(input, [attempt.attemptId]);
-      if (isStoryBindingStoreLockedDetail(binding)) {
+      const bindingFailed =
+        isStoryBindingStoreLockedDetail(binding) ||
+        binding.includes("no record written (store)") ||
+        binding.includes("no record written (error)");
+      if (bindingFailed) {
         let rolled = completeAttempt(ledger, {
           attemptId: attempt.attemptId,
           status: "cancelled",
@@ -922,10 +941,13 @@ function runBegin(input: SwarmPreDispatchInput): SwarmPreDispatchResult {
           rolled = restoreConsumedOverrideQuota(rolled);
         }
         saveUnitLedger(input.projectRoot, rolled);
+        const why = isStoryBindingStoreLockedDetail(binding)
+          ? "store lock wait exhausted"
+          : "binding write failed";
         return baseResult(input, "begin", {
           exitCode: EXIT_GATE_FAILED,
           decision: null,
-          reason: `story-binding store lock wait exhausted; attempt ${attempt.attemptId} rolled back`,
+          reason: `story-binding ${why}; attempt ${attempt.attemptId} rolled back`,
           attempt: rolled.attempts.find((a) => a.attemptId === attempt.attemptId) ?? null,
           activeAttemptIds: activeAttempts(rolled).map((a) => a.attemptId),
           storyBinding: binding,

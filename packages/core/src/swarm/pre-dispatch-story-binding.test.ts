@@ -194,6 +194,27 @@ describe("swarm:pre-dispatch begin writes the story-binding record (#6379)", {
     expect(formatPreDispatchReport(again)).toMatch(/Takeover:/);
   });
 
+  it("refuses repair-admit when the attempt already has an externalRunId (#7274)", () => {
+    const { primary, wtA } = fixture();
+    const first = swarmPreDispatch({
+      projectRoot: primary,
+      scopeId: "plan-a",
+      targetId: wtA,
+      sourceRevision: "rev",
+      externalRunId: "run-live",
+    });
+    expect(first.exitCode).toBe(0);
+    expect(first.attempt?.workerId).toBeNull();
+    expect(first.attempt?.externalRunId).toBe("run-live");
+    const common = join(primary, ".git");
+    const name = storyBindingRecordName(resolveWorkerAuthDestPath(wtA));
+    rmSync(join(common, STORY_BINDING_STORE_DIR, name));
+    const again = begin(primary, "plan-a", wtA);
+    expect(again.exitCode).toBe(1);
+    expect(again.decision).toBe("DENY_DUPLICATE_ACTIVE");
+    expect(again.duplicateActiveHint).toBe("pre-cancel");
+  });
+
   it("inspect hint names the delivery-attempts ledger path (#7274)", () => {
     const { primary, wtA } = fixture();
     expect(begin(primary, "plan-a", wtA).exitCode).toBe(0);
