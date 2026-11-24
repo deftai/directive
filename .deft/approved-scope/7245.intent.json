@@ -15,7 +15,7 @@
       }
     ],
     "metadata": {
-      "kind": "scope",
+      "kind": "story",
       "swarm": {
         "file_scope": [
           "packages/core/src/design-critique/panel-seat-families.ts",
@@ -28,7 +28,13 @@
     "acceptance": {
       "commands": [],
       "none_stated": true
-    }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/7245",
+        "type": "x-xbrief/github-issue"
+      }
+    ]
   },
   "approvedRepos": [
     "deftai/directive"

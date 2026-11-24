@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "xbriefRelPath": "xbrief/active/2026-11-24-7245-admit-agy-critic-seat.xbrief.json",
   "planId": "7245",
-  "approvedAt": "2026-11-24T13:53:16Z",
+  "approvedAt": "2026-11-24T18:53:42Z",
   "fileScope": [
     "changelog.d/7245-admit-agy-critic-seat.md",
     "packages/core/src/design-critique/panel-seat-families.ts",
@@ -13,10 +13,10 @@
   "humanApproval": {
     "kind": "operator",
     "actor": "MScottAdams",
-    "mintedAt": "2026-11-24T13:53:16Z",
+    "mintedAt": "2026-11-24T18:53:42Z",
     "mintedVia": "scope:record-approved-scope"
   },
-  "intentDigest": "2add5ecd4a74d42f69c705ddc36783c9f185fc6c4b974bf5b8e1e02fdc12bb93",
+  "intentDigest": "0c51ab6c463860055150068dba5c36decb71cc7b81dc07ba4795d876a0fdb3c2",
   "digestAlgo": "intent-extract-v1",
   "authHashV1": "sha256:9c89f514438b753388cc0e1672fd0c1ed55fba0625d526b6536cd282c272a005"
 }

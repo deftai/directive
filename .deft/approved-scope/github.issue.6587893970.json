@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "xbriefRelPath": "xbrief/active/2026-11-24-7292-fix-test-isolate-vb-cov-cli-fixture-finalize-paths.xbrief.json",
   "planId": "github.issue.6587893970",
-  "approvedAt": "2026-11-24T17:48:50Z",
+  "approvedAt": "2026-11-24T18:53:49Z",
   "fileScope": [
     ".deft/approved-scope/github.issue.6587893970.intent.json",
     ".deft/approved-scope/github.issue.6587893970.json",
@@ -15,10 +15,10 @@
   "humanApproval": {
     "kind": "operator",
     "actor": "MScottAdams",
-    "mintedAt": "2026-11-24T17:48:50Z",
+    "mintedAt": "2026-11-24T18:53:47Z",
     "mintedVia": "scope:record-approved-scope"
   },
-  "intentDigest": "e099a056f74c9e4df2402ecd7b39b88b1b4a1b1c87f6cd2050f897a94b35e149",
+  "intentDigest": "3685a78a0d27531d3356993c6fe088468055b666384312423a6edbb83562be46",
   "digestAlgo": "intent-extract-v1",
   "authHashV1": "sha256:8801ef4ca1f476407945d8a6cf7bbdff21f2688ea638314b385def64f0b38878"
 }
