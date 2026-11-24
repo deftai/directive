@@ -86,18 +86,27 @@ function resolveRepoForSlowPath(projectRoot: string): string | null {
   return githubOwnerRepoFromRemoteUrl(remote.stdout.trim());
 }
 
-function cohortIdForPlan(plan: Record<string, unknown>, repo: string | null): string {
+function cohortIdForPlan(
+  plan: Record<string, unknown>,
+  repo: string | null,
+  briefPath?: string,
+): string {
   if (repo !== null) {
     const issue = storyIssueOfBrief(plan, repo);
     if (issue !== null) {
       return String(issue);
     }
   }
+  // Numeric plan.id is not a finalize --cohort issue selector; prefer brief path.
+  const rel = (briefPath ?? "").replace(/\\/g, "/").replace(/^\.\//, "").trim();
+  if (rel.length > 0) {
+    return rel;
+  }
   const planId = String(plan.id ?? "").trim();
-  if (/^\d+$/.test(planId)) {
+  if (planId.length > 0 && !/^\d+$/.test(planId)) {
     return planId;
   }
-  return planId.length > 0 ? planId : "unknown";
+  return "unknown";
 }
 
 function isMergedPrPayload(payload: Record<string, unknown>): boolean {
@@ -176,7 +185,7 @@ export function evaluateSlowPathCompleteGate(args: {
     }
     merged.push({
       prNumber,
-      cohortId: cohortIdForPlan(brief.plan, repo),
+      cohortId: cohortIdForPlan(brief.plan, repo, brief.path),
       repository: repo,
     });
   }
