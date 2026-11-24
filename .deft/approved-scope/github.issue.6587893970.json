@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "xbriefRelPath": "xbrief/active/2026-11-24-7292-fix-test-isolate-vb-cov-cli-fixture-finalize-paths.xbrief.json",
+  "planId": "github.issue.6587893970",
+  "approvedAt": "2026-11-24T17:48:50Z",
+  "fileScope": [
+    ".deft/approved-scope/github.issue.6587893970.intent.json",
+    ".deft/approved-scope/github.issue.6587893970.json",
+    "changelog.d/7292-merge-gate-temp-isolation.md",
+    "packages/core/src/swarm/finalize-cohort-batch-7082.test.ts",
+    "packages/core/src/swarm/finalize-cohort.ts",
+    "packages/core/src/vbrief-validate/coverage-boost.test.ts"
+  ],
+  "fileScopeDigest": "a54dc1f8336f9b4e5903668674e9cb3a86cd7a15678da5ec51a4a4488c2cbfdf",
+  "humanApproval": {
+    "kind": "operator",
+    "actor": "MScottAdams",
+    "mintedAt": "2026-11-24T17:48:50Z",
+    "mintedVia": "scope:record-approved-scope"
+  },
+  "intentDigest": "e099a056f74c9e4df2402ecd7b39b88b1b4a1b1c87f6cd2050f897a94b35e149",
+  "digestAlgo": "intent-extract-v1",
+  "authHashV1": "sha256:8801ef4ca1f476407945d8a6cf7bbdff21f2688ea638314b385def64f0b38878"
+}
