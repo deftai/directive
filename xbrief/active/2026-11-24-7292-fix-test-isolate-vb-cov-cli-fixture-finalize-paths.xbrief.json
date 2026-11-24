@@ -3,7 +3,7 @@
     "version": "0.8",
     "description": "Isolate vb-cov-cli temp fixture cleanup and finalize pathspecs when vbrief/ is absent.",
     "created": "2026-11-24T18:00:00Z",
-    "updated": "2026-11-24T19:18:53Z"
+    "updated": "2026-11-24T19:58:48Z"
   },
   "plan": {
     "title": "fix(test): isolate vb-cov-cli fixture + finalize pathspecs when vbrief absent",
@@ -38,46 +38,39 @@
       }
     ],
     "acceptance": {
-      "commands": [
-        "pnpm exec vitest run packages/core/src/vbrief-validate/coverage-boost.test.ts packages/core/src/swarm/finalize-cohort-batch-7082.test.ts"
-      ],
-      "none_stated": false,
+      "commands": [],
+      "none_stated": true,
       "source_rung": "derived",
       "derived_reason": "derived 4 independently testable clauses from the task statement before product edit (#3323)",
       "clauses": [
         {
           "id": 1,
           "text": "coverage-boost validate CLI test wraps fixture root in try/finally and always removes it.",
-          "artifact_path": "packages/core/src/vbrief-validate/coverage-boost.test.ts",
+          "artifact_path": null,
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 2,
           "text": "finalize-cohort commitLifecycleMoves uses git status/add pathspecs only for existing xbrief/ and/or vbrief/.",
-          "artifact_path": "packages/core/src/swarm/finalize-cohort.ts",
+          "artifact_path": null,
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 3,
           "text": "finalize-cohort-batch-7082 (and related) tests expect conditional pathspecs.",
-          "artifact_path": "packages/core/src/swarm/finalize-cohort-batch-7082.test.ts",
+          "artifact_path": null,
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 4,
           "text": "changelog.d fragment section Fixed for the flake and pathspec fix.",
-          "artifact_path": "changelog.d/7292-merge-gate-temp-isolation.md",
+          "artifact_path": null,
           "ambiguous": false,
           "provenance": "statement"
         }
-      ],
-      "confessions": [
-        "fix(test): isolate vb-cov-cli fixture + finalize pathspecs when vbrief absent",
-        "Stop Merge-gate flake from leftover vb-cov-cli proposed-in-active fixtures, and let finalize-cohort stage only existing xbrief/ and/or vbrief/ trees.",
-        "coverage-boost.test.ts must always rmSync its temp root; commitLifecycleMoves must not pathspec a missing vbrief/."
       ],
       "ambiguity_attestation": "none_found"
     },
@@ -121,7 +114,8 @@
         ],
         "module_boundary": "packages/core",
         "cohesion_exemption": "finalize-cohort.ts already exceeds review-trigger; thin pathspec-only edit stays in this story with remint cohesion_exemption"
-      }
+      },
+      "productPullRequest": 7300
     },
     "references": [
       {
@@ -135,6 +129,6 @@
         "title": "Residual deeper hygiene #7291"
       }
     ],
-    "updated": "2026-11-24T19:18:53Z"
+    "updated": "2026-11-24T19:58:48Z"
   }
 }

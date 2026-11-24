@@ -1,3 +1,3 @@
 section: Fixed
-- Validate CLI coverage fixture always deletes its temp xBRIEF root so leftovers cannot flake Merge gate as proposed-in-active (#7292).
-- Finalize-cohort lifecycle git status/add only pathspecs existing `xbrief/` and/or `vbrief/` trees (#7292).
+- Failed validate CLI coverage tests no longer leave temporary files that flake Merge gate (#7292).
+- Cohort finalization stages only brief directories that exist in the checkout (#7292).
