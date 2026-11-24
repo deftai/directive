@@ -3,11 +3,11 @@
     "version": "0.8",
     "description": "Admit dest-worktree mints at spawn and allow multi-story mint into one checkout.",
     "created": "2026-11-24T14:00:00Z",
-    "updated": "2026-11-24T14:00:00Z"
+    "updated": "2026-11-24T17:48:53Z"
   },
   "plan": {
     "title": "Fix bulk mint spawn admission (#7256 / #7257)",
-    "status": "running",
+    "status": "completed",
     "id": "7256",
     "narratives": {
       "Overview": "Spawn must read the dest worktree mint when cwd is that worktree. Manifest may mint several stories into one checkout.",
@@ -65,7 +65,39 @@
           "changelog.d/7256-7257-mint-spawn-admission.md"
         ]
       },
-      "productPullRequest": 7283
+      "productPullRequest": 7283,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "a3ec5339417f6e67d9212e42b5f3e0d55156f070",
+        "prNumber": 7283,
+        "prBase": "master",
+        "mergeCommit": "eb809c80c192012e9ab599cdd114e8c374d979de",
+        "deliveryBranch": "master",
+        "deliveryCommit": "26cabd8d69a44cf7af283b505a641c84eb886dfa",
+        "verifiedAt": "2026-11-24T17:48:53Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          7285,
+          7288,
+          7290
+        ],
+        "competingMarkedPrs": [
+          7276
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-24T17:48:53Z",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-24T17:48:53Z"
+      }
     },
     "acceptance": {
       "commands": [],
@@ -80,6 +112,7 @@
         "uri": "https://github.com/deftai/directive/issues/7257",
         "type": "x-xbrief/github-issue"
       }
-    ]
+    ],
+    "updated": "2026-11-24T17:48:53Z"
   }
 }
