@@ -475,11 +475,31 @@ function matchRecoveryCommand(command) {
   return null;
 }
 
+/** Windows MSYS /c/... + doubled-drive normalize (inline of normalizeHookProjectRoot). */
+function normalizeProjectRoot(path) {
+  if (process.platform !== "win32") return resolve(path);
+  const trimmed = String(path).trim();
+  const msys = /^\\/([a-zA-Z])\\/(.*)$/.exec(trimmed);
+  const asWin =
+    msys === null
+      ? trimmed
+      : msys[1].toUpperCase() + ":\\\\" + msys[2].replace(/\\//g, "\\\\");
+  let resolved = resolve(asWin);
+  const collapsed = resolved.replace(/^([A-Za-z]:\\\\)(?=[A-Za-z]:\\\\)/i, "");
+  if (collapsed !== resolved) resolved = resolve(collapsed);
+  if (/^[a-z]:\\\\/.test(resolved)) {
+    resolved = resolved.charAt(0).toUpperCase() + resolved.slice(1);
+  }
+  return resolved;
+}
+
 function rootsMatch(a, b) {
+  const left = normalizeProjectRoot(a);
+  const right = normalizeProjectRoot(b);
   try {
-    return realpathSync(a) === realpathSync(b);
+    return realpathSync(left) === realpathSync(right);
   } catch {
-    return resolve(a) === resolve(b);
+    return left === right;
   }
 }
 

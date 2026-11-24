@@ -416,7 +416,9 @@ describe("host-hook-outer bytes stay put (#6613)", () => {
     // `--kill-switch-reader v1` passed to hook-bin): 8149fb11 -> 665df6a9.
     // #7275 changed them on purpose (missing-runtime admits the named project
     // install; refusal names that exception): 665df6a9 -> bc294904.
-    expect(hostHookOuterSha8()).toBe("bc294904");
+    // Class A Greptile P1: inline Windows MSYS normalize on rootsMatch:
+    // bc294904 -> 80b0fc05.
+    expect(hostHookOuterSha8()).toBe("80b0fc05");
   });
 });
 
@@ -780,6 +782,28 @@ describe("host-hook-outer missing-runtime project-install admit (#7275)", () => 
       } finally {
         rmSync(foreign, { recursive: true, force: true });
       }
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("admits MSYS /c/... cwd on win32 missing-pin install", () => {
+    if (process.platform !== "win32") return;
+    const root = mkdtempSync(join(tmpdir(), "outer-7275-msys-"));
+    try {
+      writeFileSync(join(root, "package.json"), "{}\n");
+      const drive = root.charAt(0).toLowerCase();
+      const rest = root.slice(2).replace(/\\/g, "/");
+      const msysCwd = `/${drive}${rest.startsWith("/") ? rest : `/${rest}`}`;
+      const r = runOuter(
+        root,
+        "grok",
+        {},
+        "tool.before",
+        [],
+        shellPayload("grok", "npm install", { cwd: msysCwd }),
+      );
+      expectQuietAllow(r);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
