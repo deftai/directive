@@ -95,8 +95,9 @@ A story on the two-PR path costs up to three PRs: activation, product and lifecy
 cohort can share most of that work:
 
 1. **Prepare.** At `onePrScopeProof: off`, one brief-only PR activates every brief, with one
-   `deft-story-part: N` line per brief. At `mint`, prepare one branch per story that carries
-   only that story's activated brief.
+   `deft-story-part: N` line per brief. That bulk activation PR is the `off` setting only.
+   At `mint`, do not open an activation PR. The story's one pull request carries the brief,
+   the human mint, and the code.
 2. **Mint once.** At `mint`, run `scope:record-approved-scope -- --manifest <file>`. Read each
    story's printed file list, acceptance criteria and intent digest, then type `mint` once.
    Each story's record pair is written into its own worktree.
