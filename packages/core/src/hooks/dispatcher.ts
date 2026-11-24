@@ -258,6 +258,7 @@ import {
   SPAWN_READ_ONLY_RECOVERY,
 } from "./readonly.js";
 import {
+  ACTIVE_SCOPE_PIN_ENV,
   type ActiveScopeInspection,
   formatPositiveGoverningAllowDeny,
   type InspectActiveScopeOptions,
@@ -3064,24 +3065,43 @@ function inspectMutationGates(
     if (checkpointAllow !== null) return checkpointAllow;
   }
 
+  // #7257: spawn with a validated linked dest uses that dest as the scope and
+  // one-PR mint fence root so a dest mint admits dest-cwd builders. Occupancy,
+  // ritual, and authz stay on payloadRoot / effectiveRoot (#4215).
+  const spawnDestRoot =
+    isSpawnTool(toolName) && spawnConsult?.destPath !== null && spawnConsult?.destPath !== undefined
+      ? spawnConsult.destPath.trim()
+      : "";
+  const scopeFenceRoot = spawnDestRoot.length > 0 ? resolve(spawnDestRoot) : effectiveRoot;
+  const scopeRootsNote = ` ${formatHookRootNote(payloadRoot, scopeFenceRoot)}`;
+
   let scope: ActiveScopeInspection;
   let worktreeBindingRefused = false;
   try {
     // #3794 commit 2: a write is governed by the active scope of the worktree it
     // lands in, not the primary checkout's. Admission has already proved
-    // effectiveRoot shares --git-common-dir with payloadRoot.
-    // Spawn pin is dest unique-basename from occupancy-validated destPath
-    // (Grok cwd). Grok spawn_subagent does not forward payload pin keys
-    // (#4315 closed-schema). Env stays the CLI fallback. Do not dest-root-swap
-    // (#4215).
+    // effectiveRoot shares --git-common-dir with payloadRoot. Spawn (#7257)
+    // reads scope + mint from the occupancy-validated dest cwd when present.
+    // Unique-basename pin still narrows multi-active dest (#4393). Grok
+    // spawn_subagent does not forward payload pin keys (#4315 closed-schema);
+    // env stays the CLI fallback.
     const spawnBoundPath = isSpawnTool(toolName)
       ? uniqueActiveBasenameFromDestPath(spawnConsult?.destPath ?? null)
       : null;
     // #6233: a dispatch-registered linked worktree binds its story from the
     // worker-auth assignment record. The main worktree never reads the registry
     // (the resolver returns `none` there); a clean absence keeps today's path.
-    const worktreeBinding = resolveWorktreeStoryBinding(effectiveRoot, {
-      env: environ,
+    // Spawn into a validated dest (#7257): do not let the parent's
+    // DEFT_ACTIVE_SCOPE override the dest assignment / basename. Worker writes
+    // still pass the full environ pin below.
+    const bindingEnv =
+      isSpawnTool(toolName) && spawnDestRoot.length > 0
+        ? Object.fromEntries(
+            Object.entries(environ).filter(([key]) => key !== ACTIVE_SCOPE_PIN_ENV),
+          )
+        : environ;
+    const worktreeBinding = resolveWorktreeStoryBinding(scopeFenceRoot, {
+      env: bindingEnv,
       boundPath: spawnBoundPath,
       ...(seams.readWorkerAuthAssignment !== undefined
         ? { readWorkerAuthAssignment: seams.readWorkerAuthAssignment }
@@ -3107,7 +3127,7 @@ function inspectMutationGates(
       };
     } else {
       const boundPath = worktreeBinding.kind === "bound" ? worktreeBinding.path : spawnBoundPath;
-      scope = (seams.inspectScope ?? inspectActiveScope)(effectiveRoot, {
+      scope = (seams.inspectScope ?? inspectActiveScope)(scopeFenceRoot, {
         env: environ,
         ...(boundPath !== null ? { boundPath } : {}),
       });
@@ -3118,7 +3138,7 @@ function inspectMutationGates(
   if (!scope.ready) {
     const writeTarget = hookWriteTargetPath(input.payload);
     const relTarget =
-      writeTarget !== null ? toProjectRelativePosix(effectiveRoot, writeTarget) : null;
+      writeTarget !== null ? toProjectRelativePosix(scopeFenceRoot, writeTarget) : null;
     // Active-scope governs in-repo lifecycle work only. Outside-root Write/Edit
     // (agent memory, $TMPDIR, user config) skips the deny; null/unparseable
     // targets stay fail-closed. Spawn has no write target → still requires scope (#2885).
@@ -3136,7 +3156,7 @@ function inspectMutationGates(
     // stays for targets outside both roots.
     const bindingRefusalGoverns =
       worktreeBindingRefused &&
-      mutationTargets.some((target) => !isOutsideProjectRootWrite(effectiveRoot, target));
+      mutationTargets.some((target) => !isOutsideProjectRootWrite(scopeFenceRoot, target));
     if (!outsideRoot || isSpawnTool(toolName) || bindingRefusalGoverns) {
       let proposedPathHint: string;
       if (isSpawnTool(toolName) && scope.denyKind === "multiple-eligible") {
@@ -3179,7 +3199,7 @@ function inspectMutationGates(
         proposedPathHint = "";
       } else if (
         scope.denyKind === "zero-eligible" &&
-        isRetirementShapedMutationTargets(effectiveRoot, input.payload)
+        isRetirementShapedMutationTargets(scopeFenceRoot, input.payload)
       ) {
         // Prefer-A #5890 P3: gated lead for completed/+CHANGELOG or CHANGELOG-only.
         // Suppress promote/activate and invent-scope/proposal tails on this arm.
@@ -3198,14 +3218,13 @@ function inspectMutationGates(
             "assist posture (commands.md #1802) — do not fake `scope:activate` for notes.";
       }
       const denyCode = isSpawnTool(toolName) ? "spawn-not-ready" : "scope-not-ready";
-      // #3794: the recovery has to run in the tree whose active scope was read.
-      // Once the two roots differ, "the project root" names no single directory
-      // the agent can act on, and activating in the payload root does not clear
-      // a deny measured against the worktree.
+      // #3794 / #7257: the recovery has to run in the tree whose active scope was
+      // read (dest cwd for linked-worktree spawn). Activating in the payload root
+      // does not clear a deny measured against the worktree mint/scope.
       const recoveryRootNote =
-        resolve(effectiveRoot) === payloadRoot
+        resolve(scopeFenceRoot) === payloadRoot
           ? ""
-          : ` Active scope was read from ${effectiveRoot}, so run that recovery there rather than in ${payloadRoot}.`;
+          : ` Active scope was read from ${scopeFenceRoot}, so run that recovery there rather than in ${payloadRoot}.`;
       const scopeRefusal =
         `Directive denied ${toolName}: ${scope.message}${proposedPathHint}` +
         scopeNotReadyCoverageHint(
@@ -3213,7 +3232,7 @@ function inspectMutationGates(
           loadRuntimeAuthorityPolicySafe(input, seams)?.shellDestForms === "enforce",
         ) +
         recoveryRootNote +
-        rootsNote;
+        scopeRootsNote;
       // #6535 site (b): a non-spawn not-ready scope (multiple eligible, zero
       // eligible, env pin miss) warns under a live merge-gate signal when no
       // worktree binding refused. Blocked briefs, spawns and binding refusals
@@ -3253,12 +3272,12 @@ function inspectMutationGates(
   const requirePositiveGoverningAllow = (): HookDecision | null => {
     if (!(scope.ready && scope.path !== null)) return null;
     const loadFence = seams.loadStoryWriteFence ?? loadStoryWriteFenceFromMergeBase;
-    const fence = loadFence(effectiveRoot, scope.path);
+    const fence = loadFence(scopeFenceRoot, scope.path);
     if (hasPositiveGoverningStoryAllow(fence)) {
       return null;
     }
     const denyCode = isSpawnTool(toolName) ? "spawn-not-ready" : "scope-not-ready";
-    const positiveRefusal = `${formatPositiveGoverningAllowDeny(fence)}${formatStoryWriteFenceBaseNote(fence)}${rootsNote}`;
+    const positiveRefusal = `${formatPositiveGoverningAllowDeny(fence)}${formatStoryWriteFenceBaseNote(fence)}${scopeRootsNote}`;
     // #6535 site (c): a write warns under a live merge-gate signal; spawns keep refusing.
     if (denyCode === "scope-not-ready" && mergeGateWarner.warn(positiveRefusal)) return null;
     return deny(input, denyCode, toolName, positiveRefusal, scope.path);
@@ -3281,7 +3300,7 @@ function inspectMutationGates(
     // write scratch. Any in-repo target, an empty or unclassified harvest, and
     // implement-class spawn keep the #5656 requirement. runtimeAuthority below
     // still applies project scopes.edits=false (limb 4).
-    const positiveDeny = allMutationTargetsOutsideFenceRoot(input.payload, effectiveRoot)
+    const positiveDeny = allMutationTargetsOutsideFenceRoot(input.payload, scopeFenceRoot)
       ? null
       : requirePositiveGoverningAllow();
     if (positiveDeny !== null) return positiveDeny;
@@ -3290,7 +3309,7 @@ function inspectMutationGates(
       toolName,
       seams,
       scope.path,
-      effectiveRoot,
+      scopeFenceRoot,
       mergeGateWarner,
     );
     if (runtimeDeny !== null) return runtimeDeny;

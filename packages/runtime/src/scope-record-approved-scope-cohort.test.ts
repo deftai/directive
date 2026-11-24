@@ -1,7 +1,7 @@
 /**
- * Cohort approved-scope mint (#7083): one typed mint writes a record pair into
- * each story's own worktree; refusals land before the prompt; a failed run
- * removes only its own files.
+ * Cohort approved-scope mint (#7083 / #7256): one typed mint writes a record
+ * pair per distinct planId (shared or per-story worktree); refusals land before
+ * the prompt; a failed run removes only its own files.
  */
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -304,5 +304,69 @@ describe("scope:record-approved-scope --manifest (#7083)", () => {
     expect(parseCohortManifest("[]").ok).toBe(false);
     expect(parseCohortManifest('[{"xbrief_path":"a"}]').ok).toBe(false);
     expect(parseCohortManifest('[{"xbrief_path":"a","worktree_path":"w"}]').ok).toBe(true);
+  });
+
+  it("writes several distinct planId records into one shared worktree_path (#7256)", () => {
+    const root = mkdtempSync(join(tmpdir(), "cohort-mint-shared-"));
+    temps.push(root);
+    const shared = join(root, "shared-wt");
+    mkdirSync(join(shared, "xbrief", "active"), { recursive: true });
+    const rows: { xbrief_path: string; worktree_path: string }[] = [];
+    for (const id of ["story-a", "story-b"]) {
+      const rel = `xbrief/active/${id}.xbrief.json`;
+      writeFileSync(
+        join(shared, ...rel.split("/")),
+        `${JSON.stringify(briefPayload(id, [`src/${id}.ts`]), null, 2)}\n`,
+        "utf8",
+      );
+      rows.push({ xbrief_path: rel, worktree_path: shared });
+    }
+    const manifest = join(root, "cohort.json");
+    writeFileSync(manifest, JSON.stringify(rows), "utf8");
+    const prompts = { n: 0 };
+    const io = capture();
+    expect(
+      run(
+        ["--manifest", manifest, "--project-root", root, "--actor", "scott", "--confirm"],
+        seams(prompts),
+      ),
+    ).toBe(0);
+    expect(prompts.n).toBe(1);
+    for (const id of ["story-a", "story-b"]) {
+      const pair = pairOf(shared, id);
+      expect(existsSync(pair.record)).toBe(true);
+      expect(existsSync(pair.intent)).toBe(true);
+      expect(JSON.parse(readFileSync(pair.record, "utf8")).planId).toBe(id);
+    }
+    expect(io.out()).toContain(shared);
+  });
+
+  it("still refuses a repeated plan id even when worktrees differ", () => {
+    const root = mkdtempSync(join(tmpdir(), "cohort-mint-dup-plan-"));
+    temps.push(root);
+    const rows: { xbrief_path: string; worktree_path: string }[] = [];
+    for (const wtName of ["wt-1", "wt-2"]) {
+      const wt = join(root, wtName);
+      mkdirSync(join(wt, "xbrief", "active"), { recursive: true });
+      const rel = "xbrief/active/same.xbrief.json";
+      writeFileSync(
+        join(wt, ...rel.split("/")),
+        `${JSON.stringify(briefPayload("same-plan", ["src/same.ts"]), null, 2)}\n`,
+        "utf8",
+      );
+      rows.push({ xbrief_path: rel, worktree_path: wt });
+    }
+    const manifest = join(root, "cohort.json");
+    writeFileSync(manifest, JSON.stringify(rows), "utf8");
+    const prompts = { n: 0 };
+    const io = capture();
+    expect(
+      run(
+        ["--manifest", manifest, "--project-root", root, "--actor", "scott", "--confirm"],
+        seams(prompts),
+      ),
+    ).toBe(1);
+    expect(prompts.n).toBe(0);
+    expect(io.err()).toMatch(/plan id same-plan named by more than one row/);
   });
 });
