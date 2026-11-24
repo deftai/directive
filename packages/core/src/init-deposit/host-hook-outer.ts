@@ -21,10 +21,12 @@
 
 import { createHash } from "node:crypto";
 import type { HookHost } from "../hooks/dispatcher.js";
+import { SHELL_TOOL_NAMES } from "../hooks/tools.js";
+import { ENTRY_GUARD_MESSAGES } from "../install-health/constants.js";
 import {
-  ENTRY_GUARD_MESSAGES,
-  ENTRY_GUARD_PERSON_RUNS_INSTALL,
-} from "../install-health/constants.js";
+  PIN_MISMATCH_RECOVERY_COMMANDS,
+  PIN_MISMATCH_SIMPLE_COMMAND_SOURCE,
+} from "../install-health/recovery-admit.js";
 import {
   formatInvalidKillRecordWarning,
   KILL_SWITCH_BARE_FLAG_NAME,
@@ -38,11 +40,18 @@ import {
 } from "../policy/kill-switch-record.js";
 
 /**
- * The outer's missing-runtime message (AC9.12, D-013): the `runtime-missing`
- * row plus the note that a person runs the install. `{install}` is filled in
- * from the project's lockfile when the outer runs.
+ * Missing-runtime exception note (#7275 Prefer-A Bound): names that the exact
+ * project install is admitted; does not claim every agent tool stays blocked.
  */
-export const HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE = `${ENTRY_GUARD_MESSAGES["runtime-missing"]} ${ENTRY_GUARD_PERSON_RUNS_INSTALL}`;
+export const HOST_HOOK_MISSING_PIN_INSTALL_EXCEPTION =
+  "The exact project install named above is allowed through a shell tool at the project root; other agent tool calls stay blocked until that install succeeds.";
+
+/**
+ * The outer's missing-runtime message (AC9.12 / #7275): the `runtime-missing`
+ * row plus the install-exception note. `{install}` is filled in from the
+ * project's lockfile when the outer runs.
+ */
+export const HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE = `${ENTRY_GUARD_MESSAGES["runtime-missing"]} ${HOST_HOOK_MISSING_PIN_INSTALL_EXCEPTION}`;
 
 export const HOST_HOOK_OUTER_PIN_HOOK_BIN_REL =
   "node_modules/@deftai/directive-runtime/dist/hook-bin.js";
@@ -222,15 +231,20 @@ export function hostHookOuterSource(): string {
   const reasonSlot = "{reason}" as KillSwitchRecordInvalidReason;
   const invalidWarning = formatInvalidKillRecordWarning(reasonSlot, false);
   const invalidWarningFlag = formatInvalidKillRecordWarning(reasonSlot, true);
+  const recoveryCommands = PIN_MISMATCH_RECOVERY_COMMANDS.map((tokens) => [...tokens]);
+  const shellToolNames = [
+    ...new Set(SHELL_TOOL_NAMES.map((name) => name.toLowerCase().replace(/[^a-z0-9]/g, ""))),
+  ];
   return `#!/usr/bin/env node
 /**
- * Directive host-hook outer (v261027 / #5994 / #6122 / #6201 / #6620 / #6740). Node built-ins only.
- * Shared entry order: valid kill record → runtime missing (project install, by
- * lockfile) → spawn pin hook-bin.js with the kill-switch reader flag.
+ * Directive host-hook outer (v261027 / #5994 / #6122 / #6201 / #6620 / #6740 / #7275).
+ * Node built-ins only. Shared entry order: valid kill record → runtime missing
+ * (admit exact project install on tool.before; else block) → spawn pin
+ * hook-bin.js with the kill-switch reader flag.
  * A bare root flag file turns nothing off; it gets one warning.
  * Any failure on tool.before blocks the tool call in the host's own form.
  */
-import { existsSync, lstatSync, readFileSync } from "node:fs";
+import { existsSync, lstatSync, readFileSync, realpathSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
@@ -246,6 +260,10 @@ const READER_ARGS = [${JSON.stringify(KILL_SWITCH_READER_FLAG)}, ${JSON.stringif
 const BARE_FLAG_WARNING = ${JSON.stringify(KILL_SWITCH_BARE_FLAG_WARNING)};
 const INVALID_WARNING = ${JSON.stringify(invalidWarning)};
 const INVALID_WARNING_FLAG = ${JSON.stringify(invalidWarningFlag)};
+const RECOVERY_COMMANDS = ${JSON.stringify(recoveryCommands)};
+const SHELL_TOOL_NAMES = ${JSON.stringify(shellToolNames)};
+const SIMPLE_COMMAND = new RegExp(${JSON.stringify(PIN_MISMATCH_SIMPLE_COMMAND_SOURCE)});
+const RUN_DIR_FIELDS = ["workdir", "cwd", "working_directory", "workingDirectory"];
 
 const here = dirname(fileURLToPath(import.meta.url));
 
@@ -374,6 +392,127 @@ function grokOutputIsDecision(text) {
   return parsed.decision === "allow" || parsed.decision === "deny";
 }
 
+function readStdinUtf8() {
+  try {
+    return readFileSync(0, "utf8");
+  } catch {
+    return "";
+  }
+}
+
+function asRecord(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value) ? value : null;
+}
+
+function firstString(values) {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim().length > 0) return value.trim();
+  }
+  return null;
+}
+
+function toolInputOf(payload) {
+  const input = asRecord(payload);
+  if (input === null) return null;
+  const toolCall = asRecord(input.tool_call) || asRecord(input.toolCall);
+  return (
+    asRecord(input.tool_input) ||
+    asRecord(input.toolInput) ||
+    asRecord(input.input) ||
+    asRecord(input.arguments) ||
+    (toolCall !== null ? asRecord(toolCall.arguments) : null)
+  );
+}
+
+function hookToolName(payload) {
+  const input = asRecord(payload);
+  if (input === null) return null;
+  const toolObject = asRecord(input.tool);
+  const toolCall = asRecord(input.tool_call) || asRecord(input.toolCall);
+  return (
+    firstString([input.tool_name]) ||
+    firstString([input.toolName]) ||
+    (typeof input.tool === "string" ? firstString([input.tool]) : null) ||
+    (toolObject !== null ? firstString([toolObject.name]) : null) ||
+    (toolCall !== null ? firstString([toolCall.name]) : null)
+  );
+}
+
+function hookShellCommand(payload) {
+  const input = asRecord(payload);
+  if (input === null) return null;
+  const toolInput = toolInputOf(input);
+  return firstString([
+    toolInput !== null ? toolInput.command : null,
+    toolInput !== null ? toolInput.cmd : null,
+    toolInput !== null ? toolInput.shell_command : null,
+    input.command,
+    input.cmd,
+  ]);
+}
+
+function normalizeToolName(name) {
+  return String(name).toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function isShellToolName(name) {
+  return SHELL_TOOL_NAMES.includes(normalizeToolName(name));
+}
+
+function matchRecoveryCommand(command) {
+  if (command === null) return null;
+  const trimmed = command.trim();
+  if (!SIMPLE_COMMAND.test(trimmed)) return null;
+  const tokens = trimmed.split(/[ \\t]+/);
+  for (const candidate of RECOVERY_COMMANDS) {
+    if (
+      candidate.length === tokens.length &&
+      candidate.every((token, index) => token === tokens[index])
+    ) {
+      return candidate.join(" ");
+    }
+  }
+  return null;
+}
+
+function rootsMatch(a, b) {
+  try {
+    return realpathSync(a) === realpathSync(b);
+  } catch {
+    return resolve(a) === resolve(b);
+  }
+}
+
+/** Directories that prove where a shell tool call runs (#6313 / #7275). */
+function shellRunDirectories(host, payload) {
+  const input = asRecord(payload);
+  if (input === null) return [];
+  const toolInput = toolInputOf(input);
+  if (toolInput !== null && toolInput !== input) {
+    const present = RUN_DIR_FIELDS.filter((field) => field in toolInput);
+    if (present.length > 0) {
+      const values = present.map((field) => firstString([toolInput[field]]));
+      return values.every((value) => value !== null) ? values : [];
+    }
+  }
+  if (host === "codex") return [];
+  const outer = firstString([input.cwd]);
+  return outer === null ? [] : [outer];
+}
+
+/** Admit exact simple project-root installs when pin hook-bin is missing (#7275). */
+function admitMissingPinInstall(host, event, projectRoot, payload) {
+  if (event !== "tool.before") return false;
+  const toolName = hookToolName(payload);
+  if (toolName === null || !isShellToolName(toolName)) return false;
+  if (matchRecoveryCommand(hookShellCommand(payload)) === null) return false;
+  const runDirectories = shellRunDirectories(host, payload);
+  return (
+    runDirectories.length > 0 &&
+    runDirectories.every((dir) => rootsMatch(dir, projectRoot))
+  );
+}
+
 const root = findProjectRoot(here);
 const argv = process.argv.slice(2);
 const host = parseArg(argv, "--host");
@@ -388,6 +527,19 @@ const pin = join(root, PIN_REL);
 if (!existsSync(pin)) {
   const warning = killSwitchWarning(root, verdict);
   if (warning.length > 0) process.stderr.write(warning + "\\n");
+  // Read stdin only on the missing-pin branch (#7275); installed-pin keeps inherit.
+  if (event === "tool.before") {
+    const raw = readStdinUtf8();
+    let payload = null;
+    try {
+      payload = JSON.parse(raw);
+    } catch {
+      payload = null;
+    }
+    if (payload !== null && admitMissingPinInstall(host, event, root, payload)) {
+      quietAllow();
+    }
+  }
   blockToolCall(host, event, GUIDANCE.replace("{install}", () => installCommand(root)));
 }
 

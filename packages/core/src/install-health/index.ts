@@ -91,6 +91,7 @@ export {
   isPinMismatchOnly,
   matchPinMismatchRecoveryCommand,
   PIN_MISMATCH_RECOVERY_COMMANDS,
+  PIN_MISMATCH_SIMPLE_COMMAND_SOURCE,
 } from "./recovery-admit.js";
 export {
   checkRuntimeLinkOwner,

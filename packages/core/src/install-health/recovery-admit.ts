@@ -27,8 +27,14 @@ export const PIN_MISMATCH_RECOVERY_COMMANDS: readonly (readonly string[])[] = [
  * Characters a simple recovery command may contain. Anything else (`;`, `&`,
  * `|`, redirects, quotes, `$`, backticks, parentheses, newlines) means the
  * command is compound or shell-expanded, so it is not admitted.
+ *
+ * Source string is shared with the deposited host-hook outer (#7275) so the
+ * missing-runtime admit stays token-parity with pin-mismatch recovery.
  */
-const SIMPLE_COMMAND = /^[A-Za-z0-9@/._=-]+(?:[ \t]+[A-Za-z0-9@/._=-]+)*$/;
+export const PIN_MISMATCH_SIMPLE_COMMAND_SOURCE =
+  "^[A-Za-z0-9@/._=-]+(?:[ \\t]+[A-Za-z0-9@/._=-]+)*$";
+
+const SIMPLE_COMMAND = new RegExp(PIN_MISMATCH_SIMPLE_COMMAND_SOURCE);
 
 /**
  * Return the canonical recovery command when `command` is exactly one of
