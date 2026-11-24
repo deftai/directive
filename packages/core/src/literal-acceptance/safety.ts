@@ -837,7 +837,7 @@ function evaluateWrapperSubcommand(rest: string, first: string): CommandSafetyRe
 
 const PACKAGE_MANAGER_ARGS_REASON =
   "package-manager args must be test|exec vitest|run <script>|audit|--version, where <script> is " +
-  "test, check, test:<name>, check:<name>, build, lint, or typecheck " +
+  "test, check, test:<name> or check:<name>, plus build, lint, or typecheck " +
   "(arbitrary scripts/network install denied for ambient-authority)";
 
 /**
