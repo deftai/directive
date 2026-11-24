@@ -1,12 +1,13 @@
 /**
  * Cohort approved-scope mint for scope:record-approved-scope --manifest (#7083).
  *
- * One typed `mint` writes an approved-scope record pair into each story's own
- * worktree. Every pair is built and frozen before the prompt with the same
+ * One typed `mint` writes an approved-scope record pair for each distinct
+ * planId. Rows may share one `worktree_path` (#7256) or name per-story
+ * worktrees. Every pair is built and frozen before the prompt with the same
  * builder the single-brief mint uses: the duplicate-key-rejecting parser, the
  * intent extract, `buildApprovedScopeRecord` and the brief's auth-hash v1. Each
  * record is the per-brief record the one-PR mint level admits; `cohortDigest`
- * is display metadata, never authority.
+ * is display metadata, never authority. Plan ids stay unique across the set.
  */
 import { createHash } from "node:crypto";
 import { existsSync, lstatSync, readFileSync, realpathSync, rmSync } from "node:fs";
@@ -198,8 +199,9 @@ function sameBinding(existingRaw: string, builtRaw: string): boolean {
 /**
  * Read, parse, build and freeze every pair (#7083). Any refusal refuses the whole
  * set: an unreadable or duplicate-key brief, a glob `file_scope` entry, a missing
- * plan id, a repeated plan id or worktree, or an existing pair that is half
- * present or differs from the pair this run would write.
+ * plan id, a repeated plan id, or an existing pair that is half present or
+ * differs from the pair this run would write. Shared worktree paths are allowed
+ * when plan ids differ (#7256).
  */
 export function prepareCohortMint(input: {
   readonly entries: readonly CohortManifestEntry[];
@@ -210,7 +212,6 @@ export function prepareCohortMint(input: {
   const errors: string[] = [];
   const stories: CohortStory[] = [];
   const seenPlans = new Set<string>();
-  const seenWorktrees = new Set<string>();
   for (const entry of input.entries) {
     const worktree = resolve(input.projectRoot, entry.worktreePath);
     const label = `${entry.xbriefPath} @ ${worktree}`;
@@ -218,12 +219,6 @@ export function prepareCohortMint(input: {
       errors.push(`${label}: worktree not found`);
       continue;
     }
-    const wtKey = process.platform === "win32" ? worktree.toLowerCase() : worktree;
-    if (seenWorktrees.has(wtKey)) {
-      errors.push(`${label}: worktree named by more than one row (one worktree per story)`);
-      continue;
-    }
-    seenWorktrees.add(wtKey);
     const briefAbs = resolve(worktree, entry.xbriefPath);
     const rel = relUnder(worktree, briefAbs);
     if (rel === null) {
@@ -449,9 +444,9 @@ export function formatCohortNext(
   const untouched = stories.filter((s) => s.existing === "identical").map((s) => s.planId);
   if (untouched.length > 0) lines.push(`  left untouched (identical): ${untouched.join(", ")}`);
   lines.push(
-    "  Next: in each worktree, commit its own brief and record pair on that story's branch " +
+    "  Next: commit each brief and its record pair on that story's branch " +
       "(git add -f .deft/approved-scope/...), push it, then run swarm:launch with a worktree " +
-      "map whose rows name each story's branch as base_branch (#7083).",
+      "map whose rows name each story's branch as base_branch (#7083 / #7256).",
   );
   return `${lines.join("\n")}\n`;
 }

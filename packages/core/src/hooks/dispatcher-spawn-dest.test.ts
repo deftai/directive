@@ -1593,14 +1593,14 @@ describe("dest-proven spawn dest unique-basename pin (#4393)", () => {
     return { root, dest, storyB };
   }
 
-  it("allows dest-proven spawn when dest unique basename names one of two primary actives", () => {
-    const { root, dest, storyB } = twoActiveDest();
-    writeRunning(dest, "b-story.xbrief.json", ["packages/b/**"]);
+  it("allows dest-proven spawn when dest unique basename selects the dest brief (#7257)", () => {
+    const { root, dest } = twoActiveDest();
+    const destStoryB = writeRunning(dest, "b-story.xbrief.json", ["packages/b/**"]);
     const inspectRitual = vi.fn(() => STALE_RITUAL);
     const inspectScope = vi.fn(
       (projectRoot: string, options?: Parameters<typeof inspectActiveScope>[1]) => {
-        expect(resolve(projectRoot)).toBe(resolve(root));
-        expect(resolve(projectRoot)).not.toBe(resolve(dest));
+        expect(resolve(projectRoot)).toBe(resolve(dest));
+        expect(resolve(projectRoot)).not.toBe(resolve(root));
         return inspectActiveScope(projectRoot, options);
       },
     );
@@ -1618,13 +1618,15 @@ describe("dest-proven spawn dest unique-basename pin (#4393)", () => {
       liveScopeSeams({ inspectRitual, inspectScope }),
     );
     expect(decision).toMatchObject({ verdict: "allow", code: "spawn-ready" });
-    expect(decision.scopePath).toBe(storyB);
+    expect(decision.scopePath).toBe(destStoryB);
     expect(inspectRitual).not.toHaveBeenCalled();
     expect(inspectScope).toHaveBeenCalled();
   });
 
   it("keeps DEFT_ACTIVE_SCOPE as CLI fallback when dest has no unique basename", () => {
-    const { root, dest, storyB } = twoActiveDest();
+    const { root, dest } = twoActiveDest();
+    writeRunning(dest, "a-story.xbrief.json", ["packages/a/**"]);
+    const destStoryB = writeRunning(dest, "b-story.xbrief.json", ["packages/b/**"]);
     const byEnv = decideHook(
       {
         host: "grok",
@@ -1642,7 +1644,7 @@ describe("dest-proven spawn dest unique-basename pin (#4393)", () => {
       liveScopeSeams(),
     );
     expect(byEnv).toMatchObject({ verdict: "allow", code: "spawn-ready" });
-    expect(byEnv.scopePath).toBe(storyB);
+    expect(byEnv.scopePath).toBe(destStoryB);
   });
 
   it("does not auto-pin when dest holds two active briefs", () => {
@@ -1666,7 +1668,7 @@ describe("dest-proven spawn dest unique-basename pin (#4393)", () => {
     expect(decision.message).toContain("Multiple active xBRIEF artifacts");
   });
 
-  it("denies unpinned dest-proven spawn with two primary actives", () => {
+  it("denies dest-cwd spawn when dest has no active brief (#7257)", () => {
     const { root, dest } = twoActiveDest();
     const inspectRitual = vi.fn(() => STALE_RITUAL);
     const decision = decideHook(
@@ -1683,12 +1685,15 @@ describe("dest-proven spawn dest unique-basename pin (#4393)", () => {
       liveScopeSeams({ inspectRitual }),
     );
     expect(decision).toMatchObject({ verdict: "deny", code: "spawn-not-ready" });
-    expect(decision.message).toContain("Multiple active xBRIEF artifacts");
+    expect(decision.message).toMatch(/No active xBRIEF artifact|no eligible/);
+    expect(decision.message).toContain(dest);
     expect(inspectRitual).not.toHaveBeenCalled();
   });
 
   it("does not treat prompt, description, or payload boundPath keys as the pin", () => {
     const { root, dest } = twoActiveDest();
+    writeRunning(dest, "a-story.xbrief.json", ["packages/a/**"]);
+    writeRunning(dest, "b-story.xbrief.json", ["packages/b/**"]);
     const promptPin = decideHook(
       {
         host: "grok",
@@ -1732,8 +1737,8 @@ describe("dest-proven spawn dest unique-basename pin (#4393)", () => {
   });
 
   it("lets dest unique basename win over process-wide DEFT_ACTIVE_SCOPE", () => {
-    const { root, dest, storyB } = twoActiveDest();
-    writeRunning(dest, "b-story.xbrief.json", ["packages/b/**"]);
+    const { root, dest } = twoActiveDest();
+    const destStoryB = writeRunning(dest, "b-story.xbrief.json", ["packages/b/**"]);
     const storyA = join(root, "xbrief", "active", "a-story.xbrief.json");
     const decision = decideHook(
       {
@@ -1752,7 +1757,7 @@ describe("dest-proven spawn dest unique-basename pin (#4393)", () => {
       liveScopeSeams(),
     );
     expect(decision).toMatchObject({ verdict: "allow", code: "spawn-ready" });
-    expect(decision.scopePath).toBe(storyB);
+    expect(decision.scopePath).toBe(destStoryB);
     expect(decision.scopePath).not.toBe(storyA);
   });
 
@@ -1821,5 +1826,103 @@ describe("implement spawn reaches the same one-PR mint admit as Write (#6361)", 
     expect(decision.message).toContain("record authHashV1 differs from the head brief");
     expect(decision.message).toContain("scope:record-approved-scope");
     expect(decision.message).not.toMatch(/scope:promote|scope:activate/);
+  });
+});
+
+describe("dest-cwd one-PR mint admission (#7257)", () => {
+  function mintFenceForRoot(
+    expectedRoot: string,
+    admitted: boolean,
+    reason = "no same-PR approved-scope record",
+  ): NonNullable<HookPolicySeams["loadStoryWriteFence"]> {
+    return (root, _scopePath) => {
+      expect(resolve(root)).toBe(resolve(expectedRoot));
+      return admitted
+        ? { fileScope: ["packages/b/**"], denyPaths: [], onePrMint: { admitted: true } }
+        : {
+            fileScope: [],
+            denyPaths: [],
+            onePrMint: { admitted: false, reason },
+          };
+    };
+  }
+
+  it("admits dest-cwd spawn when only the dest mint pair is present", () => {
+    const { root, dest } = destFixture();
+    const destStory = writeRunning(dest, "b-story.xbrief.json", ["packages/b/**"]);
+    writeRunning(root, "b-story.xbrief.json", ["packages/b/**"]);
+    const loadStoryWriteFence = mintFenceForRoot(dest, true);
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          toolName: "spawn_subagent",
+          tool_input: { cwd: dest, prompt: "implement the story" },
+        },
+        environ: { DEFT_SESSION_ID: "parent-1" },
+      },
+      liveScopeSeams({ loadStoryWriteFence }),
+    );
+    expect(decision).toMatchObject({ verdict: "allow", code: "spawn-ready" });
+    expect(decision.scopePath).toBe(destStory);
+  });
+
+  it("refuses dest-cwd spawn when dest mint is absent even if primary holds a matching pair", () => {
+    const { root, dest } = destFixture();
+    writeRunning(dest, "b-story.xbrief.json", ["packages/b/**"]);
+    writeRunning(root, "b-story.xbrief.json", ["packages/b/**"]);
+    const loadStoryWriteFence = mintFenceForRoot(dest, false);
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          toolName: "spawn_subagent",
+          tool_input: { cwd: dest, prompt: "implement the story" },
+        },
+        environ: { DEFT_SESSION_ID: "parent-1" },
+      },
+      liveScopeSeams({ loadStoryWriteFence }),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "spawn-not-ready" });
+    expect(decision.message).toContain("no same-PR approved-scope record");
+    expect(decision.message).toContain(dest);
+    expect(decision.message).not.toMatch(/scope:promote|scope:activate/);
+  });
+
+  it("refuses the next dest-cwd spawn after the dest mint pair is removed", () => {
+    const { root, dest } = destFixture();
+    writeRunning(dest, "b-story.xbrief.json", ["packages/b/**"]);
+    let admit = true;
+    const loadStoryWriteFence: NonNullable<HookPolicySeams["loadStoryWriteFence"]> = (rootArg) => {
+      expect(resolve(rootArg)).toBe(resolve(dest));
+      return admit
+        ? { fileScope: ["packages/b/**"], denyPaths: [], onePrMint: { admitted: true } }
+        : {
+            fileScope: [],
+            denyPaths: [],
+            onePrMint: { admitted: false, reason: "no same-PR approved-scope record" },
+          };
+    };
+    const payload = {
+      host: "grok" as const,
+      event: "tool.before" as const,
+      projectRoot: root,
+      payload: {
+        toolName: "spawn_subagent",
+        tool_input: { cwd: dest, prompt: "implement the story" },
+      },
+      environ: { DEFT_SESSION_ID: "parent-1" },
+    };
+    const first = decideHook(payload, liveScopeSeams({ loadStoryWriteFence }));
+    expect(first).toMatchObject({ verdict: "allow", code: "spawn-ready" });
+    admit = false;
+    const second = decideHook(payload, liveScopeSeams({ loadStoryWriteFence }));
+    expect(second).toMatchObject({ verdict: "deny", code: "spawn-not-ready" });
+    expect(second.message).toContain("no same-PR approved-scope record");
+    expect(second.message).toContain(dest);
   });
 });
