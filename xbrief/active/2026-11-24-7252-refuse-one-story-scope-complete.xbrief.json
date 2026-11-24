@@ -3,7 +3,7 @@
     "version": "0.8",
     "description": "Refuse a one-story scope:complete when another merged story is still active",
     "created": "2026-11-24T04:00:00Z",
-    "updated": "2026-11-24T04:04:41.203Z"
+    "updated": "2026-11-24T04:07:35.001Z"
   },
   "plan": {
     "title": "Refuse a one-story scope:complete when another merged story is still active",
@@ -34,7 +34,8 @@
         "size": "small",
         "file_scope_confidence": "medium",
         "depends_on": []
-      }
+      },
+      "productPullRequest": 7258
     },
     "acceptance": {
       "commands": [],
