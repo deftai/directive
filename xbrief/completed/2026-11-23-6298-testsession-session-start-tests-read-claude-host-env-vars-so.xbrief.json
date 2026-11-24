@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6298",
-    "updated": "2026-11-23T22:03:31Z"
+    "updated": "2026-11-24T01:49:18Z"
   },
   "plan": {
     "title": "test(session): session-start tests read Claude host env vars, so task check fails under Claude Code",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "test(session): session-start tests read Claude host env vars, so task check fails under Claude Code",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6298",
@@ -16,18 +16,39 @@
     "items": [
       {
         "title": "Given `CLAUDECODE=1` and other `CLAUDE_*` variables set in the shell, when the session-start test files run, then they pass with the same results as in a clean shell.",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e50973bb23eb87559a3febcf7be4d3b519db20c9",
+          "recorded_at": "2026-11-23T23:11:34Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Tests that need Claude-host detection set those variables inside the test, not from the ambient environment.",
-        "status": "proposed",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e50973bb23eb87559a3febcf7be4d3b519db20c9",
+          "recorded_at": "2026-11-23T23:11:34Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "No production code path changes behaviour.",
-        "status": "proposed",
-        "id": "clause.3"
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e50973bb23eb87559a3febcf7be4d3b519db20c9",
+          "recorded_at": "2026-11-23T23:11:34Z",
+          "recorded_by": "scope:complete"
+        }
       }
     ],
     "tags": [
@@ -134,6 +155,35 @@
         "github_issue_id": 6376310388,
         "origin": "deftai/directive#6298",
         "id": "github.issue.6376310388"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "e20f33aa9cb43539be426e582d26aabf28653164",
+        "prNumber": 7238,
+        "prBase": "master",
+        "mergeCommit": "e50973bb23eb87559a3febcf7be4d3b519db20c9",
+        "deliveryBranch": "master",
+        "deliveryCommit": "b91c9113a158b932dc5a84a79b52cc871d614423",
+        "verifiedAt": "2026-11-24T01:49:18Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMjBiMzctMGE1Ni03NmIyLWFiNWMtMWQ5Y2MxZjM1ODAy",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          7232
+        ]
+      },
+      "completedAt": "2026-11-24T01:49:18Z",
+      "completedSessionId": "host:grok:v1:MDFhMjBiMzctMGE1Ni03NmIyLWFiNWMtMWQ5Y2MxZjM1ODAy",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-24T01:49:18Z"
       }
     },
     "acceptance": {
@@ -179,6 +229,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.6376310388",
-    "updated": "2026-11-23T22:03:31Z"
+    "updated": "2026-11-24T01:49:18Z"
   }
 }
