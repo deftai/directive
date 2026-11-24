@@ -102,7 +102,7 @@
         ],
         "file_scope_confidence": "high",
         "verify_commands": [
-          "pnpm exec vitest related --run"
+          "pnpm exec vitest run packages/core/src/hooks/dispatcher-spawn-dest.test.ts"
         ],
         "depends_on": [
           "7256"
@@ -504,7 +504,26 @@
           "provenance": "statement"
         }
       ],
-      "ambiguity_attestation": "none_found"
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "[framework-gap] Spawn ignores a destination story-binding and still fails on the session root's active briefs",
+        "What happened Two evolution stories were in linked worktrees of the session repo.",
+        "`swarm:pre-dispatch` began an attempt and wrote the story-binding: `spawn_subagent` with `cwd` set to those worktrees was still refused: Pre-dispatch had already been run.",
+        "The session root is a full clone with many active briefs.",
+        "`resolveWorktreeStoryBinding` returns none for a non-linked root, so the hook never reads the destination worktree's binding.",
+        "Expected When spawn `cwd` is a linked worktree with a story-binding record, that record selects the story.",
+        "The session root's other active briefs do not fail the spawn.",
+        "The recovery text should not tell the operator to run a command they already ran.",
+        "Not the same as #7256 is the approved-scope mint being read from the primary checkout.",
+        "#4771 is `DEFT_ACTIVE_SCOPE` not reaching a patch process.",
+        "This is the multi-active fence at spawn time ignoring a binding that #6379 said was the pin.",
+        "Evidence 2026-11-24, Grok session on deftai/evolution.",
+        "Attempts `att-5d9eb3b6f21ff869` (delegator, evolution#2187) and `att-3b7dbaa9b467d11a` (files listing, evolution#2188).",
+        "The hook text is `formatMultipleActiveMessage` in `vendor/directive-core/dist/hooks/scope.js`.",
+        "The binding reader is `resolveWorktreeStoryBinding` in the same file, which returns none when the scanned root is not a linked worktree.",
+        "changelog.d fragment.",
+        "Keep #7256 mint-admission as adjacent keep-out."
+      ]
     },
     "id": "github.issue.6580876982",
     "updated": "2026-11-24T14:14:58Z"
