@@ -59,8 +59,14 @@
       "none_stated": true
     },
     "references": [
-      "https://github.com/deftai/directive/issues/7256",
-      "https://github.com/deftai/directive/issues/7257"
+      {
+        "uri": "https://github.com/deftai/directive/issues/7256",
+        "type": "x-xbrief/github-issue"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/7257",
+        "type": "x-xbrief/github-issue"
+      }
     ]
   }
 }
