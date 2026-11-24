@@ -1288,7 +1288,18 @@ function commitLifecycleMoves(
     return { ok: false, error: branchCheck.message, sha: null };
   }
 
-  const statusBefore = runGit(["git", "status", "--short", "--", "xbrief/", "vbrief/"], {
+  const lifecyclePathspecs = (["xbrief/", "vbrief/"] as const).filter((rel) =>
+    existsSync(resolve(projectRoot, rel)),
+  );
+  if (lifecyclePathspecs.length === 0) {
+    return {
+      ok: false,
+      error: "git status/add skipped: neither xbrief/ nor vbrief/ exists in project root",
+      sha: null,
+    };
+  }
+
+  const statusBefore = runGit(["git", "status", "--short", "--", ...lifecyclePathspecs], {
     cwd: projectRoot,
   });
   if (statusBefore.returncode !== 0) {
@@ -1306,12 +1317,12 @@ function commitLifecycleMoves(
     return { ok: false, error: diff.error, sha: null };
   }
 
-  const add = runGit(["git", "add", "-A", "xbrief/", "vbrief/"], { cwd: projectRoot });
+  const add = runGit(["git", "add", "-A", ...lifecyclePathspecs], { cwd: projectRoot });
   if (add.returncode !== 0) {
     return { ok: false, error: `git add failed: ${add.stderr.trim()}`, sha: null };
   }
 
-  const statusAfter = runGit(["git", "status", "--short", "--", "xbrief/", "vbrief/"], {
+  const statusAfter = runGit(["git", "status", "--short", "--", ...lifecyclePathspecs], {
     cwd: projectRoot,
   });
   const stagedAfter = parseStagedXbriefPaths(statusAfter.stdout);

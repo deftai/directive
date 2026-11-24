@@ -61,19 +61,22 @@ describe("vbrief-validate coverage boost", () => {
 
   it("exercises validate CLI success and failure paths", () => {
     const root = mkdtempSync(join(tmpdir(), "vb-cov-cli-"));
-    const vbrief = join(root, "xbrief");
-    mkdirSync(join(vbrief, "active"), { recursive: true });
-    writeFileSync(
-      join(vbrief, "active", "2026-01-01-bad-status.xbrief.json"),
-      JSON.stringify({
-        xBRIEFInfo: { version: "0.8" },
-        plan: { title: "T", status: "proposed", items: [] },
-      }),
-      "utf8",
-    );
-    expect(runValidate(["--vbrief-dir", vbrief])).toBe(1);
-    expect(runValidate(["-h"])).toBe(0);
-    rmSync(root, { recursive: true, force: true });
+    try {
+      const vbrief = join(root, "xbrief");
+      mkdirSync(join(vbrief, "active"), { recursive: true });
+      writeFileSync(
+        join(vbrief, "active", "2026-01-01-bad-status.xbrief.json"),
+        JSON.stringify({
+          xBRIEFInfo: { version: "0.8" },
+          plan: { title: "T", status: "proposed", items: [] },
+        }),
+        "utf8",
+      );
+      expect(runValidate(["--vbrief-dir", vbrief])).toBe(1);
+      expect(runValidate(["-h"])).toBe(0);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 
   it("exercises conformance config error branches", () => {

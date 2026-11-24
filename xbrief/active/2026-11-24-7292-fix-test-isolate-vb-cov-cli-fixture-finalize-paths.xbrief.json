@@ -3,7 +3,7 @@
     "version": "0.8",
     "description": "Isolate vb-cov-cli temp fixture cleanup and finalize pathspecs when vbrief/ is absent.",
     "created": "2026-11-24T18:00:00Z",
-    "updated": "2026-11-24T17:47:53Z"
+    "updated": "2026-11-24T19:58:48Z"
   },
   "plan": {
     "title": "fix(test): isolate vb-cov-cli fixture + finalize pathspecs when vbrief absent",
@@ -86,7 +86,8 @@
           "packages/core/src/swarm/finalize-cohort-batch-7082.test.ts",
           "changelog.d/7292-merge-gate-temp-isolation.md",
           ".deft/approved-scope/github.issue.6587893970.json",
-          ".deft/approved-scope/github.issue.6587893970.intent.json"
+          ".deft/approved-scope/github.issue.6587893970.intent.json",
+          "xbrief/active/2026-11-24-7292-fix-test-isolate-vb-cov-cli-fixture-finalize-paths.xbrief.json"
         ],
         "file_scope_confidence": "high",
         "verify_commands": [
@@ -108,10 +109,13 @@
           "packages/core/src/swarm/finalize-cohort-batch-7082.test.ts",
           "changelog.d/7292-merge-gate-temp-isolation.md",
           ".deft/approved-scope/github.issue.6587893970.json",
-          ".deft/approved-scope/github.issue.6587893970.intent.json"
+          ".deft/approved-scope/github.issue.6587893970.intent.json",
+          "xbrief/active/2026-11-24-7292-fix-test-isolate-vb-cov-cli-fixture-finalize-paths.xbrief.json"
         ],
-        "module_boundary": "packages/core"
-      }
+        "module_boundary": "packages/core",
+        "cohesion_exemption": "finalize-cohort.ts already exceeds review-trigger; thin pathspec-only edit stays in this story with remint cohesion_exemption"
+      },
+      "productPullRequest": 7300
     },
     "references": [
       {
@@ -125,6 +129,6 @@
         "title": "Residual deeper hygiene #7291"
       }
     ],
-    "updated": "2026-11-24T17:47:53Z"
+    "updated": "2026-11-24T19:58:48Z"
   }
 }
