@@ -2,49 +2,85 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #7254",
-    "updated": "2026-11-24T14:14:42Z"
+    "updated": "2026-11-24T20:57:13Z"
   },
   "plan": {
     "title": "[framework-gap] acceptance-disposition deferral is never applied when the clause walk fails (scope:complete refuses before reading the grant)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
-      "Description": "[framework-gap] acceptance-disposition deferral is never applied when the clause walk fails (scope:complete refuses before reading the grant)",
+      "Description": "[framework-gap] acceptance-disposition deferral leave-out in clause walk (#7254).",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/7254",
-      "Overview": "**Version:** `@deftai/directive-runtime` 0.131.x (deftai/deftvisage pin)\n**Command:** `deft scope:complete -- xbrief/active/2026-11-23-phase6-desk-research-store.xbrief.json --pr 2485 --merge-commit 262240662e…`\n\nThe operator minted an acceptance-disposition deferral for `clause.1`:\n\n`deft authz:grant -- --template acceptance-disposition --plan-ref story.phase6-desk-research-store --story-ids clause.1 --deferred-to 2497 --reason \"…\" --confirm`\n\nThe grant was recorded in `.deft/authz/grants/` of the main clone, and the clause text is unchanged since the grant. `scope:complete` still refuses at the verify:ac clause walk, before the deferral is applied:\n\n```\n[failed] clause 1 @ server/routes/desk-research.test.mjs: … This is the \"reload or second machine\" case. — expected token(s) missing …: reload or second machine\nacceptance verdict (#3497): clause-walk-failed\n```\n\nThe output never mentions the grant. commands.md (#6318) says scope:complete writes `deferred` with the grant id on those items instead of merge evidence. In practice the clause walk gate runs first and fails, so a deferral can never take effect for a clause-walk failure.\n\nTwo problems:\n1. A deferral grant for a clause should exclude that clause from the clause walk, or the walk should honour it.\n2. The underlying false match: a quoted phrase in descriptive clause text is treated as a required literal token (see #7170).\n\nThe behaviour is tested (`desk-research.test.mjs:122`) and the literal acceptance command passes. Tracking issue: deftai/deftvisage#2497.\n\n",
+      "Overview": "Keep the existing #6644 grantedClauses leave-out in applyClauseWalk; do not add a parallel leave-out. After persist + applyAcceptanceDispositionGrants, every digest-matching live unused deferred cover for clause.N on this plan.id must appear in grantedClauses (or refuse naming the grant id). When resolveAcceptanceDispositionStore fails, refuse with store reason — never ok covers:[] that falls through to clause-walk-failed. Unrelated plan grants must not authorize or block this completion; digest mismatch still remints. Regression: deferred grant for clause.1 on linked worktree reading main-clone store → scope:complete [granted] without [failed] for that clause. changelog.d fragment.",
       "Labels": "bug, agent-experience, process, urgent, dogfood, design-critique:ingest-ready, framework-gap, core-capabilities, promise:lifecycle, promise:tickets, promise:gates",
-      "UserStory": "**Version:** `@deftai/directive-runtime` 0.131.x (deftai/deftvisage pin)\n**Command:** `deft scope:complete -- xbrief/active/2026-11-23-phase6-desk-research-store.xbrief.json --pr 2485 --merge-commit 262240662e…`\n\nThe operator minted an acceptance-disposition deferral for `clause.1`:\n\n`deft authz:grant -- --template acceptance-disposition --plan-ref story.phase6-desk-research-store --story-ids clause.1 --deferred-to 2497 --reason \"…\" --confirm`\n\nThe grant was recorded in `.deft/authz/grants/` of the main clone, and the clause text is unchanged since the grant. `scope:complete` still refuses at the verify:ac clause walk, before the deferral is applied:\n\n```\n[failed] clause 1 @ server/routes/desk-research.test.mjs: … This is the \"reload or second machine\" case. — expected token(s) missing …: reload or second machine\nacceptance verdict (#3497): clause-walk-failed\n```\n\nThe output never mentions the grant. commands.md (#6318) says scope:complete writes `deferred` with the grant id on those items instead of merge evidence. In practice the clause walk gate runs first and fails, so a deferral can never take effect for a clause-walk failure.\n\nTwo problems:\n1. A deferral grant for a clause should exclude that clause from the clause walk, or the walk should honour it.\n2. The underlying false match: a quoted phrase in descriptive clause text is treated as a required literal token (see #7170).\n\nThe behaviour is tested (`desk-research.test.mjs:122`) and the literal acceptance command passes. Tracking issue: deftai/deftvisage#2497.\n\n",
+      "UserStory": "Keep the existing #6644 grantedClauses leave-out in applyClauseWalk; do not add a parallel leave-out. After persist + applyAcceptanceDispositionGrants, every digest-matching live unused deferred cover for clause.N on this plan.id must appear in grantedClauses (or refuse naming the grant id). When resolveAcceptanceDispositionStore fails, refuse with store reason — never ok covers:[] that falls through to clause-walk-failed. Unrelated plan grants must not authorize or block this completion; digest mismatch still remints. Regression: deferred grant for clause.1 on linked worktree reading main-clone store → scope:complete [granted] without [failed] for that clause. changelog.d fragment.",
       "ImplementationPlan": "Implement Prefer-A Bound comment 7133464614 limbs; tests; changelog.d."
     },
     "items": [
       {
         "id": "clause.1",
         "title": "Keep the existing #6644 grantedClauses leave-out in applyClauseWalk; do not add a parallel leave-out.",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/scope/acceptance-grant-walk.test.ts",
+          "recorded_at": "2026-11-24T20:19:23.862Z",
+          "recorded_by": "operator/leftover-closer-7254"
+        }
       },
       {
         "id": "clause.2",
         "title": "After persist + applyAcceptanceDispositionGrants, every digest-matching live unused deferred cover for clause.N on this plan.id must appear in grantedClauses (or refuse naming the grant id).",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/policy/acceptance-disposition-grant.test.ts",
+          "recorded_at": "2026-11-24T20:19:23.862Z",
+          "recorded_by": "operator/leftover-closer-7254"
+        }
       },
       {
         "id": "clause.3",
         "title": "When resolveAcceptanceDispositionStore fails, refuse with store reason — never ok covers:[] that falls through to clause-walk-failed.",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/policy/acceptance-disposition-grant.test.ts",
+          "recorded_at": "2026-11-24T20:19:23.862Z",
+          "recorded_by": "operator/leftover-closer-7254"
+        }
       },
       {
         "id": "clause.4",
         "title": "Unrelated plan grants must not authorize or block this completion; digest mismatch still remints.",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/policy/acceptance-disposition-grant.test.ts",
+          "recorded_at": "2026-11-24T20:19:23.862Z",
+          "recorded_by": "operator/leftover-closer-7254"
+        }
       },
       {
         "id": "clause.5",
         "title": "Regression: deferred grant for clause.1 on linked worktree reading main-clone store → scope:complete [granted] without [failed] for that clause.",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/scope/acceptance-grant-walk.test.ts",
+          "recorded_at": "2026-11-24T20:19:23.862Z",
+          "recorded_by": "operator/leftover-closer-7254"
+        }
       },
       {
         "id": "clause.6",
         "title": "changelog.d fragment.",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/scope/acceptance-grant-walk.test.ts",
+          "recorded_at": "2026-11-24T20:19:23.862Z",
+          "recorded_by": "operator/leftover-closer-7254"
+        }
       }
     ],
     "tags": [
@@ -92,7 +128,7 @@
         ],
         "file_scope_confidence": "high",
         "verify_commands": [
-          "pnpm exec vitest related --run"
+          "npx vitest run packages/core/src/scope/acceptance-grant-walk.test.ts packages/core/src/policy/acceptance-disposition-grant.test.ts"
         ],
         "depends_on": [],
         "conflict_group": "acceptance-disposition-deferral-leaves-clause-walk",
@@ -442,7 +478,34 @@
         "algorithm": "sha256",
         "sha256": "d55d15fbf4a8cc2fe3d9dcf096ab700b8807538e6eff2bd04a12a2a9d8e8e988"
       },
-      "kind": "story"
+      "kind": "story",
+      "productPullRequest": 7297,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "9b5f5f5219ff7c8829be42d6d960ad8989751bad",
+        "prNumber": 7297,
+        "prBase": "master",
+        "mergeCommit": "778b1e729b4071718bfdd64d770a812bb730c5b0",
+        "deliveryBranch": "master",
+        "deliveryCommit": "14be1bfe8e249cf851cba57225f0df1170b43f31",
+        "verifiedAt": "2026-11-24T20:57:13Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMjBmMWUtN2IxYy03NzUxLTkwOTItZjkwMjM5Y2Y3OWFl",
+        "identityBasis": "merge-time-mark"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-24T20:57:13Z",
+      "completedSessionId": "host:grok:v1:MDFhMjBmMWUtN2IxYy03NzUxLTkwOTItZjkwMjM5Y2Y3OWFl",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-24T20:57:13Z"
+      }
     },
     "acceptance": {
       "commands": [],
@@ -453,49 +516,61 @@
         {
           "id": 1,
           "text": "Keep the existing #6644 grantedClauses leave-out in applyClauseWalk; do not add a parallel leave-out.",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/scope/acceptance-grant-walk.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 2,
           "text": "After persist + applyAcceptanceDispositionGrants, every digest-matching live unused deferred cover for clause.N on this plan.id must appear in grantedClauses (or refuse naming the grant id).",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/policy/acceptance-disposition-grant.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 3,
           "text": "When resolveAcceptanceDispositionStore fails, refuse with store reason — never ok covers:[] that falls through to clause-walk-failed.",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/policy/acceptance-disposition-grant.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 4,
           "text": "Unrelated plan grants must not authorize or block this completion; digest mismatch still remints.",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/policy/acceptance-disposition-grant.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 5,
           "text": "Regression: deferred grant for clause.1 on linked worktree reading main-clone store → scope:complete [granted] without [failed] for that clause.",
-          "artifact_path": null,
+          "artifact_path": "packages/core/src/scope/acceptance-grant-walk.test.ts",
           "ambiguous": false,
           "provenance": "statement"
         },
         {
           "id": 6,
           "text": "changelog.d fragment.",
-          "artifact_path": null,
+          "artifact_path": "changelog.d/7254-acceptance-disposition-deferral-walk.md",
           "ambiguous": false,
           "provenance": "statement"
         }
       ],
-      "ambiguity_attestation": "none_found"
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "[framework-gap] acceptance-disposition deferral is never applied when the clause walk fails (scope:complete refuses before reading the grant)",
+        "[framework-gap] acceptance-disposition deferral leave-out in clause walk (#7254)."
+      ],
+      "sentences": [
+        "Keep the existing #6644 grantedClauses leave-out in applyClauseWalk; do not add a parallel leave-out.",
+        "After persist + applyAcceptanceDispositionGrants, every digest-matching live unused deferred cover for clause.N on this plan.id must appear in grantedClauses (or refuse naming the grant id).",
+        "When resolveAcceptanceDispositionStore fails, refuse with store reason — never ok covers:[] that falls through to clause-walk-failed.",
+        "Unrelated plan grants must not authorize or block this completion; digest mismatch still remints.",
+        "Regression: deferred grant for clause.1 on linked worktree reading main-clone store → scope:complete [granted] without [failed] for that clause.",
+        "changelog.d fragment."
+      ]
     },
     "id": "github.issue.6574186917",
-    "updated": "2026-11-24T14:14:42Z"
+    "updated": "2026-11-24T20:57:13Z"
   }
 }
