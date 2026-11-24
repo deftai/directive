@@ -1,0 +1,574 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #7274",
+    "updated": "2026-11-24T14:17:32Z"
+  },
+  "plan": {
+    "title": "Pre-dispatch binding lock repair",
+    "status": "running",
+    "narratives": {
+      "Overview": "",
+      "Description": "",
+      "UserStory": "",
+      "ImplementationPlan": ""
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "relieves: P1 — Begin-only bounded wait/retry on the story-binding store lock during post-ledger binding write (finite retry×sleep or wall-clock cap; complete/remove stay non-waiting; dead-owner reclaim unchanged)",
+        "status": "pending"
+      },
+      {
+        "id": "clause.2",
+        "title": "relieves: P2 — After that budget fails on store-lock contention for a just-created attempt, roll back/end that attempt under the unit lock and return nonzero non-spawnable; do not leave status=running spawn-ready with a missing binding; clean same-unit retry can begin",
+        "status": "pending"
+      },
+      {
+        "id": "clause.3",
+        "title": "relieves: P3 — Same scope+target begin that finds this unit's active attempt with missing binding for that worktree and no attached worker completes binding and returns a spawn-legal repair-admit of that existing attempt (exit 0 or named repair-admit decision); binding write alone is not enough; serialize the begin/repair decision under the unit lock and recheck the exact attempt so an in-flight begin between ledger save and binding cannot double-admit with a concurrent repair",
+        "status": "pending"
+      },
+      {
+        "id": "clause.4",
+        "title": "relieves: P4 — DENY_DUPLICATE_ACTIVE hint derives from repair-eligibility/binding outcome plus known identity: eligible failed-admission/missing-binding repair path names binding-repair; known non-null attempt.workerId (and/or resolved occupancy/subagent id for the target) names pre-cancel/takeover; already-bound or uncertain ownership keeps do-not-spawn with inspect/resolve-identity — never imply repair for a valid bound attempt merely because formatter lacks an agent id",
+        "status": "pending"
+      },
+      {
+        "id": "clause.5",
+        "title": "Footnote: CHANGELOG / operator docs for repair-admit and hint split; panel-deposit siblings field bookkeeping; other non-lock binding failure modes remain residual under open materiality (Codex C4/C5, Grok F5)",
+        "status": "pending"
+      },
+      {
+        "id": "clause.6",
+        "title": "A1 — Contended store lock during begin binding: wait budget eventually writes binding or rolls back the just-created attempt with nonzero non-spawnable; never exit 0 spawn-ready with missing binding after store-lock failure",
+        "status": "pending"
+      },
+      {
+        "id": "clause.7",
+        "title": "A2 — Interleaving: caller B retries while caller A is between ledger save and binding; at most one spawn-ready result; no double dispatch of the same attempt",
+        "status": "pending"
+      },
+      {
+        "id": "clause.8",
+        "title": "A3 — Orphan repair: same scope+target with missing binding + this unit active attempt + no attached worker → binding written + spawn-legal repair-admit without cancel",
+        "status": "pending"
+      },
+      {
+        "id": "clause.9",
+        "title": "A4 — Hint matrix: repair-eligible → binding-repair lines; known workerId/subagent → pre-cancel/takeover; already-bound without identity → do-not-spawn/inspect (not repair)",
+        "status": "pending"
+      },
+      {
+        "id": "clause.10",
+        "title": "A5 — Fixtures cover wait-success, wait-exhausted-rollback+clean-retry, interleaving double-admit refuse, repair-admit, and hint branches",
+        "status": "pending"
+      }
+    ],
+    "tags": [
+      "bug",
+      "swarm",
+      "agent-experience",
+      "process",
+      "harness",
+      "urgent",
+      "dogfood",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:swarm"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/7274",
+        "type": "x-xbrief/github-issue"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/comments/7133516631",
+        "type": "x-xbrief/github-comment"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": false,
+      "derived_reason": "Prefer-A Bound limbs same-text (#5055/#4374)",
+      "source_rung": "derived",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "relieves: P1 — Begin-only bounded wait/retry on the story-binding store lock during post-ledger binding write (finite retry×sleep or wall-clock cap; complete/remove stay non-waiting; dead-owner reclaim unchanged)",
+          "artifact_path": "packages/core/src/swarm/story-binding-record.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "relieves: P2 — After that budget fails on store-lock contention for a just-created attempt, roll back/end that attempt under the unit lock and return nonzero non-spawnable; do not leave status=running spawn-ready with a missing binding; clean same-unit retry can begin",
+          "artifact_path": "packages/core/src/swarm/pre-dispatch.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "relieves: P3 — Same scope+target begin that finds this unit's active attempt with missing binding for that worktree and no attached worker completes binding and returns a spawn-legal repair-admit of that existing attempt (exit 0 or named repair-admit decision); binding write alone is not enough; serialize the begin/repair decision under the unit lock and recheck the exact attempt so an in-flight begin between ledger save and binding cannot double-admit with a concurrent repair",
+          "artifact_path": "packages/core/src/swarm/pre-dispatch.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "relieves: P4 — DENY_DUPLICATE_ACTIVE hint derives from repair-eligibility/binding outcome plus known identity: eligible failed-admission/missing-binding repair path names binding-repair; known non-null attempt.workerId (and/or resolved occupancy/subagent id for the target) names pre-cancel/takeover; already-bound or uncertain ownership keeps do-not-spawn with inspect/resolve-identity — never imply repair for a valid bound attempt merely because formatter lacks an agent id",
+          "artifact_path": "packages/core/src/swarm/pre-dispatch.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Footnote: CHANGELOG / operator docs for repair-admit and hint split; panel-deposit siblings field bookkeeping; other non-lock binding failure modes remain residual under open materiality (Codex C4/C5, Grok F5)",
+          "artifact_path": "changelog.d/7274-pre-dispatch-binding-lock-repair.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "A1 — Contended store lock during begin binding: wait budget eventually writes binding or rolls back the just-created attempt with nonzero non-spawnable; never exit 0 spawn-ready with missing binding after store-lock failure",
+          "artifact_path": "packages/core/src/swarm/pre-dispatch.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "A2 — Interleaving: caller B retries while caller A is between ledger save and binding; at most one spawn-ready result; no double dispatch of the same attempt",
+          "artifact_path": "packages/core/src/swarm/pre-dispatch.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "A3 — Orphan repair: same scope+target with missing binding + this unit active attempt + no attached worker → binding written + spawn-legal repair-admit without cancel",
+          "artifact_path": "packages/core/src/swarm/pre-dispatch.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "A4 — Hint matrix: repair-eligible → binding-repair lines; known workerId/subagent → pre-cancel/takeover; already-bound without identity → do-not-spawn/inspect (not repair)",
+          "artifact_path": "packages/core/src/swarm/pre-dispatch.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "A5 — Fixtures cover wait-success, wait-exhausted-rollback+clean-retry, interleaving double-admit refuse, repair-admit, and hint branches",
+          "artifact_path": "packages/core/src/swarm/pre-dispatch.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "files": [
+          "packages/core/src/swarm/story-binding-record.ts",
+          "packages/core/src/swarm/pre-dispatch.ts",
+          "packages/core/src/swarm/story-binding-record.test.ts",
+          "packages/core/src/swarm/pre-dispatch.test.ts",
+          "changelog.d/7274-pre-dispatch-binding-lock-repair.md"
+        ],
+        "module_boundary": "packages/core/src/swarm",
+        "cohesion_exemption": "Bound-localized pre-dispatch repair for Prefer-A Bound #7274"
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: parent\n```\n\n## Prefer-A draft\n\nconflict_group: pre-dispatch-binding-store-lock-orphan-attempt-repair\nSpec-path: Prefer-A draft — parallel swarm:pre-dispatch binding-store lock leaves orphan running attempt (#7274)\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nspend: N≥3\nspend-recommend: N≥3\nspend-ask: resolved\nmove-forward: yes\ndispatch-sha: 60e8921207e77d526c9392a6da1e83345d77a6de\ndest: .deft-scratch/worktrees/arc-7274\nTarget-digest: sha256:4f43b6daf2e2711269dbd73762a81d1dc0a293a1cbf945ad0f0eaad17b72cb8c\nKISS: #5783 — short mechanism limbs; docs/naming/hint-wording footnotes; Recut only for mechanism or fail-closed change\n\n## In plain English\n\nThree parallel swarm:pre-dispatch begins race the shared story-binding store lock. Begin saves a running delivery attempt first, then tries to write the worktree binding. When the lock is held, the binding line says the store is locked, but begin still exits 0 with a running attempt. A retry of the same scope and target hits DENY_DUPLICATE_ACTIVE and prints a cancel-worker hint even though no worker was spawned. Prefer-A keeps one begin from leaving a spawn-ready running attempt without its binding, and lets the same-unit retry finish the binding instead of demanding a cancel of a worker that does not exist.\n\n## Approaches\n\n### Approach A (Prefer-A lean)\n- Bounded wait/retry on the story-binding store lock during begin's post-ledger binding write.\n- If the lock still fails after that budget, do not leave a spawn-ready running attempt: roll back or mark the just-created attempt so the same begin is not a silent success with a missing binding.\n- Same scope+target retry that sees DENY_DUPLICATE_ACTIVE with a missing binding for that worktree completes the binding (repair begin) when the active attempt is this unit's and no worker/subagent is attached.\n- DENY_DUPLICATE_ACTIVE hint names pre-cancel/takeover only when an agent id is known; otherwise names binding-repair.\n\n### Approach B\n- Keep non-waiting lock; document operator cancel of orphan attempts. Leaves the dogfood race and wrong hint.\n\n### Approach C\n- Per-worktree locks only (drop the shared store lock). Widens write races across records and reclaim logic without fixing attempt/binding atomicity.\n\n## Proposed Bound remedy (draft — bind after Round-1)\n\n- relieves: P1 — Begin binding write after ledger save uses bounded wait/retry on the story-binding store lock (live holder no longer fails closed on the first contended acquire)\n- relieves: P2 — After that budget, begin must not exit as spawn-ready success with a running attempt and a missing/failed binding for store-lock failure; roll back or equivalent so a clean retry can begin\n- relieves: P3 — Same scope+target begin that hits DENY_DUPLICATE_ACTIVE with missing binding for that worktree and no attached worker completes the binding (repair) instead of requiring cancel\n- relieves: P4 — DENY_DUPLICATE_ACTIVE hint emits pre-cancel/takeover only when an agent/subagent id is known; otherwise names binding-repair\n- Footnote: CHANGELOG / operator docs for the repair path and hint split\n\n## Reject\n\n- Approach B document-only / manual cancel as the primary close\n- Approach C dropping the shared store lock for per-worktree locks alone\n- Softening DENY_DUPLICATE_ACTIVE for arbitrary active attempts that already have bindings and workers\n- Infinite wait on the store lock\n- Spawning a worker when binding write failed\n\n## file_scope (lean)\n\n- packages/core/src/swarm/story-binding-record.ts (+ bounded wait/retry on acquireLock / withStoreLock or a begin-facing wrapper)\n- packages/core/src/swarm/pre-dispatch.ts (begin binding failure disposition + DENY_DUPLICATE_ACTIVE repair + hint split)\n- packages/core/src/swarm/story-binding-record.test.ts / pre-dispatch*.test.ts covering lock contention, orphan-attempt refuse, and repair begin\n- CHANGELOG.md\n\n## Keep-outs\n\n- Reworking delivery-attempt unit lock semantics beyond what begin needs for this race\n- Changing worker-auth assignment store\n- Softening DENY_DUPLICATE_ACTIVE when a binding and worker already exist\n- New swarm role or seat family",
+          "id": 7133379952,
+          "html_url": "https://github.com/deftai/directive/issues/7274#issuecomment-7133379952",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T13:49:01Z",
+          "updated_at": "2026-11-24T13:49:01Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: triage\n```\n\n## Stop 1 — Gate\n\ndesign-critique: warranted, because parallel pre-dispatch leaves a running attempt without a story-binding when the shared store lock is held, then DENY_DUPLICATE_ACTIVE blocks the same-unit retry with a cancel-worker hint for a worker that was never spawned — mechanism-shaped swarm admit race.\nmechanism-shaped: true\ncharter: open critique\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nspend-recommend: N≥3\nspend: N≥3\nspend-ask: resolved\nspend-why: Stop 2 panel permission — open remedy space / high blast radius on swarm:pre-dispatch admit for concurrent begins\npain: P1, P2, P3, P4\n- P1 — Begin binding write fails closed on first contended store-lock acquire (no wait)\n- P2 — Begin can exit 0 with a running attempt after store-lock binding failure (orphan spawn-ready attempt)\n- P3 — Same scope+target retry after that orphan hits DENY_DUPLICATE_ACTIVE instead of completing the binding\n- P4 — DENY_DUPLICATE_ACTIVE hint always names killed-worker pre-cancel even when no agent/subagent is attached\ndual-stop-reserved: 1\nrefutation-target: begin may report story-binding store locked after creating a running attempt and still leave that attempt as the active unit that blocks retry\nPrefer-A draft cite: 7133379952\ndispatch-sha: 60e8921207e77d526c9392a6da1e83345d77a6de\ndest: .deft-scratch/worktrees/arc-7274\nverification-path: pin-read git show 60e8921207e77d526c9392a6da1e83345d77a6de: ; dest cwd-without-occupy for on-pin file reads\nTarget-kind: issue\nCeiling-kind: comment-id",
+          "id": 7133387115,
+          "html_url": "https://github.com/deftai/directive/issues/7274#issuecomment-7133387115",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T13:49:19Z",
+          "updated_at": "2026-11-24T13:49:19Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: parent\n```\n\n## spend-amend\n\nspend-amend: N≥3 → N=2\nreason: Operator note on launch utterance: Claude is not available; limit panel to N=2. Operator confirmed Proceed N=2 Codex+Grok.\nseat-families: codex, grok\ncontainment-class: family-unavailable / operator-predeclared\ndual-stop-reserved: 1\nPrefer-A draft cite: 7133379952\nStop 1 cite: 7133387115",
+          "id": 7133387603,
+          "html_url": "https://github.com/deftai/directive/issues/7274#issuecomment-7133387603",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T13:49:20Z",
+          "updated_at": "2026-11-24T13:49:20Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: parent\n```\n\n## panel-deposit\n\ninput-ceiling: 7133404340\ncharter: open critique\nspend: N=2 (reduced from N≥3)\nspend-amend cite: 7133387603\nseat-families: codex, grok\nreduced-panel: true\nreduced-panel-reason: operator-predeclared Claude unavailable; limit N=2\nround: 1 critic\ndual-stop-reserved: 1\nPrefer-A draft cite: 7133379952\nStop 1 cite: 7133387115\ndispatch-sha: 60e8921207e77d526c9392a6da1e83345d77a6de\ndest: .deft-scratch/worktrees/arc-7274\nverification-path: pin-read git show 60e8921207e77d526c9392a6da1e83345d77a6de: ; dest cwd-without-occupy for on-pin file reads\npain: P1, P2, P3, P4\nlauncher: codex | grok (CLI after recorded native deny when required)",
+          "id": 7133404340,
+          "html_url": "https://github.com/deftai/directive/issues/7274#issuecomment-7133404340",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T13:50:01Z",
+          "updated_at": "2026-11-24T13:50:02Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\nRound 1, fresh, open critique. Reviewed Prefer-A 7133379952, Stop 1 7133387115, and panel-deposit 7133404340; input ceiling 7133404340. Verification: pin-read git show at 60e8921207e77d526c9392a6da1e83345d77a6de, specifically pre-dispatch.ts and story-binding-record.ts. No runtime tests executed under the process-only verification path.\n\nPrefer-A is the right direction, but is not sufficient with only footnotes. P1 has a suitable bounded-wait remedy; P2/P3 need one explicit admission/recovery invariant before binding. P4 needs a narrower hint condition.\n\nExisting mechanisms matter: runBeginLedger evaluates and saves under withUnitLock, then releases that lock before runBegin writes the binding. beginBindingAttemptIds already passes DENY_DUPLICATE_ACTIVE active IDs to ensureBeginStoryBinding, so a duplicate begin already attempts binding repair while preserving its nonzero denial. The store has exclusive locking, dead/stale-owner reclaim, atomic record replacement, and an endedAttemptIds recheck under the store lock. Reuse these; repair is not a wholly absent mechanism.\n\nblocking: C1 — Repair eligibility must distinguish an orphan from an in-flight begin (blocks-the-design; P2/P3).\nEvidence: runBeginLedger saves status=running with workerId defaulting to null, releases the unit lock, and only then calls ensureBeginStoryBinding. During that normal interval, another same-unit begin sees exactly the proposed repair predicate: active attempt, no binding, no attached worker. If repair returns spawn-ready success, both callers can eventually succeed and dispatch the same attempt. If it keeps the existing denial, it writes the binding but does not establish how the orphan becomes dispatchable; a further retry still denies. Null workerId is absence of recorded identity, not proof that no launch occurred, especially for legacy orphan records.\nRemedy pressure: bind a single-owner admission outcome across ledger creation, binding, and recovery. Serialize the relevant begin/repair decision and recheck the exact attempt under its unit lock; explicitly define which one caller can receive spawn permission. Either recover by atomically retiring a proven failed admission and beginning a replacement, or use a durable failed/pending-admission distinction with a single claiming transition. Unknown legacy attachment must not silently authorize launch. Require an interleaving test where caller B retries while caller A is between ledger save and binding: at most one spawn-ready result. Also test two concurrent repairs and repair racing cancel/complete. This is the swarm/shared-state safety condition, not a request for a new orchestration subsystem.\n\nblocking: C2 — Choose the exhausted-wait disposition and preserve clean-retry semantics (blocks-the-design; P2/P3).\nEvidence: the draft leaves “roll back or mark” open, while ensureBeginStoryBinding currently collapses target/scope/store/error outcomes into a string and never changes exit status. A mark that leaves an active attempt still denies retry; a generic terminal failure may enter delivery-attempt budget/history semantics rather than a clean retry. A crash after ledger save also bypasses ordinary rollback.\nRemedy pressure: name the exact failed-admission state/transition, a typed binding outcome, and the returned nonzero result on exhausted contention. Pin compensation to the just-created attempt and reload under the unit lock; never restore a stale ledger snapshot or cancel a successor. Specify whether failed admission consumes delivery-attempt budget, and how the crash window uses C1's recovery without guessing from null workerId. Preserve the existing ended-attempt filter. Acceptance should demonstrate timeout -> non-spawnable result -> successful same-unit retry, plus interrupted begin recovery; no duplicate launch and no unrelated attempt changed. Keep this as a short mechanism limb, with test details outside Bound remedy.\n\nsharpening: C3 — “No agent id” does not always imply binding-repair is the remedy (sharpens-framing; P4).\nEvidence: begin accepts null workerId, and duplicate results normally carry activeAttemptIds but no attempt object; a fully bound active attempt can therefore have no agent id available to the formatter. The proposed two-way hint would tell that caller to repair an already valid binding, producing a retry loop.\nRemedy pressure: derive the hint from verified repair eligibility/binding outcome as well as known identity. Eligible failed admission gets the concrete repair command; known worker gets pre-cancel/takeover; bound or uncertain ownership retains “do not spawn” with an inspect/resolve-identity path. This sharpens P4 without weakening duplicate denial.\n\nfootnote: C4 — Keep bounded waiting local to begin unless broader behavior is intentionally needed. Preserve token-checked release and dead-owner reclaim; waiting must not reclaim a live holder merely because the retry budget elapsed. Approach B's strongest case is a smaller safety surface, but manual cancellation does not relieve P1/P3. Approach C's per-worktree locking could reduce contention, but replacing the shared lock alone leaves the cross-store admission gap. I would accept Prefer-A once C1/C2 select a thin deterministic transition and C3 narrows the hint.\n\nfootnote: C5 — Protocol bookkeeping: panel-deposit names seat-families but omits the pinned contract's siblings field; Stop 1 includes refutation-target despite the recorded open-critique charter. I followed the envelope's open charter and ceiling, without re-ceiling or judging sibling completeness. The envelope requests blocking/sharpening line-starts; the pinned contract uses blocks-the-design/sharpens-framing, so both classifications are identified above.\n\n",
+          "id": 7133471147,
+          "html_url": "https://github.com/deftai/directive/issues/7274#issuecomment-7133471147",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T13:52:42Z",
+          "updated_at": "2026-11-24T13:52:42Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-5\n```quarantined\nrole: critic\n```\n\naudit-targets: none\nround: 1 critic\ncharter: open critique\nPrefer-A draft cite: 7133379952\nStop 1 cite: 7133387115\npanel-deposit cite: 7133404340\ninput-ceiling: 7133404340\ndispatch-sha: 60e8921207e77d526c9392a6da1e83345d77a6de\nverification-path: pin-read dest files at dispatch-sha (story-binding-record.ts acquireLock/withStoreLock/ensureStoryBindingRecord; pre-dispatch.ts ensureBeginStoryBinding/runBegin/beginBindingAttemptIds/formatPreDispatchReport)\n\n## Verdict\n\nPrefer-A Approach A is the right lean against P1–P4. It is not yet bind-ready as written: two mechanism holes leave false-relief risk on P2/P3 if Bound copies the draft limbs verbatim.\n\nfinding-classes: blocking, sharpening, footnote\n\n## Findings\n\n### F1 — P3 must name post-repair admit (not only binding write)\n\nblocking: blocks-the-design\n\nEvidence: `runBegin` already calls `ensureBeginStoryBinding` whenever `beginBindingAttemptIds` is non-empty, and that helper includes `DENY_DUPLICATE_ACTIVE` active ids (`pre-dispatch.ts` beginBindingAttemptIds + runBegin). On a free store lock, a same-unit retry can already write the missing record and still exit gate-failed with the hard-coded cancel hint (`formatPreDispatchReport` lines for DENY_DUPLICATE_ACTIVE). Prefer-A P3 / Approach A say the retry \"completes the binding (repair) instead of requiring cancel,\" but the draft limbs never name the post-repair decision or exit.\n\nFailure mode: Bound ships \"repair = ensureStoryBindingRecord on DENY\" and keeps DENY_DUPLICATE_ACTIVE + pre-cancel hint. Dogfood P3 stays: binding may exist, spawn remains forbidden, operator is still steered to cancel a worker that was never attached.\n\nDisposition consequence: Remint Prefer-A Bound so the P3 limb states a closed post-repair outcome when predicates hold (missing binding for this worktree, active attempt is this unit's, no attached worker/subagent): e.g. exit 0 with the existing running attempt admitted for spawn, or an explicit repair-admit decision that is spawn-legal without cancel. Binding write alone does not relieve P3.\n\n### F2 — P2 must pick one fail-closed disposition after wait budget\n\nsharpening: sharpens-framing\n\nEvidence: Prefer-A P2 says \"roll back or mark\" / \"roll back or equivalent\" after the lock budget fails. Pin-read shows today's invariant is stronger the other way: `ensureBeginStoryBinding` documents that binding failure never changes begin's exit code, and `runBegin` always spreads the ledger result after attaching `storyBinding` text. Roll back (end/remove the just-created running attempt under the unit lock) vs mark (leave the attempt, change spawn-readiness) are different machines and change whether P3 is recovery-only or the steady-state path.\n\nFailure mode: Implementers pick the softer mark, leave `status=running`, and rely on underspecified P3; or Bound keeps both phrasings and PA cannot tell which association is fail-closed.\n\nDisposition consequence: Bind one primary post-budget disposition in the P2 limb (recommend: roll back / end the just-created attempt so a clean retry can begin). Keep P3 as heal for already-orphaned running attempts (pre-fix ledger + residual races). Do not leave \"or mark\" as a co-equal unbound choice on the Bound remedy line.\n\n### F3 — P1 budget and begin-only wait surface\n\nsharpening: sharpens-framing\n\nEvidence: `acquireLock` / `withStoreLock` fail closed on the first live-holder miss (`story-binding-record.ts`); file header states the lock does not wait. Prefer-A correctly scopes wait to begin's post-ledger binding write, but names no duration/retry budget and no wrapper seam (begin-facing wait vs changing every `withStoreLock` caller including `removeStoryBindingAttempts`).\n\nFailure mode: Infinite or multi-minute wait under parallel begins, or accidental wait on complete/remove paths outside Keep-outs intent.\n\nDisposition consequence: Bound P1 names a finite budget (retries × sleep or wall-clock cap) and the begin-only entry point (wrapper used by `ensureBeginStoryBinding` / begin path only). Complete/remove stay non-waiting unless a later leftover says otherwise.\n\n### F4 — P4 \"agent id known\" must bind to a concrete field\n\nsharpening: sharpens-framing\n\nEvidence: DENY hint is unconditional prose today. Attempt begin records `workerId` / `externalRunId` (nullable); input also has `agentId` for cancel/pre-cancel. P4 says emit pre-cancel only when \"an agent/subagent id is known\" without naming which ledger/occupancy field is the predicate.\n\nFailure mode: Hint still always prints pre-cancel, or flaps on null workerId while a host subagent id exists elsewhere (or the reverse).\n\nDisposition consequence: P4 limb names the predicate field(s) (e.g. non-null attempt.workerId and/or resolved occupancy/subagent id for the target). Otherwise keep as footnote until Bound picks the field.\n\n### F5 — Other binding failure modes stay orphan-capable\n\nfootnote: footnote\n\nEvidence: `ensureBeginStoryBinding` also returns non-writing lines for target/scope/error failures without changing exit. Stop 1 P2 is store-lock-scoped; Prefer-A matches that scope.\n\nFailure mode: Non-lock binding failures can still exit 0 with a running attempt.\n\nDisposition consequence: Accept as residual/footnote under open materiality unless parent widens P2. Do not claim full binding-atomicity relief beyond store-lock.\n\n## Swarm lens\n\nTarget is shared store lock + concurrent worktree begins + attempt ledger authority. Approach C (drop shared store lock) correctly rejected: widens cross-record write races. Approach B (document cancel) leaves dogfood P2–P4. Prefer-A keeps shared lock and tightens begin atomicity — right authority boundary.\n\n## Road-not-taken\n\nReorder to bind-then-begin (write binding before ledger running) was considered and rejected here: it fights the pinned #6379 \"record after ledger save\" order and invents a new orphan class (binding without attempt). Prefer-A's wait + rollback/repair stays inside that order.\n\n## Steelman (Approach B)\n\nStrongest reject: operator cancel is already the documented DENY path; shipping wait/retry adds latency under load. Flip: dogfood shows cancel hint is false when no worker attached, and exit 0 + locked binding is not an operator-education problem — it is a false admit. Mechanism change remains required.\n\n## Pain coverage (draft → Stop 1)\n\n- P1 — covered if F3 budget/seam lands in Bound\n- P2 — covered if F2 picks roll back (or one named equivalent) and begin exit changes on post-budget lock failure\n- P3 — not covered until F1 names spawn-legal post-repair admit\n- P4 — covered if F4 field predicate lands (else footnote)\n\n## Bottom line\n\nDo not bind Prefer-A draft 7133379952 as-is. Absorb F1 (blocking) and F2–F3 (sharpening) into Bound remedy limbs before pain-audit. F4 sharpening preferred on the Bound line; F5 footnote OK under open bar.",
+          "id": 7133499070,
+          "html_url": "https://github.com/deftai/directive/issues/7274#issuecomment-7133499070",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T13:53:50Z",
+          "updated_at": "2026-11-24T13:53:50Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: parent\n```\n\nLean: Prefer-A Bound\n\nconflict_group: pre-dispatch-binding-store-lock-orphan-attempt-repair\nSpec-path: Prefer-A Bound — parallel swarm:pre-dispatch binding-store lock orphan attempt + repair-admit (#7274)\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nspend: N=2 (reduced-panel)\nmove-forward: yes\ndispatch-sha: 60e8921207e77d526c9392a6da1e83345d77a6de\ndest: .deft-scratch/worktrees/arc-7274\nTarget-digest: sha256:4f43b6daf2e2711269dbd73762a81d1dc0a293a1cbf945ad0f0eaad17b72cb8c\nBound-harvest-digest: sha256:00551cb3ab731cec73af01d72b9d1cc28b96f05ca9a01282a2fa874d24d59c00\nKISS: #5783 — short mechanism limbs; absorb Round-1 blocking/sharpening; footnotes for residual\nRound-1 siblings: 2 (Codex 7133471147, Grok 7133499070)\ndisposes critic 7133471147\ndisposes critic 7133499070\nPrefer-A draft cite: 7133379952\nStop 1 cite: 7133387115\npanel-deposit cite: 7133404340\n\n## In plain English\n\nParallel begins can create a running attempt before the shared story-binding lock is free. Prefer-A waits briefly for that lock on begin only, rolls back a just-created attempt if the wait fails, and on a same-unit retry that finds an orphaned active attempt with no binding and no worker, finishes the binding and admits that attempt for spawn. Hints tell operators to repair the binding or cancel a real worker only when those predicates hold — not when the attempt is already bound.\n\n## Bound remedy\n\n- relieves: P1 — Begin-only bounded wait/retry on the story-binding store lock during post-ledger binding write (finite retry×sleep or wall-clock cap; complete/remove stay non-waiting; dead-owner reclaim unchanged)\n- relieves: P2 — After that budget fails on store-lock contention for a just-created attempt, roll back/end that attempt under the unit lock and return nonzero non-spawnable; do not leave status=running spawn-ready with a missing binding; clean same-unit retry can begin\n- relieves: P3 — Same scope+target begin that finds this unit's active attempt with missing binding for that worktree and no attached worker completes binding and returns a spawn-legal repair-admit of that existing attempt (exit 0 or named repair-admit decision); binding write alone is not enough; serialize the begin/repair decision under the unit lock and recheck the exact attempt so an in-flight begin between ledger save and binding cannot double-admit with a concurrent repair\n- relieves: P4 — DENY_DUPLICATE_ACTIVE hint derives from repair-eligibility/binding outcome plus known identity: eligible failed-admission/missing-binding repair path names binding-repair; known non-null attempt.workerId (and/or resolved occupancy/subagent id for the target) names pre-cancel/takeover; already-bound or uncertain ownership keeps do-not-spawn with inspect/resolve-identity — never imply repair for a valid bound attempt merely because formatter lacks an agent id\n- Footnote: CHANGELOG / operator docs for repair-admit and hint split; panel-deposit siblings field bookkeeping; other non-lock binding failure modes remain residual under open materiality (Codex C4/C5, Grok F5)\n\n## Acceptance Criteria\n\n- A1 — Contended store lock during begin binding: wait budget eventually writes binding or rolls back the just-created attempt with nonzero non-spawnable; never exit 0 spawn-ready with missing binding after store-lock failure\n- A2 — Interleaving: caller B retries while caller A is between ledger save and binding; at most one spawn-ready result; no double dispatch of the same attempt\n- A3 — Orphan repair: same scope+target with missing binding + this unit active attempt + no attached worker → binding written + spawn-legal repair-admit without cancel\n- A4 — Hint matrix: repair-eligible → binding-repair lines; known workerId/subagent → pre-cancel/takeover; already-bound without identity → do-not-spawn/inspect (not repair)\n- A5 — Fixtures cover wait-success, wait-exhausted-rollback+clean-retry, interleaving double-admit refuse, repair-admit, and hint branches\n\n## Takes (Round-1)\n\n- Codex 7133471147: accept C1/C2 into P3/P2; accept C3 into P4; C4/C5 footnote\n- Grok 7133499070: accept F1 into P3; accept F2 into P2; accept F3 into P1; accept F4 into P4; F5 footnote\n\n## Reject (unchanged)\n\n- Document-only / manual cancel as primary close\n- Dropping the shared store lock for per-worktree locks alone\n- Softening DENY_DUPLICATE_ACTIVE when binding and worker already exist\n- Infinite wait on the store lock\n- Spawning when binding write failed\n\n## file_scope\n\n- packages/core/src/swarm/story-binding-record.ts (begin-facing wait wrapper; leave complete/remove non-waiting)\n- packages/core/src/swarm/pre-dispatch.ts (rollback on exhausted wait; repair-admit path; hint matrix; unit-lock serialize for repair vs in-flight)\n- matching *.test.ts for A1–A5\n- CHANGELOG.md",
+          "id": 7133516631,
+          "html_url": "https://github.com/deftai/directive/issues/7274#issuecomment-7133516631",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T13:54:32Z",
+          "updated_at": "2026-11-24T13:54:32Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1,pain-P2,pain-P3,pain-P4\nfinding-classes: none\nharvest-changed: false\nharvest-digest: sha256:e4742d631fa0f9e2ef53c9a7f2b2add24f5414a0034296b257e2ddb6fb959090\n\nPain audit of [Prefer-A Bound](https://github.com/deftai/directive/issues/7274#issuecomment-7133516631), against the P1-P4 definitions in Stop 1 (7133387115). Verification: pin-read git show 60e8921207e77d526c9392a6da1e83345d77a6de: for content/contracts/design-critique.md and packages/core/src/swarm/{pre-dispatch,story-binding-record}.ts. Comment ceiling: 7133516631.\n\n- P1: Honest relief. Begin gets a finite contention wait; exhaustion has a defined failure path. Complete/remove and dead-owner reclamation retain their stated behavior.\n- P2: Honest relief. Exhausted store-lock contention ends the just-created attempt under the unit lock and returns nonzero, non-spawnable. A1/A5 require both rollback and a clean retry, closing the present exit-0 orphan path.\n- P3: Honest relief. The remedy repairs this unit's existing orphan and returns spawn-legal admission, rather than merely writing a binding while retaining duplicate denial. Unit-lock serialization, exact-attempt recheck, and A2's at-most-one spawn-ready result explicitly cover the ledger-save/binding interleaving.\n- P4: Honest relief. Hints depend on repair eligibility and actual binding/identity state. A valid bound attempt with unavailable identity stays do-not-spawn/inspect; null identity alone does not authorize repair or imply a killed worker.\n\nNo Bound remint is needed for these named pains. This is a design-coverage finding, not implementation verification. Other non-lock binding failures are expressly residual and are not counted as relieved by this audit.",
+          "id": 7133577116,
+          "html_url": "https://github.com/deftai/directive/issues/7274#issuecomment-7133577116",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T13:56:43Z",
+          "updated_at": "2026-11-24T13:58:23Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-5\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1,pain-P2,pain-P3,pain-P4\nfinding-classes: none\nharvest-changed: false\nharvest-digest: sha256:e4742d631fa0f9e2ef53c9a7f2b2add24f5414a0034296b257e2ddb6fb959090\n\nPain-audit of Prefer-A Bound 7133516631 (Pass-4 / reduced-panel N=2). Pin-read SHA 60e8921207e77d526c9392a6da1e83345d77a6de: story-binding-record acquireLock/withStoreLock (no wait); ensureBeginStoryBinding never changes begin exit. Ceiling 7133516631.\n\nP1 — Bound names begin-only finite wait/retry (retry×sleep or wall-clock) on post-ledger binding; complete/remove stay non-waiting; dead-owner reclaim unchanged. Relieves first-acquire fail-closed. Honest.\n\nP2 — Bound picks roll back/end of the just-created attempt under the unit lock + nonzero non-spawnable (no co-equal \"or mark\"); clean same-unit retry can begin. Relieves exit-0 orphan after store-lock binding failure. Non-lock binding failures correctly left residual under open materiality (footnote). Honest.\n\nP3 — Bound requires spawn-legal repair-admit (exit 0 or named repair-admit), not binding write alone; unit-lock serialize + exact-attempt recheck closes the in-flight begin vs concurrent repair double-admit hole (Codex C1 / Grok F1). Relieves DENY-without-binding-complete. Honest.\n\nP4 — Hint matrix from repair-eligibility/binding outcome + known identity (non-null attempt.workerId and/or resolved occupancy/subagent); already-bound/uncertain keeps inspect — never repair for a valid bound attempt when the formatter lacks an agent id. Relieves unconditional pre-cancel. Honest.\n\nAC A1–A5 match the fail-closed associations. Footnote CHANGELOG/docs/panel siblings do not change harvest mechanism (#3368).\n\nfinding-classes: none\nharvest-changed: false",
+          "id": 7133590147,
+          "html_url": "https://github.com/deftai/directive/issues/7274#issuecomment-7133590147",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T13:57:11Z",
+          "updated_at": "2026-11-24T13:58:25Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: parent\n```\n\n## recorded-takes\n\nsuccessor lean: 7133516631\npain-audit Codex: 7133577116 — finding-classes: none; harvest-changed: false\npain-audit Grok: 7133590147 — finding-classes: none; harvest-changed: false\ntake: all-accept Prefer-A Bound for P1–P4 under yolo standing\nreduced-panel: true (N=2 Codex+Grok; Claude unavailable per operator)\nmove-forward: yes",
+          "id": 7133603480,
+          "html_url": "https://github.com/deftai/directive/issues/7274#issuecomment-7133603480",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T13:57:39Z",
+          "updated_at": "2026-11-24T13:57:39Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Evidence | Status |\n| --- | --- | --- |\n| Stop 1 warranted + mechanism-shaped | 7133387115; chip mechanism-shaped then in-progress | verified |\n| Spend N≥3 resolved then amended N=2 | spend-resolve + amend 7133387603; seat-families codex,grok | verified |\n| Round-1 panel posted | Codex 7133471147; Grok 7133499070; ceiling 7133404340 | verified |\n| Prefer-A Bound absorbs Round-1 blockers | lean 7133516631; disposes 7133471147/7133499070; harvest sha256:00551cb3ab731cec73af01d72b9d1cc28b96f05ca9a01282a2fa874d24d59c00 | verified |\n| Pain-audit clear on P1–P4 | Codex 7133577116; Grok 7133590147; finding-classes none; harvest-changed false | verified |\n| Target-digest pin | sha256:4f43b6daf2e2711269dbd73762a81d1dc0a293a1cbf945ad0f0eaad17b72cb8c on lean 7133516631 | verified |\n| Reduced panel named | Claude unavailable; N=2 Codex+Grok | verified |\n| Dispatch SHA | 60e8921207e77d526c9392a6da1e83345d77a6de at dest .deft-scratch/worktrees/arc-7274 | verified |\n\nCited Prefer-A Bound: 7133516631",
+          "id": 7133604061,
+          "html_url": "https://github.com/deftai/directive/issues/7274#issuecomment-7133604061",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T13:57:40Z",
+          "updated_at": "2026-11-24T13:57:40Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: parent\n```\n\ndesign-critique: synthesis accepted, because Prefer-A Bound 7133516631 relieves Stop 1 P1–P4 with dual pain-audit clear (Codex 7133577116, Grok 7133590147; finding-classes: none; harvest-changed: false) under reduced-panel N=2.\n\n## In plain English\n\nParallel swarm:pre-dispatch begins raced the shared story-binding lock and left a running attempt without a binding, so the retry looked like a duplicate worker that never existed. The accepted Bound waits briefly on that lock for begin, rolls back a just-created attempt if the wait fails, and on a same-unit orphan with no worker finishes the binding and admits that attempt for spawn. Hints match repair versus real cancel. Dual Codex/Grok pain audits found no false relief. Ingest stays a later separate operator verb.\n\n## Verified-claims table\n\nSee comment 7133604061.\n\n## Citations\n\n- Prefer-A Bound lean: 7133516631\n- Verified-claims table: 7133604061\n- Pain-audit Codex: 7133577116\n- Pain-audit Grok: 7133590147\n- Round-1 Codex: 7133471147\n- Round-1 Grok: 7133499070\n- Prefer-A draft: 7133379952\n- Stop 1: 7133387115\n- panel-deposit: 7133404340\n- spend-amend: 7133387603\n- Target-digest: sha256:4f43b6daf2e2711269dbd73762a81d1dc0a293a1cbf945ad0f0eaad17b72cb8c\n- Bound-harvest-digest: sha256:00551cb3ab731cec73af01d72b9d1cc28b96f05ca9a01282a2fa874d24d59c00\n- dispatch-sha: 60e8921207e77d526c9392a6da1e83345d77a6de\n- dest: .deft-scratch/worktrees/arc-7274\n- reduced-panel: N=2 Codex+Grok (Claude unavailable)",
+          "id": 7133604642,
+          "html_url": "https://github.com/deftai/directive/issues/7274#issuecomment-7133604642",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T13:57:41Z",
+          "updated_at": "2026-11-24T13:57:41Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## What happened\n\nThree `swarm:pre-dispatch` begins for three deftvisage worktrees ran at the same time. One returned exit 0 with:\n\n```\nstory-binding: no record written (store): the story-binding record store is locked\nattempt: att-f0cad544390b23aa status=running\n```\n\nThe retry for that same worktree and same story was:\n\n```\ndecision: DENY_DUPLICATE_ACTIVE\nreason: active attempt already exists (att-f0cad544390b23aa)\nhint: do not spawn; a killed worker stays running until cancelled.\n```\n\nThe attempt was begun and the binding write did not finish. No worker had been spawned. The hint says to pre-cancel a worker that does not exist.\n\n## Expected\n\nA locked store either waits and writes the binding, or the failed write does not leave an attempt that makes the same begin a duplicate. A retry of the same scope and target after a lock failure completes the binding.\n\n## Evidence\n\n2026-11-24. Scope `story.phase6-desk-health-flows`, target `/Users/johnmcdaniel/Projects/WarpDev/DEFTvisage/.deft-scratch/worktrees/desk-health-flows`. The other two begins in the same moment (`story.phase6-desk-job-snapshot-cards`, `story.phase6-desk-plan-create-guard`) did write their bindings.\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6580878198,
+        "origin": "deftai/directive#7274",
+        "id": "github.issue.6580878198"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "4f43b6daf2e2711269dbd73762a81d1dc0a293a1cbf945ad0f0eaad17b72cb8c"
+      },
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 7274,
+        "leanCommentId": 7133516631,
+        "harvestDigest": "e4742d631fa0f9e2ef53c9a7f2b2add24f5414a0034296b257e2ddb6fb959090",
+        "slice": null
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": false,
+        "size": "medium",
+        "file_scope": [
+          "packages/core/src/swarm/story-binding-record.ts",
+          "packages/core/src/swarm/pre-dispatch.ts",
+          "packages/core/src/swarm/story-binding-record.test.ts",
+          "packages/core/src/swarm/pre-dispatch.test.ts",
+          "changelog.d/7274-pre-dispatch-binding-lock-repair.md"
+        ],
+        "file_scope_confidence": "high",
+        "verify_commands": [],
+        "depends_on": [],
+        "conflict_group": "pre-dispatch-binding-store-lock-orphan-attempt-repair"
+      }
+    },
+    "id": "github.issue.6580878198",
+    "updated": "2026-11-24T14:17:32Z"
+  }
+}

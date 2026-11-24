@@ -13,6 +13,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Admit a simple project install when the runtime pin is missing, so a fresh checkout can install itself (#7275).
+- Stop teaching in-harness-ask for observable-scope after declared writers (#7272).
+- Apply acceptance-disposition deferrals during the clause walk so deferred clauses do not fail complete (#7254).
+- Wait and repair orphan pre-dispatch attempts when the story-binding store lock is busy (#7274).
+- Prefer a destination story-binding over session multi-active briefs when spawning into a linked worktree (#7271).
+
 - Record approved file permissions for dest-worktree mint spawn admission. This records approval only; it does not change product behavior (#7256 / #7257).
 
 - Prepare dest-worktree mint admission so overnight bulk builders can start from a linked-worktree mint without a second mint pass (#7256 / #7257).

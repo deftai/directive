@@ -1,0 +1,501 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #7275",
+    "updated": "2026-11-24T14:14:29Z"
+  },
+  "plan": {
+    "title": "[framework-gap] A checkout with no runtime cannot run the install that would create it",
+    "status": "running",
+    "narratives": {
+      "Description": "[framework-gap] A checkout with no runtime cannot run the install that would create it",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/7275",
+      "Overview": "## What happened\n\nA fresh evolution worktree had no `node_modules/@deftai/directive-runtime`. Every shell command and every file write was denied:\n\n```\nHook denied: Directive hooks: missing node_modules/@deftai/directive-runtime (run npm install). Agent tool calls stay blocked until a person runs it.\n```\n\nThe recovery is `npm install`. The same hook blocks the agent from running `npm install`. A person had to run it in a terminal outside the agent. Until that returned, git, gh, and deft could not run.\n\n## Expected\n\nThe missing-runtime deny allows the one install command it names, or the host runs that install before the first agent turn. It does not deadlock the session.\n\n## Evidence\n\n2026-11-24. Checkout `/Users/johnmcdaniel/.grok/worktrees/warpdev-evolution/phase6wave2` before `npm install`. The stub text is the missing-runtime guidance in `.cursor/hooks/deft-hook-*.mjs` (`Agent tool calls stay blocked until a person runs it`). After the person ran `npm install`, the hooks started executing Directive again.\n\n",
+      "Labels": "bug, agent-experience, process, harness, urgent, area:installer, dogfood, design-critique:ingest-ready, framework-gap, core-capabilities, promise:lifecycle, promise:gates",
+      "UserStory": "## What happened\n\nA fresh evolution worktree had no `node_modules/@deftai/directive-runtime`. Every shell command and every file write was denied:\n\n```\nHook denied: Directive hooks: missing node_modules/@deftai/directive-runtime (run npm install). Agent tool calls stay blocked until a person runs it.\n```\n\nThe recovery is `npm install`. The same hook blocks the agent from running `npm install`. A person had to run it in a terminal outside the agent. Until that returned, git, gh, and deft could not run.\n\n## Expected\n\nThe missing-runtime deny allows the one install command it names, or the host runs that install before the first agent turn. It does not deadlock the session.\n\n## Evidence\n\n2026-11-24. Checkout `/Users/johnmcdaniel/.grok/worktrees/warpdev-evolution/phase6wave2` before `npm install`. The stub text is the missing-runtime guidance in `.cursor/hooks/deft-hook-*.mjs` (`Agent tool calls stay blocked until a person runs it`). After the person ran `npm install`, the hooks started executing Directive again.\n\n",
+      "ImplementationPlan": "Implement Prefer-A Bound comment 7133400155 limbs; tests; changelog.d."
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "When pin hook-bin is absent on tool.before, the deposited outer admits only exact simple project-root installs from PIN_MISMATCH_RECOVERY_COMMANDS.",
+        "status": "pending"
+      },
+      {
+        "id": "clause.2",
+        "title": "Mirror pin-mismatch admit gates in the outer (shell tool, simple command, project-root proof); refuse otherwise.",
+        "status": "pending"
+      },
+      {
+        "id": "clause.3",
+        "title": "Admitted install uses quietAllow; non-matches stay blocked with lockfile-named guidance that names the install exception.",
+        "status": "pending"
+      },
+      {
+        "id": "clause.4",
+        "title": "Do not admit npm i -g @deftai/directive or directive install --repair as missing-runtime recovery.",
+        "status": "pending"
+      },
+      {
+        "id": "clause.5",
+        "title": "Fixtures cover exact admit/refuse per host payload; installed-pin path still forwards payload to hook-bin.",
+        "status": "pending"
+      },
+      {
+        "id": "clause.6",
+        "title": "changelog.d fragment for the admit.",
+        "status": "pending"
+      }
+    ],
+    "tags": [
+      "bug",
+      "agent-experience",
+      "process",
+      "harness",
+      "urgent",
+      "area:installer",
+      "dogfood",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:lifecycle",
+      "promise:gates"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/7275",
+        "type": "x-xbrief/github-issue"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/comments/7133400155",
+        "type": "x-xbrief/github-comment"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "npm install",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L11"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": false,
+        "size": "medium",
+        "file_scope": [
+          "packages/core/src/init-deposit/host-hook-outer.ts",
+          "packages/core/src/install-health/recovery-admit.ts",
+          "packages/core/src/install-health/recovery-admit.test.ts",
+          "packages/cli/src/entry-guard-parity.test.ts",
+          "packages/runtime/src/hook-identity-failclosed.test.ts",
+          "changelog.d/7275-missing-runtime-outer-admits-install.md"
+        ],
+        "file_scope_confidence": "high",
+        "verify_commands": [],
+        "depends_on": [],
+        "conflict_group": "missing-runtime-outer-admits-named-project-install"
+      },
+      "intended_placement": {
+        "files": [
+          "packages/core/src/init-deposit/host-hook-outer.ts",
+          "packages/core/src/install-health/recovery-admit.ts",
+          "packages/core/src/install-health/recovery-admit.test.ts",
+          "packages/cli/src/entry-guard-parity.test.ts",
+          "packages/runtime/src/hook-identity-failclosed.test.ts",
+          "changelog.d/7275-missing-runtime-outer-admits-install.md"
+        ],
+        "module_boundary": "packages/core/src",
+        "cohesion_exemption": "Bound-localized change in existing hot modules for Prefer-A Bound #7275"
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\narc-mode: no-ingest\nspend-recommend: N≥3\nspend: N≥3\nspend-ask: resolved\nyolo-standing: yes\npain: P1, P2, P3\ndual-stop-reserved: first post-lean pain-audit of asserted coverage in-cap via evaluateDualStopParentPath; raise after reserved spent\nverification-path: pin-read dest=.deft-scratch/worktrees/arc-7275 dispatch-sha=60e8921207e77d526c9392a6da1e83345d77a6de\n\ndesign-critique: warranted, because missing-runtime deny deadlocks the named project install recovery; mechanism lives in the host-hook outer before pin spawn.\n\n## Stop 1 — Gate\n\nA fresh checkout with no node_modules/@deftai/directive-runtime hits the host-hook outer missing-pin path. The outer names the project install from the lockfile and adds that a person runs it, then blocks every tool.before. The agent cannot run that install because the same deny covers it. Pin-mismatch already admits those exact simple installs once the runtime exists (recovery-admit). Runtime-missing never reaches hook-bin, so that admit never runs.\n\nrefutation-target: that the person-runs message alone is a complete recovery when the deny also blocks the named install\n\n## Pain\n\n- P1: missing-runtime deny refuses the named project install and deadlocks the session\n- P2: person-outside-session is the only recovery; the agent cannot self-heal the missing pin\n- P3: outer has no command-matching admit path before pin spawn (unlike pin-mismatch recovery-admit)\n\n## In plain English\n\nHooks say run npm/pnpm install, then block that same install. Someone outside the agent has to fix it. We want the named install to be allowed while everything else stays blocked.",
+          "id": 7133278664,
+          "html_url": "https://github.com/deftai/directive/issues/7275#issuecomment-7133278664",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T13:44:57Z",
+          "updated_at": "2026-11-24T13:44:57Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: parent\n```\n\nLean: Prefer-A draft\nconflict_group: missing-runtime-outer-admits-named-project-install\nTarget-digest: sha256:3dd0b9323e057ae494f3be481362c371141ee2ad3db64d00ee0debc01293b0f3\narc-mode: no-ingest\nspend: N≥3\nyolo-standing: yes\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\n## In plain English\n\nWhen the runtime pin is missing, the outer still names the project install. Prefer-A lets that exact simple install through on tool.before and keeps blocking every other command. Global launcher repair stays out of this admit. A person can still pre-install; that is optional docs leftover, not the Bound.\n\n## Bound remedy\n\n1. When pin hook-bin is absent on tool.before, the outer reads the host tool command and admits only exact simple project-root installs from the pin-mismatch allowlist (pnpm install --frozen-lockfile, npm install, npm ci).\n2. Keep the person-runs refuse for every other command and for non-tool.before events while the pin is missing.\n3. Do not admit npm i -g @deftai/directive or directive install --repair as the runtime-missing recovery.\n4. Keep the outer on Node built-ins only; share the token matcher with pin-mismatch recovery by generating the same sequences into the outer source from the shared constants.\n5. Fixtures: exact admit; compound/redirect/quote refuse; pin-mismatch path unchanged; guidance still names the lockfile install.\n\n## Reject\n\n- disable-host-hooks / kill-switch as the missing-runtime fix\n- widening admit past the three project install sequences\n- requiring a new host pre-install gate before first agent turn (docs leftover only)",
+          "id": 7133279119,
+          "html_url": "https://github.com/deftai/directive/issues/7275#issuecomment-7133279119",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T13:44:58Z",
+          "updated_at": "2026-11-24T13:44:58Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: parent\n```\n\nspend-amend: N=2\nseat-families: codex, grok\nreason: operator note — Claude is not available; reduced panel before Round-1 (unavailable-family class; #5478 containment family)\nprior-spend: N≥3\nyolo-standing: yes\narc-mode: no-ingest\n\nClaude seat skipped for this arc. Round-1 seats Codex + Grok only against Prefer-A draft 7133279119.",
+          "id": 7133293332,
+          "html_url": "https://github.com/deftai/directive/issues/7275#issuecomment-7133293332",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T13:45:32Z",
+          "updated_at": "2026-11-24T13:45:32Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: parent\n```\n\npanel-deposit\nspend: N=2\nseat-families: codex, grok\nlauncher: codex | grok\nid-ceiling: 7133293800\nSHA at dispatch: 60e8921207e77d526c9392a6da1e83345d77a6de\narc-mode: no-ingest\nverification-path: pin-read dest=.deft-scratch/worktrees/arc-7275\nTarget: https://github.com/deftai/directive/issues/7275\nTarget-kind: issue\nRound: 1 critic\nCharter: open critique\n\n## Panel\n\nRound-1 open critique of Prefer-A draft 7133279119 against Stop 1 pains P1–P3 (7133278664). Each critic posts once and EXITs. Id ceiling inclusive: 7133293800. Dest pin 60e8921207e77d526c9392a6da1e83345d77a6de. Do not ingest. Do not implement. Reduced panel: Codex + Grok (Claude unavailable per operator).",
+          "id": 7133293800,
+          "html_url": "https://github.com/deftai/directive/issues/7275#issuecomment-7133293800",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T13:45:33Z",
+          "updated_at": "2026-11-24T13:45:34Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\n\nVerdict: accept-with-nits for Prefer-A draft 7133279119.\n\nReviewed the issue body and comments through inclusive ID 7133293800 against dispatch SHA 60e8921207e77d526c9392a6da1e83345d77a6de. Prefer-A reaches the actual deadlock: hostHookOuterSource() refuses before hook-bin can reach admitPinMismatchRecovery(). Moving the narrow project-install exception into that missing-pin branch addresses the stated recovery failure. No co-equal alternative is needed.\n\nPlease tighten these details within Prefer-A:\n\n1. Make the shell-tool and execution-directory predicates explicit in the fixtures. packages/core/src/install-health/recovery-admit.ts#admitPinMismatchRecovery requires both shellTool and atProjectRoot; sharing PIN_MISMATCH_RECOVERY_COMMANDS alone does not preserve those checks. In packages/core/src/init-deposit/host-hook-outer.ts#hostHookOuterSource, findProjectRoot(here) identifies the deposited outer's project, not necessarily the requested command's execution directory. Test a non-shell payload carrying command: \"npm install\", an explicit foreign/subdirectory cwd or workdir, malformed input, and each supported host's real payload. Refuse when project-root execution cannot be established.\n\n2. Preserve stdin on the installed-runtime path. hostHookOuterSource currently passes stdin directly to hook-bin with stdio: [\"inherit\", \"pipe\", \"inherit\"]. Reading the host payload for the new matcher must occur only in the missing-pin branch, or the exact input must be forwarded to the child. Add an installed-pin fixture that proves hook-bin still receives the payload; command-matcher parity alone cannot catch this regression.\n\n3. Adjust the missing-pin refusal's explanation while preserving its deny decision. HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE appends ENTRY_GUARD_PERSON_RUNS_INSTALL (packages/core/src/install-health/constants.ts), which says every agent tool call stays blocked until a person installs. After Prefer-A that statement is false and can keep the agent from trying the newly allowed recovery. Give this branch wording that names the exact project install exception; retain the shared person-only suffix for callers where it remains true.\n\nThese are bounded contract/test and guidance clarifications, not a reason to replace Prefer-A. Keep the three-command ceiling, Node-built-ins-only outer, and exclusion of global install and wiring repair.",
+          "id": 7133358496,
+          "html_url": "https://github.com/deftai/directive/issues/7275#issuecomment-7133358496",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T13:48:09Z",
+          "updated_at": "2026-11-24T13:48:09Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: critic\n```\n\nverdict: accept-with-nits\ntarget: Prefer-A draft 7133279119\nagainst: Stop 1 7133278664 (P1, P2, P3)\npin-read: 60e8921207e77d526c9392a6da1e83345d77a6de\n\n## Verdict\n\naccept-with-nits for Prefer-A draft 7133279119.\n\nPrefer-A is the right site and allowlist for P1–P3: admit the named project install in the host-hook outer before pin spawn, keep person-runs refuse for everything else, and stay off global launcher repair. No Prefer-B.\n\n## Findings (nits — absorb into Bound before pain-audit)\n\n1. **Missing-pin branch has no command path today.** In `hostHookOuterSource` (`packages/core/src/init-deposit/host-hook-outer.ts`), when `!existsSync(pin)` the outer always `blockToolCall`s with `HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE` / `ENTRY_GUARD_PERSON_RUNS_INSTALL`. There is no stdin read and no command match. Limb 1’s “outer reads the host tool command” must name baking that path into the deposited outer, or the admit never runs and P1/P3 stay unrelieved.\n\n2. **Share more than token sequences — mirror pin-mismatch admit gates.** `#6313` admit in `packages/runtime/src/hook-dispatch.ts` `pinMismatchRecoveryAdmit` requires all of: `event === \"tool.before\"`, `isShellTool(hookToolName(...))`, `hookShellCommand(payload)`, and `atProjectRoot` via `shellRunDirectories` / `rootsMatch`. Prefer-A limb 4 only names generating `PIN_MISMATCH_RECOVERY_COMMANDS` (`packages/core/src/install-health/recovery-admit.ts`) into the outer. Bound must also name inlining (Node built-ins only; no runtime import) the shell-tool gate, command extract, `SIMPLE_COMMAND` compound refuse, and project-root cwd proof so missing-runtime admit stays parity-tight with pin-mismatch and does not widen past #6313.\n\n3. **Allow exit form is already present; keep it explicit.** Outer `quietAllow` / empty exit 0 is the existing allow path (kill-switch). Bound should say admitted install uses that quiet allow on `tool.before` and every non-match still uses `blockToolCall` + person-runs guidance with lockfile `{install}` from `installCommand(root)`.\n\n## Pain coverage (intent)\n\n- P1: exact simple project install admitted on missing pin → session can self-heal.\n- P2: person-runs remains for non-matching commands; named install is agent-reachable.\n- P3: command-matching admit lives in outer before pin spawn.\n\nReject list is sound (no disable/kill-switch as fix; no widen past three sequences; host pre-install stays docs leftover).\n\n## Out of scope here\n\nDo not implement. Do not ingest. Id ceiling honored (≤7133293800).",
+          "id": 7133391382,
+          "html_url": "https://github.com/deftai/directive/issues/7275#issuecomment-7133391382",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T13:49:30Z",
+          "updated_at": "2026-11-24T13:49:30Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: parent\n```\n\nLean: Prefer-A Bound\nconflict_group: missing-runtime-outer-admits-named-project-install\nTarget-digest: sha256:29926b51f4a646d916cfd551fb9263c952c13147fc39eccecc6d62ae94cf53cf\narc-mode: no-ingest\nspend: N=2\nseat-families: codex, grok\nyolo-standing: yes\nrelieves: P1\nrelieves: P2\nrelieves: P3\ntakes: Codex 7133358496 accept-with-nits absorb-into-bound\ntakes: Grok 7133391382 accept-with-nits absorb-into-bound\nBound-harvest-digest: sha256:0d47fcbed34cb9bd9cedadd356250a671eb51a8f6527eb1f9d657631b7c0f693\n\n## In plain English\n\nWhen the runtime pin is missing, the outer still names the project install. Prefer-A lets that exact simple install through on tool.before after the same shell and project-root checks pin-mismatch already uses, and keeps blocking every other command. The deny text names that exception. Global launcher repair stays out. A person can still pre-install; that is optional docs leftover.\n\n## Bound remedy\n\n1. When pin hook-bin is absent on tool.before, the deposited outer (Node built-ins only) reads the host tool.before payload from stdin, extracts the shell command, and admits only exact simple project-root installs from PIN_MISMATCH_RECOVERY_COMMANDS (pnpm install --frozen-lockfile, npm install, npm ci).\n2. Mirror pin-mismatch admit gates in the outer: event tool.before, isShellTool / shell-tool name check, hookShellCommand extract, SIMPLE_COMMAND compound/redirect/quote refuse, and atProjectRoot / rootsMatch proof for the command cwd or workdir; refuse when project-root execution cannot be established.\n3. Admitted install uses the outer quietAllow path; every non-match and every non-tool.before event while pin is missing still uses blockToolCall with lockfile-named {install} guidance.\n4. Do not admit npm i -g @deftai/directive or directive install --repair as the runtime-missing recovery.\n5. Read stdin only on the missing-pin branch, or forward the exact unread payload bytes to hook-bin; add an installed-pin fixture that proves hook-bin still receives the payload.\n6. Generate the shared token sequences and the inlined admit predicates into hostHookOuterSource from the shared constants / recovery-admit shapes; no runtime import in the outer.\n7. Fixtures: exact admit per host payload shape; refuse non-shell payload carrying command npm install; refuse foreign/subdirectory cwd or workdir; refuse malformed input; pin-mismatch path unchanged.\n8. Rewrite the missing-pin refusal so it names the exact project-install exception; keep the person-only suffix only where it remains true (do not claim every agent tool stays blocked after the admit exists).\n9. Host pre-install before first turn remains docs leftover only; Bound does not require a new host gate.\n\n## Reject\n\n- disable-host-hooks / kill-switch as the missing-runtime fix\n- widening admit past the three project install sequences\n- requiring a new host pre-install gate before first agent turn (docs leftover only)\n- reading stdin on the installed-pin path without forwarding exact bytes to hook-bin",
+          "id": 7133400155,
+          "html_url": "https://github.com/deftai/directive/issues/7275#issuecomment-7133400155",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T13:49:51Z",
+          "updated_at": "2026-11-24T13:54:05Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3\nfinding-classes: none\nharvest-changed: false\n\nPain-audit verdict: Prefer-A Bound honestly relieves P1-P3 as a design contract. No additional remedy limb is required by this audit.\n\nAudited [Bound 7133400155](https://github.com/deftai/directive/issues/7275#issuecomment-7133400155) against [Stop 1 pains 7133278664](https://github.com/deftai/directive/issues/7275#issuecomment-7133278664), with comments limited to inclusive ID 7133400155. Inspected host-hook-outer.ts, recovery-admit.ts, and install-health/constants.ts at 60e8921207e77d526c9392a6da1e83345d77a6de.\n\nP1: Relieved by limbs 1-3. At the inspected SHA, the absent hook-bin branch unconditionally calls blockToolCall before runtime dispatch. The Bound places the exact project-install admit in that branch and exits through quietAllow, so recovery no longer depends on loading the missing runtime. The lockfile guidance names commands within the three-sequence allowlist.\n\nP2: Relieved by limbs 1-3 and 8. The agent can attempt the named install itself, and the refusal text explicitly discloses that exception instead of saying every agent tool remains blocked until a person acts. Limb 9 correctly leaves host pre-install optional. This removes the hook-imposed need for outside-session recovery; it does not promise that a package manager can overcome unrelated environment or install failures.\n\nP3: Relieved by limbs 1-2 and 6-7. The deposited, built-ins-only outer gets its own pre-spawn payload extraction and matcher with shell-tool and project-root proof, strict token matching, and refusal when that proof is absent. This is an executable recovery path rather than a pointer to recovery-admit behind the missing pin. The per-host and negative fixtures make that claim reviewable.\n\nLimbs 4-5 preserve the relevant boundaries: no global/wiring repair exception, and no consumption of installed-runtime stdin without exact forwarding. The prior critique's substantive clarifications are present in the Bound. These are design coverage conclusions, not a claim that the change has shipped or passed tests. No implementation or ingest performed.",
+          "id": 7133432331,
+          "html_url": "https://github.com/deftai/directive/issues/7275#issuecomment-7133432331",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T13:51:09Z",
+          "updated_at": "2026-11-24T13:51:09Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3\nfinding-classes: none\nharvest-changed: false\n\n## Pain-audit — Prefer-A Bound 7133400155 vs Stop 1 7133278664\n\npin-read: 60e8921207e77d526c9392a6da1e83345d77a6de\nid-ceiling: 7133400155 (inclusive)\ninspected: packages/core/src/init-deposit/host-hook-outer.ts, packages/core/src/install-health/recovery-admit.ts, packages/core/src/install-health/constants.ts\n\n### Tip shape (why the Bound is needed)\n\nAt the dispatch SHA, `hostHookOuterSource` missing-pin branch (`!existsSync(pin)`) always `blockToolCall`s with `HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE` (`runtime-missing` + `ENTRY_GUARD_PERSON_RUNS_INSTALL`). No stdin read, no shell/command match, no `quietAllow` for the named install. `PIN_MISMATCH_RECOVERY_COMMANDS` / `admitPinMismatchRecovery` live only behind hook-bin. That is exactly Stop 1 P1–P3.\n\n### Relief check\n\n- **P1** — Limbs 1–3 put an exact `PIN_MISMATCH_RECOVERY_COMMANDS` admit on missing-pin `tool.before` via `quietAllow`, so the named project install is no longer refused. Live admit path after ship; not prose-only recovery.\n- **P2** — Same admit makes the lockfile install agent-reachable; limb 3 keeps person-runs refuse for every non-match / non-`tool.before`; limb 8 drops the false “every tool stays blocked” claim on the missing-pin refuse text.\n- **P3** — Limbs 1–2 / 6 move command-matching admit into the deposited outer before pin spawn, mirroring pin-mismatch gates (shell-tool, command extract, `SIMPLE_COMMAND` refuse, project-root cwd/workdir proof) with Node built-ins only / generated constants (no runtime import).\n\nReject list stays sound (no kill-switch/disable as fix; no widen past the three sequences; no new host pre-install gate; no stdin consume on installed-pin without forwarding). Round-1 Codex/Grok nits (host payload fixtures, stdin forward, guidance rewrite, gate parity) are already Bound limbs 2, 5, 7, 8.\n\n### Verdict\n\nfinding-classes: none\nharvest-changed: false\n\nPrefer-A Bound 7133400155 honestly relieves pain-P1, pain-P2, and pain-P3. No blocking, sharpening, or footnote harvest change.",
+          "id": 7133459519,
+          "html_url": "https://github.com/deftai/directive/issues/7275#issuecomment-7133459519",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T13:52:15Z",
+          "updated_at": "2026-11-24T13:52:15Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nsuccessor lean: Prefer-A Bound 7133400155\nStop 1: 7133278664\nspend: N=2 (reduced panel; Claude unavailable; seat-families: codex, grok)\nyolo-standing: yes\narc-mode: no-ingest\n\n| Claim | Evidence | Status |\n|---|---|---|\n| Prefer-A Bound relieves P1 (missing-runtime deny blocks named install) | Bound limbs 1-3; Codex PA 7133432331; Grok PA 7133459519 | verified |\n| Prefer-A Bound relieves P2 (person-outside-session sole recovery) | Bound limbs 1-3, 8; Codex/Grok PA finding-classes none | verified |\n| Prefer-A Bound relieves P3 (no outer command-matching admit before pin spawn) | Bound limbs 1-2, 6-7; Codex/Grok PA | verified |\n| Round-1 nits absorbed (shell/cwd/stdin/guidance/gate parity) | Bound limbs 2,5,7,8; takes Codex 7133358496 + Grok 7133391382 | verified |\n| Pain-audit clear (no harvest change) | Codex PA 7133432331 finding-classes:none harvest-changed:false; Grok PA 7133459519 same | verified |\n| Reduced panel named | spend-amend 7133293332; panel 7133293800; VCT this comment | verified |\n\nmaterial-findings: none",
+          "id": 7133459990,
+          "html_url": "https://github.com/deftai/directive/issues/7275#issuecomment-7133459990",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T13:52:16Z",
+          "updated_at": "2026-11-24T13:52:16Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: parent\n```\n\ndesign-critique: synthesis accepted, because Prefer-A Bound 7133400155 relieves Stop 1 pains P1-P3; Round-1 accept-with-nits absorbed; PA Codex 7133432331 and Grok 7133459519 finding-classes:none harvest-changed:false; verified-claims table 7133459990.\n\nsuccessor lean: 7133400155\nverified-claims table: 7133459990\narc-mode: no-ingest\nyolo-standing: yes\nspend: N=2\n\n## In plain English\n\nWhen the runtime pin is missing, the outer will let through the exact project install it already names, with the same shell and project-root checks used for pin-mismatch recovery, and will keep blocking everything else. The deny text will name that exception. Global launcher repair stays out of scope. Ingest stays a separate operator step.",
+          "id": 7133460426,
+          "html_url": "https://github.com/deftai/directive/issues/7275#issuecomment-7133460426",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T13:52:17Z",
+          "updated_at": "2026-11-24T13:53:00Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6580878540,
+        "origin": "deftai/directive#7275",
+        "id": "github.issue.6580878540"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "29926b51f4a646d916cfd551fb9263c952c13147fc39eccecc6d62ae94cf53cf"
+      },
+      "kind": "story"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "derived_reason": "derived 6 independently testable clauses from the task statement before product edit (#3323)",
+      "source_rung": "derived",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "When pin hook-bin is absent on tool.before, the deposited outer admits only exact simple project-root installs from PIN_MISMATCH_RECOVERY_COMMANDS.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Mirror pin-mismatch admit gates in the outer (shell tool, simple command, project-root proof); refuse otherwise.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Admitted install uses quietAllow; non-matches stay blocked with lockfile-named guidance that names the install exception.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Do not admit npm i -g @deftai/directive or directive install --repair as missing-runtime recovery.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Fixtures cover exact admit/refuse per host payload; installed-pin path still forwards payload to hook-bin.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "changelog.d fragment for the admit.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.6580878540",
+    "updated": "2026-11-24T14:14:29Z"
+  }
+}
