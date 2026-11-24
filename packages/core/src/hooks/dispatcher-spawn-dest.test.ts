@@ -1761,6 +1761,46 @@ describe("dest-proven spawn dest unique-basename pin (#4393)", () => {
     expect(decision.scopePath).not.toBe(storyA);
   });
 
+  it("lets a registered dest assignment win over parent DEFT_ACTIVE_SCOPE (#7257)", () => {
+    const { root, dest } = twoActiveDest();
+    const destStoryB = writeRunning(dest, "b-story.xbrief.json", ["packages/b/**"]);
+    const storyA = join(root, "xbrief", "active", "a-story.xbrief.json");
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          toolName: "spawn_subagent",
+          tool_input: { cwd: dest, prompt: "implement" },
+        },
+        environ: {
+          DEFT_SESSION_ID: "parent-1",
+          DEFT_ACTIVE_SCOPE: "xbrief/active/a-story.xbrief.json",
+        },
+      },
+      liveScopeSeams({
+        readWorkerAuthAssignment: () => ({
+          ok: true,
+          assignment: {
+            schema_version: 1,
+            dispatch_id: "dispatch-b",
+            story_id: "b-story",
+            worktree_path: dest,
+            github_auth_mode: "host-gh",
+            expected_principal: { kind: "user", login: "worker-b" },
+            credential_delivery_id: null,
+          },
+          commonDir: join(root, ".git"),
+        }),
+      }),
+    );
+    expect(decision).toMatchObject({ verdict: "allow", code: "spawn-ready" });
+    expect(decision.scopePath).toBe(destStoryB);
+    expect(decision.scopePath).not.toBe(storyA);
+    expect(decision.message).not.toContain("DEFT_ACTIVE_SCOPE");
+  });
+
   it("still occupancy-denies extra dest keys when a dest unique-basename pin is present", () => {
     const { root, dest } = twoActiveDest();
     writeRunning(dest, "b-story.xbrief.json", ["packages/b/**"]);

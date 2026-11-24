@@ -258,6 +258,7 @@ import {
   SPAWN_READ_ONLY_RECOVERY,
 } from "./readonly.js";
 import {
+  ACTIVE_SCOPE_PIN_ENV,
   type ActiveScopeInspection,
   formatPositiveGoverningAllowDeny,
   type InspectActiveScopeOptions,
@@ -3090,8 +3091,17 @@ function inspectMutationGates(
     // #6233: a dispatch-registered linked worktree binds its story from the
     // worker-auth assignment record. The main worktree never reads the registry
     // (the resolver returns `none` there); a clean absence keeps today's path.
+    // Spawn into a validated dest (#7257): do not let the parent's
+    // DEFT_ACTIVE_SCOPE override the dest assignment / basename. Worker writes
+    // still pass the full environ pin below.
+    const bindingEnv =
+      isSpawnTool(toolName) && spawnDestRoot.length > 0
+        ? Object.fromEntries(
+            Object.entries(environ).filter(([key]) => key !== ACTIVE_SCOPE_PIN_ENV),
+          )
+        : environ;
     const worktreeBinding = resolveWorktreeStoryBinding(scopeFenceRoot, {
-      env: environ,
+      env: bindingEnv,
       boundPath: spawnBoundPath,
       ...(seams.readWorkerAuthAssignment !== undefined
         ? { readWorkerAuthAssignment: seams.readWorkerAuthAssignment }
