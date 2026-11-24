@@ -1,12 +1,14 @@
 {
   "schema": "deft.evaluator-surface-disposition.v1",
   "kind": "disclosure",
-  "issue": 6945,
+  "issue": 7272,
   "surfaces": [
     "Taskfile.yml",
     "packages/core/src/observable-scope/**",
+    "packages/core/src/observable-scope/types.ts",
     "packages/core/src/intent-constraint/**",
     "xbrief/evaluator-surface-disposition.json"
   ],
-  "note": "Disclosure for #6945. Observable-scope and intent-constraint verify gain a signed level: with .deft/approvers.json on the merge base, a record is approved only by a WebAuthn assertion over a payload rebuilt from this repository and the record's own fields. Taskfile.yml includes tasks/approvers.yml (approvers:enroll / approvers:remove). No gate is switched off. A record without a valid approval is not approved. Without the trust file, today's declared-record behaviour is unchanged. Disclosure only; not #3164 authorization. Refs #6945."
+  "note": "Disclosure for #7272 Prefer-A Bound scrub: JSDoc on packages/core/src/observable-scope/types.ts no longer coaches #5010 in-harness ask; OBSERVABLE_SCOPE_REMEDIATION already teaches #7031 declared any-shell writers. Keeps prior #6945 signed-level surfaces listed. No evaluator semantics change. Disclosure only; not #3164 authorization. Refs #7272 #7031 #6945."
 }
+
