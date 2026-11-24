@@ -2129,4 +2129,3 @@ describe("dest story-binding selects over session multi-active (#7271)", () => {
     expect(decision.message).toContain("Multiple active xBRIEF artifacts");
   });
 });
-
