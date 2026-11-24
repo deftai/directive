@@ -1,10 +1,12 @@
 {
   "schema": "deft.evaluator-surface-disposition.v1",
   "kind": "disclosure",
-  "issue": 6740,
+  "issue": 6945,
   "surfaces": [
     "Taskfile.yml",
+    "packages/core/src/observable-scope/**",
+    "packages/core/src/intent-constraint/**",
     "xbrief/evaluator-surface-disposition.json"
   ],
-  "note": "Disclosure for #6740 slice 1 (product PR), a deliberate change through issue and PR (#3156). Taskfile.yml adds one include, tasks/kill-switch.yml (kill-switch:on / kill-switch:off). The Taskfile engine reader (tasks/engine-invoke.cjs) applies the kill record contract: a valid .deft/authz/kill-switch.disable bound to git rev-parse --absolute-git-dir stands Directive down; a bare root flag file turns nothing off and prints one warning. No gate is relaxed: enforcement stays on unless a valid record exists, and only kill-switch:on writes the record, behind the kept terminal mint. Disclosure only; not #3164 authorization. Refs #6740."
+  "note": "Disclosure for #6945. Observable-scope and intent-constraint verify gain a signed level: with .deft/approvers.json on the merge base, a record is approved only by a WebAuthn assertion over a payload rebuilt from this repository and the record's own fields. Taskfile.yml includes tasks/approvers.yml (approvers:enroll / approvers:remove). No gate is switched off. A record without a valid approval is not approved. Without the trust file, today's declared-record behaviour is unchanged. Disclosure only; not #3164 authorization. Refs #6945."
 }

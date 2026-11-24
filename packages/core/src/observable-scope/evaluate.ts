@@ -16,6 +16,13 @@ import {
   pinNamesLandsWithProductMove,
   soleLandsWithProductMove,
 } from "../scope/lands-with-product.js";
+import {
+  admitSignedRecord,
+  resolveRecordApprovalLevel,
+  type SignedLevel,
+  signedLevelNote,
+  signedLevelRefusal,
+} from "../scope-provenance/record-stamp.js";
 import { classifyVerifyObservableMintDemand, OBSERVABLE_MINT_WHEN_HINT } from "./demand.js";
 import { changeMatches, diffArtifacts, unlistedDeltas } from "./diff.js";
 import {
@@ -70,6 +77,8 @@ export interface EvaluateOptions {
   readonly repo?: string;
   /** Injected gh runner for PR body REST (tests). */
   readonly runGh?: RunGhFn;
+  /** Injected signed level (tests); default walks `.deft/approvers.json` history (#6945). */
+  readonly approvalLevel?: SignedLevel;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -433,6 +442,7 @@ export function evaluateObservableScope(options: EvaluateOptions = {}): Evaluate
   }
 
   const parsedRecords = [];
+  const sourceOf = new Map<object, { rel: string; text: string }>();
   for (const [rel, text] of baseRecords) {
     let raw: unknown;
     try {
@@ -445,6 +455,15 @@ export function evaluateObservableScope(options: EvaluateOptions = {}): Evaluate
       return config(`${rel}: ${parsed.error}`);
     }
     parsedRecords.push(parsed);
+    sourceOf.set(parsed, { rel, text });
+  }
+
+  // Signed level (#6945): a trust file on the merge base's history means a
+  // record is approved only by a valid signature, however it was merged.
+  const level = resolveRecordApprovalLevel(projectRoot, mergeBase, options.approvalLevel);
+  if (level.level === "signed" && !level.ok) {
+    const message = signedLevelRefusal(level);
+    return level.code === 2 ? config(message) : fail(`verify:observable-scope: ${message}`);
   }
 
   const readBase = options.readAtBase ?? ((rel: string) => gitShow(projectRoot, mergeBase, rel));
@@ -554,6 +573,28 @@ export function evaluateObservableScope(options: EvaluateOptions = {}): Evaluate
         OBSERVABLE_MINT_WHEN_HINT,
     );
   }
+  let signedNote = "";
+  if (level.level === "signed" && level.ok) {
+    const source = sourceOf.get(mint);
+    const admitted =
+      source === undefined
+        ? { ok: false as const, reason: "selected record has no merge-base source" }
+        : admitSignedRecord(level, {
+            kind: "observable-scope",
+            recordRel: source.rel,
+            text: source.text,
+            planId: mint.planId,
+            xbriefRelPath: mint.xbriefRelPath,
+            changeKind: mint.changeKind,
+            contractDigest: mint.contractDigest,
+          });
+    if (!admitted.ok) {
+      return fail(
+        `verify:observable-scope: no approved merge-base mint record for planId ${mint.planId}. ${admitted.reason}`,
+      );
+    }
+    signedNote = signedLevelNote(level, admitted.approver);
+  }
 
   const deltas = diffArtifacts(baseArtifact, headArtifact);
   const allowed = mint.allowedChanges;
@@ -583,7 +624,7 @@ export function evaluateObservableScope(options: EvaluateOptions = {}): Evaluate
     `verify:observable-scope: minted allowedChanges cover the parse5+typescript oracle ` +
       `(${uiPaths.length} surface(s), 1 mint record, parsers html=${parsers.html}` +
       (parsers.typescript !== null ? ` typescript=${parsers.typescript}` : "") +
-      `).`,
+      `).${signedNote}`,
     false,
     options.quiet === true,
     undefined,

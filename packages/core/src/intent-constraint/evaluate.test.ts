@@ -1,8 +1,17 @@
 import { execFileSync } from "node:child_process";
+import { createHash, generateKeyPairSync, type KeyObject, sign } from "node:crypto";
 import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import {
+  base64urlEncode,
+  buildRecordApprovalPayload,
+  canonicalBytes,
+} from "../approvers/canonical.js";
+import type { RecordApprovalEntry } from "../approvers/types.js";
+import { FLAG_UP, FLAG_UV, spkiOf } from "../approvers/webauthn.js";
+import type { SignedLevel } from "../scope-provenance/record-stamp.js";
 import {
   CANDIDATE_COMMITTED_ONLY,
   CANDIDATE_WORKING_TREE,
@@ -713,6 +722,115 @@ describe("intent-constraint origin recut (#4813)", () => {
         stdout: JSON.stringify({ body: "deft-story: 5782\n" }),
         stderr: "",
       }),
+    });
+    expect(result.code).toBe(0);
+  });
+});
+
+const SIGNED_REPO = "deftai/directive";
+const SIGNED_RP = { id: "approve.example.com", origins: ["https://approve.example.com"] };
+const signedKey = generateKeyPairSync("ec", { namedCurve: "P-256" });
+const signedApprover = {
+  name: "yubikey",
+  credentialId: "Y3JlZC0x",
+  publicKey: base64urlEncode(spkiOf(signedKey.publicKey)),
+  alg: -7 as const,
+  aaguid: "cb69481e-8ff7-4039-93ec-0a2729a154a8",
+  backupEligible: false,
+};
+const signedLevel: SignedLevel = {
+  level: "signed",
+  ok: true,
+  repo: SIGNED_REPO,
+  trust: {
+    body: { repo: SIGNED_REPO, rp: SIGNED_RP, approvers: [signedApprover] },
+    rootKind: "packed",
+    epochStart: "0123456789abcdef",
+    attested: [signedApprover.credentialId],
+  },
+};
+
+function approveIntent(
+  rec: ReturnType<typeof record>,
+  privateKey: KeyObject = signedKey.privateKey,
+) {
+  if (!("contractDigest" in rec)) throw new Error("record failed");
+  const entry: RecordApprovalEntry = {
+    kind: "intent-constraint",
+    planId: rec.planId,
+    xbriefRelPath: rec.xbriefRelPath,
+    recordRel: `.deft/intent-constraint/${rec.planId}.json`,
+    changeKind: null,
+    contractDigest: rec.contractDigest,
+  };
+  const payload = buildRecordApprovalPayload(SIGNED_REPO, [entry]);
+  const auth = Buffer.concat([
+    createHash("sha256").update(Buffer.from(SIGNED_RP.id)).digest(),
+    Buffer.from([FLAG_UP | FLAG_UV, 0, 0, 0, 1]),
+  ]);
+  const client = Buffer.from(
+    JSON.stringify({
+      type: "webauthn.get",
+      challenge: base64urlEncode(createHash("sha256").update(canonicalBytes(payload)).digest()),
+      origin: SIGNED_RP.origins[0],
+    }),
+  );
+  return {
+    payload,
+    credentialId: signedApprover.credentialId,
+    authenticatorData: base64urlEncode(auth),
+    clientDataJSON: base64urlEncode(client),
+    signature: base64urlEncode(
+      sign("sha256", Buffer.concat([auth, createHash("sha256").update(client).digest()]), {
+        key: privateKey,
+        dsaEncoding: "der",
+      }),
+    ),
+  };
+}
+
+describe("evaluateIntentConstraint signed level (#6945)", () => {
+  it("passes a signed record and refuses one with no approval", () => {
+    const rec = record();
+    if (!("planId" in rec)) throw new Error("record failed");
+    const unsigned = evaluateIntentConstraint({ ...files(POSTED), approvalLevel: signedLevel });
+    expect(unsigned.code).toBe(1);
+    expect(unsigned.message).toMatch(/not approved at the signed level/);
+    expect(unsigned.message).toMatch(/user-verified gesture/);
+    const signed = evaluateIntentConstraint({
+      ...files(POSTED),
+      approvalLevel: signedLevel,
+      recordTextsAtBase: new Map([
+        [
+          ".deft/intent-constraint/story-1.json",
+          `${JSON.stringify({ ...rec, approval: approveIntent(rec) }, null, 2)}\n`,
+        ],
+      ]),
+    });
+    expect(signed.code).toBe(0);
+    expect(signed.message).toMatch(/approved by yubikey/);
+  });
+
+  it("does not let a stale plan A record fail a valid plan B", () => {
+    const a = record();
+    const bRec = buildIntentConstraintRecord({
+      planId: "story-b",
+      xbriefRelPath: "xbrief/active/b.xbrief.json",
+      constraints: [{ value: "1024", unit: "bytes", rejectionScope: "invocation" }],
+      humanApproval: human,
+    });
+    if (!("planId" in a) || "error" in bRec) throw new Error("records failed");
+    const result = evaluateIntentConstraint({
+      ...files(POSTED),
+      planId: "story-b",
+      approvalLevel: signedLevel,
+      recordTextsAtBase: new Map([
+        [".deft/intent-constraint/story-1.json", `${JSON.stringify(a)}\n`],
+        [
+          ".deft/intent-constraint/story-b.json",
+          `${JSON.stringify({ ...bRec, approval: approveIntent(bRec) }, null, 2)}\n`,
+        ],
+      ]),
     });
     expect(result.code).toBe(0);
   });

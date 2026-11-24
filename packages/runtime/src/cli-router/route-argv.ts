@@ -184,6 +184,8 @@ export const ROUTER_BRANCH_COLON_VERBS = [
   "scope:record-approved-scope",
   "scope:record-observable-scope",
   "scope:record-intent-constraint",
+  "approvers:enroll",
+  "approvers:remove",
   "scm:issue:design-critique-chip",
   "scm:issue:design-critique-stale-ready",
   "scm:issue:work-claim",
@@ -304,6 +306,11 @@ function routeNamespaceVerb(ns: string, verb: string, rest: string[]): RoutedArg
     if (verb === "record-intent-constraint") {
       return { kind: "dispatch", argv: ["scope-record-intent-constraint", ...rest] };
     }
+  }
+
+  if (ns === "approvers") {
+    if (verb === "enroll") return { kind: "dispatch", argv: ["approvers-enroll", ...rest] };
+    if (verb === "remove") return { kind: "dispatch", argv: ["approvers-remove", ...rest] };
   }
 
   if (ns === "verify") {

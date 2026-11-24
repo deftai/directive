@@ -175,6 +175,9 @@ includes:
   kill-switch:
     taskfile: ./tasks/kill-switch.yml
     optional: true
+  approvers:
+    taskfile: ./tasks/approvers.yml
+    optional: true
   framework:
     taskfile: ./tasks/framework.yml
     optional: true

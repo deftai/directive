@@ -1,0 +1,67 @@
+{
+  "schema": "deft.approvers.canonical-vectors.v1",
+  "note": "Shared by the Node verifier and the ceremony page bundle (#6945). canonical is the exact UTF-8 text; sha256 is lowercase hex over its bytes.",
+  "payloads": [
+    {
+      "name": "record-approval-two-entries",
+      "value": {
+        "schema": "deft.record-approval.v1",
+        "repo": "deftai/directive",
+        "entries": [
+          {
+            "kind": "intent-constraint",
+            "planId": "github.issue.42",
+            "xbriefRelPath": "xbrief/active/2026-11-23-42-story.xbrief.json",
+            "recordRel": ".deft/intent-constraint/github.issue.42.json",
+            "changeKind": null,
+            "contractDigest": "1111111111111111111111111111111111111111111111111111111111111111"
+          },
+          {
+            "kind": "observable-scope",
+            "planId": "github.issue.42",
+            "xbriefRelPath": "xbrief/active/2026-11-23-42-story.xbrief.json",
+            "recordRel": ".deft/observable-scope/github.issue.42.json",
+            "changeKind": "fields-only",
+            "contractDigest": "2222222222222222222222222222222222222222222222222222222222222222"
+          }
+        ]
+      },
+      "canonical": "{\"entries\":[{\"changeKind\":null,\"contractDigest\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"kind\":\"intent-constraint\",\"planId\":\"github.issue.42\",\"recordRel\":\".deft/intent-constraint/github.issue.42.json\",\"xbriefRelPath\":\"xbrief/active/2026-11-23-42-story.xbrief.json\"},{\"changeKind\":\"fields-only\",\"contractDigest\":\"2222222222222222222222222222222222222222222222222222222222222222\",\"kind\":\"observable-scope\",\"planId\":\"github.issue.42\",\"recordRel\":\".deft/observable-scope/github.issue.42.json\",\"xbriefRelPath\":\"xbrief/active/2026-11-23-42-story.xbrief.json\"}],\"repo\":\"deftai/directive\",\"schema\":\"deft.record-approval.v1\"}",
+      "sha256": "a34a3f4d2fcec91612b88ac010fecf2b5ef6841c87a3a815093781663e98f907"
+    },
+    {
+      "name": "transition-root",
+      "value": {
+        "schema": "deft.approvers-transition.v1",
+        "repo": "deftai/directive",
+        "predecessorDigest": null,
+        "bodyDigest": "3333333333333333333333333333333333333333333333333333333333333333"
+      },
+      "canonical": "{\"bodyDigest\":\"3333333333333333333333333333333333333333333333333333333333333333\",\"predecessorDigest\":null,\"repo\":\"deftai/directive\",\"schema\":\"deft.approvers-transition.v1\"}",
+      "sha256": "0a82c942c1d6906e1f5bba4561712cbff5edd84e7d0cd4cdf7ebb0eb1d311abf"
+    },
+    {
+      "name": "transition-with-predecessor",
+      "value": {
+        "schema": "deft.approvers-transition.v1",
+        "repo": "deftai/directive",
+        "predecessorDigest": "4444444444444444444444444444444444444444444444444444444444444444",
+        "bodyDigest": "5555555555555555555555555555555555555555555555555555555555555555"
+      },
+      "canonical": "{\"bodyDigest\":\"5555555555555555555555555555555555555555555555555555555555555555\",\"predecessorDigest\":\"4444444444444444444444444444444444444444444444444444444444444444\",\"repo\":\"deftai/directive\",\"schema\":\"deft.approvers-transition.v1\"}",
+      "sha256": "a67137c52f4072fd2996357ae433bf0b94f0a2b1635fcb45db4b09c2ca7cb0aa"
+    },
+    {
+      "name": "key-order-and-utf8",
+      "value": { "z": null, "u": "café 🔑", "t": true, "n": -7, "b": {}, "a": [] },
+      "canonical": "{\"a\":[],\"b\":{},\"n\":-7,\"t\":true,\"u\":\"café 🔑\",\"z\":null}",
+      "sha256": "35cfbf680a3cbd85b4877f21d5b04977d9d3d4ac7031a66b31621e8ad4a41cf6"
+    }
+  ],
+  "base64url": [
+    { "hex": "", "text": "" },
+    { "hex": "00", "text": "AA" },
+    { "hex": "fbff", "text": "-_8" },
+    { "hex": "000102", "text": "AAEC" }
+  ]
+}

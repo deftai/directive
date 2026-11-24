@@ -16,6 +16,7 @@ import {
   parseIntentConstraintContract,
   writeIntentConstraintRecord,
 } from "@deftai/directive-core/intent-constraint";
+import { decideSignedWrite, resolveCliSignedLevel, signedLevelUsage } from "./approvers-link.js";
 import { isDirectEntrypoint } from "./entrypoint.js";
 import { refuseMintWhileUatActive } from "./human-presence-mint.js";
 import { isPathInsideRoot } from "./scope-record-approved-scope.js";
@@ -31,6 +32,10 @@ export interface ParsedArgs {
   /** Declared-by display name; may name an agent (#7031). */
   actor: string;
   quiet: boolean;
+  /** Signed level: print the ceremony link and write nothing (#6945). */
+  request: boolean;
+  /** Signed level: the page's assertion blob (#6945). */
+  assertion: string | null;
   help?: boolean;
   error?: string;
 }
@@ -58,7 +63,8 @@ function usage(): string {
     "print every record first and write only new records. A matching record is left as it is; one " +
     "that would change, or does not parse, refuses the whole set (change it with the one-path form). " +
     "Records may ride in the activation PR when each matches a brief that PR adds. The record's " +
-    "control is the merge that lands it."
+    "control is the merge that lands it.\n" +
+    signedLevelUsage()
   );
 }
 
@@ -78,6 +84,8 @@ export function parseArgs(argv: string[]): ParsedArgs {
     manifest: null,
     actor: DEFAULT_DECLARED_BY,
     quiet: false,
+    request: false,
+    assertion: null,
   };
   const positionals: string[] = [];
   for (let i = 0; i < argv.length; i += 1) {
@@ -110,6 +118,17 @@ export function parseArgs(argv: string[]): ParsedArgs {
       i += 1;
     } else if (arg?.startsWith("--manifest=")) {
       parsed.manifest = arg.slice("--manifest=".length);
+    } else if (arg === "--request") {
+      parsed.request = true;
+    } else if (arg === "--assertion") {
+      const value = argv[i + 1];
+      if (value === undefined) {
+        return { ...parsed, error: "argument --assertion: expected one argument" };
+      }
+      parsed.assertion = value;
+      i += 1;
+    } else if (arg?.startsWith("--assertion=")) {
+      parsed.assertion = arg.slice("--assertion=".length);
     } else if (arg === "--actor") {
       const value = argv[i + 1];
       if (value === undefined)
@@ -134,6 +153,9 @@ export function parseArgs(argv: string[]): ParsedArgs {
   parsed.xbriefPaths = positionals;
   parsed.xbriefPath = positionals[0] ?? "";
   parsed.actor = parsed.actor.trim().length > 0 ? parsed.actor.trim() : DEFAULT_DECLARED_BY;
+  if (parsed.request && parsed.assertion !== null) {
+    return { ...parsed, error: `pass --request or --assertion, not both\n${usage()}` };
+  }
   return parsed;
 }
 
@@ -146,6 +168,30 @@ export function run(argv: string[], seams: RecordCohortSeams = {}): number {
   if (args.error !== undefined) {
     process.stderr.write(`scope_record_intent_constraint: ${args.error}\n`);
     return 2;
+  }
+  const level = seams.approvalLevel ?? resolveCliSignedLevel(resolve(args.projectRoot));
+  const decision = decideSignedWrite(level, args.request, args.assertion);
+  if (decision.kind === "refuse") {
+    process.stderr.write(`scope_record_intent_constraint: ${decision.message}\n`);
+    return decision.code;
+  }
+  if (decision.kind === "request" || decision.kind === "assertion") {
+    return runRecordCohort(
+      "intent-constraint",
+      {
+        projectRoot: args.projectRoot,
+        briefPaths: args.xbriefPaths,
+        manifest: args.manifest,
+        actor: args.actor,
+        quiet: args.quiet,
+        signed: {
+          level: decision.level,
+          phase: decision.kind,
+          approval: decision.kind === "assertion" ? decision.approval : undefined,
+        },
+      },
+      seams,
+    );
   }
   if (args.manifest !== null || args.xbriefPaths.length > 1) {
     return runRecordCohort(
