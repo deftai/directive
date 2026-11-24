@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "xbriefRelPath": "xbrief/active/2026-11-24-7252-refuse-one-story-scope-complete.xbrief.json",
+  "planId": "7252",
+  "approvedAt": "2026-11-24T03:53:53Z",
+  "fileScope": [
+    "changelog.d/7252-slow-path-scope-complete.md",
+    "packages/core/src/scope/main.test.ts",
+    "packages/core/src/scope/main.ts"
+  ],
+  "fileScopeDigest": "ddcd6b17217c5e7a3716c4cd08460cf29b4ae48d322eec4a7eeca6477ffa8019",
+  "humanApproval": {
+    "kind": "operator",
+    "actor": "MScottAdams",
+    "mintedAt": "2026-11-24T03:53:53Z",
+    "mintedVia": "scope:record-approved-scope"
+  },
+  "intentDigest": "7b49ef9e4251a6514a76f0c856a67498bba5b26d0e6e272778000ec253656b26",
+  "digestAlgo": "intent-extract-v1",
+  "authHashV1": "sha256:d6a5db32cae00e590218f5f672b7393fd21e0c4f9ffbf02b4cb874239b81692c"
+}

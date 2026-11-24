@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "algo": "intent-extract-v1",
+  "plan": {
+    "title": "Refuse a one-story scope:complete when another merged story is still active",
+    "id": "7252",
+    "narratives": {
+      "Overview": "One refusal on scope:complete when two merged stories are still active.",
+      "Description": ""
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "scope:complete refuses when the caller is not finalize-cohort, the flag is not --in-pr, and at least two active briefs have a merged product pull request."
+      }
+    ],
+    "metadata": {
+      "kind": "scope",
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/scope/main.ts",
+          "packages/core/src/scope/main.test.ts",
+          "changelog.d/7252-slow-path-scope-complete.md"
+        ]
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true
+    }
+  },
+  "approvedRepos": [
+    "deftai/directive"
+  ],
+  "unknownPaths": [
+    "metadata.kind"
+  ]
+}
