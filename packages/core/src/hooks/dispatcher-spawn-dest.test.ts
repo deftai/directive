@@ -5,6 +5,7 @@ import { join, resolve } from "node:path";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { loadStoryWriteFenceFromPath } from "../policy/write-fence.js";
 import { SCOPE_NOT_READY_PROMOTE_THEN_ACTIVATE } from "../scope/transition-hint.js";
+import { gitCommonDir } from "../session/git.js";
 import { applyWorktreeOccupancy } from "../session/occupancy.js";
 import {
   GROK_CRITIC_SPAWN_NOT_READY_RECOVERY,
@@ -12,6 +13,12 @@ import {
   rerootDestKeyList,
   rerootMissingDestImperative,
 } from "../session/spawn-occupancy.js";
+import {
+  ensureStoryBindingRecord,
+  STORY_BINDING_STORE_DIR,
+  storyBindingRecordName,
+} from "../swarm/story-binding-record.js";
+import { resolveWorkerAuthDestPath } from "../swarm/worker-auth-assignment.js";
 import {
   GROK_SPAWN_SUBAGENT_ADVERTISED_JSON,
   GROK_SPAWN_WRITING_SKIP_CLASS_FIELD,
@@ -28,6 +35,7 @@ import {
   spawnToolArgUpdatedInput,
 } from "./index.js";
 import { isExploreSpawn, SPAWN_CLASS_RECOVERY } from "./readonly.js";
+import { PRE_DISPATCH_BEGIN_REPAIR } from "./scope.js";
 import { HOST_TOOL_SURFACE_AUDIT, isShellTool } from "./tools.js";
 
 const ephemeralTemps: string[] = [];
@@ -107,7 +115,7 @@ function destFixture(): { root: string; dest: string } {
 
 beforeAll(() => {
   destFixture();
-});
+}, 120_000);
 
 function countOccurrences(haystack: string, needle: string): number {
   if (needle.length === 0) return 0;
@@ -1964,5 +1972,160 @@ describe("dest-cwd one-PR mint admission (#7257)", () => {
     expect(second).toMatchObject({ verdict: "deny", code: "spawn-not-ready" });
     expect(second.message).toContain("no same-PR approved-scope record");
     expect(second.message).toContain(dest);
+  });
+});
+
+describe("dest story-binding selects over session multi-active (#7271)", () => {
+  function clearStoryBindingStore(root: string): void {
+    const common = gitCommonDir(root);
+    if (common !== null) {
+      rmSync(join(common, STORY_BINDING_STORE_DIR), { recursive: true, force: true });
+    }
+  }
+
+  afterEach(() => {
+    if (sharedDest !== null) clearStoryBindingStore(sharedDest.root);
+  });
+
+  function multiActiveDestNonUnique(): {
+    root: string;
+    dest: string;
+    destStoryB: string;
+  } {
+    const { root, dest } = destFixture();
+    clearStoryBindingStore(root);
+    // Session/payload root: ≥2 eligible actives; bound story absent here.
+    writeRunning(root, "a-story.xbrief.json", ["packages/a/**"]);
+    writeRunning(root, "c-story.xbrief.json", ["packages/c/**"]);
+    // Dest actives non-unique by basename (basename pin alone is insufficient).
+    writeRunning(dest, "a-story.xbrief.json", ["packages/a/**"]);
+    const destStoryB = writeRunning(dest, "b-story.xbrief.json", ["packages/b/**"]);
+    return { root, dest, destStoryB };
+  }
+
+  function bindDestStory(dest: string, storyId: string): void {
+    const common = gitCommonDir(dest);
+    if (common === null) throw new Error("expected git common dir");
+    const written = ensureStoryBindingRecord({
+      commonDir: common,
+      worktreePath: resolveWorkerAuthDestPath(dest),
+      storyId,
+      attemptIds: ["att-7271-test"],
+    });
+    if (!written.ok) throw new Error(written.detail);
+  }
+
+  it("allows dest-proven spawn from dest story-binding while session root has multiple actives", () => {
+    const { root, dest, destStoryB } = multiActiveDestNonUnique();
+    bindDestStory(dest, "b-story");
+    const inspectScope = vi.fn(
+      (projectRoot: string, options?: Parameters<typeof inspectActiveScope>[1]) =>
+        inspectActiveScope(projectRoot, options),
+    );
+    const loadFence = vi.fn((fenceRoot: string, scopePath: string | null) => {
+      expect(resolve(fenceRoot)).toBe(resolve(dest));
+      const loader = liveScopeSeams().loadStoryWriteFence;
+      if (loader === undefined) throw new Error("expected loadStoryWriteFence");
+      return loader(fenceRoot, scopePath);
+    });
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          toolName: "spawn_subagent",
+          tool_input: { cwd: dest, prompt: "implement the story" },
+        },
+        environ: { DEFT_SESSION_ID: "parent-1" },
+      },
+      liveScopeSeams({ inspectScope, loadStoryWriteFence: loadFence }),
+    );
+    expect(decision).toMatchObject({ verdict: "allow", code: "spawn-ready" });
+    expect(decision.scopePath).toBe(destStoryB);
+    expect(inspectScope).not.toHaveBeenCalled();
+    expect(loadFence).toHaveBeenCalled();
+    expect(decision.message).not.toContain(PRE_DISPATCH_BEGIN_REPAIR);
+  });
+
+  it("refuses when dest worker-auth and story-binding are absent; basename pin is not enough", () => {
+    const { root, dest } = multiActiveDestNonUnique();
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          toolName: "spawn_subagent",
+          tool_input: { cwd: dest, prompt: "implement the story" },
+        },
+        environ: { DEFT_SESSION_ID: "parent-1" },
+      },
+      liveScopeSeams(),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "spawn-not-ready" });
+    expect(decision.message).toContain("Multiple active xBRIEF artifacts");
+    // Binding absent: pre-dispatch repair remains accurate.
+    expect(decision.message).toContain(PRE_DISPATCH_BEGIN_REPAIR);
+  });
+
+  it("refuses a malformed dest binding with rewrite repair and does not fall back to a parent story", () => {
+    const { root, dest, destStoryB } = multiActiveDestNonUnique();
+    const common = gitCommonDir(dest);
+    if (common === null) throw new Error("expected git common dir");
+    const name = storyBindingRecordName(resolveWorkerAuthDestPath(dest));
+    mkdirSync(join(common, STORY_BINDING_STORE_DIR), { recursive: true });
+    writeFileSync(join(common, STORY_BINDING_STORE_DIR, name), "{not-json", "utf8");
+    const inspectScope = vi.fn(
+      (projectRoot: string, options?: Parameters<typeof inspectActiveScope>[1]) =>
+        inspectActiveScope(projectRoot, options),
+    );
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          toolName: "spawn_subagent",
+          tool_input: { cwd: dest, prompt: "implement the story" },
+        },
+        environ: { DEFT_SESSION_ID: "parent-1" },
+      },
+      liveScopeSeams({
+        inspectScope,
+        readWorkerAuthAssignment: () => ({
+          ok: true as const,
+          assignment: null,
+          commonDir: common,
+        }),
+      }),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "spawn-not-ready" });
+    expect(decision.message).toMatch(/malformed/i);
+    expect(decision.message).toContain(PRE_DISPATCH_BEGIN_REPAIR);
+    expect(decision.scopePath).not.toBe(destStoryB);
+    expect(inspectScope).not.toHaveBeenCalled();
+  });
+
+  it("keeps primary multi-active fence for non-spawn writes (A3)", () => {
+    const { root } = multiActiveDestNonUnique();
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: root,
+        payload: {
+          toolName: "Write",
+          tool_input: {
+            path: join(root, "packages", "a", "x.ts"),
+            contents: "export {};\n",
+          },
+        },
+        environ: { DEFT_SESSION_ID: "parent-1" },
+      },
+      liveScopeSeams(),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "scope-not-ready" });
+    expect(decision.message).toContain("Multiple active xBRIEF artifacts");
   });
 });

@@ -3115,15 +3115,19 @@ function inspectMutationGates(
         message: worktreeBinding.message,
         denyKind: "pin-miss",
       };
-    } else if (worktreeBinding.kind === "bound" && worktreeBinding.landsWithProductMove) {
-      // #6480: the story was admitted through its in-PR completion move; its
-      // brief is no longer under active/, so skip inspectActiveScope and its
-      // active-folder and running-status refusals. The implement intent
-      // ceiling below still applies.
+    } else if (
+      worktreeBinding.kind === "bound" &&
+      (worktreeBinding.landsWithProductMove || spawnDestRoot.length > 0)
+    ) {
+      // #6480 in-PR completion move, or #7271 dest-bound spawn: short-circuit
+      // ready scope to the binding path. Do not re-enter multi-active
+      // competition on a dest-bound hit when the dest story-binding is readable.
       scope = {
         ready: true,
         path: worktreeBinding.path,
-        message: inPrCompletionScopeMessage(worktreeBinding),
+        message: worktreeBinding.landsWithProductMove
+          ? inPrCompletionScopeMessage(worktreeBinding)
+          : `OK destination worktree story-binding selects ${worktreeBinding.storyId}.`,
       };
     } else {
       const boundPath = worktreeBinding.kind === "bound" ? worktreeBinding.path : spawnBoundPath;
@@ -3272,6 +3276,7 @@ function inspectMutationGates(
   const requirePositiveGoverningAllow = (): HookDecision | null => {
     if (!(scope.ready && scope.path !== null)) return null;
     const loadFence = seams.loadStoryWriteFence ?? loadStoryWriteFenceFromMergeBase;
+    // #7271: dest-bound spawn loads the fence from the destination root.
     const fence = loadFence(scopeFenceRoot, scope.path);
     if (hasPositiveGoverningStoryAllow(fence)) {
       return null;
