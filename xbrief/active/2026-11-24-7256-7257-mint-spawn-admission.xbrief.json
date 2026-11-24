@@ -52,7 +52,8 @@
           "packages/runtime/src/scope-record-approved-scope-cohort.test.ts",
           "changelog.d/7256-7257-mint-spawn-admission.md"
         ]
-      }
+      },
+      "productPullRequest": 7283
     },
     "acceptance": {
       "commands": [],
