@@ -170,7 +170,7 @@ Note: root-relative paths (this repo IS deft/); run `task agents:refresh` after 
 
 <!-- placeholder -->
 
-<!-- deft:managed-section v3 sha=f95d06c1c00b refreshed=2026-11-24T04:58:30Z session=441fe64790f6 -->
+<!-- deft:managed-section v3 sha=8b469d02ba24 refreshed=2026-11-24T05:18:05Z session=bdb88e769741 -->
 # Deft — AI Development Framework
 
 Deft runtime is pinned as `@deftai/directive-runtime`. Full guidelines: node_modules/@deftai/directive-runtime/main.md
@@ -287,7 +287,7 @@ Deft runtime is pinned as `@deftai/directive-runtime`. Full guidelines: node_mod
 ! **Cohort babysit inventory (#5318 / #5690):** For N>1 open Tracking/cohort PRs, parent MUST run `deft verify:cohort-review-monitors -- --prs <csv>` (launch-manifest ∪ open Tracking; `--prs` must not silently shrink) and remediate `unarmed` via Approach 1 at: after each PR-open/discover; before each serial rebase/squash-merge; after Approach 1 child exit/lease release; after tip-churn dirty; after dual-stop/conf-hold/BLOCKED halt; after mint-PR-open/merge. Product mint-gate BLOCKED is non-option-C — same-turn re-arm `--merge-path-arm --live-wait` (mint-PR waiter ≠ product). Classes: `armed-live` | `halted-explicit` (durable `--explicit-finish` only) | `unarmed`. `swarm:verify-review-clean` CLEAN does **not** satisfy inventory — one rule family with #4882/#5219.
 ⊗ Silent PR-open handback for a worker already scoped `drive-to: merge-ready`. ⊗ `stop-at: pr-open` without a named babysit / merge-path owner, or dual review-monitor leases on recovery (#3044 / #2261). ⊗ Stand down unarmed, or treat lease-only / line-parsed `pr-watch --json` / parent-shell `pr:watch` as armed when `spawn_subagent` is available (#4882 / #5219).
 ! After merge of `#N`, `verify:orphan-active -- --issue N` MUST exit 0 before `DONE` (#3429); after `scope:complete` (cancel≠ship #5126), `verify:completed-tracked -- --issue N` MUST exit 0 on `origin/<deliveryBranch>` (#3476). Exit 1 shipped → printed `scope:complete`; missing land → `swarm:finalize-cohort` or a lifecycle PR; unresolved → retry / `BLOCKED` (⊗ complete unfinished scope). **Grok leftover (#4529):** Phase 6 `swarm:finalize-cohort`, not the implement dest. **Cohort (#7082):** `scope:complete --in-pr` first, else the cohort closer owns completion + checks; solo unchanged.
-! **Fresh-clone completed land (#4714):** Before `swarm:launch`, at `onePrScopeProof: off` each selected active brief MUST exist on fetched `origin/<deliveryBranch>` (human-reviewed activation PR); at `mint`, an unmerged pushed story branch with a matching mint pair via `base_branch` is enough. After product merge, Phase 6 `swarm:finalize-cohort` lands terminal briefs via a lifecycle PR; if the isolated delivery checkout lacks the active brief, it may materialize only exact bytes that match a reachable reviewed product/evidence blob from a retained dest — otherwise fail closed with source-recovery. Expected scoped closing refs without active/terminal records are not #2247 incidental skips. ⊗ Treat GitHub-closed alone as DONE. ⊗ Copy a whole `xbrief/` tree into the lifecycle checkout.
+! **Fresh-clone completed land (#4714):** Before `swarm:launch`, at `off` each active brief MUST exist on fetched `origin/<deliveryBranch>` (activation PR); at `mint`, an unmerged pushed story branch with matching mint pair via `base_branch` is enough — build on that branch before merge. After product merge, Phase 6 `swarm:finalize-cohort` lands terminal briefs; isolated delivery may materialize only exact reviewed product/evidence bytes from a retained dest — else fail closed. Expected closing refs without active/terminal records are not #2247 skips. ⊗ GitHub-closed alone ≠ DONE. ⊗ Copy whole `xbrief/` into lifecycle checkout.
 ⊗ Emit `ISSUE: closed` while that brief is still in `active/`.
 
 ## Nuclear-family A2A topology (#3155)
@@ -366,9 +366,7 @@ Deft runtime is pinned as `@deftai/directive-runtime`. Full guidelines: node_mod
 ### Story Start Gate
 
 ! `git status --short --branch` + `deft verify:story-ready`; `deft scope:promote -- <path>` / `deft scope:activate -- <path>` / `deft scope:complete -- <active-story-path>` (#1378) — `commands.md` § Scope xBRIEF Lifecycle.
-! Batch route (#6273 / #7083): before a batch, read `deft policy:show --field=onePrScopeProof` and explain both routes; do not pick in silence.
-! `mint`: one PR per story (brief + human mint + code); `scope:record-approved-scope -- --manifest` then type `mint` once; no activation PR; remint if the brief changes after mint.
-! `off` (default unset): no mint; one bulk activation PR, then per-story product PRs.
+! Batch route (#6273 / #7083): before a batch, read `deft policy:show --field=onePrScopeProof` and explain both routes; do not pick in silence. `mint`: one PR per story (brief+mint+code); batch `scope:record-approved-scope -- --manifest` + type `mint` once; no activation PR; remint if brief changes; 10→10 reviews (all `--in-pr`) or 11 with one lifecycle. `off` (default): no mint; one bulk activation PR then per-story product PRs; 10→12 with one lifecycle.
 ! Finalize (#7082 / #3476): merged product PR ≠ done while brief is `active/`; prefer `scope:complete --in-pr`, else one `swarm:finalize-cohort`; then `verify:orphan-active` + `verify:completed-tracked` on `origin/<deliveryBranch>`. ⊗ Change `onePrScopeProof` inside a story PR.
 
 ## Commands
