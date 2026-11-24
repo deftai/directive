@@ -352,4 +352,35 @@ describe("JS workspace acceptance forms (#6886)", () => {
     expect(clean.command.ok).toBe(true);
     expect(clean.cwd).toEqual({ ok: true, reason: null });
   });
+
+  it("admits npm/pnpm run build|lint|typecheck without script argv (#7175)", () => {
+    expect(evaluateCommandSafety("npm run build").ok).toBe(true);
+    expect(evaluateCommandSafety("npm run lint").ok).toBe(true);
+    expect(evaluateCommandSafety("npm run typecheck").ok).toBe(true);
+    expect(evaluateCommandSafety("pnpm run build").ok).toBe(true);
+    expect(evaluateCommandSafety("pnpm run lint").ok).toBe(true);
+    expect(evaluateCommandSafety("pnpm run typecheck").ok).toBe(true);
+    expect(evaluateCommandSafety("npm --prefix packages/core run build").ok).toBe(true);
+    expect(evaluateCommandSafety("npm -w @deftai/directive-core run lint").ok).toBe(true);
+    expect(evaluateCommandSafety("npm run build -- --watch").ok).toBe(false);
+    expect(evaluateCommandSafety("npm run build --if-present").ok).toBe(false);
+    expect(evaluateCommandSafety("pnpm --filter core run build").ok).toBe(false);
+    expect(evaluateCommandSafety("pnpm run build --filter core").ok).toBe(false);
+    expect(evaluateCommandSafety("npx tsc").ok).toBe(false);
+    expect(evaluateCommandSafety("pnpm exec tsc").ok).toBe(false);
+  });
+
+  it("admits npm/pnpm audit only through the closed flag table (#7175)", () => {
+    expect(evaluateCommandSafety("npm audit").ok).toBe(true);
+    expect(evaluateCommandSafety("pnpm audit").ok).toBe(true);
+    expect(evaluateCommandSafety("npm audit --json").ok).toBe(true);
+    expect(evaluateCommandSafety("npm audit --audit-level high").ok).toBe(true);
+    expect(evaluateCommandSafety("npm audit --omit=dev").ok).toBe(true);
+    expect(evaluateCommandSafety("pnpm audit --prod --json").ok).toBe(true);
+    expect(evaluateCommandSafety("pnpm audit --audit-level=critical").ok).toBe(true);
+    expect(evaluateCommandSafety("npm audit --fix").ok).toBe(false);
+    expect(evaluateCommandSafety("pnpm audit --registry https://example.com").ok).toBe(false);
+    expect(evaluateCommandSafety("npm audit foo").ok).toBe(false);
+    expect(evaluateCommandSafety("npm audit --").ok).toBe(false);
+  });
 });

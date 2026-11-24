@@ -461,6 +461,28 @@ const TEST_NAME_PATTERN = /^[A-Za-z0-9_][A-Za-z0-9 _#@.:+,-]*$/;
 /** Admitted package script names: test, check, test:<name> and check:<name>. */
 const ADMITTED_SCRIPT_NAME_PATTERN = /^(?:test|check)(?::[A-Za-z0-9][A-Za-z0-9_-]*)?$/;
 
+/**
+ * Verification scripts admitted without script argv (#7175 limb 1).
+ * Separate from test/check: no positional, `--`, runner flag, `--if-present`,
+ * or pnpm `--filter` after the script name.
+ */
+const VERIFICATION_SCRIPT_NAMES = new Set(["build", "lint", "typecheck"]);
+
+/** npm audit flags and closed values (#7175 limb 2). */
+const NPM_AUDIT_BOOLEAN_FLAGS = new Set(["--json", "--package-lock-only"]);
+const NPM_AUDIT_OMIT_VALUES = new Set(["dev", "optional", "peer"]);
+const AUDIT_LEVEL_VALUES = new Set(["info", "low", "moderate", "high", "critical"]);
+
+/** pnpm audit flags (#7175 limb 2). */
+const PNPM_AUDIT_BOOLEAN_FLAGS = new Set([
+  "--json",
+  "-P",
+  "--prod",
+  "-D",
+  "--dev",
+  "--no-optional",
+]);
+
 /** Built-in vitest reporter names. */
 const VITEST_REPORTERS = new Set([
   "default",
@@ -814,16 +836,218 @@ function evaluateWrapperSubcommand(rest: string, first: string): CommandSafetyRe
 }
 
 const PACKAGE_MANAGER_ARGS_REASON =
-  "package-manager args must be test|exec vitest|run <script>|--version, where <script> is " +
-  "test, check, test:<name> or check:<name> " +
+  "package-manager args must be test|exec vitest|run <script>|audit|--version, where <script> is " +
+  "test, check, test:<name> or check:<name>, plus build, lint, or typecheck " +
   "(arbitrary scripts/network install denied for ambient-authority)";
+
+/**
+ * npm/pnpm `run build|lint|typecheck` with no script argv (#7175 limb 1).
+ * npm may place one `--prefix` and `-w`/`--workspace` before `run`; the tail
+ * after the script name stays empty for both. pnpm `--filter`, `--`, positionals,
+ * runner flags, and `--if-present` stay refused.
+ */
+function evaluateVerificationScriptRun(
+  tokens: readonly string[],
+  firstToken: string,
+): CommandSafetyResult | null {
+  let i = 0;
+  let sawPrefix = false;
+  let sawWorkspace = false;
+  while (i < tokens.length && tokens[i] !== "run") {
+    const flag = tokens[i] ?? "";
+    if (firstToken === "npm" && (flag === "--prefix" || flag === "-w" || flag === "--workspace")) {
+      const value = tokens[i + 1];
+      if (value === undefined) {
+        return closedGrammarRefusal(`${flag} needs a value`);
+      }
+      if (flag === "--prefix") {
+        if (sawPrefix) {
+          return { ok: false, reason: "npm verification scripts allow one --prefix only" };
+        }
+        const refusedSegment = dependencyOrDotSegment(unwrapShellQuotes(value));
+        if (refusedSegment !== null) {
+          return {
+            ok: false,
+            reason: `"--prefix" segment ${JSON.stringify(refusedSegment)} is refused: ${ACCEPTANCE_DEPENDENCY_PATH_REASON}`,
+          };
+        }
+        if (!isRelativeArgPath(unwrapShellQuotes(value))) {
+          return closedGrammarRefusal("--prefix must be a plain relative path");
+        }
+        sawPrefix = true;
+      } else {
+        if (sawWorkspace) {
+          return { ok: false, reason: "npm verification scripts allow one -w/--workspace only" };
+        }
+        if (!PACKAGE_NAME_PATTERN.test(value)) {
+          return closedGrammarRefusal("-w/--workspace must be a package name");
+        }
+        sawWorkspace = true;
+      }
+      i += 2;
+      continue;
+    }
+    return null;
+  }
+  if (tokens[i] !== "run") {
+    return null;
+  }
+  const script = tokens[i + 1] ?? "";
+  if (!VERIFICATION_SCRIPT_NAMES.has(script)) {
+    return null;
+  }
+  const after = tokens.slice(i + 2);
+  if (firstToken === "pnpm") {
+    if (i !== 0 || after.length > 0) {
+      return {
+        ok: false,
+        reason:
+          "pnpm run build|lint|typecheck admits an empty tail only " +
+          "(no --filter, --, positionals, or flags)",
+      };
+    }
+    return { ok: true, reason: null };
+  }
+  if (firstToken === "npm") {
+    if (after.length > 0) {
+      return {
+        ok: false,
+        reason:
+          "npm run build|lint|typecheck admits no script argv " +
+          "(no positional, --, runner flag, or --if-present after the script)",
+      };
+    }
+    return { ok: true, reason: null };
+  }
+  return null;
+}
+
+/**
+ * npm/pnpm audit with a closed flag table (#7175 limb 2).
+ * Brief text may select these flags; the package tree is sent to the registry
+ * named by repo or user config; a refused connection fails the run; a hung
+ * connection waits; repo or user config can still force a cannot-fail level.
+ */
+function evaluateAuditArgs(tokens: readonly string[], firstToken: string): CommandSafetyResult {
+  if (tokens[0] !== "audit") {
+    return { ok: false, reason: PACKAGE_MANAGER_ARGS_REASON };
+  }
+  let i = 1;
+  let sawPrefix = false;
+  let sawWorkspace = false;
+  while (i < tokens.length) {
+    const flag = tokens[i] ?? "";
+    if (flag === "--" || !flag.startsWith("-")) {
+      return {
+        ok: false,
+        reason: "audit admits closed flags only (no positional, no --)",
+      };
+    }
+    if (
+      /^-[A-Za-z0-9]{2,}$/.test(flag) &&
+      !flag.startsWith("--") &&
+      flag !== "-P" &&
+      flag !== "-D" &&
+      flag !== "-w"
+    ) {
+      return { ok: false, reason: "audit refuses short-flag clusters" };
+    }
+    if (flag.includes("=") && !flag.startsWith("--")) {
+      return { ok: false, reason: "audit refuses attached values on short flags" };
+    }
+    if (firstToken === "npm") {
+      if (NPM_AUDIT_BOOLEAN_FLAGS.has(flag)) {
+        i += 1;
+        continue;
+      }
+      if (flag === "--omit" || flag.startsWith("--omit=")) {
+        const value = flag.startsWith("--omit=") ? flag.slice("--omit=".length) : tokens[i + 1];
+        if (value === undefined || !NPM_AUDIT_OMIT_VALUES.has(value)) {
+          return { ok: false, reason: "npm audit --omit admits only dev|optional|peer" };
+        }
+        i += flag.startsWith("--omit=") ? 1 : 2;
+        continue;
+      }
+      if (flag === "--audit-level" || flag.startsWith("--audit-level=")) {
+        const value = flag.startsWith("--audit-level=")
+          ? flag.slice("--audit-level=".length)
+          : tokens[i + 1];
+        if (value === undefined || !AUDIT_LEVEL_VALUES.has(value)) {
+          return {
+            ok: false,
+            reason: "audit --audit-level admits only info|low|moderate|high|critical",
+          };
+        }
+        i += flag.startsWith("--audit-level=") ? 1 : 2;
+        continue;
+      }
+      if (flag === "--prefix") {
+        if (sawPrefix) {
+          return { ok: false, reason: "npm audit allows one --prefix only" };
+        }
+        const value = tokens[i + 1];
+        if (value === undefined) {
+          return closedGrammarRefusal("--prefix needs a value");
+        }
+        const refusedSegment = dependencyOrDotSegment(unwrapShellQuotes(value));
+        if (refusedSegment !== null) {
+          return {
+            ok: false,
+            reason: `"--prefix" segment ${JSON.stringify(refusedSegment)} is refused: ${ACCEPTANCE_DEPENDENCY_PATH_REASON}`,
+          };
+        }
+        if (!isRelativeArgPath(unwrapShellQuotes(value))) {
+          return closedGrammarRefusal("--prefix must be a plain relative path");
+        }
+        sawPrefix = true;
+        i += 2;
+        continue;
+      }
+      if (flag === "-w" || flag === "--workspace") {
+        if (sawWorkspace) {
+          return { ok: false, reason: "npm audit allows one -w/--workspace only" };
+        }
+        const value = tokens[i + 1];
+        if (value === undefined || !PACKAGE_NAME_PATTERN.test(value)) {
+          return closedGrammarRefusal("-w/--workspace must be a package name");
+        }
+        sawWorkspace = true;
+        i += 2;
+        continue;
+      }
+      return { ok: false, reason: `npm audit refuses flag ${JSON.stringify(flag)}` };
+    }
+    if (firstToken === "pnpm") {
+      if (PNPM_AUDIT_BOOLEAN_FLAGS.has(flag)) {
+        i += 1;
+        continue;
+      }
+      if (flag === "--audit-level" || flag.startsWith("--audit-level=")) {
+        const value = flag.startsWith("--audit-level=")
+          ? flag.slice("--audit-level=".length)
+          : tokens[i + 1];
+        if (value === undefined || !AUDIT_LEVEL_VALUES.has(value)) {
+          return {
+            ok: false,
+            reason: "audit --audit-level admits only info|low|moderate|high|critical",
+          };
+        }
+        i += flag.startsWith("--audit-level=") ? 1 : 2;
+        continue;
+      }
+      return { ok: false, reason: `pnpm audit refuses flag ${JSON.stringify(flag)}` };
+    }
+    return { ok: false, reason: PACKAGE_MANAGER_ARGS_REASON };
+  }
+  return { ok: true, reason: null };
+}
 
 /**
  * Package-manager subcommand allowlist (no install/publish/exec of arbitrary bins).
  * `npx` is stricter than npm/pnpm/yarn/bun: it must not accept `run`/`exec` forms that
  * resolve arbitrary registry packages with inherited env (Greptile conf residual).
  * The script name is exact (case-sensitive); every later argument uses the
- * closed grammar (GHSA-mq3j-2229-p7xx).
+ * closed grammar (GHSA-mq3j-2229-p7xx). #7175 adds build/lint/typecheck and audit.
  */
 function evaluatePackageManagerArgs(rest: string, firstToken: string): CommandSafetyResult {
   if (rest.length === 0) {
@@ -837,6 +1061,7 @@ function evaluatePackageManagerArgs(rest: string, firstToken: string): CommandSa
   const head = tokens[0] ?? "";
 
   // npx: only vitest (direct) or version/help — no `npx run` / `npx exec <pkg>` registry path.
+  // npx tsc stays refused (#7175 limb 4).
   if (firstToken === "npx") {
     if (low === "--version" || low === "-v" || low === "--help" || low === "-h") {
       return { ok: true, reason: null };
@@ -855,7 +1080,19 @@ function evaluatePackageManagerArgs(rest: string, firstToken: string): CommandSa
     return { ok: true, reason: null };
   }
 
+  if ((firstToken === "npm" || firstToken === "pnpm") && head === "audit") {
+    return evaluateAuditArgs(tokens, firstToken);
+  }
+
+  if (firstToken === "npm" || firstToken === "pnpm") {
+    const verification = evaluateVerificationScriptRun(tokens, firstToken);
+    if (verification !== null) {
+      return verification;
+    }
+  }
+
   // exec: only vitest (not deft/task — those re-open wrapper ambient authority).
+  // pnpm exec tsc stays refused (#7175 limb 4).
   if (head === "exec") {
     if (tokens[1] === "vitest") {
       return evaluateVitestTokens(tokens.slice(2));
