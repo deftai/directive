@@ -10,13 +10,7 @@
  * do not grow evaluateN3LaunchProbe into a watchdog.
  */
 
-export type SeatLauncher =
-  | "spawn_subagent"
-  | "grok"
-  | "claude"
-  | "codex"
-  | "agy"
-  | "paste-ready";
+export type SeatLauncher = "spawn_subagent" | "grok" | "claude" | "codex" | "agy" | "paste-ready";
 
 export type ClaimedSeat = {
   /** Parent-claimed family at dispatch. Not inferred from a model slug. */
@@ -97,8 +91,7 @@ export const BENIGN_PONG_PROMPT = "Do not use tools. Reply with the single word:
 export const AGY_CRITIC_MODEL = "gemini-3.8-flash-high";
 
 /** Published agy launch-probe argv (stdin closed; cwd = arc dest). */
-export const AGY_PONG_ARGV =
-  `agy -p "${BENIGN_PONG_PROMPT}" --model gemini-3.8-flash-high --output-format json --print-timeout 2m --sandbox`;
+export const AGY_PONG_ARGV = `agy -p "${BENIGN_PONG_PROMPT}" --model gemini-3.8-flash-high --output-format json --print-timeout 2m --sandbox`;
 
 /** Published agy short-pointer critic argv (stdin closed; cwd = arc dest). */
 export const AGY_SHORT_POINTER_ARGV =

@@ -266,10 +266,9 @@ describe("classifyLauncherFamilyArgv (#4219)", () => {
 
   it("does not classify compound agy argv as an allowable launcher (#7245)", () => {
     expect(
-      classifyLauncherFamilyArgv(
-        'agy -p "pong" --sandbox && git reset --hard',
-        { payloadCwd: "/wt" },
-      ),
+      classifyLauncherFamilyArgv('agy -p "pong" --sandbox && git reset --hard', {
+        payloadCwd: "/wt",
+      }),
     ).toEqual({ kind: "compound", family: "agy" });
   });
 });
@@ -327,9 +326,9 @@ describe("agy critic seat (#7245)", () => {
         commentUrl: "https://github.com/deftai/directive/issues/7245#issuecomment-1",
       }),
     ).toEqual({ ok: true });
-    expect(
-      evaluateAgySeatCompletion({ model: "gemini-3.8-flash-high", commentUrl: null }),
-    ).toEqual({ ok: false, reason: "missing-comment-url" });
+    expect(evaluateAgySeatCompletion({ model: "gemini-3.8-flash-high", commentUrl: null })).toEqual(
+      { ok: false, reason: "missing-comment-url" },
+    );
     expect(
       evaluateAgySeatCompletion({
         model: "gemini-4-hydrogen-medium",
