@@ -1,0 +1,72 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Admit dest-worktree mints at spawn and allow multi-story mint into one checkout.",
+    "created": "2026-11-24T14:00:00Z",
+    "updated": "2026-11-24T14:00:00Z"
+  },
+  "plan": {
+    "title": "Fix bulk mint spawn admission (#7256 / #7257)",
+    "status": "running",
+    "id": "7256",
+    "narratives": {
+      "Overview": "Spawn must read the dest worktree mint when cwd is that worktree. Manifest may mint several stories into one checkout.",
+      "Description": "",
+      "UserStory": "As an operator running overnight YOLO bulk mint into dest worktrees, I need spawn_subagent to admit a dest-cwd mint and scope:record-approved-scope --manifest to write several planId records into one checkout, so builders start without a second mint pass.",
+      "ImplementationPlan": "1) In dispatcher spawn admission, when cwd is a linked worktree of the project, use that worktree as the onePrMint / active-scope fence root. 2) In scope-record-approved-scope-cohort, allow several distinct planId records to share one worktree_path. 3) Tests for dest-only admit and multi-planId shared checkout. 4) changelog.d fragment."
+    },
+    "items": [
+      {
+        "title": "When spawn_subagent cwd is a linked worktree of the project, active-scope and one-PR mint admission use that worktree as the fence root so a dest mint admits the spawn.",
+        "status": "proposed",
+        "id": "clause.1"
+      },
+      {
+        "title": "scope:record-approved-scope --manifest may write several distinct planId records into one worktree in one typed mint; plan ids stay unique.",
+        "status": "proposed",
+        "id": "clause.2"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": false,
+        "file_scope": [
+          "packages/core/src/hooks/dispatcher.ts",
+          "packages/core/src/hooks/dispatcher-spawn-dest.test.ts",
+          "packages/runtime/src/scope-record-approved-scope-cohort.ts",
+          "packages/runtime/src/scope-record-approved-scope-cohort.test.ts",
+          "changelog.d/7256-7257-mint-spawn-admission.md"
+        ],
+        "verify_commands": [],
+        "size": "medium",
+        "file_scope_confidence": "high",
+        "depends_on": []
+      },
+      "intended_placement": {
+        "files": [
+          "packages/core/src/hooks/dispatcher.ts",
+          "packages/core/src/hooks/dispatcher-spawn-dest.test.ts",
+          "packages/runtime/src/scope-record-approved-scope-cohort.ts",
+          "packages/runtime/src/scope-record-approved-scope-cohort.test.ts",
+          "changelog.d/7256-7257-mint-spawn-admission.md"
+        ]
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/7256",
+        "type": "x-xbrief/github-issue"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/7257",
+        "type": "x-xbrief/github-issue"
+      }
+    ]
+  }
+}

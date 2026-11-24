@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Prepare dest-worktree mint admission so overnight bulk builders can start from a linked-worktree mint without a second mint pass (#7256 / #7257).
+
 ### Fixed
 
 ### Removed
