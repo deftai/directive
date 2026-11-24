@@ -1,0 +1,425 @@
+{
+  "schema": "deft.intent-constraint.v1",
+  "planId": "github.issue.6535789816",
+  "xbriefRelPath": "xbrief/active/2026-11-23-6945-featscope-zero-terminal-step-approval-of-observable-scope-an.xbrief.json",
+  "approvedAt": "2026-11-24T04:07:07Z",
+  "constraints": [
+    {
+      "value": "invariant",
+      "unit": "throw-site",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "invariant",
+      "unit": "throw-site",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "invariant",
+      "unit": "throw-site",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "invariant",
+      "unit": "throw-site",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "invariant",
+      "unit": "throw-site",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "invariant",
+      "unit": "throw-site",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "invariant",
+      "unit": "throw-site",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "invariant",
+      "unit": "throw-site",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "invariant",
+      "unit": "throw-site",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "invariant",
+      "unit": "throw-site",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "invariant",
+      "unit": "throw-site",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "invariant",
+      "unit": "throw-site",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "invariant",
+      "unit": "throw-site",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "invariant",
+      "unit": "throw-site",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "invariant",
+      "unit": "throw-site",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "invariant",
+      "unit": "throw-site",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "invariant",
+      "unit": "throw-site",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "invariant",
+      "unit": "throw-site",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "invariant",
+      "unit": "throw-site",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "invariant",
+      "unit": "throw-site",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "invariant",
+      "unit": "throw-site",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "invariant",
+      "unit": "throw-site",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "invariant",
+      "unit": "throw-site",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "invariant",
+      "unit": "throw-site",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "invariant",
+      "unit": "throw-site",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "invariant",
+      "unit": "throw-site",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "invariant",
+      "unit": "throw-site",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "invariant",
+      "unit": "throw-site",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "invariant",
+      "unit": "throw-site",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "invariant",
+      "unit": "throw-site",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "invariant",
+      "unit": "throw-site",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "invariant",
+      "unit": "throw-site",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "invariant",
+      "unit": "throw-site",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "invariant",
+      "unit": "throw-site",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "invariant",
+      "unit": "throw-site",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "invariant",
+      "unit": "throw-site",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "invariant",
+      "unit": "throw-site",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "invariant",
+      "unit": "throw-site",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "invariant",
+      "unit": "throw-site",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "invariant",
+      "unit": "throw-site",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "invariant",
+      "unit": "throw-site",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "invariant",
+      "unit": "throw-site",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "invariant",
+      "unit": "throw-site",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "invariant",
+      "unit": "throw-site",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "invariant",
+      "unit": "throw-site",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "invariant",
+      "unit": "throw-site",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "invariant",
+      "unit": "throw-site",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "invariant",
+      "unit": "throw-site",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "invariant",
+      "unit": "throw-site",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "invariant",
+      "unit": "throw-site",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "invariant",
+      "unit": "throw-site",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "invariant",
+      "unit": "throw-site",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "invariant",
+      "unit": "throw-site",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "invariant",
+      "unit": "throw-site",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "invariant",
+      "unit": "throw-site",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "invariant",
+      "unit": "throw-site",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "invariant",
+      "unit": "throw-site",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "invariant",
+      "unit": "throw-site",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "invariant",
+      "unit": "throw-site",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "invariant",
+      "unit": "throw-site",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "invariant",
+      "unit": "throw-site",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "invariant",
+      "unit": "throw-site",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "invariant",
+      "unit": "throw-site",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "invariant",
+      "unit": "throw-site",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "invariant",
+      "unit": "throw-site",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "invariant",
+      "unit": "throw-site",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "invariant",
+      "unit": "throw-site",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "6000",
+      "unit": "bytes",
+      "rejectionScope": "operation"
+    },
+    {
+      "value": "6000",
+      "unit": "bytes",
+      "rejectionScope": "operation"
+    },
+    {
+      "value": "1500",
+      "unit": "characters",
+      "rejectionScope": "operation"
+    },
+    {
+      "value": "1500",
+      "unit": "characters",
+      "rejectionScope": "operation"
+    },
+    {
+      "value": "5",
+      "unit": "certificates",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "-7",
+      "unit": "cose-alg",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "-257",
+      "unit": "cose-alg",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "-8",
+      "unit": "cose-alg",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "1",
+      "unit": "flag-bit",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "4",
+      "unit": "flag-bit",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "8",
+      "unit": "flag-bit",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "8",
+      "unit": "depth",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "16",
+      "unit": "flag-bit",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "64",
+      "unit": "flag-bit",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "128",
+      "unit": "flag-bit",
+      "rejectionScope": "invocation"
+    }
+  ],
+  "humanApproval": {
+    "kind": "declared",
+    "actor": "agent:6945-intent",
+    "mintedAt": "2026-11-24T04:07:07Z",
+    "mintedVia": "scope:record-intent-constraint"
+  },
+  "contractDigest": "7e1f518eafd07933cf6e3f5357a4fd9558de65932f073588a9f6010c4df7eb7c"
+}
