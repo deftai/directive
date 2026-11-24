@@ -592,7 +592,6 @@ describe("commit gate judges the checkout the commit names (#6278 / #6247)", {
       "git -C . commit -m x",
       "cd .deft-scratch/worktrees/story-a && git commit -m x",
       `cd "${wtA}" && cd "${wtB}" && git commit -m x`,
-      `cd "${wtA}" && git -C "${wtB}" commit -m x`,
       "cd $WT && git commit -m x",
       `true || cd "${wtA}" && git commit -m x`,
       `{ cd "${wtA}"; } && git commit -m x`,
@@ -608,6 +607,9 @@ describe("commit gate judges the checkout the commit names (#6278 / #6247)", {
       expect(out.message).toMatch(/cannot be resolved to one checkout/);
       expect(out.message).toContain(FORMS);
     }
+    // Absolute `git -C` is sole chdir authority; prior `cd` is ignored (#7273).
+    // Empty wtB index → allow (no out-of-scope staged paths on the named checkout).
+    expect(commit(primary, `cd "${wtA}" && git -C "${wtB}" commit -m x`).verdict).toBe("allow");
   });
 
   it("resolves a quoted path with spaces and a forward-slash drive path", () => {

@@ -921,6 +921,10 @@ describe("a variable needs a commit word; array assignments are assignments (#68
       'eval "$GIT commit -m x"; git -C /r/wt commit -m y',
       'env -S "$GIT commit -m x"; git -C /r/wt commit -m y',
       "git -C /r/wt commit -m y; $GIT commit -m x",
+      // Expanding `$BIN -c` payload with exact commit stays opaque (#7305 P1).
+      "BIN=bash; $BIN -c 'git -C /other commit -m x'; git -C /safe commit -m y",
+      // Wrapper → nested expanding `-c` still arms exact-word scan (#7305 P1).
+      'MSG=fix; timeout 60 bash -c "git -C /r/wt commit -m $MSG"',
     ]) {
       expect(resolveCommitTarget(command, posix), command).toMatchObject({ kind: "unresolvable" });
     }

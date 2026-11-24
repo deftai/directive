@@ -599,43 +599,55 @@ function textShowsExactCommitWord(text: string): boolean {
 }
 
 /**
+ * `-c` operand bodies after shell-like options at `k` (#7273). Used for known
+ * shells and for expanding `$BIN -c …` where the bin name is unreadable.
+ */
+function dashCBodies(words: readonly ShellWord[], k: number): string[] {
+  let hasC = false;
+  let i = k + 1;
+  while (i < words.length) {
+    const current = words[i];
+    const v = current?.value ?? "";
+    if (current?.redirect !== undefined) {
+      i += current.redirect === "operator" ? 2 : 1;
+      continue;
+    }
+    if (v === "--" || v === "-") {
+      i += 1;
+      break;
+    }
+    if (v.startsWith("--")) {
+      i += v === "--rcfile" || v === "--init-file" ? 2 : 1;
+      continue;
+    }
+    if ((v.startsWith("-") || v.startsWith("+")) && v.length > 1) {
+      if (v.startsWith("-") && v.includes("c")) hasC = true;
+      i += /[oO]/.test(v.slice(1)) ? 2 : 1;
+      continue;
+    }
+    break;
+  }
+  if (!hasC) return [];
+  const body = words[i];
+  return body === undefined ? [] : [withoutTrailingCloses(body)];
+}
+
+/**
  * Bodies of `sh`/`bash`/`zsh`/`pwsh -c`, `eval`, and `env -S` in one command
- * (#7273). Expanding bodies are included so exact-word `commit` inside them still arms.
+ * (#7273). Expanding bodies are included so exact-word `commit` inside them still
+ * arms. Wrappers (`timeout`, …) and expanding `$BIN -c …` are unwrapped so nested
+ * payloads still count (Greptile #7305).
  */
 function executableStringBodies(words: readonly ShellWord[]): string[] {
   let k = 0;
   while (k < words.length && isAssignmentWord(words[k]?.value ?? "")) k++;
   const word = words[k];
-  if (word === undefined || isUnreadableCommandWord(word)) return [];
+  if (word === undefined) return [];
+  // Expanding command word: still read a following `-c` body (#7273 / #7305 P1).
+  if (isUnreadableCommandWord(word)) return dashCBodies(words, k);
   const name = programName(word);
   if (SHELL_BINS.has(name) || name === "pwsh" || name === "powershell") {
-    let hasC = false;
-    let i = k + 1;
-    while (i < words.length) {
-      const current = words[i];
-      const v = current?.value ?? "";
-      if (current?.redirect !== undefined) {
-        i += current.redirect === "operator" ? 2 : 1;
-        continue;
-      }
-      if (v === "--" || v === "-") {
-        i += 1;
-        break;
-      }
-      if (v.startsWith("--")) {
-        i += v === "--rcfile" || v === "--init-file" ? 2 : 1;
-        continue;
-      }
-      if ((v.startsWith("-") || v.startsWith("+")) && v.length > 1) {
-        if (v.startsWith("-") && v.includes("c")) hasC = true;
-        i += /[oO]/.test(v.slice(1)) ? 2 : 1;
-        continue;
-      }
-      break;
-    }
-    if (!hasC) return [];
-    const body = words[i];
-    return body === undefined ? [] : [withoutTrailingCloses(body)];
+    return dashCBodies(words, k);
   }
   if (name === "eval") {
     const args = withoutRedirections(words.slice(k + 1));
@@ -671,6 +683,10 @@ function executableStringBodies(words: readonly ShellWord[]): string[] {
       }
       break;
     }
+  }
+  if (WRAPPER_VALUE_OPTIONS.has(name)) {
+    const wrapped = readWrapper(words, k, name);
+    return wrapped?.kind === "wrapped" ? executableStringBodies(wrapped.words) : [];
   }
   return [];
 }
@@ -811,9 +827,13 @@ function readCommand(words: readonly ShellWord[]): CommandReading {
   const word = words[k];
   if (word === undefined) return null;
   if (isUnreadableCommandWord(word)) {
-    // Independently commit-shaped when this command's own words include exact `commit` (#7273).
+    // Independently commit-shaped when own words or a following `-c` payload
+    // include exact `commit` — keep those opaque even beside a named commit (#7273 / #7305).
+    const commitShaped =
+      wordsShowExactCommit(words) ||
+      executableStringBodies(words).some((body) => textShowsExactCommitWord(body));
     return unreadable(`the command word ${JSON.stringify(word.value)}`, {
-      ...(wordsShowExactCommit(words) ? {} : { suppressibleWithNamedCommit: true as const }),
+      ...(commitShaped ? {} : { suppressibleWithNamedCommit: true as const }),
     });
   }
   const name = programName(word);
