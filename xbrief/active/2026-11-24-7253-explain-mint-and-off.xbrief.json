@@ -41,7 +41,8 @@
         "github_issue_id": 6573950395,
         "origin": "deftai/directive#7253",
         "id": "github.issue.6573950395"
-      }
+      },
+      "productPullRequest": 7255
     },
     "id": "github.issue.6573950395",
     "acceptance": {
@@ -52,7 +53,7 @@
       {
         "uri": "https://github.com/deftai/directive/issues/7253",
         "type": "x-xbrief/github-issue",
-        "title": "Issue #7253"
+        "title": "Issue #7253: Tell the operator the mint and off tradeoff before a batch"
       }
     ]
   }
