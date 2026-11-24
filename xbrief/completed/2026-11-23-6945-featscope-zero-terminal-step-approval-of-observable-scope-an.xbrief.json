@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6945",
-    "updated": "2026-11-24T04:10:30Z"
+    "updated": "2026-11-24T13:46:07Z"
   },
   "plan": {
     "title": "feat(scope): zero-terminal-step approval of observable-scope and intent-constraint records that an agent cannot forge",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "feat(scope): zero-terminal-step approval of observable-scope and intent-constraint records that an agent cannot forge",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6945",
@@ -17,88 +17,309 @@
     "items": [
       {
         "title": "Trust file. `.deft/approvers.json` holds a signed body `{repo, rp: {id, origins}, approvers: [{name, credentialId, publicKey, alg, aaguid, backupEligible}]}` and a proof. The first version's proof is a root: a `packed` attestation whose certificate chain verifies against vendor roots vendored in Directive (`none` and self attestation refused), plus an assertion by that credential over the body. Every later version's proof is an assertion, by a credential in the immediately preceding version, over `{schema: \"deft.approvers-transition.v1\", repo, predecessorDigest, bodyDigest}`; or it is a re-root by a newly attested credential that no earlier version enrolled (the lost-all-keys path; earlier records stop verifying until re-approved). A transition that leaves no attested credential in the set is refused.",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "leftover complete after #7249; approvers.json not present in leftover walk",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "operator",
+            "mintedAt": "2026-11-24T13:22:14Z",
+            "mintedVia": "deft authz:grant",
+            "eventRef": "template:acceptance-disposition",
+            "grantId": "grant-20261124132214-4341c0"
+          },
+          "recorded_at": "2026-11-24T13:46:07Z"
+        }
       },
       {
         "title": "History and stickiness. At the signed level verify walks every first-parent version of `.deft/approvers.json` from its first appearance and checks item 1 at each step. A file that appeared and is now absent or malformed refuses. A shallow clone refuses with a full-history remediation. There is no level off in this story: once opted in, a repo stays signed. `rp.id` and `origins` are part of the signed body, so moving the page is a signed change.",
-        "status": "proposed",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "leftover complete after #7249; approvers.json not present in leftover walk",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "operator",
+            "mintedAt": "2026-11-24T13:22:14Z",
+            "mintedVia": "deft authz:grant",
+            "eventRef": "template:acceptance-disposition",
+            "grantId": "grant-20261124132214-4341c0"
+          },
+          "recorded_at": "2026-11-24T13:46:07Z"
+        }
       },
       {
         "title": "Signed payload. One canonical-encoding module (sorted keys, UTF-8, base64url) defines two domain-separated payloads, `deft.record-approval.v1` and the transition payload of item 1. A record approval is `{repo, entries}`, each entry `{kind, planId, xbriefRelPath, recordRel, changeKind, contractDigest}`, sorted and free of duplicates. Proofs sit outside the bytes they sign. The same module is bundled into the page and checked against shared test vectors.",
-        "status": "proposed",
-        "id": "clause.3"
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "leftover complete after #7249; approvers.json not present in leftover walk",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "operator",
+            "mintedAt": "2026-11-24T13:22:14Z",
+            "mintedVia": "deft authz:grant",
+            "eventRef": "template:acceptance-disposition",
+            "grantId": "grant-20261124132214-4341c0"
+          },
+          "recorded_at": "2026-11-24T13:46:07Z"
+        }
       },
       {
         "title": "Record format and verifier. At the signed level a record carries `approval: {payload, credentialId, authenticatorData, clientDataJSON, signature}`; unknown keys are refused, and the approver name is read from the credential mapping, not from the record. One helper, in the parse both evaluators share, rebuilds the record's own entry from its parsed fields, takes `repo` from `GITHUB_REPOSITORY` or the origin remote (refusing when neither resolves), requires that entry in the payload, and checks: challenge equals sha256 of the rebuilt payload; `type` is `webauthn.get`; origin in `rp.origins`; `crossOrigin` not true; `rpIdHash` equals sha256 of `rp.id`; user-present and user-verified set; signature valid under the enrolled key (ES256, RS256 and Ed25519 through `node:crypto`). It runs on the selected record only; a selected record that fails is treated as absent, so one stale record does not fail unrelated plans.",
-        "status": "proposed",
-        "id": "clause.4"
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "leftover complete after #7249; approvers.json not present in leftover walk",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "operator",
+            "mintedAt": "2026-11-24T13:22:14Z",
+            "mintedVia": "deft authz:grant",
+            "eventRef": "template:acceptance-disposition",
+            "grantId": "grant-20261124132214-4341c0"
+          },
+          "recorded_at": "2026-11-24T13:46:07Z"
+        }
       },
       {
         "title": "Ceremony page. One static page Directive ships, served from the origin named in the trust file. Approve mode decodes the set from the URL fragment, renders it as text only (strict CSP, `frame-ancestors 'none'`), computes every digest and the challenge itself, calls `navigator.credentials.get` with user verification required, and shows a result blob to copy. Enroll mode creates the new credential, builds the next trust-file body itself, shows the new credential's name, AAGUID and backup-eligible flag, and asks an enrolled key to sign the transition in the same session; it returns one combined blob. Requests above a fixed size refuse and say to split the cohort; the QR code is shown only when the link fits.",
-        "status": "proposed",
-        "id": "clause.5"
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "leftover complete after #7249; approvers.json not present in leftover walk",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "operator",
+            "mintedAt": "2026-11-24T13:22:14Z",
+            "mintedVia": "deft authz:grant",
+            "eventRef": "template:acceptance-disposition",
+            "grantId": "grant-20261124132214-4341c0"
+          },
+          "recorded_at": "2026-11-24T13:46:07Z"
+        }
       },
       {
         "title": "Verbs. At the signed level `scope:record-observable-scope` and `scope:record-intent-constraint` (one path or the cohort form) take `--request`, which builds the frozen set, prints the link and writes nothing, and `--assertion <blob>`, which rebuilds the same set, verifies the blob with the item 4 helper against the merge-base trust file, and writes exactly those records. `approvers:enroll --name <n>` (root when no trust file exists, else an add) and `approvers:remove --credential <id>` print a page link and accept only the page's combined blob. No TTY step on these paths.",
-        "status": "proposed",
-        "id": "clause.6"
+        "status": "completed",
+        "id": "clause.6",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "leftover complete after #7249; approvers.json not present in leftover walk",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "operator",
+            "mintedAt": "2026-11-24T13:22:14Z",
+            "mintedVia": "deft authz:grant",
+            "eventRef": "template:acceptance-disposition",
+            "grantId": "grant-20261124132214-4341c0"
+          },
+          "recorded_at": "2026-11-24T13:46:07Z"
+        }
       },
       {
         "title": "Fallback. At the signed level a record without a valid approval (TTY-minted, hand-written, or merged by any route) is not approved. Without a trust file, and for every other mint verb, the TTY mint is unchanged.",
-        "status": "proposed",
-        "id": "clause.7"
+        "status": "completed",
+        "id": "clause.7",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "leftover complete after #7249; approvers.json not present in leftover walk",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "operator",
+            "mintedAt": "2026-11-24T13:22:14Z",
+            "mintedVia": "deft authz:grant",
+            "eventRef": "template:acceptance-disposition",
+            "grantId": "grant-20261124132214-4341c0"
+          },
+          "recorded_at": "2026-11-24T13:46:07Z"
+        }
       },
       {
         "title": "Honest claim. The refusal text, both verbs' usage, `content/commands.md` and the record docs state: a valid approval proves a user-verified gesture by an enrolled authenticator over exactly this set; the human read it only if the page ran on a device the agent does not drive and was deployed with credentials the agent does not hold; Windows Hello, Touch ID, a desktop USB key and the desktop browser's cross-device QR are a lower review assurance than the phone's own browser. They also name the residuals: removing the surfaces policy, editing CI or pinning an older runtime turns the check off without forging an approval (with #6207); an approval stays valid while its key stays enrolled, so deleting a record does not revoke it and nothing expires; `approvers.json` with WebAuthn is the trust root #5862 and #6284 may reuse, and `plan.policy.onePrScopeProof` `signed` stays reserved.",
-        "status": "proposed",
-        "id": "clause.8"
+        "status": "completed",
+        "id": "clause.8",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "clause 8 is the honest-claim residual, not a deploy this story performs",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "operator",
+            "mintedAt": "2026-11-24T01:52:13Z",
+            "mintedVia": "deft authz:grant",
+            "eventRef": "template:acceptance-disposition",
+            "grantId": "grant-20261124015213-50ed35"
+          },
+          "recorded_at": "2026-11-24T13:46:07Z"
+        }
       },
       {
         "title": "Tests beside each changed file: valid approval; wrong key; another repo's approval pasted in; unknown origin or `rp.id`; `crossOrigin` true; UV missing; one byte changed in payload, contract, `changeKind` or plan id; an entry missing from its payload; unknown record key; a later records-only widen with the old approval; an unsigned record landed by bot merge or plain merge read at the signed level; a `--request` run writes nothing; root with `none` or self attestation; a transition by a key not in the predecessor; a re-root reusing an earlier credential; removal of the last attested credential; a rollback to an earlier version; two transitions from one predecessor; the file deleted after first appearance; a shallow clone; a stale record of plan A with a valid record of plan B; canonicalizer vectors shared with the page bundle.",
-        "status": "proposed",
-        "id": "clause.9"
+        "status": "completed",
+        "id": "clause.9",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "leftover complete after #7249; approvers.json not present in leftover walk",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "operator",
+            "mintedAt": "2026-11-24T13:22:14Z",
+            "mintedVia": "deft authz:grant",
+            "eventRef": "template:acceptance-disposition",
+            "grantId": "grant-20261124132214-4341c0"
+          },
+          "recorded_at": "2026-11-24T13:46:07Z"
+        }
       },
       {
         "title": "With `.deft/approvers.json` at the merge base, an observable-scope or intent-constraint record is approved only when its approval verifies against a key enrolled in that file over a payload rebuilt from this repository and the record's own fields.",
-        "status": "proposed",
-        "id": "clause.10"
+        "status": "completed",
+        "id": "clause.10",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "leftover complete after #7249; approvers.json not present in leftover walk",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "operator",
+            "mintedAt": "2026-11-24T13:22:14Z",
+            "mintedVia": "deft authz:grant",
+            "eventRef": "template:acceptance-disposition",
+            "grantId": "grant-20261124132214-4341c0"
+          },
+          "recorded_at": "2026-11-24T13:46:07Z"
+        }
       },
       {
         "title": "A record written by hand, minted at a TTY, or merged under `DEFT_ALLOW_BOT_MERGE`, `policy:allow-bot-merge` or a plain `gh pr merge`, without a valid approval, is not approved at the signed level.",
-        "status": "proposed",
-        "id": "clause.11"
+        "status": "completed",
+        "id": "clause.11",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "leftover complete after #7249; approvers.json not present in leftover walk",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "operator",
+            "mintedAt": "2026-11-24T13:22:14Z",
+            "mintedVia": "deft authz:grant",
+            "eventRef": "template:acceptance-disposition",
+            "grantId": "grant-20261124132214-4341c0"
+          },
+          "recorded_at": "2026-11-24T13:46:07Z"
+        }
       },
       {
         "title": "Changing any signed record field (plan id, brief path, record path, `changeKind`, contract) requires a fresh approval; an approval from another repository does not verify.",
-        "status": "proposed",
-        "id": "clause.12"
+        "status": "completed",
+        "id": "clause.12",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "leftover complete after #7249; approvers.json not present in leftover walk",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "operator",
+            "mintedAt": "2026-11-24T13:22:14Z",
+            "mintedVia": "deft authz:grant",
+            "eventRef": "template:acceptance-disposition",
+            "grantId": "grant-20261124132214-4341c0"
+          },
+          "recorded_at": "2026-11-24T13:46:07Z"
+        }
       },
       {
         "title": "The first trust-file version needs a hardware attestation that verifies against the vendored roots; every later version needs an assertion by a key of its predecessor or a new attested root; deletion, rollback, a conflicting second transition and a shallow clone refuse.",
-        "status": "proposed",
-        "id": "clause.13"
+        "status": "completed",
+        "id": "clause.13",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "leftover complete after #7249; approvers.json not present in leftover walk",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "operator",
+            "mintedAt": "2026-11-24T13:22:14Z",
+            "mintedVia": "deft authz:grant",
+            "eventRef": "template:acceptance-disposition",
+            "grantId": "grant-20261124132214-4341c0"
+          },
+          "recorded_at": "2026-11-24T13:46:07Z"
+        }
       },
       {
         "title": "`--request` writes nothing and records carry no approval until `--assertion` verifies; the record verbs and `approvers:enroll`/`approvers:remove` need no TTY at the signed level.",
-        "status": "proposed",
-        "id": "clause.14"
+        "status": "completed",
+        "id": "clause.14",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "leftover complete after #7249; approvers.json not present in leftover walk",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "operator",
+            "mintedAt": "2026-11-24T13:22:14Z",
+            "mintedVia": "deft authz:grant",
+            "eventRef": "template:acceptance-disposition",
+            "grantId": "grant-20261124132214-4341c0"
+          },
+          "recorded_at": "2026-11-24T13:46:07Z"
+        }
       },
       {
         "title": "The page shows the full set, computes the challenge from the bytes it shows, and adds keys only in one session with an enrolled key's signature.",
-        "status": "proposed",
-        "id": "clause.15"
+        "status": "completed",
+        "id": "clause.15",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "leftover complete after #7249; approvers.json not present in leftover walk",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "operator",
+            "mintedAt": "2026-11-24T13:22:14Z",
+            "mintedVia": "deft authz:grant",
+            "eventRef": "template:acceptance-disposition",
+            "grantId": "grant-20261124132214-4341c0"
+          },
+          "recorded_at": "2026-11-24T13:46:07Z"
+        }
       },
       {
         "title": "Without a trust file, behaviour and the TTY mint are unchanged.",
-        "status": "proposed",
-        "id": "clause.16"
+        "status": "completed",
+        "id": "clause.16",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "leftover complete after #7249; approvers.json not present in leftover walk",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "operator",
+            "mintedAt": "2026-11-24T13:22:14Z",
+            "mintedVia": "deft authz:grant",
+            "eventRef": "template:acceptance-disposition",
+            "grantId": "grant-20261124132214-4341c0"
+          },
+          "recorded_at": "2026-11-24T13:46:07Z"
+        }
       },
       {
         "title": "The docs and refusal text state what a valid approval proves and the named residuals.",
-        "status": "proposed",
-        "id": "clause.17"
+        "status": "completed",
+        "id": "clause.17",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "leftover complete after #7249; approvers.json not present in leftover walk",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "operator",
+            "mintedAt": "2026-11-24T13:22:14Z",
+            "mintedVia": "deft authz:grant",
+            "eventRef": "template:acceptance-disposition",
+            "grantId": "grant-20261124132214-4341c0"
+          },
+          "recorded_at": "2026-11-24T13:46:07Z"
+        }
       }
     ],
     "tags": [
@@ -813,10 +1034,42 @@
         "model_tier": "strong",
         "acceptance_criteria_justification": "The 17 clauses are the 9 Bound remedy items and 8 Acceptance Criteria of the accepted lean 7073325701 on #6945, harvested and digest-pinned by issue ingest; the verified-claims table 7073354605 and synthesis 7073356439 bind it. They cannot be merged or dropped without breaking the admitted-source pin."
       },
-      "kind": "story"
+      "kind": "story",
+      "productPullRequest": 7249,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "e4fc777acb132dc954415b49cb5d54c43747ab29",
+        "prNumber": 7249,
+        "prBase": "master",
+        "mergeCommit": "1794ca429e76fb712f7ad521240e866b682056b5",
+        "deliveryBranch": "master",
+        "deliveryCommit": "60e8921207e77d526c9392a6da1e83345d77a6de",
+        "verifiedAt": "2026-11-24T13:46:07Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMjBkYmItMzg4MC03YzEyLWEzYTYtNDI5YmNiOWUyOWU5",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          7237,
+          7259,
+          7261
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-24T13:46:07Z",
+      "completedSessionId": "host:grok:v1:MDFhMjBkYmItMzg4MC03YzEyLWEzYTYtNDI5YmNiOWUyOWU5",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-24T13:46:07Z"
+      }
     },
     "id": "github.issue.6535789816",
-    "updated": "2026-11-23T22:14:44Z",
+    "updated": "2026-11-24T13:46:07Z",
     "x-directive/intentConstraint": {
       "constraints": [
         {
