@@ -1,10 +1,17 @@
 import { existsSync, readFileSync } from "node:fs";
 import { dirname } from "node:path";
+import {
+  listActiveRunningBriefs,
+  productPullRequestFromPlan,
+} from "../orphan-active/running-briefs.js";
 import { closerSetFromIssueIds } from "../one-pr-unit/closer-set.js";
 import { evaluateOnePrUnit } from "../one-pr-unit/evaluate.js";
 import { exactOriginSetEquals } from "../one-pr-unit/origin-set.js";
 import { listOnePrUnitGrants } from "../one-pr-unit/store.js";
+import { storyIssueOfBrief } from "../pr-closing-keywords/story-issue.js";
 import { defaultRunGh, fetchClosingIssuesReferences } from "../pr-protected-issues/gh.js";
+import { githubOwnerRepoFromRemoteUrl } from "../release/closed-verb-gate.js";
+import { runGit } from "../release/git.js";
 import { releaseWorkClaimForBrief } from "../scm/work-claim.js";
 import { maybeRunStalenessTickler } from "../staleness-tickler/run.js";
 import { interceptHelp } from "../triage/help/index.js";
@@ -18,6 +25,8 @@ import { CONFESS_ACTION, confessOnBrief } from "./confess.js";
 import { TRANSITIONS } from "./constants.js";
 import {
   type DeliveryEvidenceInput,
+  defaultFetchPrPayload,
+  type FetchPrPayloadFn,
   isNonDeliveryDisposition,
   type NonDeliveryDisposition,
 } from "./delivery-evidence.js";
@@ -46,6 +55,107 @@ import {
   undoBatch,
   undoOne,
 } from "./undo.js";
+
+/** One active brief whose stamped product PR is already merged (#7252). */
+export interface MergedActiveStory {
+  readonly prNumber: number;
+  readonly cohortId: string;
+}
+
+/** Result of the one-story complete slow-path gate (#7252). */
+export type SlowPathCompleteGate =
+  | { readonly refuse: false }
+  | {
+      readonly refuse: true;
+      readonly message: string;
+      readonly merged: readonly MergedActiveStory[];
+    };
+
+function resolveRepoForSlowPath(projectRoot: string): string | null {
+  const fromEnv = (process.env.GH_REPO ?? process.env.GITHUB_REPOSITORY ?? "").trim();
+  if (fromEnv.length > 0 && fromEnv.includes("/")) {
+    return fromEnv;
+  }
+  const remote = runGit(projectRoot, ["remote", "get-url", "origin"]);
+  if (remote.status !== 0) {
+    return null;
+  }
+  return githubOwnerRepoFromRemoteUrl(remote.stdout.trim());
+}
+
+function cohortIdForPlan(plan: Record<string, unknown>, repo: string | null): string {
+  if (repo !== null) {
+    const issue = storyIssueOfBrief(plan, repo);
+    if (issue !== null) {
+      return String(issue);
+    }
+  }
+  const planId = String(plan.id ?? "").trim();
+  if (/^\d+$/.test(planId)) {
+    return planId;
+  }
+  return planId.length > 0 ? planId : "unknown";
+}
+
+function isMergedPrPayload(payload: Record<string, unknown> | null): boolean {
+  if (payload === null) {
+    return false;
+  }
+  const mergedAt = payload.merged_at;
+  return typeof mergedAt === "string" && mergedAt.trim().length > 0;
+}
+
+/**
+ * Refuse one-story scope:complete when ≥2 active briefs already have a merged
+ * product PR. Finalize-cohort and --in-pr stay allowed (#7252).
+ */
+export function evaluateSlowPathCompleteGate(args: {
+  readonly projectRoot: string;
+  readonly inPr?: boolean;
+  readonly repository?: string | null;
+  readonly fetchPrPayload?: FetchPrPayloadFn;
+  readonly listBriefs?: () => ReturnType<typeof listActiveRunningBriefs>;
+}): SlowPathCompleteGate {
+  if (args.inPr === true) {
+    return { refuse: false };
+  }
+  const briefs = (args.listBriefs ?? (() => listActiveRunningBriefs(args.projectRoot)))();
+  const repo = (args.repository ?? resolveRepoForSlowPath(args.projectRoot) ?? "").trim();
+  if (repo.length === 0) {
+    return { refuse: false };
+  }
+  const fetchPr = args.fetchPrPayload ?? defaultFetchPrPayload;
+  const merged: MergedActiveStory[] = [];
+  for (const brief of briefs) {
+    const prNumber = productPullRequestFromPlan(brief.plan);
+    if (prNumber === null) {
+      continue;
+    }
+    if (!isMergedPrPayload(fetchPr(prNumber, repo))) {
+      continue;
+    }
+    merged.push({
+      prNumber,
+      cohortId: cohortIdForPlan(brief.plan, repo),
+    });
+  }
+  if (merged.length < 2) {
+    return { refuse: false };
+  }
+  const prList = [...new Set(merged.map((row) => row.prNumber))].sort((a, b) => a - b).join(",");
+  const cohortList = [...new Set(merged.map((row) => row.cohortId))].sort().join(",");
+  return {
+    refuse: true,
+    merged,
+    message:
+      `slow-path: deft swarm:finalize-cohort -- --pr ${prList} --cohort ${cohortList}`,
+  };
+}
+
+/** Test seam so lifecycleMain can stub the #7252 gate without module-cycle spies. */
+export const slowPathCompleteGateSeam = {
+  evaluate: evaluateSlowPathCompleteGate,
+};
 
 export interface LifecycleArgs {
   action: string;
@@ -623,6 +733,17 @@ export function lifecycleMain(argv: string[]): number {
         process.stderr.write(`Error: one-PR-unit recheck failed: ${message}\n`);
         return 1;
       }
+    }
+  }
+  if (action === "complete" && inPr !== true) {
+    const rootForSlowPath = resolveProjectRoot(projectRoot) ?? dirname(dirname(dirname(filePath)));
+    const slowPath = slowPathCompleteGateSeam.evaluate({
+      projectRoot: rootForSlowPath,
+      inPr: false,
+    });
+    if (slowPath.refuse) {
+      process.stderr.write(`${slowPath.message}\n`);
+      return 1;
     }
   }
   const transitionOptions: TransitionOptions = {

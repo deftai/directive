@@ -4,7 +4,13 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { stampCompletionMetadata } from "./capacity-stamp.js";
 import { demoteOne } from "./demote.js";
-import { demoteMain, lifecycleMain, undoMain } from "./main.js";
+import {
+  demoteMain,
+  evaluateSlowPathCompleteGate,
+  lifecycleMain,
+  slowPathCompleteGateSeam,
+  undoMain,
+} from "./main.js";
 import { resolveProjectRoot } from "./project-context.js";
 import { minimalScopeBrief } from "./scope-test-fixtures.test.js";
 import { runTransition } from "./transition.js";
@@ -605,6 +611,113 @@ describe("strict-axis advisory at promote and activate (#6272)", () => {
         "A merge declaration means no strict axis, so test, review or merge evidence then passes.",
       );
       rmSync(root, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("slow-path scope:complete gate (#7252)", () => {
+  let root = "";
+  afterEach(() => {
+    if (root.length > 0) {
+      rmSync(root, { recursive: true, force: true });
+      root = "";
+    }
+  });
+
+  function writeRunning(name: string, opts: { id: string; productPr?: number }): string {
+    const active = join(root, "xbrief", "active");
+    mkdirSync(active, { recursive: true });
+    const file = join(active, name);
+    writeFileSync(
+      file,
+      formatBriefJson(
+        minimalScopeBrief({
+          title: opts.id,
+          status: "running",
+          id: opts.id,
+          items: [],
+          acceptance: { commands: [], none_stated: true },
+          ...(opts.productPr !== undefined
+            ? { metadata: { productPullRequest: opts.productPr } }
+            : {}),
+        }),
+      ),
+      "utf8",
+    );
+    return file;
+  }
+
+  it("allows complete when fewer than two merged product PRs are active", () => {
+    root = mkdtempSync(join(tmpdir(), "slow-path-one-"));
+    writeRunning("2026-01-01-a.xbrief.json", { id: "1001", productPr: 11 });
+    writeRunning("2026-01-01-b.xbrief.json", { id: "1002" });
+    const gate = evaluateSlowPathCompleteGate({
+      projectRoot: root,
+      repository: "acme/app",
+      fetchPrPayload: (pr) => (pr === 11 ? { merged_at: "2026-01-02T00:00:00Z" } : null),
+    });
+    expect(gate.refuse).toBe(false);
+  });
+
+  it("refuses complete when two active briefs already have merged product PRs", () => {
+    root = mkdtempSync(join(tmpdir(), "slow-path-two-"));
+    writeRunning("2026-01-01-a.xbrief.json", { id: "1001", productPr: 11 });
+    writeRunning("2026-01-01-b.xbrief.json", { id: "1002", productPr: 12 });
+    const gate = evaluateSlowPathCompleteGate({
+      projectRoot: root,
+      repository: "acme/app",
+      fetchPrPayload: (pr) =>
+        pr === 11 || pr === 12 ? { merged_at: "2026-01-02T00:00:00Z" } : null,
+    });
+    expect(gate.refuse).toBe(true);
+    if (gate.refuse) {
+      expect(gate.message).toBe(
+        "slow-path: deft swarm:finalize-cohort -- --pr 11,12 --cohort 1001,1002",
+      );
+    }
+  });
+
+  it("keeps --in-pr admitted even with two merged actives", () => {
+    root = mkdtempSync(join(tmpdir(), "slow-path-inpr-"));
+    writeRunning("2026-01-01-a.xbrief.json", { id: "1001", productPr: 11 });
+    writeRunning("2026-01-01-b.xbrief.json", { id: "1002", productPr: 12 });
+    const gate = evaluateSlowPathCompleteGate({
+      projectRoot: root,
+      inPr: true,
+      repository: "acme/app",
+      fetchPrPayload: () => ({ merged_at: "2026-01-02T00:00:00Z" }),
+    });
+    expect(gate.refuse).toBe(false);
+  });
+
+  it("lifecycleMain prints the slow-path line and exits 1", () => {
+    root = mkdtempSync(join(tmpdir(), "slow-path-cli-"));
+    const file = writeRunning("2026-01-01-a.xbrief.json", { id: "1001", productPr: 11 });
+    writeRunning("2026-01-01-b.xbrief.json", { id: "1002", productPr: 12 });
+    const err: string[] = [];
+    const stderrSpy = vi.spyOn(process.stderr, "write").mockImplementation((chunk) => {
+      err.push(String(chunk));
+      return true;
+    });
+    const stdoutSpy = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+    const previous = slowPathCompleteGateSeam.evaluate;
+    slowPathCompleteGateSeam.evaluate = () => ({
+      refuse: true,
+      merged: [
+        { prNumber: 11, cohortId: "1001" },
+        { prNumber: 12, cohortId: "1002" },
+      ],
+      message: "slow-path: deft swarm:finalize-cohort -- --pr 11,12 --cohort 1001,1002",
+    });
+    try {
+      expect(lifecycleMain(["complete", file, "--project-root", root])).toBe(1);
+      expect(err.join("")).toContain(
+        "slow-path: deft swarm:finalize-cohort -- --pr 11,12 --cohort 1001,1002",
+      );
+    } finally {
+      slowPathCompleteGateSeam.evaluate = previous;
+      stderrSpy.mockRestore();
+      stdoutSpy.mockRestore();
     }
   });
 });
