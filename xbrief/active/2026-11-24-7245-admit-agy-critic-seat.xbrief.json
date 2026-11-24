@@ -1,0 +1,51 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Admit Antigravity CLI as a design-critique critic seat",
+    "created": "2026-11-24T04:00:00Z",
+    "updated": "2026-11-24T04:00:00Z"
+  },
+  "plan": {
+    "title": "Admit Antigravity CLI as a design-critique critic seat",
+    "status": "running",
+    "id": "7245",
+    "narratives": {
+      "Overview": "Admit agy as its own critic-seat family on SeatLauncher and launcher-argv.",
+      "Description": ""
+    },
+    "items": [
+      {
+        "title": "agy is admitted as its own critic-seat family on SeatLauncher and the existing launcher-argv classifier without a new swarm worker role.",
+        "status": "proposed",
+        "id": "clause.1"
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": false,
+        "file_scope": [
+          "packages/core/src/design-critique/panel-seat-families.ts",
+          "packages/core/src/hooks/launcher-argv.ts",
+          "packages/core/src/hooks/launcher-argv.test.ts",
+          "changelog.d/7245-admit-agy-critic-seat.md"
+        ],
+        "verify_commands": [],
+        "size": "medium",
+        "file_scope_confidence": "medium",
+        "depends_on": []
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/7245",
+        "type": "x-xbrief/github-issue"
+      }
+    ]
+  }
+}
