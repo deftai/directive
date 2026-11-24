@@ -677,6 +677,20 @@ describe("slow-path scope:complete gate (#7252)", () => {
     }
   });
 
+  it("refuses with retry text when a stamped PR merge state cannot be read", () => {
+    root = mkdtempSync(join(tmpdir(), "slow-path-null-"));
+    writeRunning("2026-01-01-a.xbrief.json", { id: "1001", productPr: 11 });
+    const gate = evaluateSlowPathCompleteGate({
+      projectRoot: root,
+      repository: "acme/app",
+      fetchPrPayload: () => null,
+    });
+    expect(gate.refuse).toBe(true);
+    if (gate.refuse) {
+      expect(gate.message).toMatch(/could not read merge state for product PR #11/);
+    }
+  });
+
   it("keeps --in-pr admitted even with two merged actives", () => {
     root = mkdtempSync(join(tmpdir(), "slow-path-inpr-"));
     writeRunning("2026-01-01-a.xbrief.json", { id: "1001", productPr: 11 });

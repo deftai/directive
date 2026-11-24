@@ -28,9 +28,10 @@ import {
   defaultFetchPrPayload,
   type FetchPrPayloadFn,
   isNonDeliveryDisposition,
+  liveRunGh,
   type NonDeliveryDisposition,
-} from "./delivery-evidence.js";
-import {
+  resolvePlanGithubIssueRef,
+} from "./delivery-evidence.js";import {
   batchDemote,
   DEFAULT_OLDER_THAN_DAYS,
   demoteOne,
@@ -120,18 +121,33 @@ export function evaluateSlowPathCompleteGate(args: {
     return { refuse: false };
   }
   const briefs = (args.listBriefs ?? (() => listActiveRunningBriefs(args.projectRoot)))();
-  const repo = (args.repository ?? resolveRepoForSlowPath(args.projectRoot) ?? "").trim();
-  if (repo.length === 0) {
-    return { refuse: false };
-  }
-  const fetchPr = args.fetchPrPayload ?? defaultFetchPrPayload;
+  const fallbackRepo = (args.repository ?? resolveRepoForSlowPath(args.projectRoot) ?? "").trim();
+  const fetchPr =
+    args.fetchPrPayload ??
+    ((prNumber, repository) =>
+      defaultFetchPrPayload(prNumber, repository, liveRunGh(defaultRunGh)));
   const merged: MergedActiveStory[] = [];
   for (const brief of briefs) {
+    const issueRef = resolvePlanGithubIssueRef(brief.plan);
+    const repo = (issueRef?.repository ?? fallbackRepo).trim();
+    if (repo.length === 0) {
+      continue;
+    }
     const prNumber = productPullRequestFromPlan(brief.plan);
     if (prNumber === null) {
       continue;
     }
-    if (!isMergedPrPayload(fetchPr(prNumber, repo))) {
+    const payload = fetchPr(prNumber, repo);
+    if (payload === null) {
+      return {
+        refuse: true,
+        merged: [],
+        message:
+          `slow-path: could not read merge state for product PR #${String(prNumber)} in ${repo}; ` +
+          "retry after fixing gh auth, rate limit, or network",
+      };
+    }
+    if (!isMergedPrPayload(payload)) {
       continue;
     }
     merged.push({
