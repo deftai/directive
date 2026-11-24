@@ -140,10 +140,16 @@ function formatSlowPathFinalizeMessage(merged: readonly MergedActiveStory[]): st
     .join("\n")}`;
 }
 
-/** Fetch/auth failures must fail closed; missing sole product PR does not. */
-function isSlowPathDeliveryLookupIndeterminate(message: string): boolean {
-  return /could not fetch|incomplete|could not finish|rate limit|network|gh auth|invalid repository/i.test(
-    message,
+/**
+ * discoverDeliveryEvidenceForComplete uses ok:false for both failed reads and
+ * confirmed-absent candidates. Allowlist only confirmed-absent messages so every
+ * other !ok fails closed (unparseable JSON, HTTP 502, auth, incomplete, …).
+ */
+function isSlowPathDeliveryLookupConfirmedMissing(message: string): boolean {
+  return (
+    /Delivery evidence required for code-bearing scope completion/i.test(message) ||
+    /found zero merged delivery-base PRs/i.test(message) ||
+    /found no merged PR into '/i.test(message)
   );
 }
 
@@ -191,7 +197,7 @@ export function evaluateSlowPathCompleteGate(args: {
         verifier: "scope:complete",
       });
       if (!found.ok) {
-        if (isSlowPathDeliveryLookupIndeterminate(found.message)) {
+        if (!isSlowPathDeliveryLookupConfirmedMissing(found.message)) {
           return {
             refuse: true,
             merged: [],

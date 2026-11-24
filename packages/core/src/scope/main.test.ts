@@ -813,6 +813,86 @@ describe("slow-path scope:complete gate (#7252)", () => {
     }
   });
 
+  it("refuses when unstamped delivery lookup returns unparseable JSON", () => {
+    root = mkdtempSync(join(tmpdir(), "slow-path-unparseable-"));
+    writeRunning("2026-01-01-a.xbrief.json", {
+      id: "1001",
+      productPr: 11,
+      repository: "acme/app",
+    });
+    writeRunning("2026-01-01-b.xbrief.json", {
+      id: "1002",
+      repository: "acme/app",
+    });
+    const gate = evaluateSlowPathCompleteGate({
+      projectRoot: root,
+      repository: "acme/app",
+      fetchPrPayload: (pr) =>
+        pr === 11 ? { merged_at: "2026-01-02T00:00:00Z" } : null,
+      discoverDelivery: () => ({
+        ok: false,
+        message:
+          "closing-PR discovery returned unparseable JSON for acme/app#1002",
+      }),
+    });
+    expect(gate.refuse).toBe(true);
+    if (gate.refuse) {
+      expect(gate.message).toMatch(/unparseable JSON/);
+    }
+  });
+
+  it("refuses when unstamped delivery lookup reports HTTP 502", () => {
+    root = mkdtempSync(join(tmpdir(), "slow-path-http502-"));
+    writeRunning("2026-01-01-a.xbrief.json", {
+      id: "1001",
+      productPr: 11,
+      repository: "acme/app",
+    });
+    writeRunning("2026-01-01-b.xbrief.json", {
+      id: "1002",
+      repository: "acme/app",
+    });
+    const gate = evaluateSlowPathCompleteGate({
+      projectRoot: root,
+      repository: "acme/app",
+      fetchPrPayload: (pr) =>
+        pr === 11 ? { merged_at: "2026-01-02T00:00:00Z" } : null,
+      discoverDelivery: () => ({
+        ok: false,
+        message: "closing-PR discovery failed for acme/app#1002: HTTP 502",
+      }),
+    });
+    expect(gate.refuse).toBe(true);
+    if (gate.refuse) {
+      expect(gate.message).toMatch(/HTTP 502/);
+    }
+  });
+
+  it("continues past confirmed-missing delivery lookup on an unstamped sibling", () => {
+    root = mkdtempSync(join(tmpdir(), "slow-path-confirmed-missing-"));
+    writeRunning("2026-01-01-a.xbrief.json", {
+      id: "1001",
+      productPr: 11,
+      repository: "acme/app",
+    });
+    writeRunning("2026-01-01-b.xbrief.json", {
+      id: "1002",
+      repository: "acme/app",
+    });
+    const gate = evaluateSlowPathCompleteGate({
+      projectRoot: root,
+      repository: "acme/app",
+      fetchPrPayload: (pr) =>
+        pr === 11 ? { merged_at: "2026-01-02T00:00:00Z" } : null,
+      discoverDelivery: () => ({
+        ok: false,
+        message:
+          "Delivery auto-discovery found no merged PR into 'master' that closes #1002, and no merged PR whose merge-time body carries the sole mark",
+      }),
+    });
+    expect(gate.refuse).toBe(false);
+  });
+
   it("refuses with retry text when a stamped PR merge state cannot be read", () => {
     root = mkdtempSync(join(tmpdir(), "slow-path-null-"));
     writeRunning("2026-01-01-a.xbrief.json", { id: "1001", productPr: 11 });
