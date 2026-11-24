@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Record approved file permissions for foreign linked-worktree spawn admit. This records approval only; it does not change product behavior (#7270).
+- Record approved file permissions for the exact-word commit gate. This records approval only; it does not change product behavior (#7273).
+
 - Record approved file permissions for missing-runtime outer install admit. This records approval only; it does not change product behavior (#7275).
 - Record approved file permissions for obs-scope rediscovery scrub. This records approval only; it does not change product behavior (#7272).
 - Record approved file permissions for acceptance-disposition deferral walk. This records approval only; it does not change product behavior (#7254).
