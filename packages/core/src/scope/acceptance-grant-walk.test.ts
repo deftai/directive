@@ -15,6 +15,7 @@ import { evaluateVerifyAcFromPlan } from "../product-first-done-gate/evaluate.js
 import {
   ACCEPTANCE_DISPOSITION_KEY,
   evaluateScopeCompleteAcceptanceWalk,
+  persistClauseKeyedPendingItems,
 } from "./acceptance-evidence.js";
 
 const greenRunner = () => ({ exitCode: 0, stdout: "", stderr: "" });
@@ -113,7 +114,15 @@ describe("completion walk with a granted set (#6644)", () => {
   });
 
   it("clause 16: a disposition written into the brief by hand does not leave the walk, and no grant means an empty granted set", () => {
-    const root = tempRoot();
+    const base = tempRoot();
+    const root = join(base, "main");
+    mkdirSync(root);
+    execFileSync("git", ["init", "-q"], { cwd: root });
+    execFileSync("git", ["config", "user.email", "t@example.com"], { cwd: root });
+    execFileSync("git", ["config", "user.name", "t"], { cwd: root });
+    writeFileSync(join(root, "README.md"), "x\n", "utf8");
+    execFileSync("git", ["add", "README.md"], { cwd: root });
+    execFileSync("git", ["commit", "-q", "-m", "init"], { cwd: root });
     const hand = {
       id: "clause.1",
       title: "Prose clause number 1 has no bound path.",
@@ -126,7 +135,7 @@ describe("completion walk with a granted set (#6644)", () => {
       },
     };
     const plan = planWith(clauses(1), { items: [hand] });
-    // No matching grant in the store: nothing is applied and the granted set is empty.
+    // Readable store with no matching grant: nothing is applied and the granted set is empty.
     const applied = applyAcceptanceDispositionGrants({
       projectRoot: root,
       plan,
@@ -247,5 +256,64 @@ describe("completion walk with a granted set (#6644)", () => {
     expect(plain.clauseGranted).toBeUndefined();
     expect(plain.message).not.toContain("granted");
     expect(plain.message).toContain("0 verified, 2 unverifiable, 0 failed");
+  });
+
+  it("#7254: persist + apply puts deferred clause.1 into grantedClauses; failing token is left out", () => {
+    const base = tempRoot();
+    const main = join(base, "main");
+    mkdirSync(main);
+    execFileSync("git", ["init", "-q"], { cwd: main });
+    execFileSync("git", ["config", "user.email", "t@example.com"], { cwd: main });
+    execFileSync("git", ["config", "user.name", "t"], { cwd: main });
+    writeFileSync(join(main, "README.md"), "x\n", "utf8");
+    execFileSync("git", ["add", "README.md"], { cwd: main });
+    execFileSync("git", ["commit", "-q", "-m", "init"], { cwd: main });
+    mkdirSync(join(main, "src"), { recursive: true });
+    writeFileSync(join(main, "src", "a.ts"), "export const unrelated = 1;\n", "utf8");
+    const rows = [
+      {
+        id: 1,
+        text: 'The file contains "NEEDLE_TOKEN_THAT_IS_ABSENT" after the change.',
+        artifact_path: "src/a.ts",
+        ambiguous: false,
+      },
+    ];
+    // Clauses-only brief (no plan items) — persist must create clause.1 first.
+    const plan = planWith(rows, { id: "story.phase6-desk-research-store", items: [] });
+    const dir = join(main, "xbrief", "active");
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(
+      join(dir, "2026-11-24-7254-story.xbrief.json"),
+      `${JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan }, null, 2)}\n`,
+      "utf8",
+    );
+    const minted = mintAcceptanceDispositionTemplateGrant({
+      projectRoot: main,
+      planRef: "story.phase6-desk-research-store",
+      storyIds: ["clause.1"],
+      disposition: "deferred",
+      deferredTo: "#2497",
+      reason: "tracking deftvisage#2497",
+      now: NOW,
+    });
+    if (!minted.ok) throw new Error(minted.reason);
+    persistClauseKeyedPendingItems(plan);
+    const applied = applyAcceptanceDispositionGrants({
+      projectRoot: main,
+      plan,
+      now: LATER,
+      recordedAt: LATER.toISOString(),
+    });
+    expect(applied).toMatchObject({
+      ok: true,
+      grantedClauses: [{ id: 1, disposition: "deferred" }],
+    });
+    const walk = evaluateScopeCompleteAcceptanceWalk(plan, {
+      ...walkOptions(main),
+      grantedClauses: applied.ok ? applied.grantedClauses : [],
+    });
+    expect(walk.ok).toBe(true);
+    expect(walk.message).toContain("[granted] clause 1:");
+    expect(walk.message).not.toMatch(/\[failed\]/);
   });
 });

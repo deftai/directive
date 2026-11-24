@@ -332,7 +332,7 @@ describe("acceptance-disposition template (#6318)", () => {
     }
   });
 
-  it("ignores grants for another plan, malformed records and plans with no id or store", () => {
+  it("ignores grants for another plan, malformed records and plans with no id", () => {
     const { dest } = cloneWithDest();
     writeBrief(dest);
     const minted = mint(dest);
@@ -363,10 +363,68 @@ describe("acceptance-disposition template (#6318)", () => {
     expect(
       resolveAcceptanceDispositionGrants({ projectRoot: dest, plan: plan(), now: LATER }),
     ).toEqual({ ok: true, covers: [] });
+  });
+
+  it("#7254: an unreadable store refuses instead of ok covers:[]", () => {
     const notGit = mkdtempSync(join(tmpdir(), "disposition-nogit-"));
     bases.push(notGit);
+    const refused = resolveAcceptanceDispositionGrants({
+      projectRoot: notGit,
+      plan: plan(),
+      now: LATER,
+    });
+    expect(refused).toMatchObject({
+      ok: false,
+      reason: expect.stringMatching(/store cannot be resolved/),
+    });
+  });
+
+  it("#7254: unused grant with disagreeing plan identifiers for this plan.id refuses", () => {
+    const { dest } = cloneWithDest();
+    writeBrief(dest);
+    const minted = mint(dest);
+    if (!minted.ok) throw new Error(minted.reason);
+    const root = resolveRoot(dest);
+    const grant = loadGrant(root, minted.grant.id);
+    if (grant === null) throw new Error("grant missing");
+    saveGrant(root, {
+      ...grant,
+      scope: {
+        ...grant.scope,
+        planRef: "github.issue.9999",
+        surfaces: grant.scope.surfaces.map((s) =>
+          s.startsWith("acceptance-disposition:plan:")
+            ? `acceptance-disposition:plan:${plan().id}`
+            : s,
+        ),
+      },
+    });
+    const refused = resolveAcceptanceDispositionGrants({
+      projectRoot: dest,
+      plan: plan(),
+      now: LATER,
+    });
+    expect(refused).toMatchObject({
+      ok: false,
+      reason: expect.stringMatching(
+        new RegExp(`${minted.grant.id}.*disagreeing plan identifiers`),
+      ),
+    });
+    // Wholly other-plan grant does not block this completion.
+    saveGrant(root, {
+      ...grant,
+      scope: {
+        ...grant.scope,
+        planRef: "github.issue.9999",
+        surfaces: grant.scope.surfaces.map((s) =>
+          s.startsWith("acceptance-disposition:plan:")
+            ? "acceptance-disposition:plan:github.issue.9999"
+            : s,
+        ),
+      },
+    });
     expect(
-      resolveAcceptanceDispositionGrants({ projectRoot: notGit, plan: plan(), now: LATER }),
+      resolveAcceptanceDispositionGrants({ projectRoot: dest, plan: plan(), now: LATER }),
     ).toEqual({ ok: true, covers: [] });
   });
 

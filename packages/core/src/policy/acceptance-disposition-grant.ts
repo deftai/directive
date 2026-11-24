@@ -453,6 +453,26 @@ function planGrantViews(storeRoot: string, planId: string): GrantView[] {
     .filter((v): v is GrantView => v !== null && v.planId === planId);
 }
 
+/**
+ * Unused acceptance-disposition grant that touches planId on one identifier and
+ * disagrees on the other (#7254). Wholly-other-plan grants are ignored.
+ */
+function unusedDisagreeingPlanGrant(
+  storeRoot: string,
+  planId: string,
+): { grantId: string; planRef: string; surfacePlanId: string } | null {
+  for (const grant of listGrants(storeRoot)) {
+    if (!isAcceptanceDispositionGrant(grant) || !isHumanOrigin(grant.origin)) continue;
+    if (grant.semantics.revokedAt !== null || grant.semantics.usedAt !== null) continue;
+    const planRef = (grant.scope.planRef ?? "").trim();
+    const surfacePlanId = (surfaceValue(grant, ACCEPTANCE_DISPOSITION_PLAN_PREFIX) ?? "").trim();
+    if (planRef !== planId && surfacePlanId !== planId) continue;
+    if (planRef === surfacePlanId) continue;
+    return { grantId: grant.id, planRef, surfacePlanId };
+  }
+  return null;
+}
+
 /** One covered item resolved to its grant. */
 export interface AcceptanceDispositionGrantCover {
   readonly itemId: string;
@@ -477,15 +497,17 @@ export interface ResolveAcceptanceDispositionInput {
 }
 
 /**
- * Resolve the grants that cover this plan at completion (#6318).
+ * Resolve the grants that cover this plan at completion (#6318 / #7254).
  *
  * A used grant is a replay and is accepted; an unused grant must carry a
  * readable expiry that is still ahead and be active. Per covered id the latest
  * usable grant wins, and it must still match the digest of the current clause
  * text (or item title); a mismatch refuses and names a re-mint. An expired or
  * inactive unused grant refuses unless a later usable grant covers the same
- * plan and every one of its ids. With no resolvable store, no grant is visible
- * and completion stamps as before (stated limit of the #6310 lean).
+ * plan and every one of its ids. When the main-clone store cannot be resolved,
+ * refuse with that reason so clause-walk-failed cannot hide a missed deferral
+ * (#7254). An unused grant whose planRef and plan surface disagree for this
+ * plan.id also refuses; a grant that wholly belongs to another plan is ignored.
  */
 export function resolveAcceptanceDispositionGrants(
   input: ResolveAcceptanceDispositionInput,
@@ -493,7 +515,17 @@ export function resolveAcceptanceDispositionGrants(
   const planId = typeof input.plan.id === "string" ? input.plan.id.trim() : "";
   if (planId.length === 0) return { ok: true, covers: [] };
   const store = resolveAcceptanceDispositionStore(input.projectRoot, input.runGit);
-  if (!store.ok) return { ok: true, covers: [] };
+  if (!store.ok) return store;
+  const disagree = unusedDisagreeingPlanGrant(store.root, planId);
+  if (disagree !== null) {
+    return {
+      ok: false,
+      reason:
+        `acceptance-disposition grant ${disagree.grantId} has disagreeing plan identifiers ` +
+        `(planRef=${JSON.stringify(disagree.planRef)}, surface=${JSON.stringify(disagree.surfacePlanId)}) ` +
+        `for plan ${planId}; refuse so a mismatched grant cannot authorize or silently miss (#7254)`,
+    };
+  }
   const now = input.now ?? new Date();
   const views = planGrantViews(store.root, planId);
   if (views.length === 0) return { ok: true, covers: [] };
@@ -662,6 +694,24 @@ export function applyAcceptanceDispositionGrants(input: {
     if (id === null || seen.has(id)) continue;
     seen.add(id);
     grantedClauses.push({ id, disposition: cover.disposition, reason: cover.reason });
+  }
+  // #7254: every digest-matching clause.N cover must enter grantedClauses (the
+  // #6644 leave-out input). Refuse naming the grant when a cover is dropped.
+  for (const cover of resolved.covers) {
+    const prefixed = CLAUSE_ID_RE.exec(cover.itemId);
+    const bare = BARE_CLAUSE_ID_RE.test(cover.itemId.trim()) ? Number(cover.itemId.trim()) : null;
+    const id =
+      prefixed !== null ? Number(prefixed[1]) : bare !== null && clauseIds.has(bare) ? bare : null;
+    if (id === null) continue;
+    if (!seen.has(id)) {
+      return {
+        ok: false,
+        reason:
+          `acceptance-disposition: grant ${cover.grantId} covered clause.${String(id)} but it did ` +
+          `not enter grantedClauses after apply; refusing so clause-walk-failed cannot hide a ` +
+          `missed deferral (#7254)`,
+      };
+    }
   }
   return {
     ok: true,
