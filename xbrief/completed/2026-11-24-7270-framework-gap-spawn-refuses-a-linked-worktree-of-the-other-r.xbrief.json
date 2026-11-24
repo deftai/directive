@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #7270",
-    "updated": "2026-11-24T15:05:01Z"
+    "updated": "2026-11-24T22:18:53Z"
   },
   "plan": {
     "title": "Foreign linked-worktree spawn admit with begun-from checkout root",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Overview": "",
       "Description": "",
@@ -16,63 +16,147 @@
     "items": [
       {
         "title": "Keep-default-foreign-refuse — Keep destination-foreign as the default refuse when mainWorktreeRoot(dest) differs from mainWorktreeRoot(payloadRoot). relieves: P1",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e436dfd746a6f227cb8b642bfcda6d49321a0a47",
+          "recorded_at": "2026-11-24T22:18:53Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Widen-foreign-binding-write — Widen swarm:pre-dispatch begin so a foreign linked worktree that is a Directive project writes its story-binding under that dest git-common-dir, and end/cancel cleanup removes from that same store. relieves: P1 disposes critic 7133690048",
-        "status": "proposed",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e436dfd746a6f227cb8b642bfcda6d49321a0a47",
+          "recorded_at": "2026-11-24T22:18:53Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Begun-from-checkout-root — When that binding is written, record begun-from as the originating checkout project root that owns the delivery-attempt ledger for the attempt_ids; do not use git-common-dir alone as that locator. relieves: P1 disposes critic 7133871483 disposes critic 7133932844",
-        "status": "proposed",
-        "id": "clause.3"
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e436dfd746a6f227cb8b642bfcda6d49321a0a47",
+          "recorded_at": "2026-11-24T22:18:53Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Live-attempt-admit — Admit that foreign linked worktree on spawn only when the dest-common-dir story-binding exists for the dest path, begun-from checkout root is present and readable, and at least one attempt_id is still open in that begun-from checkout ledger for this story_id and canonical worktree_path; refuse empty, missing, malformed, unreadable begun-from, unknown ledger, or all-ended attempt_ids. relieves: P1 disposes critic 7133794843 disposes critic 7133871483 disposes critic 7133932844",
-        "status": "proposed",
-        "id": "clause.4"
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e436dfd746a6f227cb8b642bfcda6d49321a0a47",
+          "recorded_at": "2026-11-24T22:18:53Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Dest-store-lifecycle — On that admit path, use the dest repo store for reservation consult, persist, and leftover release together while keeping parent identity and incarnation checks. relieves: P2 disposes critic 7133690048 disposes critic 7133794843",
-        "status": "proposed",
-        "id": "clause.5"
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e436dfd746a6f227cb8b642bfcda6d49321a0a47",
+          "recorded_at": "2026-11-24T22:18:53Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Keep-implement-class-rules — Keep linked-worktree required, primary-path refuse, and process-only critic skip unchanged. relieves: P2",
-        "status": "proposed",
-        "id": "clause.6"
+        "status": "completed",
+        "id": "clause.6",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e436dfd746a6f227cb8b642bfcda6d49321a0a47",
+          "recorded_at": "2026-11-24T22:18:53Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Deny-recovery-text — Name missing-binding, unreadable begun-from, and stale-ended-attempt recovery on the destination-foreign deny path. relieves: P3",
-        "status": "proposed",
-        "id": "clause.7"
+        "status": "completed",
+        "id": "clause.7",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e436dfd746a6f227cb8b642bfcda6d49321a0a47",
+          "recorded_at": "2026-11-24T22:18:53Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Fixtures — Add fixtures for foreign-bound-admit, missing-binding-refuse, empty-or-ended-attempt-refuse, unreadable-begun-from-refuse, common-dir-only-begun-from-refuse, valid-attempt-from-other-checkout, same-repo unchanged, dest-store consult/persist/release round-trip, and two-parent contention for one dest. relieves: P3",
-        "status": "proposed",
-        "id": "clause.8"
+        "status": "completed",
+        "id": "clause.8",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e436dfd746a6f227cb8b642bfcda6d49321a0a47",
+          "recorded_at": "2026-11-24T22:18:53Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Reject-drop-foreign-deny — Reject dropping destination-foreign entirely.",
-        "status": "proposed",
-        "id": "clause.9"
+        "status": "completed",
+        "id": "clause.9",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e436dfd746a6f227cb8b642bfcda6d49321a0a47",
+          "recorded_at": "2026-11-24T22:18:53Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Reject-parent-reroot — Reject requiring the parent session to re-root into the foreign repo before spawn.",
-        "status": "proposed",
-        "id": "clause.10"
+        "status": "completed",
+        "id": "clause.10",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e436dfd746a6f227cb8b642bfcda6d49321a0a47",
+          "recorded_at": "2026-11-24T22:18:53Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Reject-symphony-1090 — Reject opening #1090 or a new cross-repo epic CLI as this ticket'''s remedy.",
-        "status": "proposed",
-        "id": "clause.11"
+        "status": "completed",
+        "id": "clause.11",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e436dfd746a6f227cb8b642bfcda6d49321a0a47",
+          "recorded_at": "2026-11-24T22:18:53Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Reject-shell-as-leaf — Reject treating shell access to the foreign worktree as Gap C leaf discharge. relieves: P3",
-        "status": "proposed",
-        "id": "clause.12"
+        "status": "completed",
+        "id": "clause.12",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e436dfd746a6f227cb8b642bfcda6d49321a0a47",
+          "recorded_at": "2026-11-24T22:18:53Z",
+          "recorded_by": "scope:complete"
+        }
       }
     ],
     "tags": [
@@ -798,9 +882,34 @@
         "missing_traces_justification": "Prefer-A Bound limbs are the acceptance surface; traces deferred to product PR evidence.",
         "depends_on": [],
         "conflict_group": "spawn-destination-foreign-cross-repo-epic-predispatch-bound"
-      }
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "58f5826120eb514671bfcb0a6e8cd4764b3013ce",
+        "prNumber": 7311,
+        "prBase": "master",
+        "mergeCommit": "e436dfd746a6f227cb8b642bfcda6d49321a0a47",
+        "deliveryBranch": "master",
+        "deliveryCommit": "8bae99c608dcf7e9c846d48fa5575e5d8acd249a",
+        "verifiedAt": "2026-11-24T22:18:53Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "identityBasis": "merge-time-mark"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-24T22:18:53Z",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-24T22:18:53Z"
+      },
+      "productPullRequest": 7311
     },
     "id": "github.issue.6580876516",
-    "updated": "2026-11-24T15:05:01Z"
+    "updated": "2026-11-24T22:18:53Z"
   }
 }
