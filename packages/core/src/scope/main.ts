@@ -8,7 +8,6 @@ import {
   listActiveRunningBriefs,
   productPullRequestFromPlan,
 } from "../orphan-active/running-briefs.js";
-import { collectGithubRefs } from "../orphan-active/refs.js";
 import { storyIssueOfBrief } from "../pr-closing-keywords/story-issue.js";
 import { defaultRunGh, fetchClosingIssuesReferences } from "../pr-protected-issues/gh.js";
 import { githubOwnerRepoFromRemoteUrl } from "../release/closed-verb-gate.js";
@@ -27,6 +26,8 @@ import { TRANSITIONS } from "./constants.js";
 import {
   type DeliveryEvidenceInput,
   defaultFetchPrPayload,
+  discoverDeliveryEvidenceForComplete,
+  type FetchClosingPrRefsFn,
   type FetchPrPayloadFn,
   isNonDeliveryDisposition,
   liveRunGh,
@@ -139,15 +140,25 @@ function formatSlowPathFinalizeMessage(merged: readonly MergedActiveStory[]): st
     .join("\n")}`;
 }
 
+/** Fetch/auth failures must fail closed; missing sole product PR does not. */
+function isSlowPathDeliveryLookupIndeterminate(message: string): boolean {
+  return /could not fetch|incomplete|could not finish|rate limit|network|gh auth|invalid repository/i.test(
+    message,
+  );
+}
+
 /**
  * Refuse one-story scope:complete when ≥2 active briefs already have a merged
  * product PR. Finalize-cohort and --in-pr stay allowed (#7252).
+ * Unstamped briefs use delivery lookup, not related github-pr refs (#7258).
  */
 export function evaluateSlowPathCompleteGate(args: {
   readonly projectRoot: string;
   readonly inPr?: boolean;
   readonly repository?: string | null;
   readonly fetchPrPayload?: FetchPrPayloadFn;
+  readonly fetchClosingPrRefs?: FetchClosingPrRefsFn;
+  readonly discoverDelivery?: typeof discoverDeliveryEvidenceForComplete;
   readonly listBriefs?: () => ReturnType<typeof listActiveRunningBriefs>;
 }): SlowPathCompleteGate {
   if (args.inPr === true) {
@@ -160,6 +171,7 @@ export function evaluateSlowPathCompleteGate(args: {
     args.fetchPrPayload ??
     ((prNumber, repository) =>
       defaultFetchPrPayload(prNumber, repository, liveRunGh(defaultRunGh)));
+  const discover = args.discoverDelivery ?? discoverDeliveryEvidenceForComplete;
   const merged: MergedActiveStory[] = [];
   for (const brief of briefs) {
     const issueRef = resolvePlanGithubIssueRef(brief.plan);
@@ -169,45 +181,68 @@ export function evaluateSlowPathCompleteGate(args: {
     }
     let prNumber = productPullRequestFromPlan(brief.plan);
     let prRepo = repo;
-    // Unstamped briefs still count when a github-pr ref is already merged (#7258).
+    // Unstamped: only a delivery lookup product PR counts — not related github-pr refs (#7258).
     if (prNumber === null) {
-      const { prs } = collectGithubRefs(brief.plan, repo);
-      let found: { number: number; repo: string } | null = null;
-      for (const pr of prs) {
-        const payload = fetchPr(pr.number, pr.repo);
-        if (payload === null) {
+      const found = discover({
+        projectRoot: args.projectRoot,
+        plan: brief.plan,
+        fetchPrPayload: fetchPr,
+        fetchClosingPrRefs: args.fetchClosingPrRefs,
+        verifier: "scope:complete",
+      });
+      if (!found.ok) {
+        if (isSlowPathDeliveryLookupIndeterminate(found.message)) {
           return {
             refuse: true,
             merged: [],
-            message:
-              `slow-path: could not read merge state for product PR #${String(pr.number)} in ${pr.repo}; ` +
-              "retry after fixing gh auth, rate limit, or network",
+            message: `slow-path: ${found.message}`,
           };
         }
-        if (isMergedPrPayload(payload)) {
-          found = { number: pr.number, repo: pr.repo };
-          break;
-        }
-      }
-      if (found === null) {
         continue;
       }
-      prNumber = found.number;
-      prRepo = found.repo;
-    } else {
-      const payload = fetchPr(prNumber, prRepo);
-      if (payload === null) {
-        return {
-          refuse: true,
-          merged: [],
-          message:
-            `slow-path: could not read merge state for product PR #${String(prNumber)} in ${prRepo}; ` +
-            "retry after fixing gh auth, rate limit, or network",
-        };
-      }
-      if (!isMergedPrPayload(payload)) {
+      if (!found.discovered) {
         continue;
       }
+      const evidence = found.evidence;
+      const discoveredPr =
+        evidence !== null &&
+        evidence !== undefined &&
+        typeof evidence.prNumber === "number" &&
+        Number.isInteger(evidence.prNumber) &&
+        evidence.prNumber > 0
+          ? evidence.prNumber
+          : null;
+      if (discoveredPr === null) {
+        continue;
+      }
+      const evidenceRepo =
+        evidence !== null &&
+        evidence !== undefined &&
+        typeof evidence.repository === "string"
+          ? evidence.repository.trim()
+          : "";
+      prNumber = discoveredPr;
+      prRepo = evidenceRepo.length > 0 ? evidenceRepo : repo;
+      // discover already proved merged delivery-base.
+      merged.push({
+        prNumber,
+        cohortId: cohortIdForPlan(brief.plan, prRepo, brief.path),
+        repository: prRepo,
+      });
+      continue;
+    }
+    const payload = fetchPr(prNumber, prRepo);
+    if (payload === null) {
+      return {
+        refuse: true,
+        merged: [],
+        message:
+          `slow-path: could not read merge state for product PR #${String(prNumber)} in ${prRepo}; ` +
+          "retry after fixing gh auth, rate limit, or network",
+      };
+    }
+    if (!isMergedPrPayload(payload)) {
+      continue;
     }
     merged.push({
       prNumber,

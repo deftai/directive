@@ -668,31 +668,75 @@ describe("slow-path scope:complete gate (#7252)", () => {
     return file;
   }
 
-  it("counts unstamped github-pr refs that are already merged", () => {
+  it("counts unstamped briefs whose delivery lookup finds a merged product PR", () => {
     root = mkdtempSync(join(tmpdir(), "slow-path-unstamped-"));
-    const a = writeRunning("2026-01-01-a.xbrief.json", {
-      id: "story-a",
-      productPrRef: 21,
+    writeRunning("2026-01-01-a.xbrief.json", {
+      id: "1001",
       repository: "acme/app",
     });
-    const b = writeRunning("2026-01-01-b.xbrief.json", {
-      id: "story-b",
-      productPrRef: 22,
+    writeRunning("2026-01-01-b.xbrief.json", {
+      id: "1002",
+      repository: "acme/app",
+    });
+    const closers: Record<number, Array<{ repository: string; prNumber: number }>> = {
+      1001: [{ repository: "acme/app", prNumber: 21 }],
+      1002: [{ repository: "acme/app", prNumber: 22 }],
+    };
+    const gate = evaluateSlowPathCompleteGate({
+      projectRoot: root,
+      repository: "acme/app",
+      fetchClosingPrRefs: (issue) => ({
+        ok: true,
+        refs: closers[issue] ?? [],
+      }),
+      fetchPrPayload: (pr, repository) =>
+        repository === "acme/app" && (pr === 21 || pr === 22)
+          ? {
+              merged_at: "2026-01-02T00:00:00Z",
+              merge_commit_sha: `merge${pr}aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa`,
+              base: { ref: "master" },
+              head: { sha: `head${pr}` },
+            }
+          : null,
+    });
+    expect(gate.refuse).toBe(true);
+    if (gate.refuse) {
+      expect(gate.merged.map((row) => row.prNumber).sort()).toEqual([21, 22]);
+      expect(gate.merged.map((row) => row.cohortId).sort()).toEqual(["1001", "1002"]);
+      expect(gate.message).toBe(
+        "slow-path: deft swarm:finalize-cohort -- --pr 21,22 --cohort 1001,1002 --repo acme/app",
+      );
+    }
+  });
+
+  it("does not treat a related github-pr ref as a product PR", () => {
+    root = mkdtempSync(join(tmpdir(), "slow-path-related-"));
+    writeRunning("2026-01-01-a.xbrief.json", {
+      id: "1001",
+      productPr: 11,
+      repository: "acme/app",
+    });
+    // Unfinished story carries a merged related/partial PR ref only.
+    writeRunning("2026-01-01-b.xbrief.json", {
+      id: "1002",
+      productPrRef: 99,
       repository: "acme/app",
     });
     const gate = evaluateSlowPathCompleteGate({
       projectRoot: root,
       repository: "acme/app",
+      fetchClosingPrRefs: () => ({ ok: true, refs: [] }),
       fetchPrPayload: (pr) =>
-        pr === 21 || pr === 22 ? { merged_at: "2026-01-02T00:00:00Z" } : null,
+        pr === 11 || pr === 99
+          ? {
+              merged_at: "2026-01-02T00:00:00Z",
+              merge_commit_sha: `merge${pr}aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa`,
+              base: { ref: "master" },
+              head: { sha: `head${pr}` },
+            }
+          : null,
     });
-    expect(gate.refuse).toBe(true);
-    if (gate.refuse) {
-      expect(gate.merged.map((row) => row.prNumber).sort()).toEqual([21, 22]);
-      expect(gate.merged.map((row) => row.cohortId).sort()).toEqual(
-        [a, b].map((p) => p.replace(/\\/g, "/")).sort(),
-      );
-    }
+    expect(gate.refuse).toBe(false);
   });
 
   it("allows complete when fewer than two merged product PRs are active", () => {
