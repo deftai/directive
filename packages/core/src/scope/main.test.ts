@@ -675,8 +675,8 @@ describe("slow-path scope:complete gate (#7252)", () => {
 
   it("refuses complete when two active briefs already have merged product PRs", () => {
     root = mkdtempSync(join(tmpdir(), "slow-path-two-"));
-    writeRunning("2026-01-01-a.xbrief.json", { id: "1001", productPr: 11 });
-    writeRunning("2026-01-01-b.xbrief.json", { id: "1002", productPr: 12 });
+    const a = writeRunning("2026-01-01-a.xbrief.json", { id: "1001", productPr: 11 });
+    const b = writeRunning("2026-01-01-b.xbrief.json", { id: "1002", productPr: 12 });
     const gate = evaluateSlowPathCompleteGate({
       projectRoot: root,
       repository: "acme/app",
@@ -685,8 +685,16 @@ describe("slow-path scope:complete gate (#7252)", () => {
     });
     expect(gate.refuse).toBe(true);
     if (gate.refuse) {
+      // Issue-less briefs use path selectors, not numeric plan.id (#7258 / #7252).
+      const cohortList = [a, b]
+        .map((p) => p.replace(/\\/g, "/"))
+        .sort()
+        .join(",");
       expect(gate.message).toBe(
-        "slow-path: deft swarm:finalize-cohort -- --pr 11,12 --cohort 1001,1002 --repo acme/app",
+        `slow-path: deft swarm:finalize-cohort -- --pr 11,12 --cohort ${cohortList} --repo acme/app`,
+      );
+      expect(gate.merged.map((row) => row.cohortId).sort()).toEqual(
+        [a, b].map((p) => p.replace(/\\/g, "/")).sort(),
       );
       expect(gate.merged.map((row) => row.repository)).toEqual(["acme/app", "acme/app"]);
     }
