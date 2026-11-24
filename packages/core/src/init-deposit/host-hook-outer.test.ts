@@ -5,6 +5,7 @@ import { delimiter, join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { KILL_SWITCH_BARE_FLAG_WARNING } from "../policy/kill-switch-record.js";
 import {
+  HOST_HOOK_MISSING_PIN_INSTALL_EXCEPTION,
   HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE,
   HOST_HOOK_NONDECISION_REASON,
   hostHookOuterCommand,
@@ -81,6 +82,7 @@ function runOuter(
   envExtra: NodeJS.ProcessEnv = {},
   event = "tool.before",
   nodeArgs: readonly string[] = [],
+  stdin?: string,
 ): ReturnType<typeof spawnSync> {
   const sha8 = hostHookOuterSha8();
   const abs = join(root, hostHookOuterRelPath(host, sha8));
@@ -91,6 +93,7 @@ function runOuter(
     encoding: "utf8",
     env: { ...process.env, ...envExtra },
     maxBuffer: 64 * 1024 * 1024,
+    input: stdin,
   });
 }
 
@@ -411,7 +414,9 @@ describe("host-hook-outer bytes stay put (#6613)", () => {
     // lockfile): 8edf26e9 -> 8149fb11.
     // #6740 changed them on purpose (kill record instead of the bare flag,
     // `--kill-switch-reader v1` passed to hook-bin): 8149fb11 -> 665df6a9.
-    expect(hostHookOuterSha8()).toBe("665df6a9");
+    // #7275 changed them on purpose (missing-runtime admits the named project
+    // install; refusal names that exception): 665df6a9 -> bc294904.
+    expect(hostHookOuterSha8()).toBe("bc294904");
   });
 });
 
@@ -419,7 +424,7 @@ describe("host-hook-outer names the project install from the lockfile (#6620)", 
   it.each([
     ["pnpm-lock.yaml", "`pnpm install --frozen-lockfile`"],
     ["package-lock.json", "`npm install`"],
-  ])("with %s, the missing-runtime block names %s and that a person runs it", (lockfile, command) => {
+  ])("with %s, the missing-runtime block names %s and the install exception", (lockfile, command) => {
     const root = mkdtempSync(join(tmpdir(), "outer-6620-lock-"));
     try {
       writeFileSync(join(root, "package.json"), "{}\n");
@@ -430,7 +435,10 @@ describe("host-hook-outer names the project install from the lockfile (#6620)", 
       expect(stderr).toContain(
         `Directive can't run: @deftai/directive-runtime is not installed in this project. Run ${command} in a terminal in this project.`,
       );
-      expect(stderr).toContain("Agent tool calls stay blocked until a person runs it.");
+      expect(stderr).toContain(
+        "The exact project install named above is allowed through a shell tool at the project root",
+      );
+      expect(stderr).not.toContain("Agent tool calls stay blocked until a person runs it.");
       expect(stderr).not.toMatch(/yarn|npm i -g|install --repair/);
     } finally {
       rmSync(root, { recursive: true, force: true });
@@ -654,5 +662,214 @@ describe("host-hook-outer blocks the tool call when it cannot decide (#6201 / #6
       expect(r.status).toBe(0);
       expect(r.stdout).toBe("");
     });
+  });
+});
+
+describe("host-hook-outer missing-runtime project-install admit (#7275)", () => {
+  function shellPayload(
+    host: Host,
+    command: string,
+    opts: { cwd?: string; toolName?: string } = {},
+  ): string {
+    const toolName = opts.toolName ?? (host === "grok" ? "run_terminal_command" : "Bash");
+    const cwd = opts.cwd;
+    if (host === "grok") {
+      return JSON.stringify({
+        tool_name: toolName,
+        tool_input: { command, ...(cwd !== undefined ? { cwd } : {}) },
+        cwd,
+      });
+    }
+    if (host === "cursor") {
+      return JSON.stringify({
+        tool_name: toolName,
+        tool_input: { command, ...(cwd !== undefined ? { working_directory: cwd } : {}) },
+        cwd,
+      });
+    }
+    if (host === "codex") {
+      return JSON.stringify({
+        tool_name: toolName,
+        tool_input: { command, ...(cwd !== undefined ? { workdir: cwd } : {}) },
+      });
+    }
+    return JSON.stringify({
+      tool_name: toolName,
+      tool_input: { command, ...(cwd !== undefined ? { cwd } : {}) },
+      cwd,
+    });
+  }
+
+  function expectQuietAllow(r: ReturnType<typeof spawnSync>): void {
+    expect(r.status).toBe(0);
+    expect(String(r.stdout ?? "")).toBe("");
+  }
+
+  it.each(HOSTS)("%s: admits npm install at project root on missing pin", (host) => {
+    const root = mkdtempSync(join(tmpdir(), `outer-7275-admit-${host}-`));
+    try {
+      writeFileSync(join(root, "package.json"), "{}\n");
+      const r = runOuter(
+        root,
+        host,
+        {},
+        "tool.before",
+        [],
+        shellPayload(host, "npm install", { cwd: root }),
+      );
+      expectQuietAllow(r);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it.each([
+    "pnpm install --frozen-lockfile",
+    "npm ci",
+  ])("admits %s at project root (grok)", (command) => {
+    const root = mkdtempSync(join(tmpdir(), "outer-7275-cmd-"));
+    try {
+      writeFileSync(join(root, "package.json"), "{}\n");
+      const r = runOuter(
+        root,
+        "grok",
+        {},
+        "tool.before",
+        [],
+        shellPayload("grok", command, { cwd: root }),
+      );
+      expectQuietAllow(r);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("refuses non-shell payload carrying command npm install", () => {
+    const root = mkdtempSync(join(tmpdir(), "outer-7275-nonshell-"));
+    try {
+      writeFileSync(join(root, "package.json"), "{}\n");
+      const r = runOuter(
+        root,
+        "claude",
+        {},
+        "tool.before",
+        [],
+        shellPayload("claude", "npm install", { cwd: root, toolName: "Write" }),
+      );
+      expectToolBlocked(r, "claude", "missing-pin");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("refuses foreign cwd", () => {
+    const root = mkdtempSync(join(tmpdir(), "outer-7275-foreign-"));
+    try {
+      writeFileSync(join(root, "package.json"), "{}\n");
+      const foreign = mkdtempSync(join(tmpdir(), "outer-7275-other-"));
+      try {
+        const r = runOuter(
+          root,
+          "grok",
+          {},
+          "tool.before",
+          [],
+          shellPayload("grok", "npm install", { cwd: foreign }),
+        );
+        expectToolBlocked(r, "grok", "missing-pin");
+      } finally {
+        rmSync(foreign, { recursive: true, force: true });
+      }
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("refuses subdirectory cwd", () => {
+    const root = mkdtempSync(join(tmpdir(), "outer-7275-subdir-"));
+    try {
+      writeFileSync(join(root, "package.json"), "{}\n");
+      const sub = join(root, "packages", "core");
+      mkdirSync(sub, { recursive: true });
+      const r = runOuter(
+        root,
+        "cursor",
+        {},
+        "tool.before",
+        [],
+        shellPayload("cursor", "npm install", { cwd: sub }),
+      );
+      expectToolBlocked(r, "cursor", "missing-pin");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("refuses malformed stdin", () => {
+    const root = mkdtempSync(join(tmpdir(), "outer-7275-malformed-"));
+    try {
+      writeFileSync(join(root, "package.json"), "{}\n");
+      const r = runOuter(root, "claude", {}, "tool.before", [], "{not-json");
+      expectToolBlocked(r, "claude", "missing-pin");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it.each([
+    "npm i -g @deftai/directive",
+    "directive install --repair",
+  ])("refuses %s as missing-runtime recovery", (command) => {
+    const root = mkdtempSync(join(tmpdir(), "outer-7275-global-"));
+    try {
+      writeFileSync(join(root, "package.json"), "{}\n");
+      const r = runOuter(
+        root,
+        "grok",
+        {},
+        "tool.before",
+        [],
+        shellPayload("grok", command, { cwd: root }),
+      );
+      expectToolBlocked(r, "grok", "missing-pin");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("refusal text names the install exception, not the person-only suffix", () => {
+    expect(HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE).toContain(
+      HOST_HOOK_MISSING_PIN_INSTALL_EXCEPTION,
+    );
+    expect(HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE).not.toContain(
+      "Agent tool calls stay blocked until a person runs it.",
+    );
+    const source = hostHookOuterSource();
+    expect(source).toContain(HOST_HOOK_MISSING_PIN_INSTALL_EXCEPTION);
+    expect(source).not.toContain("Agent tool calls stay blocked until a person runs it.");
+  });
+
+  it("installed-pin path still forwards stdin bytes to hook-bin", () => {
+    const root = mkdtempSync(join(tmpdir(), "outer-7275-forward-"));
+    try {
+      writeFileSync(join(root, "package.json"), "{}\n");
+      writeRuntime(
+        root,
+        [
+          "import { readFileSync } from 'node:fs';",
+          "let raw = '';",
+          "try { raw = readFileSync(0, 'utf8'); } catch {}",
+          "process.stdout.write(JSON.stringify({ decision: 'allow', echo: raw }));",
+        ].join("\n"),
+      );
+      const payload = JSON.stringify({ tool_name: "Bash", marker: "7275-forward" });
+      const r = runOuter(root, "grok", {}, "tool.before", [], payload);
+      expect(r.status).toBe(0);
+      const parsed = JSON.parse(String(r.stdout)) as { decision: string; echo: string };
+      expect(parsed.decision).toBe("allow");
+      expect(parsed.echo).toBe(payload);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });

@@ -9,6 +9,7 @@ import {
   isPinMismatchOnly,
   matchPinMismatchRecoveryCommand,
   PIN_MISMATCH_RECOVERY_COMMANDS,
+  PIN_MISMATCH_SIMPLE_COMMAND_SOURCE,
 } from "./index.js";
 import {
   admitRootMismatchRecovery,
@@ -80,6 +81,13 @@ describe("matchPinMismatchRecoveryCommand (#6313)", () => {
       "npm install",
       "npm ci",
     ]);
+  });
+
+  it("exports the simple-command source shared with the host-hook outer (#7275)", () => {
+    expect(new RegExp(PIN_MISMATCH_SIMPLE_COMMAND_SOURCE).test("npm install")).toBe(true);
+    expect(new RegExp(PIN_MISMATCH_SIMPLE_COMMAND_SOURCE).test("npm install; rm -rf x")).toBe(
+      false,
+    );
   });
 });
 

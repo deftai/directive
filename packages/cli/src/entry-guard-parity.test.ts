@@ -13,7 +13,10 @@ import {
   hostHookOuterSource,
 } from "../../core/src/init-deposit/host-hook-outer.js";
 import * as core from "../../core/src/install-health/constants.js";
-import { matchPinMismatchRecoveryCommand } from "../../core/src/install-health/recovery-admit.js";
+import {
+  matchPinMismatchRecoveryCommand,
+  PIN_MISMATCH_SIMPLE_COMMAND_SOURCE,
+} from "../../core/src/install-health/recovery-admit.js";
 import { DEFT_DIRECTIVE_DISABLE_ONE_LINE } from "../../core/src/policy/deft-directive-disable.js";
 import {
   KILL_SWITCH_BARE_FLAG_NAME,
@@ -164,5 +167,31 @@ describe("block renderer parity (hook file ↔ launcher deft-hook)", () => {
       stderr: expected.stderr,
       exitCode: expected.exitCode,
     });
+  });
+});
+
+describe("missing-runtime outer admit parity (#7275)", () => {
+  it("outer source embeds the shared recovery commands and simple-command source", () => {
+    const source = hostHookOuterSource();
+    expect(source).toContain("pnpm");
+    expect(source).toContain("frozen-lockfile");
+    expect(source).toContain('"npm","install"');
+    expect(source).toContain('"npm","ci"');
+    expect(source).toContain("A-Za-z0-9@/._=-");
+    expect(PIN_MISMATCH_SIMPLE_COMMAND_SOURCE).toContain("A-Za-z0-9@/._=-");
+    for (const command of ["pnpm install --frozen-lockfile", "npm install", "npm ci"]) {
+      expect(matchPinMismatchRecoveryCommand(command)).toBe(command);
+    }
+    expect(matchPinMismatchRecoveryCommand("npm i -g @deftai/directive")).toBeNull();
+    expect(matchPinMismatchRecoveryCommand("directive install --repair")).toBeNull();
+  });
+
+  it("missing-pin guidance names the install exception", () => {
+    expect(HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE).toContain(
+      "exact project install named above is allowed",
+    );
+    expect(HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE).not.toContain(
+      "Agent tool calls stay blocked until a person runs it.",
+    );
   });
 });
