@@ -8,7 +8,7 @@
     "title": "Pre-dispatch binding lock repair",
     "status": "running",
     "narratives": {
-      "Overview": "",
+      "Overview": "relieves: P1 — Begin-only bounded wait/retry on the story-binding store lock during post-ledger binding write (finite retry×sleep or wall-clock cap; complete/remove stay non-waiting; dead-owner reclaim unchanged) relieves: P2 — After that budget fails on store-lock contention for a just-created attempt, roll back/end that attempt under the unit lock and return nonzero non-spawnable; do not leave status=running spawn-ready with a missing binding; clean same-unit retry can begin",
       "Description": "",
       "UserStory": "",
       "ImplementationPlan": ""
@@ -563,9 +563,12 @@
           "changelog.d/7274-pre-dispatch-binding-lock-repair.md"
         ],
         "file_scope_confidence": "high",
-        "verify_commands": [],
+        "verify_commands": [
+          "pnpm exec vitest related --run"
+        ],
         "depends_on": [],
-        "conflict_group": "pre-dispatch-binding-store-lock-orphan-attempt-repair"
+        "conflict_group": "pre-dispatch-binding-store-lock-orphan-attempt-repair",
+        "missing_traces_justification": "Prefer-A Bound limbs are the acceptance surface; traces deferred to product PR evidence."
       }
     },
     "id": "github.issue.6580878198",

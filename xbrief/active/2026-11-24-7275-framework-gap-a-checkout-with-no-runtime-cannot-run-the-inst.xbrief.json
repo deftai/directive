@@ -93,9 +93,12 @@
           "changelog.d/7275-missing-runtime-outer-admits-install.md"
         ],
         "file_scope_confidence": "high",
-        "verify_commands": [],
+        "verify_commands": [
+          "pnpm exec vitest related --run"
+        ],
         "depends_on": [],
-        "conflict_group": "missing-runtime-outer-admits-named-project-install"
+        "conflict_group": "missing-runtime-outer-admits-named-project-install",
+        "missing_traces_justification": "Prefer-A Bound limbs are the acceptance surface; traces deferred to product PR evidence."
       },
       "intended_placement": {
         "files": [

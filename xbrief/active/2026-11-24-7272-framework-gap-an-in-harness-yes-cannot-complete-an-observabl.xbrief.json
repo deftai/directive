@@ -8,7 +8,7 @@
     "title": "Observable-scope rediscovery scrub",
     "status": "running",
     "narratives": {
-      "Overview": "",
+      "Overview": "relieves: P1 — Tip-bind #7031 declared any-shell writers for observable-scope and intent-constraint and refuse restoring --minted-via or in-harness-ask as primary for those verbs. relieves: P1 — Scrub named rediscovery coaches in content/docs/durable-effect-acquisition.md (in-harness-ask example implying obs/intent mint UX) and packages/core/src/observable-scope/types.ts JSDoc that still names #5010 in-harness ask, while leaving historical CHANGELOG #5010 as history and live commands/docs as SoT.",
       "Description": "",
       "UserStory": "",
       "ImplementationPlan": ""
@@ -458,9 +458,12 @@
           "changelog.d/7272-scrub-obs-scope-rediscovery.md"
         ],
         "file_scope_confidence": "high",
-        "verify_commands": [],
+        "verify_commands": [
+          "pnpm exec vitest related --run"
+        ],
         "depends_on": [],
-        "conflict_group": "harness-yes-obs-scope-relieved-by-7031-scrub-rediscovery"
+        "conflict_group": "harness-yes-obs-scope-relieved-by-7031-scrub-rediscovery",
+        "missing_traces_justification": "Prefer-A Bound limbs are the acceptance surface; traces deferred to product PR evidence."
       }
     },
     "id": "github.issue.6580877468",

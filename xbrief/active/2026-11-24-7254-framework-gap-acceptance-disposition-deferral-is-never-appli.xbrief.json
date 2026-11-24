@@ -91,9 +91,12 @@
           "changelog.d/7254-acceptance-disposition-deferral-walk.md"
         ],
         "file_scope_confidence": "high",
-        "verify_commands": [],
+        "verify_commands": [
+          "pnpm exec vitest related --run"
+        ],
         "depends_on": [],
-        "conflict_group": "acceptance-disposition-deferral-leaves-clause-walk"
+        "conflict_group": "acceptance-disposition-deferral-leaves-clause-walk",
+        "missing_traces_justification": "Prefer-A Bound limbs are the acceptance surface; traces deferred to product PR evidence."
       },
       "intended_placement": {
         "files": [

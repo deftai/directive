@@ -101,11 +101,14 @@
           "changelog.d/7271-spawn-dest-story-binding.md"
         ],
         "file_scope_confidence": "high",
-        "verify_commands": [],
+        "verify_commands": [
+          "pnpm exec vitest related --run"
+        ],
         "depends_on": [
           "7256"
         ],
-        "conflict_group": "spawn-dest-story-binding-selects-over-session-multi-active"
+        "conflict_group": "spawn-dest-story-binding-selects-over-session-multi-active",
+        "missing_traces_justification": "Prefer-A Bound limbs are the acceptance surface; traces deferred to product PR evidence."
       },
       "intended_placement": {
         "files": [
