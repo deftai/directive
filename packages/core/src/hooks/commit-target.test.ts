@@ -155,6 +155,22 @@ describe("resolveCommitTarget (#6278)", () => {
       path: "/r/wt",
       shape: "git -C",
     });
+    // One absolute -C wins over a prior reaching cd, same or different path (#7273).
+    expect(resolveCommitTarget("cd /r/wt; git -C /r/wt commit -m x", posix)).toEqual({
+      kind: "named",
+      path: "/r/wt",
+      shape: "git -C",
+    });
+    expect(resolveCommitTarget("cd /a && git -C /b commit -m x", posix)).toEqual({
+      kind: "named",
+      path: "/b",
+      shape: "git -C",
+    });
+    expect(resolveCommitTarget("cd /a; git -C /b commit -m x", posix)).toEqual({
+      kind: "named",
+      path: "/b",
+      shape: "git -C",
+    });
     expect(resolveCommitTarget('cd "/r/my wt" && git add a && git commit -m x', posix)).toEqual({
       kind: "named",
       path: "/r/my wt",
@@ -198,7 +214,6 @@ describe("resolveCommitTarget (#6278)", () => {
     ["git -C . commit -m x", /not an absolute path/],
     ["cd wt && git commit -m x", /not an absolute path/],
     ["cd /a && cd /b && git commit -m x", /more than one/],
-    ["cd /a && git -C /b commit -m x", /more than one/],
     ["git -C /a -C b commit -m x", /more than one/],
     ["cd $WT && git commit -m x", /variable/],
     ["git -C ~/wt commit -m x", /variable/],
@@ -865,7 +880,7 @@ describe("a variable needs a commit word; array assignments are assignments (#68
     }
   });
 
-  it("keeps a variable a signal when the call shows the word commit", () => {
+  it("keeps a variable a signal when the call shows exact-word commit", () => {
     for (const [command, reason] of [
       ["$GIT commit -m x", /command word "\$GIT"/],
       ["GIT=git; $GIT co''mmit -m x", /command word "\$GIT"/],
@@ -874,11 +889,40 @@ describe("a variable needs a commit word; array assignments are assignments (#68
       ["$GIT COMMIT -m x", /command word "\$GIT"/],
       ['eval "$CMD"; git commit -m y', /`eval` holds a variable/],
       ['bash -c "$X" && git commit -m y', /`bash -c` string holds a variable/],
-      ["cat <<EOF\ncommit\nEOF\n$D verify:x", /command word "\$D"/],
+      // Exact word as a non-git argument still arms; substring-only paths do not (#7273).
+      ["$BIN scope:promote; echo commit", /command word "\$BIN"/],
     ] as const) {
       const target = resolveCommitTarget(command, posix);
       expect(target, command).toMatchObject({ kind: "unresolvable" });
       if (target?.kind === "unresolvable") expect(target.reason, command).toMatch(reason);
+    }
+  });
+
+  it("drops substring-only commit and admits lifecycle $BIN beside a named commit (#7273)", () => {
+    expect(resolveCommitTarget("$BIN scope:promote --path with-commit-in-name", posix)).toBeNull();
+    expect(
+      resolveCommitTarget("$BIN scope:promote; git -C /r/wt commit -m x", posix),
+    ).toMatchObject({ kind: "named", path: "/r/wt", shape: "git -C" });
+    // Unquoted heredoc / path substring alone is not exact-word commit.
+    expect(resolveCommitTarget("cat <<EOF\ncommit-me\nEOF\n$D verify:x", posix)).toBeNull();
+    expect(resolveCommitTarget("cat <<EOF\ncommit\nEOF\n$D verify:x", posix)).toBeNull();
+  });
+
+  it("refuses opaque commit-shaped wrappers even beside a named commit (#7273)", () => {
+    for (const command of [
+      "$GIT commit -m x",
+      "timeout 5 $CMD commit -m x",
+      'bash -c "$GIT commit -m x"',
+      'eval "$GIT commit -m x"',
+      'env -S "$GIT commit -m x"',
+      "$GIT commit -m x; git -C /r/wt commit -m y",
+      "timeout 5 $CMD commit -m x; git -C /r/wt commit -m y",
+      'bash -c "$GIT commit -m x"; git -C /r/wt commit -m y',
+      'eval "$GIT commit -m x"; git -C /r/wt commit -m y',
+      'env -S "$GIT commit -m x"; git -C /r/wt commit -m y',
+      "git -C /r/wt commit -m y; $GIT commit -m x",
+    ]) {
+      expect(resolveCommitTarget(command, posix), command).toMatchObject({ kind: "unresolvable" });
     }
   });
 

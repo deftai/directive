@@ -519,9 +519,15 @@ type CommandReading =
       readonly reason: string;
       /**
        * True for a variable command word and a `-c`, `env -S` or `eval` string
-       * that holds a variable: a signal only when the call shows `commit` (#6871).
+       * that holds a variable: a signal only when the call shows exact-word `commit` (#6871 / #7273).
        */
       readonly needsCommitWord?: true;
+      /**
+       * Borrowed lifecycle false-positive (#7273): an expanding non-git command word
+       * whose own words do not include exact `commit`. Suppressible when the same call
+       * also resolves a named absolute commit target.
+       */
+      readonly suppressibleWithNamedCommit?: true;
     }
   | { readonly kind: "wrapped"; readonly words: readonly ShellWord[]; readonly name: string }
   | { readonly kind: "string"; readonly text: string; readonly what: string }
@@ -536,11 +542,13 @@ interface PendingCommand {
   readonly prefix: string;
 }
 
-/** The commits in one call and the first commit signal, if any (#6362). */
+/** The commits in one call and the first commit signal, if any (#6362 / #7273). */
 interface CallReading {
   readonly segments: readonly CommandSegment[];
   readonly commits: readonly { readonly index: number; readonly git: GitInvocation }[];
   readonly signal: string | null;
+  /** False when every needsCommitWord signal is a suppressible lifecycle false-positive (#7273). */
+  readonly opaqueSignal: boolean;
 }
 
 /** The program a command word names: base name, lower case, no `.exe`. */
@@ -559,31 +567,128 @@ function signal(reason: string): CommandReading {
 
 /**
  * The refusal for text the gate cannot read (#6362). It applies only when the
- * call shows the word `commit` (#6871); `readCall` drops it otherwise.
+ * call shows exact-word `commit` (#6871 / #7273); `readCall` drops it otherwise.
  */
-function unreadable(subject: string): CommandReading {
+function unreadable(
+  subject: string,
+  options: { readonly suppressibleWithNamedCommit?: true } = {},
+): CommandReading {
   return {
     kind: "signal",
     reason: `${subject} holds a variable or substitution, so the gate cannot tell whether it commits`,
     needsCommitWord: true,
+    ...(options.suppressibleWithNamedCommit === true
+      ? { suppressibleWithNamedCommit: true as const }
+      : {}),
   };
 }
 
+/** True when a decoded shell word is exactly `commit` (any case) (#7273). */
+function isExactCommitWord(value: string): boolean {
+  return value.toLowerCase() === "commit";
+}
+
+/** Exact-word `commit` among decoded words (#7273). */
+function wordsShowExactCommit(words: readonly ShellWord[]): boolean {
+  return words.some((word) => isExactCommitWord(word.value));
+}
+
+/** Exact-word `commit` after tokenizing a `-c` / `eval` / `env -S` body (#7273). */
+function textShowsExactCommitWord(text: string): boolean {
+  return tokenizeShellCommand(text).some((segment) => wordsShowExactCommit(segment.words));
+}
+
 /**
- * True when the call shows `commit` (any case, as part of any word) in the
- * decoded word values of its command chunks or in the same text before decoding
- * (#6871). Quoted heredoc bodies are removed, unquoted bodies kept, and line
- * continuations joined. A command supplied wholly by variables set earlier is
- * not read (content/docs/hook-root-admission.md).
+ * Bodies of `sh`/`bash`/`zsh`/`pwsh -c`, `eval`, and `env -S` in one command
+ * (#7273). Expanding bodies are included so exact-word `commit` inside them still arms.
+ */
+function executableStringBodies(words: readonly ShellWord[]): string[] {
+  let k = 0;
+  while (k < words.length && isAssignmentWord(words[k]?.value ?? "")) k++;
+  const word = words[k];
+  if (word === undefined || isUnreadableCommandWord(word)) return [];
+  const name = programName(word);
+  if (SHELL_BINS.has(name) || name === "pwsh" || name === "powershell") {
+    let hasC = false;
+    let i = k + 1;
+    while (i < words.length) {
+      const current = words[i];
+      const v = current?.value ?? "";
+      if (current?.redirect !== undefined) {
+        i += current.redirect === "operator" ? 2 : 1;
+        continue;
+      }
+      if (v === "--" || v === "-") {
+        i += 1;
+        break;
+      }
+      if (v.startsWith("--")) {
+        i += v === "--rcfile" || v === "--init-file" ? 2 : 1;
+        continue;
+      }
+      if ((v.startsWith("-") || v.startsWith("+")) && v.length > 1) {
+        if (v.startsWith("-") && v.includes("c")) hasC = true;
+        i += /[oO]/.test(v.slice(1)) ? 2 : 1;
+        continue;
+      }
+      break;
+    }
+    if (!hasC) return [];
+    const body = words[i];
+    return body === undefined ? [] : [withoutTrailingCloses(body)];
+  }
+  if (name === "eval") {
+    const args = withoutRedirections(words.slice(k + 1));
+    return args.length === 0 ? [] : [args.map(withoutTrailingCloses).join(" ")];
+  }
+  if (name === "env") {
+    const valueOptions = WRAPPER_VALUE_OPTIONS.get(name);
+    let c = k + 1;
+    let optionsDone = false;
+    while (c < words.length) {
+      const current = words[c];
+      const v = current?.value ?? "";
+      if (current?.redirect !== undefined) {
+        c += current.redirect === "operator" ? 2 : 1;
+        continue;
+      }
+      if (!optionsDone && v === "--") {
+        optionsDone = true;
+        c += 1;
+        continue;
+      }
+      const split = !optionsDone ? /^(?:-[^-uCPS]*S|--split-string=?)(.*)$/s.exec(v) : null;
+      if (split !== null) {
+        const own = split[1] ? current : words[c + 1];
+        return own === undefined ? [] : [split[1] || own.value];
+      }
+      if (!optionsDone && v.startsWith("-") && v.length > 1) {
+        const at = v.startsWith("--")
+          ? -1
+          : [...v].findIndex((l, i) => i > 0 && valueOptions?.has(`-${l}`));
+        c += valueOptions?.has(v) || at === v.length - 1 ? 2 : 1;
+        continue;
+      }
+      break;
+    }
+  }
+  return [];
+}
+
+/**
+ * True when the call shows exact-word `commit` (any case) among decoded shell
+ * words, including inside `sh`/`bash`/`zsh`/`pwsh -c`, `eval`, and `env -S`
+ * payloads (#6871 / #7273). Pathspecs, filenames, and data/here-string bodies
+ * do not count (all heredoc bodies are stripped for this detector). Line
+ * continuations are joined. A command supplied wholly by variables set earlier
+ * is not read (content/docs/hook-root-admission.md).
  */
 function callShowsCommitWord(command: string): boolean {
-  const chunks = shellCommandChunksWithoutQuotedHereDocBodies(command);
-  return chunks.some((chunk) => {
-    const joined = chunk.replace(/\\\r?\n/g, "");
-    if (/commit/i.test(chunk) || /commit/i.test(joined)) return true;
-    return tokenizeShellCommand(joined).some((segment) =>
-      segment.words.some((word) => /commit/i.test(word.value)),
-    );
+  const joined = shellWithoutHereDocBodies(command).replace(/\\\r?\n/g, "");
+  return tokenizeShellCommand(joined).some((segment) => {
+    const words = commandWords(segment);
+    if (wordsShowExactCommit(words)) return true;
+    return executableStringBodies(words).some((body) => textShowsExactCommitWord(body));
   });
 }
 
@@ -705,8 +810,12 @@ function readCommand(words: readonly ShellWord[]): CommandReading {
   while (k < words.length && isAssignmentWord(words[k]?.value ?? "")) k++;
   const word = words[k];
   if (word === undefined) return null;
-  if (isUnreadableCommandWord(word))
-    return unreadable(`the command word ${JSON.stringify(word.value)}`);
+  if (isUnreadableCommandWord(word)) {
+    // Independently commit-shaped when this command's own words include exact `commit` (#7273).
+    return unreadable(`the command word ${JSON.stringify(word.value)}`, {
+      ...(wordsShowExactCommit(words) ? {} : { suppressibleWithNamedCommit: true as const }),
+    });
+  }
   const name = programName(word);
   if (name === "git") {
     const git = parseGitInvocation(words);
@@ -752,13 +861,16 @@ function readCall(command: string): CallReading {
   let found: string | null = commits.some(({ index }) => segments[index]?.grouped)
     ? GROUPED_COMMIT
     : null;
+  let opaqueSignal = found !== null;
   const pending: PendingCommand[] = commandTextWords(command).map((words) => ({
     words,
     asCommit: null,
     prefix: "",
   }));
   let showsCommit: boolean | null = null;
-  for (let i = 0; i < pending.length && found === null; i++) {
+  // Keep scanning after suppressible lifecycle signals so an opaque signal later still wins (#7273).
+  for (let i = 0; i < pending.length; i++) {
+    if (opaqueSignal) break;
     const item = pending[i];
     const reading = item === undefined ? null : readCommand(item.words);
     if (item === undefined || reading === null) continue;
@@ -767,9 +879,19 @@ function readCall(command: string): CallReading {
         showsCommit ??= callShowsCommitWord(command);
         if (!showsCommit) continue;
       }
-      found = `${item.prefix}${reading.reason}`;
+      const reason = `${item.prefix}${reading.reason}`;
+      const suppressible =
+        reading.needsCommitWord === true && reading.suppressibleWithNamedCommit === true;
+      found ??= reason;
+      if (!suppressible) {
+        found = reason;
+        opaqueSignal = true;
+      }
     } else if (reading.kind === "commit") {
-      found = item.asCommit;
+      if (item.asCommit !== null) {
+        found = item.asCommit;
+        opaqueSignal = true;
+      }
     } else if (reading.kind === "wrapped") {
       const asCommit = `${item.prefix}the commit runs behind the \`${reading.name}\` wrapper`;
       pending.push({ words: reading.words, asCommit, prefix: item.prefix });
@@ -778,13 +900,14 @@ function readCall(command: string): CallReading {
       const asCommit = `${item.prefix}${reading.what} runs a git commit`;
       if (recognizedCommits(commandSegments(reading.text)).length > 0) {
         found = asCommit;
+        opaqueSignal = true;
         continue;
       }
       const prefix = `${item.prefix}in ${reading.what}, `;
       for (const words of commandTextWords(reading.text)) pending.push({ words, asCommit, prefix });
     }
   }
-  return { segments, commits, signal: found };
+  return { segments, commits, signal: found, opaqueSignal };
 }
 
 /**
@@ -897,12 +1020,15 @@ export type CommitTarget =
   /** The gate cannot resolve one checkout; the caller refuses. */
   | { readonly kind: "unresolvable"; readonly reason: string };
 
-/** The two accepted forms, named in every unresolvable-target refusal (#6278). */
+/** The accepted forms, named in every unresolvable-target refusal (#6278 / #7273). */
 export const COMMIT_TARGET_ACCEPTED_FORMS =
   "Name the checkout by an absolute path in one of two forms: " +
-  "`git -C <absolute path> commit …` or `cd <absolute path> && git commit …` " +
-  "(one `cd`, joined to the commit by `&&`; " +
-  "on Windows a drive path such as `C:\\…` or `C:/…`, or the MSYS form `/c/…`).";
+  "`git -C <absolute path> commit …` (enough even when an earlier statement is a separate `cd`) " +
+  "or `cd <absolute path> && git commit …` (one `cd`, joined to the commit by `&&`; " +
+  "on Windows a drive path such as `C:\\…` or `C:/…`, or the MSYS form `/c/…`). " +
+  "Exact-word `commit` (including inside `sh`/`bash`/`zsh`/`pwsh -c`, `eval`, and `env -S` payloads) " +
+  "arms the variable-command signal; a lifecycle `$BIN` beside a later named absolute commit is admitted, " +
+  "but opaque commit-shaped wrappers (`$GIT commit`, expanding `-c`/`eval` payloads) stay refused.";
 
 export interface ResolveCommitTargetOptions {
   /** Platform whose absolute-path rules apply; defaults to `process.platform`. */
@@ -979,11 +1105,15 @@ function resolveOneCommit(
       cdIndexes.push(j);
     }
   }
-  if (cdIndexes.length + git.chdirs.length > 1) {
+  // One absolute `git -C` is the sole chdir authority; ignore prior reaching `cd` (#7273).
+  if (git.chdirs.length > 1) {
     return { kind: "unresolvable", reason: "more than one `cd` or `-C` comes before the commit" };
   }
   const chdir = git.chdirs[0];
   if (chdir !== undefined) return namedPath(chdir, "git -C", platform);
+  if (cdIndexes.length > 1) {
+    return { kind: "unresolvable", reason: "more than one `cd` or `-C` comes before the commit" };
+  }
   const cdIndex = cdIndexes[0];
   if (cdIndex === undefined) return { kind: "hook-root" };
   const cd = segments[cdIndex];
@@ -1014,18 +1144,26 @@ function resolveOneCommit(
 
 /**
  * Resolve where a Shell command's `git commit` lands (#6278). Returns null when
- * the command holds no commit and no commit signal. A signal anywhere in the
- * call makes it unresolvable, whatever visible commit comes before or after it
- * (#6362). Every commit must resolve to the same target, or it is unresolvable.
+ * the command holds no commit and no commit signal. An opaque signal anywhere in
+ * the call makes it unresolvable, whatever visible commit comes before or after
+ * it (#6362). A suppressible lifecycle needsCommitWord signal alone is dropped
+ * when every recognized commit resolves to the same named absolute target (#7273).
+ * Every commit must resolve to the same target, or it is unresolvable.
  */
 export function resolveCommitTarget(
   command: string,
   options: ResolveCommitTargetOptions = {},
 ): CommitTarget | null {
   const platform = options.platform ?? process.platform;
-  const { segments, commits, signal: found } = readCall(command);
-  if (found !== null) return { kind: "unresolvable", reason: found };
-  if (commits.length === 0) return null;
+  const { segments, commits, signal: found, opaqueSignal } = readCall(command);
+  // Opaque signals still win over any visible commit (#6362).
+  if (opaqueSignal && found !== null) {
+    return { kind: "unresolvable", reason: found };
+  }
+  if (commits.length === 0) {
+    if (found !== null) return { kind: "unresolvable", reason: found };
+    return null;
+  }
   let target: CommitTarget | null = null;
   for (const { index, git } of commits) {
     const next = resolveOneCommit(segments, index, git, platform);
@@ -1040,6 +1178,11 @@ export function resolveCommitTarget(
     if (!same) {
       return { kind: "unresolvable", reason: "the commits in this call name different checkouts" };
     }
+  }
+  if (found !== null) {
+    // Limb 3 (#7273): borrowed lifecycle `$BIN` + named absolute commit → named.
+    if (!opaqueSignal && target?.kind === "named") return target;
+    return { kind: "unresolvable", reason: found };
   }
   return target;
 }
