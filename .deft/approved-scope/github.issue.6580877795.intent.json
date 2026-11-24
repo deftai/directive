@@ -1,0 +1,619 @@
+{
+  "schemaVersion": 1,
+  "algo": "intent-extract-v1",
+  "plan": {
+    "title": "Exact-word commit gate",
+    "narratives": {
+      "Overview": "",
+      "Description": "",
+      "UserStory": "",
+      "ImplementationPlan": ""
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "```quarantined\nNarrow `callShowsCommitWord` so needsCommitWord arms only when a decoded shell word's value is exactly `commit` (any case), including #6871 quote/continuation recombinations. Apply that same exact-word check inside executable-string payloads (`sh`/`bash`/`zsh`/`pwsh -c`, `eval`, `env -S`). Do not use substring `/commit/i` on pathspecs, filenames, or data/here-string bodies. Do not implement the detector as `recognizedCommits.length > 0`.\n```",
+        "artifact_path": "packages/core/src/hooks/commit-target.ts"
+      },
+      {
+        "id": "clause.2",
+        "title": "```quarantined\nWhen `resolveOneCommit` sees one literal absolute `git -C` path, use that named path as the sole chdir authority for that commit and ignore preceding reaching `cd` segments (same absolute or different). Still refuse multiple `-C` on one git invocation, `--git-dir`/`--work-tree`, and location-env prefixes.\n```",
+        "artifact_path": "packages/core/src/hooks/commit-target.ts"
+      },
+      {
+        "id": "clause.3",
+        "title": "Suppress a needsCommitWord signal from an expanding non-git command word only when that signal is a borrowed lifecycle false-positive and the same call also has a recognized `git commit` that resolves to a named absolute target — then return the named target (all such commits must agree). Do not suppress an independently commit-shaped opaque signal: `$GIT commit`, `timeout … $CMD commit`, expanding git subcommands, or expanding executable-string payloads that contain exact-word `commit`. A named visible commit never cancels those.",
+        "artifact_path": "packages/core/src/hooks/commit-target.ts"
+      },
+      {
+        "id": "clause.4",
+        "title": "```quarantined\nRegressions: `$BIN scope:promote --path with-commit-in-name` → null; `cd <abs>; git -C <abs> commit` and `cd <absA>; git -C <absB> commit` → named from `-C`; `$BIN scope:promote; git -C <abs> commit -m x` → named `<abs>`; `$GIT commit -m x`, `timeout 5 $CMD commit -m x`, `bash -c \"$GIT commit -m x\"`, `eval \"$GIT commit -m x\"`, `env -S \"$GIT commit -m x\"` stay unresolvable alone and stay unresolvable alongside `git -C <abs> commit -m x`; relative/`~`/expanding `-C` paths stay unresolvable.\n```",
+        "artifact_path": "packages/core/src/hooks/commit-target.test.ts"
+      },
+      {
+        "id": "clause.5",
+        "title": "Update `COMMIT_TARGET_ACCEPTED_FORMS` and `content/docs/hook-root-admission.md` (§ Commit targets / The commit word) to that exact boundary: exact-word detection including executable-string payloads; `git -C <absolute>` enough with a prior `cd`; lifecycle `$BIN` plus later named commit admitted; opaque commit-shaped wrappers refused even next to a named commit; hand-expanding every binary path not required for the admitted cases.",
+        "artifact_path": "content/docs/hook-root-admission.md"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/7273",
+        "type": "x-xbrief/github-issue"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/comments/7133682263",
+        "type": "x-xbrief/github-comment"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": false,
+      "derived_reason": "Prefer-A Recut same-text with quarantine wrappers (#5055)",
+      "source_rung": "derived",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "```quarantined\nNarrow `callShowsCommitWord` so needsCommitWord arms only when a decoded shell word's value is exactly `commit` (any case), including #6871 quote/continuation recombinations. Apply that same exact-word check inside executable-string payloads (`sh`/`bash`/`zsh`/`pwsh -c`, `eval`, `env -S`). Do not use substring `/commit/i` on pathspecs, filenames, or data/here-string bodies. Do not implement the detector as `recognizedCommits.length > 0`.\n```",
+          "artifact_path": "packages/core/src/hooks/commit-target.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "```quarantined\nWhen `resolveOneCommit` sees one literal absolute `git -C` path, use that named path as the sole chdir authority for that commit and ignore preceding reaching `cd` segments (same absolute or different). Still refuse multiple `-C` on one git invocation, `--git-dir`/`--work-tree`, and location-env prefixes.\n```",
+          "artifact_path": "packages/core/src/hooks/commit-target.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Suppress a needsCommitWord signal from an expanding non-git command word only when that signal is a borrowed lifecycle false-positive and the same call also has a recognized `git commit` that resolves to a named absolute target — then return the named target (all such commits must agree). Do not suppress an independently commit-shaped opaque signal: `$GIT commit`, `timeout … $CMD commit`, expanding git subcommands, or expanding executable-string payloads that contain exact-word `commit`. A named visible commit never cancels those.",
+          "artifact_path": "packages/core/src/hooks/commit-target.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "```quarantined\nRegressions: `$BIN scope:promote --path with-commit-in-name` → null; `cd <abs>; git -C <abs> commit` and `cd <absA>; git -C <absB> commit` → named from `-C`; `$BIN scope:promote; git -C <abs> commit -m x` → named `<abs>`; `$GIT commit -m x`, `timeout 5 $CMD commit -m x`, `bash -c \"$GIT commit -m x\"`, `eval \"$GIT commit -m x\"`, `env -S \"$GIT commit -m x\"` stay unresolvable alone and stay unresolvable alongside `git -C <abs> commit -m x`; relative/`~`/expanding `-C` paths stay unresolvable.\n```",
+          "artifact_path": "packages/core/src/hooks/commit-target.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Update `COMMIT_TARGET_ACCEPTED_FORMS` and `content/docs/hook-root-admission.md` (§ Commit targets / The commit word) to that exact boundary: exact-word detection including executable-string payloads; `git -C <absolute>` enough with a prior `cd`; lifecycle `$BIN` plus later named commit admitted; opaque commit-shaped wrappers refused even next to a named commit; hand-expanding every binary path not required for the admitted cases.",
+          "artifact_path": "content/docs/hook-root-admission.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "files": [
+          "packages/core/src/hooks/commit-target.ts",
+          "packages/core/src/hooks/commit-target.test.ts",
+          "packages/core/src/hooks/dispatcher-commit-wrapper-forms.test.ts",
+          "content/docs/hook-root-admission.md",
+          "changelog.d/7273-commit-word-exact.md"
+        ],
+        "module_boundary": "packages/core/src/hooks",
+        "cohesion_exemption": "Bound-localized commit-word detector (#7273)"
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because mechanism-shaped shell-gate false positives on non-commit forms and on resolved git -C targets\nmechanism-shaped: true\narc-mode: no-ingest\nspend-recommend: N≥3\nspend: N≥3\nspend-ask: resolved\nyolo-standing: yes\npain: P1, P2, P3\ndual-stop-reserved: first post-lean pain-audit of asserted coverage in-cap via evaluateDualStopParentPath; raise after reserved spent\nverification-path: pin-read dest=.deft-scratch/worktrees/arc-7273 dispatch-sha=60e8921207e77d526c9392a6da1e83345d77a6de\nTarget-digest: sha256:c4fe9ae141580a5e2c231653eaef1e548fb5d7649864adba19eac5cb7bf07dda\n\n## Stop 1 — Gate\n\nThe #6278 commit-target gate still refuses ordinary shell work after #6871. A command word that expands (`$BIN`) is treated as an unreadable commit signal whenever the call text contains the substring `commit` anywhere — including a path argument (`with-commit-in-name`), a PowerShell here-string body, or a module path — even when no `git commit` runs. Separately, `git -C <absolute> commit` is refused as \"more than one `cd` or `-C`\" when an earlier statement in the same call is `cd <absolute>`, including `cd … && git -C … commit` and `cd …; …; git -C … commit`, even though `-C` alone names one checkout. Operators expand every path by hand or rewrite scripts into a single `cd && git commit` line. Gate match: mechanism-shaped.\n\n## Pain\n\n- P1: `callShowsCommitWord` / needsCommitWord arms on a bare substring `commit` in the call text, so an expanding command word (`$BIN`, `$script`) is refused as an unresolvable commit target for non-commit work that merely mentions that substring (path args, here-string bodies, filenames).\n- P2: A prior `cd <absolute>` plus `git -C <absolute> commit` in one call refuses with \"more than one `cd` or `-C` comes before the commit\" even when both name the same absolute checkout and `-C` alone would resolve to `named`.\n- P3: Accepted forms and recovery copy still push `cd <abs> && git commit` as the only multi-step shape, so scripts that already name the checkout with `git -C <abs>` after a separate `cd` (or that mix lifecycle `$BIN` with a later named commit) stay blocked without a hand rewrite.\n\n## Keep-outs\n\n- Do not drop the unreadable-command-word signal for true unknown commit-shaped wrappers.\n- Do not allow relative/`~`/`$var` checkout paths as named commit targets.\n- Do not waive prospective scope-cover on a resolved named commit.",
+          "id": 7133456171,
+          "html_url": "https://github.com/deftai/directive/issues/7273#issuecomment-7133456171",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T13:52:07Z",
+          "updated_at": "2026-11-24T13:52:07Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: parent\n```\n\nPrefer-A draft\nconflict_group: commit-gate-named-C-wins-and-commit-word-is-git-shaped\nTarget-digest: sha256:c4fe9ae141580a5e2c231653eaef1e548fb5d7649864adba19eac5cb7bf07dda\narc-mode: no-ingest\nspend: N≥3\nyolo-standing: yes\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\n## In plain English\n\nThe shell gate should only treat a command as a git-commit problem when it is actually about committing. Prefer-A makes two narrow fixes: the \"commit word\" check looks for git-commit shape, not the letters c-o-m-m-i-t in random paths or scripts; and when a call already names the checkout with `git -C <absolute>`, that named target wins so an earlier `cd` to the same place does not refuse the call.\n\n## Bound remedy\n\n1. Narrow `callShowsCommitWord` (or the needsCommitWord consumer) so an expanding command word is a commit signal only when the call has a recognized `git commit` / commit-shaped form — not when the substring `commit` appears only inside pathspecs, filenames, here-string/script bodies, or other non-subcommand words.\n2. When `resolveOneCommit` sees `git -C <absolute>`, use that named path as the sole chdir authority; do not refuse as \"more than one `cd` or `-C`\" solely because a reaching `cd` also appears earlier in the call. If both name absolute paths and they disagree, keep refusing.\n3. Keep refusing expanding/`~`/relative checkout paths for named targets, and keep refusing a lone `cd` that is not joined by `&&` when there is no `-C`.\n4. Add regressions for: `$BIN scope:promote --path with-commit-in-name` → null; `cd <abs>; git -C <abs> commit` and `cd <abs> && git -C <abs> commit` → named `<abs>`; `cd <absA>; git -C <absB> commit` (A≠B) → unresolvable; `$BIN` plus a real `git -C <abs> commit` in one call still signals or resolves by the Bound's commit-word rule without requiring hand-expanded lifecycle paths.\n5. Update the accepted-forms / hook-root-admission copy so `git -C <absolute> commit` is enough even when an earlier statement is a separate `cd`, and so substring `commit` in non-git words is not described as a commit signal.\n\n## Reject\n\n- Dropping needsCommitWord / unreadable-command-word entirely for every `$var`.\n- Allowing relative, `~`, or expanding paths as named commit targets.\n- Docs-only recovery that tells agents to expand every binary path by hand.\n- Counting every prior `cd` as a second chdir even when `-C` already names one absolute checkout.",
+          "id": 7133456679,
+          "html_url": "https://github.com/deftai/directive/issues/7273#issuecomment-7133456679",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T13:52:08Z",
+          "updated_at": "2026-11-24T13:52:08Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: parent\n```\n\nspend-amend: N=2\nreason: Operator note on this arc: Claude is not available; limit N to 2. Reduced panel Codex+Grok only before Round-1. Not a blocking-verdict cut.\nprior-spend: N≥3\nseat-families: grok, codex\nid-ceiling: 7133456679",
+          "id": 7133465673,
+          "html_url": "https://github.com/deftai/directive/issues/7273#issuecomment-7133465673",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T13:52:29Z",
+          "updated_at": "2026-11-24T13:52:29Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 2\nseat-families: grok, codex\nspend: N=2\nspend-amend: 7133465673\ninput-ceiling: 7133497187\naudit-targets: none\ndispatch-sha: 60e8921207e77d526c9392a6da1e83345d77a6de\nverification-path: pin-read dest=.deft-scratch/worktrees/arc-7273 dispatch-sha=60e8921207e77d526c9392a6da1e83345d77a6de\nid-ceiling note: Round-1 critics honor this deposit id inclusive; do not read later thread comments past the ceiling.",
+          "id": 7133497187,
+          "html_url": "https://github.com/deftai/directive/issues/7273#issuecomment-7133497187",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T13:53:45Z",
+          "updated_at": "2026-11-24T13:53:46Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\n\nBlock Prefer-A draft 7133456679 as written. The narrow resolver change is viable, but two contract gaps prevent the claimed relief. Reviewed at 60e8921207e77d526c9392a6da1e83345d77a6de, using only comments through 7133497187.\n\n1. **P3 remains blocked by call-wide evidence.** In `packages/core/src/hooks/commit-target.ts`, `readCall` applies `callShowsCommitWord(command)` to every `needsCommitWord` signal; `resolveCommitTarget` then lets any signal win over all recognized commits. Merely changing the helper to recognize git-commit shape still rejects `$BIN scope:promote --path /wt; git -C /wt commit -m x`: the later real commit arms the earlier unreadable `$BIN`. Bound remedy 4's \"still signals or resolves\" permits precisely this failure; `dispatcher.ts::decideProspectiveGitCommitScopeCover` denies the signal rather than checking the named checkout. Specify an exact named-target expectation for this lifecycle-plus-commit case, and bind commit-shape evidence to the relevant invocation rather than an unrelated command in the call. Preserve explicit refusal cases for `$GIT commit -m x`, `timeout 5 $CMD commit -m x`, and opaque executable strings; the existing test \"lets a signal win over a visible commit before or after it\" makes that boundary a deliberate design decision, not a helper-only edit.\n\n2. **The different-absolute-path refusal contradicts sole `-C` authority.** `resolveOneCommit` currently conflates preceding `cd` and Git's own `chdirs`. Replacing that count with an equality requirement still rejects `cd /a; git -C /b commit -m x`, although the literal absolute `/b` fully determines this commit's cwd. This preserves an unnecessary refusal against the issue body's expected behavior and adds path-equivalence questions (Windows separators/MSYS spellings, aliases) without helping target resolution. For one literal absolute `-C`, use that target independently of preceding `cd`; retain checks for multiple Git `-C` options, location overrides, and each separately recognized commit's target. If disagreement refusal is intentionally retained as additional policy, stop describing `-C` as sole authority or claiming the general expected behavior is relieved.\n\n```quarantined\nThe regression list should also pin the promised here-string/module-path false positives and show that a resolved mixed call still reaches named-checkout admission and prospective scope-cover. Keep data strings distinct from executable `-c`/`eval` strings and substitutions; \"script bodies\" is too broad an exclusion without that distinction. Update `COMMIT_TARGET_ACCEPTED_FORMS` and `content/docs/hook-root-admission.md` to the resulting exact contract.\n```\n\nPrefer-A can proceed after these corrections; no parallel alternative is needed.",
+          "id": 7133547213,
+          "html_url": "https://github.com/deftai/directive/issues/7273#issuecomment-7133547213",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T13:55:37Z",
+          "updated_at": "2026-11-24T13:55:37Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: critic\n```\n\nverdict: accept-with-nits\ntarget: Prefer-A draft 7133456679\nconflict_group: commit-gate-named-C-wins-and-commit-word-is-git-shaped\nTarget-digest: sha256:c4fe9ae141580a5e2c231653eaef1e548fb5d7649864adba19eac5cb7bf07dda\npains: P1, P2, P3 (Stop 1 7133456171)\ndispatch-sha: 60e8921207e77d526c9392a6da1e83345d77a6de\n\n## Verdict\n\nPrefer-A draft 7133456679 is the right narrow Bound for Stop 1. P1/P2/P3 are reachable on the live pin without a parallel approach.\n\nPin-read: `callShowsCommitWord` (`packages/core/src/hooks/commit-target.ts`) still arms on `/commit/i` anywhere in a chunk or decoded word, so `needsCommitWord` unreadable signals fire for `$BIN … with-commit-in-name` (P1). `resolveOneCommit` refuses when `cdIndexes.length + git.chdirs.length > 1` before preferring `-C` (P2; tests already lock `cd /a && git -C /b` as more-than-one). `COMMIT_TARGET_ACCEPTED_FORMS` and `content/docs/hook-root-admission.md` still describe only the two naming shapes and the old more-than-one rule (P3). `decideProspectiveGitCommitScopeCover` (`dispatcher.ts`) is only the deny caller; the Bound edits stay in `commit-target.ts` + accepted-forms/docs.\n\nKeep-outs and Reject stay intact: unreadable stay for true commit-shaped `$var` wrappers; relative/`~`/expanding named paths stay refused; prospective scope-cover on a resolved named commit is untouched.\n\n## Nits (absorb into Bound / lean; non-blocking)\n\n1. **Limb 1 positive detector.** Pin “commit-shaped” to a decoded shell word whose value is exactly `commit` (any case), including the existing #6871 quote/continuation recombinations (`co''mmit`, `\"com\"mit`, `co\\\\\\nmmit`). Do not implement the gate as `recognizedCommits.length > 0`: `readCommand` returns `unreadable` for `$GIT` before `parseGitInvocation`, so that reading would clear `$GIT commit` and break `commit-target.test.ts` (“keeps a variable a signal when the call shows the word commit”). Substring-only hits in pathspecs/filenames/here-string bodies stay non-signals as drafted.\n\n2. **Limb 2 path equality.** When both a reaching `cd` and `git -C` name absolute paths, compare after `absoluteCommitTargetPath` (same mapping `namedPath` uses) so MSYS `/c/…` and `C:\\…` / `C:/…` do not false-refuse as A≠B.\n\n3. **Limb 5 deny-copy surface.** Explicitly update `COMMIT_TARGET_ACCEPTED_FORMS` in `commit-target.ts` (stitched into every unresolvable deny via `decideProspectiveGitCommitScopeCover`) plus `hook-root-admission.md` § Commit targets / The commit word, so recovery no longer implies “drop the prior `cd` or hand-expand every `$BIN`.” Keep the same-path positives and A≠B refuse from limb 4; the existing `cd /a && git -C /b` more-than-one fixture stays a disagree case, not a same-path block.\n\nPrefer-A remains reachable; no co-equal Prefer-B.",
+          "id": 7133590511,
+          "html_url": "https://github.com/deftai/directive/issues/7273#issuecomment-7133590511",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T13:57:11Z",
+          "updated_at": "2026-11-24T13:57:11Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: parent\n```\n\nLean: Prefer-A Bound\nSpec-path: Prefer-A Bound\nconflict_group: commit-gate-named-C-wins-and-commit-word-is-git-shaped\nTarget-digest: sha256:c4fe9ae141580a5e2c231653eaef1e548fb5d7649864adba19eac5cb7bf07dda\narc-mode: no-ingest\nspend: N=2\nseat-families: grok, codex\nyolo-standing: yes\nrelieves: P1\nrelieves: P2\nrelieves: P3\ndisposes critic 7133547213\ndisposes critic 7133590511\n\n## In plain English\n\nThe shell gate should judge git commits, not every appearance of the letters c-o-m-m-i-t. Prefer-A Bound: an expanding command word is a commit signal only when a decoded shell word is exactly `commit`; when a commit already names the checkout with `git -C <absolute>`, that path wins even if an earlier `cd` exists; and a lifecycle `$BIN` earlier in the same call must not refuse a later named `git -C` commit. Keep refusing true unknown commit wrappers and relative/`~`/expanding checkout paths.\n\n## Bound remedy\n\n1. Narrow `callShowsCommitWord` so needsCommitWord arms only when a decoded shell word's value is exactly `commit` (any case), including the existing #6871 quote/continuation recombinations (`co''mmit`, `\"com\"mit`, line-continued forms). Do not use substring `/commit/i` on paths, filenames, or here-string bodies. Do not implement the positive detector as `recognizedCommits.length > 0` (that would clear `$GIT commit` before `parseGitInvocation`).\n2. When `resolveOneCommit` sees one literal absolute `git -C` path, use that named path as the sole chdir authority for that commit and ignore preceding reaching `cd` segments for target selection (same absolute or different). Still refuse multiple `-C` on one git invocation, `--git-dir`/`--work-tree`, and location-env prefixes.\n3. When `readCall` would raise a needsCommitWord signal from an expanding non-git command word, and the same call also has at least one recognized `git commit` that resolves to a named absolute target (`git -C <abs>` or `cd <abs> && git commit`), do not let that earlier signal refuse the whole call — return the named target (all such commits must agree). Keep refusing `$GIT commit`, `timeout … $CMD commit`, expanding git subcommands, and other opaque commit-shaped wrappers where the commit program/subcommand itself is unreadable.\n4. Regressions (win32 + posix as needed): `$BIN scope:promote --path with-commit-in-name` → null; PowerShell/here-string bodies that only mention the substring stay non-signals for `$var` lifecycle; `cd <abs>; git -C <abs> commit` and `cd <absA>; git -C <absB> commit` → named from `-C`; `$BIN scope:promote; git -C <abs> commit -m x` → named `<abs>` (reaches prospective scope-cover admission); `$GIT commit -m x` and `timeout 5 $CMD commit -m x` stay unresolvable signals; relative/`~`/expanding `-C` paths stay unresolvable.\n5. Update `COMMIT_TARGET_ACCEPTED_FORMS` and `content/docs/hook-root-admission.md` (§ Commit targets / The commit word) so recovery names: exact-word commit detection; `git -C <absolute>` is enough even with a prior `cd`; lifecycle `$BIN` plus a later named commit is admitted on the named target; hand-expanding every binary path is not required for those cases.\n\n## Reject\n\n- Dropping needsCommitWord / unreadable-command-word for every `$var`, including `$GIT commit` and opaque `$CMD commit` wrappers.\n- Allowing relative, `~`, or expanding paths as named commit targets.\n- Docs-only recovery that tells agents to expand every binary path by hand.\n- Keeping \"more than one `cd` or `-C`\" refuse when a single absolute `-C` already names the commit checkout.",
+          "id": 7133601962,
+          "html_url": "https://github.com/deftai/directive/issues/7273#issuecomment-7133601962",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T13:57:36Z",
+          "updated_at": "2026-11-24T13:57:36Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 4\nsiblings: 2\nseat-families: grok, codex\nspend: N=2\naudit-targets: pain-P1, pain-P2, pain-P3\ninput-ceiling: 7133620287\nlean: 7133601962\ndispatch-sha: 60e8921207e77d526c9392a6da1e83345d77a6de\nverification-path: pin-read dest=.deft-scratch/worktrees/arc-7273 dispatch-sha=60e8921207e77d526c9392a6da1e83345d77a6de\nnote: Dual-stop reserved pain-audit of Prefer-A Bound; reduced panel Codex+Grok.",
+          "id": 7133620287,
+          "html_url": "https://github.com/deftai/directive/issues/7273#issuecomment-7133620287",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T13:58:13Z",
+          "updated_at": "2026-11-24T13:58:14Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3\n\nPain-audit of Bound 7133601962 against Stop 1 7133456171. Pin-read at 60e8921207e77d526c9392a6da1e83345d77a6de; no comments above the ceiling used.\n\npain-P1: Relief for the stated substring cases. `$BIN scope:promote --path with-commit-in-name` has no decoded word equal to `commit`, so its needsCommitWord signal drops and the resolver returns null. The same route covers a module/path word containing only that substring. Residual: exact-word detection is still call-wide, not evidence that the unreadable invocation commits. `$BIN scope:promote; echo commit` still arms the lifecycle signal and has no named commit to trigger limb 3. Likewise a filename supplied as the standalone word `commit` remains a false positive. This does not invalidate the narrower substring relief, but the plain-English claim that the gate judges git commits needs that limit.\n\npain-P2: Relieved. `cd /a; git -C /b commit -m x` selects `/b` under limb 2, including when /a equals /b. At the pin, resolveOneCommit checks the combined cd/-C count before namedPath; moving the single literal absolute -C selection ahead of prior-cd handling supplies a concrete admit path. Multiple Git -C options, location overrides, and nonliteral/nonabsolute targets remain refusals. Named checkout admission and prospective scope-cover still run.\n\n```quarantined\npain-P3: The explicit examples are relieved by limbs 2, 3 and 5: `$BIN scope:promote; git -C /wt commit -m x` must resolve to named `/wt`, and recovery copy must say so. However, the harvest needs one correction before the broader relief can be accepted with its keep-outs intact. At the pin, readCommand/commandString returns needsCommitWord for an expanding executable string before inspecting its contents. With a literal implementation of limb 1's decoded-word equality, `bash -c \"$GIT commit -m x\"` has outer decoded words `bash`, `-c`, and `$GIT commit -m x`; none equals `commit`. Its signal therefore disappears, despite being a true opaque commit-shaped wrapper. The analogous `eval \"$GIT commit -m x\"` and `env -S \"$GIT commit -m x\"` have the same risk. This is a keep-out regression, not an acceptable way to relieve lifecycle false positives.\n```\n\nRequired harvest correction: define exact-word evidence within executable-string payloads as well as ordinary argv, while keeping data strings separate. Tie that evidence to the unreadable invocation, and make limb 3 suppress only a lifecycle signal borrowed from another invocation; a named visible commit must never cancel an independently commit-shaped opaque signal. Add refusal expectations for the three executable-string examples both alone and alongside `git -C /wt commit -m x`, plus `$GIT commit -m x; git -C /wt commit -m x`. Keep the existing lifecycle-plus-named positive. Update COMMIT_TARGET_ACCEPTED_FORMS and hook-root-admission.md to that precise boundary.\n\nfinding-classes: residual,false-relief\nharvest-changed: true",
+          "id": 7133656883,
+          "html_url": "https://github.com/deftai/directive/issues/7273#issuecomment-7133656883",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T13:59:30Z",
+          "updated_at": "2026-11-24T13:59:30Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3\n\nfinding-classes: none\nharvest-changed: true\n\nPain-audit Prefer-A Bound 7133601962 vs Stop 1 (7133456171). Pin 60e8921207e77d526c9392a6da1e83345d77a6de. Input ceiling inclusive 7133601962.\n\n## Pin evidence (pre-ship)\n\n- `callShowsCommitWord` still arms on `/commit/i` in chunk text or any decoded word (`packages/core/src/hooks/commit-target.ts`).\n- `resolveOneCommit` refuses when `cdIndexes.length + git.chdirs.length > 1` before preferring `-C`; tests lock `cd /a && git -C /b commit` as more-than-one.\n- `COMMIT_TARGET_ACCEPTED_FORMS` names only `git -C <abs> commit` and `cd <abs> && git commit`. `hook-root-admission.md` § Commit targets / The commit word still documents substring commit detection and the more-than-one refuse.\n\n## pain-P1 — relieved (concrete admit)\n\nStop 1: expanding `$BIN` / `$script` refused when substring `commit` appears in paths, filenames, or here-string bodies.\n\nBound remedy 1 + regressions: needsCommitWord arms only when a decoded shell word is exactly `commit` (any case, including #6871 quote/continuation recombinations). `$BIN scope:promote --path with-commit-in-name` → null; PowerShell/here-string bodies that only mention the substring stay non-signals.\n\nAdmit path after ship: lifecycle / non-commit calls that merely mention the substring are not commit targets and pass this gate.\n\nKeep-out intact: `$GIT commit` and opaque `$CMD commit` wrappers stay unresolvable signals.\n\n## pain-P2 — relieved (concrete admit)\n\nStop 1: prior `cd <abs>` plus `git -C <abs> commit` refuses as more-than-one even when `-C` alone would be `named`.\n\nBound remedy 2 + regressions: one literal absolute `git -C` is sole chdir authority for that commit; preceding reaching `cd` is ignored for target selection (same absolute or different). Still refuse multiple `-C` on one invocation, `--git-dir`/`--work-tree`, and location-env prefixes.\n\nAdmit path after ship: `cd <abs>; git -C <abs> commit` and `cd <absA>; git -C <absB> commit` → `named` from `-C`.\n\n## pain-P3 — relieved (concrete admit)\n\nStop 1: recovery copy pushes only `cd <abs> && git commit`; scripts that already use `git -C` after a separate `cd`, or mix lifecycle `$BIN` with a later named commit, stay blocked.\n\nBound remedies 2, 3, 5 + regressions: docs/`COMMIT_TARGET_ACCEPTED_FORMS` name exact-word detection and that `git -C <absolute>` is enough with a prior `cd`; when a needsCommitWord signal comes from an expanding non-git command word and the same call has a recognized `git commit` that resolves to a named absolute target, return that named target (all such commits must agree). `$BIN scope:promote; git -C <abs> commit -m x` → named `<abs>` and reaches prospective scope-cover admission. Hand-expanding every binary path is not required for those cases.\n\nAdmit path after ship: multi-statement scripts that already name the checkout with absolute `-C` (with or without an earlier lifecycle `$BIN`) resolve to that named target without a single-line rewrite.\n\n## Residuals (outside P1–P3 false-relief)\n\n- `$GIT commit`, `timeout … $CMD commit`, expanding git subcommands, and other opaque commit-shaped wrappers stay refused (Bound Reject / keep-outs).\n- Relative / `~` / expanding checkout paths stay unresolvable.\n- A lone `cd` not joined by `&&` with no `-C` stays unresolvable under the existing join rule.\n\nHarvest vs Prefer-A draft 7133456679 changed: exact-word detector; `-C` sole authority even when a prior `cd` names a different absolute path; lifecycle `$BIN` must not call-wide refuse a later named `git -C` commit. No false-relief on P1–P3.",
+          "id": 7133681727,
+          "html_url": "https://github.com/deftai/directive/issues/7273#issuecomment-7133681727",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T14:00:24Z",
+          "updated_at": "2026-11-24T14:00:24Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: parent\n```\n\nLean: Prefer-A Recut-1\nSpec-path: Prefer-A Recut-1\nRecut: Prefer-A Recut-1\nconflict_group: commit-gate-named-C-wins-and-commit-word-is-git-shaped\nTarget-digest: sha256:c4fe9ae141580a5e2c231653eaef1e548fb5d7649864adba19eac5cb7bf07dda\narc-mode: no-ingest\nspend: N=2\nseat-families: grok, codex\nyolo-standing: yes\nrelieves: P1\nrelieves: P2\nrelieves: P3\ndisposes critic 7133547213\ndisposes critic 7133590511\ndisposes critic 7133656883\ndisposes critic 7133681727\nsupersedes: 7133601962\n\n```quarantined\n## In plain English\n\nSame Prefer-A as Bound 7133601962, with one keep-out fix from Codex PA: the exact `commit` word check also looks inside `bash -c` / `eval` / `env -S` payloads, and a later named `git -C` commit must not cancel an opaque commit-shaped wrapper in the same call. Lifecycle `$BIN` plus a named commit still admits on the named target.\n\n```\n```quarantined\n## Bound remedy\n\n1. Narrow `callShowsCommitWord` so needsCommitWord arms only when a decoded shell word's value is exactly `commit` (any case), including #6871 quote/continuation recombinations. Apply that same exact-word check inside executable-string payloads (`sh`/`bash`/`zsh`/`pwsh -c`, `eval`, `env -S`). Do not use substring `/commit/i` on pathspecs, filenames, or data/here-string bodies. Do not implement the detector as `recognizedCommits.length > 0`.\n2. When `resolveOneCommit` sees one literal absolute `git -C` path, use that named path as the sole chdir authority for that commit and ignore preceding reaching `cd` segments (same absolute or different). Still refuse multiple `-C` on one git invocation, `--git-dir`/`--work-tree`, and location-env prefixes.\n3. Suppress a needsCommitWord signal from an expanding non-git command word only when that signal is a borrowed lifecycle false-positive and the same call also has a recognized `git commit` that resolves to a named absolute target — then return the named target (all such commits must agree). Do not suppress an independently commit-shaped opaque signal: `$GIT commit`, `timeout … $CMD commit`, expanding git subcommands, or expanding executable-string payloads that contain exact-word `commit`. A named visible commit never cancels those.\n4. Regressions: `$BIN scope:promote --path with-commit-in-name` → null; `cd <abs>; git -C <abs> commit` and `cd <absA>; git -C <absB> commit` → named from `-C`; `$BIN scope:promote; git -C <abs> commit -m x` → named `<abs>`; `$GIT commit -m x`, `timeout 5 $CMD commit -m x`, `bash -c \"$GIT commit -m x\"`, `eval \"$GIT commit -m x\"`, `env -S \"$GIT commit -m x\"` stay unresolvable alone and stay unresolvable alongside `git -C <abs> commit -m x`; relative/`~`/expanding `-C` paths stay unresolvable.\n5. Update `COMMIT_TARGET_ACCEPTED_FORMS` and `content/docs/hook-root-admission.md` (§ Commit targets / The commit word) to that exact boundary: exact-word detection including executable-string payloads; `git -C <absolute>` enough with a prior `cd`; lifecycle `$BIN` plus later named commit admitted; opaque commit-shaped wrappers refused even next to a named commit; hand-expanding every binary path not required for the admitted cases.\n\n```\n```quarantined\n## Reject\n\n- Dropping needsCommitWord for every `$var`, including `$GIT commit` and opaque `$CMD` / `-c` / `eval` commit wrappers.\n- Allowing relative, `~`, or expanding paths as named commit targets.\n- Docs-only recovery that tells agents to expand every binary path by hand.\n- Keeping \"more than one `cd` or `-C`\" refuse when a single absolute `-C` already names the commit checkout.\n- Letting a named visible commit cancel an independently opaque commit-shaped signal in the same call.\n```",
+          "id": 7133682263,
+          "html_url": "https://github.com/deftai/directive/issues/7273#issuecomment-7133682263",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T14:00:25Z",
+          "updated_at": "2026-11-24T14:00:25Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 4\nsiblings: 2\nseat-families: grok, codex\nspend: N=2\naudit-targets: pain-P1, pain-P2, pain-P3\ninput-ceiling: 7133695915\nlean: 7133682263\ndispatch-sha: 60e8921207e77d526c9392a6da1e83345d77a6de\nnote: PA-2 of Prefer-A Recut-1 after Codex PA-1 false-relief on executable-string keep-out.",
+          "id": 7133695915,
+          "html_url": "https://github.com/deftai/directive/issues/7273#issuecomment-7133695915",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T14:00:55Z",
+          "updated_at": "2026-11-24T14:00:56Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3\n\nPain-audit of Prefer-A Recut-1 (7133682263) against Stop 1 (7133456171). Pin verified: 60e8921207e77d526c9392a6da1e83345d77a6de. No comments above 7133682263 used. This audits the proposed harvest, not shipped behavior.\n\npain-P1: Relieved for the stated substring cases. Limb 1 gives `$BIN scope:promote --path with-commit-in-name` a concrete null/non-target route; path/module names and data/here-string bodies that only mention the substring no longer arm needsCommitWord. Residual remains at the exact-word boundary: `$BIN scope:promote; echo commit` still has a decoded word equal to `commit`, and no named commit to activate limb 3. A standalone filename argument `commit` has the same risk. This is the previously identified residual, not a new failure of the narrower substring claim; do not describe this harvest as eliminating all non-commit false positives.\n\npain-P2: Relieved. `cd /a; git -C /b commit -m x` resolves to named `/b`, including when /a equals /b. Limb 2 moves the single absolute -C authority ahead of the prior-cd count that currently refuses in resolveOneCommit. Multiple -C options, location overrides, and relative/tilde/expanding targets remain refusals. Resolving a name still leaves checkout admission and prospective scope-cover intact.\n\npain-P3: Relieved for the stated multi-step and mixed lifecycle cases. `$BIN scope:promote; git -C /wt commit -m x` resolves to named `/wt` through limb 3; a prior separate cd is covered by limb 2. Limb 5 requires accepted-forms and recovery copy to advertise both paths, removing the hand-expansion/single-line rewrite requirement for these cases. All recognized commits must agree on the named target.\n\n```quarantined\nRecut-1 closes PA-1's keep-out defect: executable-string payloads receive their own exact-word inspection, and independently opaque commit-shaped signals survive alongside a visible named commit. Thus `bash -c \"$GIT commit -m x\"`, `eval \"$GIT commit -m x\"`, and `env -S \"$GIT commit -m x\"`, plus `$GIT commit` and `timeout 5 $CMD commit`, retain the required refusal both alone and beside `git -C /wt commit -m x`. These are explicit negative regressions in limb 4, while lifecycle-plus-named remains the positive control. No additional harvest amendment is required by this audit; the existing exact-word residual must remain visible when reporting relief.\n```\n\nfinding-classes: footnote\nharvest-changed: false",
+          "id": 7133727373,
+          "html_url": "https://github.com/deftai/directive/issues/7273#issuecomment-7133727373",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T14:02:01Z",
+          "updated_at": "2026-11-24T14:05:55Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3\n\nPain-audit Prefer-A Recut-1 7133682263 against Stop 1 7133456171 (P1–P3). Absorbs Codex PA-1 7133656883; supersedes Bound 7133601962. Pin-read at 60e8921207e77d526c9392a6da1e83345d77a6de; no comments above ceiling 7133682263 used. Shell/gh denied in this seat (runtime pin missing); audit from fetched comments + pin source read of packages/core/src/hooks/commit-target.ts.\n\n```quarantined\npain-P1: Relieved. Admit path: replace substring `/commit/i` in `callShowsCommitWord` with decoded-word exact equality to `commit` (any case), including #6871 recombinations, and run that same exact-word check inside executable-string payloads (`sh`/`bash`/`zsh`/`pwsh -c`, `eval`, `env -S`) while leaving pathspecs, filenames, and data/here-string bodies out of the detector. At the pin, `$BIN scope:promote --path with-commit-in-name` arms only because `/commit/i` matches the path word; after Recut-1 limb 1 no decoded word equals `commit`, so the needsCommitWord gate drops and `resolveCommitTarget` returns null. Keep-out intact: true opaque wrappers stay refused.\n```\n\npain-P2: Relieved. Admit path: in `resolveOneCommit`, when there is one literal absolute `git -C` path, select that named path before the combined `cd`/`-C` count refuse (pin lines 982–986 currently refuse `cdIndexes.length + git.chdirs.length > 1` first). After Recut-1 limb 2, `cd <abs>; git -C <abs> commit` and `cd <absA>; git -C <absB> commit` both resolve to named from `-C`. Multiple `-C` on one git, `--git-dir`/`--work-tree`, and location-env prefixes stay refused.\n\n```quarantined\npain-P3: Relieved. Admit path: limbs 2 + 3 + 5 together. Limb 2 admits separate `cd` then `git -C <abs> commit`. Limb 3 suppresses a needsCommitWord signal from an expanding non-git lifecycle word only when that signal is a borrowed false-positive and the same call has a recognized `git commit` that resolves to a named absolute target (all such commits agree); `$BIN scope:promote; git -C <abs> commit -m x` → named `<abs>`. Independently opaque forms (`$GIT commit`, `timeout … $CMD commit`, expanding git subcommands, expanding `-c`/`eval`/`env -S` payloads with exact-word `commit`) stay unresolvable alone and stay unresolvable beside a named visible commit — the Codex PA-1 keep-out regression is closed in the harvest, not papered over. Limb 5 updates `COMMIT_TARGET_ACCEPTED_FORMS` and hook-root-admission.md to that boundary so recovery no longer implies hand-expand-every-binary or `cd && git commit` as the only multi-step shape.\n```\n\nNo false-relief found on the three Stop 1 pains. Non-blocking edge outside P1 as stated: `$BIN scope:promote; echo commit` (exact-word `commit` with no named commit) still arms; that is keep-out-consistent and does not require a Remint.\n\nfinding-classes: none\nharvest-changed: false",
+          "id": 7133766067,
+          "html_url": "https://github.com/deftai/directive/issues/7273#issuecomment-7133766067",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T14:03:23Z",
+          "updated_at": "2026-11-24T14:03:23Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nreduced-panel: N=2 (Codex+Grok); Claude unavailable per operator note; spend-amend 7133465673\ncited-lean: 7133682263 (Prefer-A Recut-1)\nbound-harvest note: live issue-body digest at close sha256:c4fe9ae141580a5e2c231653eaef1e548fb5d7649864adba19eac5cb7bf07dda (not Target-digest)\ndispatch-sha: 60e8921207e77d526c9392a6da1e83345d77a6de\ndest: .deft-scratch/worktrees/arc-7273\n\n| Claim | Evidence | Status |\n|---|---|---|\n| P1 substring false-positive relieved by exact-word commit detector | Recut-1 limb 1; Codex PA-2 7133727373 pain-P1 relieved; Grok PA-2 7133766067 pain-P1 relieved | verified |\n| P2 git -C abs sole authority over prior cd | Recut-1 limb 2; both PA-2 clear | verified |\n| P3 lifecycle BIN + named commit / recovery copy | Recut-1 limbs 3+5; both PA-2 clear | verified |\n| Opaque executable-string keep-out closed | Recut-1 limbs 1+3+4; Codex PA-2 harvest-changed:false | verified |\n| Named residual: BIN then echo commit / filename word commit still arms without named commit | Codex PA-2 finding-classes: residual; outside claimed P1 substring relief; no Remint | residual |\n\nRound-1: Codex 7133547213 (block then absorbed); Grok 7133590511 (accept-with-nits then absorbed).\nPA-1: Codex 7133656883 (false-relief then Recut-1); Grok 7133681727.\nPA-2: Codex 7133727373 (residual, harvest-changed:false); Grok 7133766067 (none, harvest-changed:false).",
+          "id": 7133766631,
+          "html_url": "https://github.com/deftai/directive/issues/7273#issuecomment-7133766631",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T14:03:24Z",
+          "updated_at": "2026-11-24T14:05:06Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: parent\n```\n\ndesign-critique: synthesis accepted, because Prefer-A Recut-1 7133682263 relieves Stop 1 pains P1–P3 with exact-word commit detection (including executable-string payloads), git -C absolute sole authority over prior cd, and lifecycle dollar-BIN plus named commit admission; keep-outs intact; PA-2 harvest-changed false.\n\nsuccessor lean: 7133682263\nverified-claims table: 7133766631\npain-audits: Codex 7133727373; Grok 7133766067\narc-mode: no-ingest\nyolo-standing: yes\nspend: N=2\nreduced-panel: Codex+Grok (Claude unavailable; spend-amend 7133465673)\nbound-harvest note: live issue-body digest at close sha256:c4fe9ae141580a5e2c231653eaef1e548fb5d7649864adba19eac5cb7bf07dda (not Target-digest)\ndispatch-sha: 60e8921207e77d526c9392a6da1e83345d77a6de\ndest: .deft-scratch/worktrees/arc-7273\n\n## In plain English\n\nArc #7273 locked Prefer-A Recut-1: the shell commit gate uses an exact commit word (including inside bash -c / eval / env -S), lets git -C absolute name the checkout even after a prior cd, and admits lifecycle dollar-BIN plus a later named commit on that named target while still refusing opaque commit wrappers. Reduced panel N=2 because Claude was unavailable. Ingest stays a separate operator verb.\n\n## Synthesis\n\n- Successor lean: Prefer-A Recut-1 7133682263 (supersedes Bound 7133601962).\n- Stop 1 pains P1–P3 relieved per PA-2 Codex 7133727373 and Grok 7133766067 (harvest-changed:false).\n- Named residual only: exact-word commit with no named commit (for example dollar-BIN; echo commit) still arms; outside claimed substring relief; no Remint.\n- Verified-claims table: 7133766631.\n- Dest process-only: .deft-scratch/worktrees/arc-7273 @ 60e8921207e77d526c9392a6da1e83345d77a6de.\n\nNext (operator): task issue:ingest — not run by this arc.",
+          "id": 7133767155,
+          "html_url": "https://github.com/deftai/directive/issues/7273#issuecomment-7133767155",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T14:03:25Z",
+          "updated_at": "2026-11-24T14:05:08Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## What happened\n\nA shell that only runs `directive-runtime scope:promote` was refused because the binary path was in a variable:\n\n```\nDirective denied run_terminal_command: the git commit target cannot be resolved to one checkout: the command word \"$BIN\" holds a variable or substitution, so the gate cannot tell whether it commits (#6278).\n```\n\nThe command was not `git commit`. The same deny blocked a `for` loop that called an absolute `directive-runtime`. Expanding every path by hand was the only way through. A later `git commit` was also refused because `cd <worktree>` was not joined to the commit by `&&`, even though the next commands used `git -C <absolute>`.\n\n## Expected\n\nThe #6278 check applies to git commit forms. A variable in a non-commit command is not a commit target. `git -C <absolute> commit` is a resolved checkout even when an earlier statement in the script is a separate `cd`.\n\n## Not the same as\n\n#6278 is closed and was about committing inside a linked worktree. This is that check firing on lifecycle commands and on scripts that are not a single `cd && git commit` line.\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6580877795,
+        "origin": "deftai/directive#7273",
+        "id": "github.issue.6580877795"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "c4fe9ae141580a5e2c231653eaef1e548fb5d7649864adba19eac5cb7bf07dda"
+      },
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 7273,
+        "leanCommentId": 7133682263,
+        "harvestDigest": "569f1ad3ca44e122ef043571042ab7979898ebc501705145b72d27a89b5f8ca1",
+        "slice": null
+      },
+      "kind": "story",
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/hooks/commit-target.ts",
+          "packages/core/src/hooks/commit-target.test.ts",
+          "packages/core/src/hooks/dispatcher-commit-wrapper-forms.test.ts",
+          "content/docs/hook-root-admission.md",
+          "changelog.d/7273-commit-word-exact.md"
+        ],
+        "missing_traces_justification": "Prefer-A Bound limbs are the acceptance surface; traces deferred to product PR evidence."
+      }
+    },
+    "id": "github.issue.6580877795"
+  },
+  "approvedRepos": [
+    "deftai/directive"
+  ],
+  "unknownPaths": [
+    "items[].artifact_path",
+    "metadata.intended_placement",
+    "metadata.issueBody",
+    "metadata.issueCommentThread",
+    "metadata.kind",
+    "metadata.x-directive/admitted-target-digest",
+    "metadata.x-directive/plan-id",
+    "metadata.x-directive/spec-path-source"
+  ]
+}

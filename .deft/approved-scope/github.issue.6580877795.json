@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "xbriefRelPath": "xbrief/active/2026-11-24-7273-framework-gap-the-shell-gate-treats-any-var-as-an-unresolved.xbrief.json",
+  "planId": "github.issue.6580877795",
+  "approvedAt": "2026-11-24T15:10:04Z",
+  "fileScope": [
+    "changelog.d/7273-commit-word-exact.md",
+    "content/docs/hook-root-admission.md",
+    "packages/core/src/hooks/commit-target.test.ts",
+    "packages/core/src/hooks/commit-target.ts",
+    "packages/core/src/hooks/dispatcher-commit-wrapper-forms.test.ts"
+  ],
+  "fileScopeDigest": "24aa2c27c300176af6b1e5bc46d928fb89b08ec28e0b0e3a922203342a6e879a",
+  "humanApproval": {
+    "kind": "operator",
+    "actor": "MScottAdams",
+    "mintedAt": "2026-11-24T15:10:04Z",
+    "mintedVia": "scope:record-approved-scope"
+  },
+  "intentDigest": "f739cf79701ba75baba5150a279c592e06990efd991fa83baa710575ef7f445f",
+  "digestAlgo": "intent-extract-v1",
+  "authHashV1": "sha256:99bae6819e4588975a64f697cb66386218d0cc85ab41cc85d8b1bc6f30befd59"
+}
