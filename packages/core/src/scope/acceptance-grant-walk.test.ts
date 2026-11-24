@@ -316,4 +316,29 @@ describe("completion walk with a granted set (#6644)", () => {
     expect(walk.message).toContain("[granted] clause 1:");
     expect(walk.message).not.toMatch(/\[failed\]/);
   });
+
+  it("#7254: an unreadable grant file under a valid clone refuses apply", () => {
+    const base = tempRoot();
+    const main = join(base, "main");
+    mkdirSync(main);
+    execFileSync("git", ["init", "-q"], { cwd: main });
+    execFileSync("git", ["config", "user.email", "t@example.com"], { cwd: main });
+    execFileSync("git", ["config", "user.name", "t"], { cwd: main });
+    writeFileSync(join(main, "README.md"), "x\n", "utf8");
+    execFileSync("git", ["add", "README.md"], { cwd: main });
+    execFileSync("git", ["commit", "-q", "-m", "init"], { cwd: main });
+    const grantsDir = join(main, ".deft", "authz", "grants");
+    mkdirSync(grantsDir, { recursive: true });
+    mkdirSync(join(grantsDir, "broken-grant.json"));
+    const applied = applyAcceptanceDispositionGrants({
+      projectRoot: main,
+      plan: planWith(clauses(1)),
+      now: LATER,
+      recordedAt: LATER.toISOString(),
+    });
+    expect(applied).toMatchObject({
+      ok: false,
+      reason: expect.stringMatching(/grant unreadable/),
+    });
+  });
 });

@@ -365,17 +365,31 @@ describe("acceptance-disposition template (#6318)", () => {
     ).toEqual({ ok: true, covers: [] });
   });
 
-  it("#7254: an unreadable store refuses instead of ok covers:[]", () => {
+  it("#7254: no main clone yields empty covers; an unreadable grant file refuses", () => {
     const notGit = mkdtempSync(join(tmpdir(), "disposition-nogit-"));
     bases.push(notGit);
+    expect(
+      resolveAcceptanceDispositionGrants({
+        projectRoot: notGit,
+        plan: plan(),
+        now: LATER,
+      }),
+    ).toEqual({ ok: true, covers: [] });
+
+    const { dest } = cloneWithDest();
+    const root = resolveRoot(dest);
+    const grantsDir = join(root, ".deft", "authz", "grants");
+    mkdirSync(grantsDir, { recursive: true });
+    // Directory named *.json makes readFileSync fail (EISDIR) on every platform.
+    mkdirSync(join(grantsDir, "unreadable-grant.json"));
     const refused = resolveAcceptanceDispositionGrants({
-      projectRoot: notGit,
+      projectRoot: dest,
       plan: plan(),
       now: LATER,
     });
     expect(refused).toMatchObject({
       ok: false,
-      reason: expect.stringMatching(/store cannot be resolved/),
+      reason: expect.stringMatching(/grant unreadable/),
     });
   });
 

@@ -18,11 +18,12 @@
  */
 
 import { createHash } from "node:crypto";
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { mintHumanOriginGrant } from "../authz/actions.js";
 import { isHumanOrigin } from "../authz/origin.js";
-import { listActiveHumanGrants, listGrants, markGrantUsed } from "../authz/store.js";
+import { authzGrantsDir } from "../authz/paths.js";
+import { listActiveHumanGrants, markGrantUsed, parseGrant } from "../authz/store.js";
 import { assertNoIndependentSessionAuthMint } from "../authz/templates.js";
 import type { HumanOriginGrant } from "../authz/types.js";
 import {
@@ -439,9 +440,60 @@ function viewOf(grant: HumanOriginGrant): GrantView | null {
   };
 }
 
+/**
+ * Read every grant file under the store. File-read / JSON-parse failures refuse
+ * so an unreadable grant cannot disappear into covers:[] (#7254). Structurally
+ * invalid grant JSON (parseGrant null) is skipped, matching listGrants.
+ */
+function listGrantsFailClosed(
+  storeRoot: string,
+): { ok: true; grants: HumanOriginGrant[] } | { ok: false; reason: string } {
+  const dir = authzGrantsDir(storeRoot);
+  if (!existsSync(dir)) return { ok: true, grants: [] };
+  let names: string[];
+  try {
+    names = readdirSync(dir);
+  } catch (err) {
+    return {
+      ok: false,
+      reason:
+        `acceptance-disposition grant store unreadable at ${dir}: ${String(err)}; ` +
+        `refusing (#7254)`,
+    };
+  }
+  const out: HumanOriginGrant[] = [];
+  for (const name of names) {
+    if (!name.endsWith(".json")) continue;
+    const path = join(dir, name);
+    let raw: string;
+    try {
+      raw = readFileSync(path, "utf8");
+    } catch (err) {
+      return {
+        ok: false,
+        reason:
+          `acceptance-disposition grant unreadable at ${path}: ${String(err)}; ` +
+          `refusing (#7254)`,
+      };
+    }
+    try {
+      const grant = parseGrant(JSON.parse(raw) as unknown);
+      if (grant !== null) out.push(grant);
+    } catch (err) {
+      return {
+        ok: false,
+        reason:
+          `acceptance-disposition grant unreadable at ${path}: ${String(err)}; ` +
+          `refusing (#7254)`,
+      };
+    }
+  }
+  return { ok: true, grants: out };
+}
+
 /** Grants of this template for one plan in the store: human origin, not revoked. */
-function planGrantViews(storeRoot: string, planId: string): GrantView[] {
-  return listGrants(storeRoot)
+function planGrantViews(grants: readonly HumanOriginGrant[], planId: string): GrantView[] {
+  return grants
     .filter(
       (g) =>
         isAcceptanceDispositionGrant(g) &&
@@ -458,10 +510,10 @@ function planGrantViews(storeRoot: string, planId: string): GrantView[] {
  * disagrees on the other (#7254). Wholly-other-plan grants are ignored.
  */
 function unusedDisagreeingPlanGrant(
-  storeRoot: string,
+  grants: readonly HumanOriginGrant[],
   planId: string,
 ): { grantId: string; planRef: string; surfacePlanId: string } | null {
-  for (const grant of listGrants(storeRoot)) {
+  for (const grant of grants) {
     if (!isAcceptanceDispositionGrant(grant) || !isHumanOrigin(grant.origin)) continue;
     if (grant.semantics.revokedAt !== null || grant.semantics.usedAt !== null) continue;
     const planRef = (grant.scope.planRef ?? "").trim();
@@ -504,10 +556,12 @@ export interface ResolveAcceptanceDispositionInput {
  * usable grant wins, and it must still match the digest of the current clause
  * text (or item title); a mismatch refuses and names a re-mint. An expired or
  * inactive unused grant refuses unless a later usable grant covers the same
- * plan and every one of its ids. When the main-clone store cannot be resolved,
- * refuse with that reason so clause-walk-failed cannot hide a missed deferral
- * (#7254). An unused grant whose planRef and plan surface disagree for this
- * plan.id also refuses; a grant that wholly belongs to another plan is ignored.
+ * plan and every one of its ids. When the main clone cannot be resolved there
+ * is no grant store, so covers stay empty (stated limit). When the store root
+ * resolves but a grant file cannot be read, refuse so clause-walk-failed cannot
+ * hide a missed deferral (#7254). An unused grant whose planRef and plan surface
+ * disagree for this plan.id also refuses; a grant that wholly belongs to another
+ * plan is ignored.
  */
 export function resolveAcceptanceDispositionGrants(
   input: ResolveAcceptanceDispositionInput,
@@ -515,8 +569,10 @@ export function resolveAcceptanceDispositionGrants(
   const planId = typeof input.plan.id === "string" ? input.plan.id.trim() : "";
   if (planId.length === 0) return { ok: true, covers: [] };
   const store = resolveAcceptanceDispositionStore(input.projectRoot, input.runGit);
-  if (!store.ok) return store;
-  const disagree = unusedDisagreeingPlanGrant(store.root, planId);
+  if (!store.ok) return { ok: true, covers: [] };
+  const listed = listGrantsFailClosed(store.root);
+  if (!listed.ok) return listed;
+  const disagree = unusedDisagreeingPlanGrant(listed.grants, planId);
   if (disagree !== null) {
     return {
       ok: false,
@@ -527,7 +583,7 @@ export function resolveAcceptanceDispositionGrants(
     };
   }
   const now = input.now ?? new Date();
-  const views = planGrantViews(store.root, planId);
+  const views = planGrantViews(listed.grants, planId);
   if (views.length === 0) return { ok: true, covers: [] };
   const activeIds = new Set(listActiveHumanGrants(store.root, undefined, now).map((g) => g.id));
   const usable: GrantView[] = [];
@@ -803,8 +859,10 @@ export function checkCitedAcceptanceDispositionGrants(input: {
   const planId = typeof input.plan.id === "string" ? input.plan.id.trim() : "";
   const store = resolveAcceptanceDispositionStore(input.projectRoot, input.runGit);
   if (!store.ok) return store;
+  const listed = listGrantsFailClosed(store.root);
+  if (!listed.ok) return listed;
   const now = input.now ?? new Date();
-  const views = planId.length === 0 ? [] : planGrantViews(store.root, planId);
+  const views = planId.length === 0 ? [] : planGrantViews(listed.grants, planId);
   const activeIds = new Set(listActiveHumanGrants(store.root, undefined, now).map((g) => g.id));
   const used = (v: GrantView): boolean => v.grant.semantics.usedAt !== null;
   const live = (v: GrantView): boolean =>
@@ -912,9 +970,11 @@ export function listAcceptanceDispositionGrants(
 ): { ok: true; root: string; grants: HumanOriginGrant[] } | { ok: false; reason: string } {
   const store = resolveAcceptanceDispositionStore(projectRoot, runGit);
   if (!store.ok) return store;
+  const listed = listGrantsFailClosed(store.root);
+  if (!listed.ok) return listed;
   return {
     ok: true,
     root: store.root,
-    grants: listGrants(store.root).filter(isAcceptanceDispositionGrant),
+    grants: listed.grants.filter(isAcceptanceDispositionGrant),
   };
 }
