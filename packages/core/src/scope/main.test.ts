@@ -4,7 +4,13 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { stampCompletionMetadata } from "./capacity-stamp.js";
 import { demoteOne } from "./demote.js";
-import { demoteMain, lifecycleMain, undoMain } from "./main.js";
+import {
+  demoteMain,
+  evaluateSlowPathCompleteGate,
+  lifecycleMain,
+  slowPathCompleteGateSeam,
+  undoMain,
+} from "./main.js";
 import { resolveProjectRoot } from "./project-context.js";
 import { minimalScopeBrief } from "./scope-test-fixtures.test.js";
 import { runTransition } from "./transition.js";
@@ -605,6 +611,340 @@ describe("strict-axis advisory at promote and activate (#6272)", () => {
         "A merge declaration means no strict axis, so test, review or merge evidence then passes.",
       );
       rmSync(root, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("slow-path scope:complete gate (#7252)", () => {
+  let root = "";
+  afterEach(() => {
+    if (root.length > 0) {
+      rmSync(root, { recursive: true, force: true });
+      root = "";
+    }
+  });
+
+  function writeRunning(
+    name: string,
+    opts: { id: string; productPr?: number; productPrRef?: number; repository?: string },
+  ): string {
+    const active = join(root, "xbrief", "active");
+    mkdirSync(active, { recursive: true });
+    const file = join(active, name);
+    const repository = opts.repository;
+    writeFileSync(
+      file,
+      formatBriefJson(
+        minimalScopeBrief({
+          title: opts.id,
+          status: "running",
+          id: opts.id,
+          items: [],
+          acceptance: { commands: [], none_stated: true },
+          ...(() => {
+            const references: Array<{ type: string; uri: string }> = [];
+            if (repository !== undefined) {
+              references.push({
+                type: "x-xbrief/github-issue",
+                uri: `https://github.com/${repository}/issues/${opts.id}`,
+              });
+            }
+            if (opts.productPrRef !== undefined) {
+              const repo = repository ?? "acme/app";
+              references.push({
+                type: "x-xbrief/github-pr",
+                uri: `https://github.com/${repo}/pull/${opts.productPrRef}`,
+              });
+            }
+            return references.length > 0 ? { references } : {};
+          })(),
+          ...(opts.productPr !== undefined
+            ? { metadata: { productPullRequest: opts.productPr } }
+            : {}),
+        }),
+      ),
+      "utf8",
+    );
+    return file;
+  }
+
+  it("counts unstamped briefs whose delivery lookup finds a merged product PR", () => {
+    root = mkdtempSync(join(tmpdir(), "slow-path-unstamped-"));
+    writeRunning("2026-01-01-a.xbrief.json", {
+      id: "1001",
+      repository: "acme/app",
+    });
+    writeRunning("2026-01-01-b.xbrief.json", {
+      id: "1002",
+      repository: "acme/app",
+    });
+    const closers: Record<number, Array<{ repository: string; prNumber: number }>> = {
+      1001: [{ repository: "acme/app", prNumber: 21 }],
+      1002: [{ repository: "acme/app", prNumber: 22 }],
+    };
+    const gate = evaluateSlowPathCompleteGate({
+      projectRoot: root,
+      repository: "acme/app",
+      fetchClosingPrRefs: (issue) => ({
+        ok: true,
+        refs: closers[issue] ?? [],
+      }),
+      fetchPrPayload: (pr, repository) =>
+        repository === "acme/app" && (pr === 21 || pr === 22)
+          ? {
+              merged_at: "2026-01-02T00:00:00Z",
+              merge_commit_sha: `merge${pr}aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa`,
+              base: { ref: "master" },
+              head: { sha: `head${pr}` },
+            }
+          : null,
+    });
+    expect(gate.refuse).toBe(true);
+    if (gate.refuse) {
+      expect(gate.merged.map((row) => row.prNumber).sort()).toEqual([21, 22]);
+      expect(gate.merged.map((row) => row.cohortId).sort()).toEqual(["1001", "1002"]);
+      expect(gate.message).toBe(
+        "slow-path: deft swarm:finalize-cohort -- --pr 21,22 --cohort 1001,1002 --repo acme/app",
+      );
+    }
+  });
+
+  it("does not treat a related github-pr ref as a product PR", () => {
+    root = mkdtempSync(join(tmpdir(), "slow-path-related-"));
+    writeRunning("2026-01-01-a.xbrief.json", {
+      id: "1001",
+      productPr: 11,
+      repository: "acme/app",
+    });
+    // Unfinished story carries a merged related/partial PR ref only.
+    writeRunning("2026-01-01-b.xbrief.json", {
+      id: "1002",
+      productPrRef: 99,
+      repository: "acme/app",
+    });
+    const gate = evaluateSlowPathCompleteGate({
+      projectRoot: root,
+      repository: "acme/app",
+      fetchClosingPrRefs: () => ({ ok: true, refs: [] }),
+      fetchPrPayload: (pr) =>
+        pr === 11 || pr === 99
+          ? {
+              merged_at: "2026-01-02T00:00:00Z",
+              merge_commit_sha: `merge${pr}aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa`,
+              base: { ref: "master" },
+              head: { sha: `head${pr}` },
+            }
+          : null,
+    });
+    expect(gate.refuse).toBe(false);
+  });
+
+  it("allows complete when fewer than two merged product PRs are active", () => {
+    root = mkdtempSync(join(tmpdir(), "slow-path-one-"));
+    writeRunning("2026-01-01-a.xbrief.json", { id: "1001", productPr: 11 });
+    writeRunning("2026-01-01-b.xbrief.json", { id: "1002" });
+    const gate = evaluateSlowPathCompleteGate({
+      projectRoot: root,
+      repository: "acme/app",
+      fetchPrPayload: (pr) => (pr === 11 ? { merged_at: "2026-01-02T00:00:00Z" } : null),
+    });
+    expect(gate.refuse).toBe(false);
+  });
+
+  it("refuses complete when two active briefs already have merged product PRs", () => {
+    root = mkdtempSync(join(tmpdir(), "slow-path-two-"));
+    // Non-numeric plan.id so the only --cohort selectors are brief paths (#7258 / #7252).
+    const a = writeRunning("2026-01-01-a.xbrief.json", { id: "story-a", productPr: 11 });
+    const b = writeRunning("2026-01-01-b.xbrief.json", { id: "story-b", productPr: 12 });
+    const gate = evaluateSlowPathCompleteGate({
+      projectRoot: root,
+      repository: "acme/app",
+      fetchPrPayload: (pr) =>
+        pr === 11 || pr === 12 ? { merged_at: "2026-01-02T00:00:00Z" } : null,
+    });
+    expect(gate.refuse).toBe(true);
+    if (gate.refuse) {
+      // Issue-less briefs use path selectors, not numeric plan.id (#7258 / #7252).
+      const cohortList = [a, b]
+        .map((p) => p.replace(/\\/g, "/"))
+        .sort()
+        .join(",");
+      expect(gate.message).toBe(
+        `slow-path: deft swarm:finalize-cohort -- --pr 11,12 --cohort ${cohortList} --repo acme/app`,
+      );
+      expect(gate.merged.map((row) => row.cohortId).sort()).toEqual(
+        [a, b].map((p) => p.replace(/\\/g, "/")).sort(),
+      );
+      expect(gate.merged.map((row) => row.repository)).toEqual(["acme/app", "acme/app"]);
+    }
+  });
+
+  it("keeps repository names on mixed-repo finalize commands", () => {
+    root = mkdtempSync(join(tmpdir(), "slow-path-mixed-"));
+    writeRunning("2026-01-01-a.xbrief.json", {
+      id: "1001",
+      productPr: 11,
+      repository: "acme/app",
+    });
+    writeRunning("2026-01-01-b.xbrief.json", {
+      id: "1002",
+      productPr: 11,
+      repository: "other/kit",
+    });
+    const seen: string[] = [];
+    const gate = evaluateSlowPathCompleteGate({
+      projectRoot: root,
+      repository: "acme/app",
+      fetchPrPayload: (pr, repository) => {
+        seen.push(`${repository}#${String(pr)}`);
+        return { merged_at: "2026-01-02T00:00:00Z" };
+      },
+    });
+    expect(seen.sort()).toEqual(["acme/app#11", "other/kit#11"]);
+    expect(gate.refuse).toBe(true);
+    if (gate.refuse) {
+      expect(gate.message).toBe(
+        [
+          "slow-path: mixed repositories — run separately:",
+          "  deft swarm:finalize-cohort -- --pr 11 --cohort 1001 --repo acme/app",
+          "  deft swarm:finalize-cohort -- --pr 11 --cohort 1002 --repo other/kit",
+        ].join("\n"),
+      );
+    }
+  });
+
+  it("refuses when unstamped delivery lookup returns unparseable JSON", () => {
+    root = mkdtempSync(join(tmpdir(), "slow-path-unparseable-"));
+    writeRunning("2026-01-01-a.xbrief.json", {
+      id: "1001",
+      productPr: 11,
+      repository: "acme/app",
+    });
+    writeRunning("2026-01-01-b.xbrief.json", {
+      id: "1002",
+      repository: "acme/app",
+    });
+    const gate = evaluateSlowPathCompleteGate({
+      projectRoot: root,
+      repository: "acme/app",
+      fetchPrPayload: (pr) => (pr === 11 ? { merged_at: "2026-01-02T00:00:00Z" } : null),
+      discoverDelivery: () => ({
+        ok: false,
+        message: "closing-PR discovery returned unparseable JSON for acme/app#1002",
+      }),
+    });
+    expect(gate.refuse).toBe(true);
+    if (gate.refuse) {
+      expect(gate.message).toMatch(/unparseable JSON/);
+    }
+  });
+
+  it("refuses when unstamped delivery lookup reports HTTP 502", () => {
+    root = mkdtempSync(join(tmpdir(), "slow-path-http502-"));
+    writeRunning("2026-01-01-a.xbrief.json", {
+      id: "1001",
+      productPr: 11,
+      repository: "acme/app",
+    });
+    writeRunning("2026-01-01-b.xbrief.json", {
+      id: "1002",
+      repository: "acme/app",
+    });
+    const gate = evaluateSlowPathCompleteGate({
+      projectRoot: root,
+      repository: "acme/app",
+      fetchPrPayload: (pr) => (pr === 11 ? { merged_at: "2026-01-02T00:00:00Z" } : null),
+      discoverDelivery: () => ({
+        ok: false,
+        message: "closing-PR discovery failed for acme/app#1002: HTTP 502",
+      }),
+    });
+    expect(gate.refuse).toBe(true);
+    if (gate.refuse) {
+      expect(gate.message).toMatch(/HTTP 502/);
+    }
+  });
+
+  it("continues past confirmed-missing delivery lookup on an unstamped sibling", () => {
+    root = mkdtempSync(join(tmpdir(), "slow-path-confirmed-missing-"));
+    writeRunning("2026-01-01-a.xbrief.json", {
+      id: "1001",
+      productPr: 11,
+      repository: "acme/app",
+    });
+    writeRunning("2026-01-01-b.xbrief.json", {
+      id: "1002",
+      repository: "acme/app",
+    });
+    const gate = evaluateSlowPathCompleteGate({
+      projectRoot: root,
+      repository: "acme/app",
+      fetchPrPayload: (pr) => (pr === 11 ? { merged_at: "2026-01-02T00:00:00Z" } : null),
+      discoverDelivery: () => ({
+        ok: false,
+        message:
+          "Delivery auto-discovery found no merged PR into 'master' that closes #1002, and no merged PR whose merge-time body carries the sole mark",
+      }),
+    });
+    expect(gate.refuse).toBe(false);
+  });
+
+  it("refuses with retry text when a stamped PR merge state cannot be read", () => {
+    root = mkdtempSync(join(tmpdir(), "slow-path-null-"));
+    writeRunning("2026-01-01-a.xbrief.json", { id: "1001", productPr: 11 });
+    const gate = evaluateSlowPathCompleteGate({
+      projectRoot: root,
+      repository: "acme/app",
+      fetchPrPayload: () => null,
+    });
+    expect(gate.refuse).toBe(true);
+    if (gate.refuse) {
+      expect(gate.message).toMatch(/could not read merge state for product PR #11/);
+    }
+  });
+
+  it("keeps --in-pr admitted even with two merged actives", () => {
+    root = mkdtempSync(join(tmpdir(), "slow-path-inpr-"));
+    writeRunning("2026-01-01-a.xbrief.json", { id: "1001", productPr: 11 });
+    writeRunning("2026-01-01-b.xbrief.json", { id: "1002", productPr: 12 });
+    const gate = evaluateSlowPathCompleteGate({
+      projectRoot: root,
+      inPr: true,
+      repository: "acme/app",
+      fetchPrPayload: () => ({ merged_at: "2026-01-02T00:00:00Z" }),
+    });
+    expect(gate.refuse).toBe(false);
+  });
+
+  it("lifecycleMain prints the slow-path line and exits 1", () => {
+    root = mkdtempSync(join(tmpdir(), "slow-path-cli-"));
+    const file = writeRunning("2026-01-01-a.xbrief.json", { id: "1001", productPr: 11 });
+    writeRunning("2026-01-01-b.xbrief.json", { id: "1002", productPr: 12 });
+    const err: string[] = [];
+    const stderrSpy = vi.spyOn(process.stderr, "write").mockImplementation((chunk) => {
+      err.push(String(chunk));
+      return true;
+    });
+    const stdoutSpy = vi.spyOn(process.stdout, "write").mockReturnValue(true);
+    const previous = slowPathCompleteGateSeam.evaluate;
+    slowPathCompleteGateSeam.evaluate = () => ({
+      refuse: true,
+      merged: [
+        { prNumber: 11, cohortId: "1001", repository: "acme/app" },
+        { prNumber: 12, cohortId: "1002", repository: "acme/app" },
+      ],
+      message:
+        "slow-path: deft swarm:finalize-cohort -- --pr 11,12 --cohort 1001,1002 --repo acme/app",
+    });
+    try {
+      expect(lifecycleMain(["complete", file, "--project-root", root])).toBe(1);
+      expect(err.join("")).toContain(
+        "slow-path: deft swarm:finalize-cohort -- --pr 11,12 --cohort 1001,1002 --repo acme/app",
+      );
+    } finally {
+      slowPathCompleteGateSeam.evaluate = previous;
+      stderrSpy.mockRestore();
+      stdoutSpy.mockRestore();
     }
   });
 });
