@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #7272",
-    "updated": "2026-11-24T19:52:08.157Z"
+    "updated": "2026-11-24T20:42:45.003Z"
   },
   "plan": {
     "title": "Observable-scope rediscovery scrub",
@@ -124,10 +124,7 @@
       ],
       "ambiguity_attestation": "none_found",
       "confessions": [
-        {
-          "text": "Observable-scope rediscovery scrub",
-          "reason": "plan.title is naming only; Bound limbs are the acceptance clauses"
-        }
+        "Observable-scope rediscovery scrub"
       ]
     },
     "metadata": {
