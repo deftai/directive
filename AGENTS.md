@@ -170,7 +170,7 @@ Note: root-relative paths (this repo IS deft/); run `task agents:refresh` after 
 
 <!-- placeholder -->
 
-<!-- deft:managed-section v3 sha=bcfdf1f9d812 refreshed=2026-11-24T09:54:35Z session=391d52702dd6 -->
+<!-- deft:managed-section v3 sha=cef0af9718e1 refreshed=2026-11-24T10:05:34Z session=15b3ed2f6057 -->
 # Deft — AI Development Framework
 
 Deft runtime is pinned as `@deftai/directive-runtime`. Full guidelines: node_modules/@deftai/directive-runtime/main.md
@@ -200,7 +200,7 @@ Deft runtime is pinned as `@deftai/directive-runtime`. Full guidelines: node_mod
 ! On **mutation** session start, run `deft session:start`; before code-writing or `start_agent` dispatch run `deft verify:session-ritual -- --tier=gated` (stale after `plan.policy.sessionRitualStalenessHours`; records `deft verify:tools` / `deft doctor` / `deft verify:cache-fresh` / `deft agents:refresh` / `npm i -g @deftai/directive@latest`; #1149 / #1348) — `commands.md` § Session-start ritual. Recovery: `deft session:ready` (one-shot: start + gated ritual + cache recovery; #2993). Work-claim (#4200): catalog label `status:claimed`; verb `deft scm issue work-claim`; session-start and `xbrief:preflight` MUST scan; warn is success, not a lock; claim refuses read-only / no occupancy. Depth: `scm/github.md`.
 
 ## WIP cap
-! Respect `plan.policy.wipCap` (default 20) — at cap `deft scope:promote` refuses; relief via `deft scope:demote --batch --older-than-days 30` (#2319 / #1121). Full WIP: swarm SKILL.md.
+! Respect `plan.policy.wipCap` (default 20) — at cap `deft scope:promote` refuses; relief via `deft scope:demote --batch --older-than-days 30` (#2319 / #1121). Full WIP: `node_modules/@deftai/directive-runtime/.agents/skills/deft-directive-swarm/SKILL.md`.
 
 ## xBRIEF layout (#2034 / #2110)
 
@@ -302,7 +302,7 @@ Deft runtime is pinned as `@deftai/directive-runtime`. Full guidelines: node_mod
 
 ## Parent-steer inbox (#4286)
 
-! Grok-build leaves whose tool loop exceeds ~3 min poll `.deft-scratch/subagent-steer/<agent-id>.json`. `deft verify:subagent-steer` exit 1 is `STEER_PENDING`, not missing-heartbeat takeover. Depth: content/docs/subagent-heartbeat.md. ⊗ Replace split-dispatch mid-scope approval gates with this inbox. ⊗ Treat unread steer as REDISPATCH_OK.
+! Grok-build leaves whose tool loop exceeds ~3 min poll `.deft-scratch/subagent-steer/<agent-id>.json`. `deft verify:subagent-steer` exit 1 is `STEER_PENDING`, not missing-heartbeat takeover. Depth: content/docs/subagent-heartbeat.md (node_modules/@deftai/directive-runtime/docs). ⊗ Replace split-dispatch mid-scope approval gates with this inbox. ⊗ Treat unread steer as REDISPATCH_OK.
 ! Query-before-cancel (#5278): before `swarm:pre-dispatch -- --scope-id <id> --target-id <worktree> --action cancel` on a still ledger-active attempt, run `deft subagent:pre-cancel` (dual-invoke `task deft:subagent:pre-cancel`). Exit 0 only when status-steer ack/observed window clears, heartbeat is STALE/missing under #2879 grace, or `--force --reason` is set. ⊗ Bare ledger cancel while pre-cancel is red. ⊗ Treat unread steer as `REDISPATCH_OK`.
 
 ## Review-surface precedence (#2308)
