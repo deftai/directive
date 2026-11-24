@@ -621,6 +621,58 @@ describe("classifyDirectiveOwnedChange (AC4)", () => {
     ).toBe("mixed");
   });
 
+  it("package-lock.json: a folder-derived top-level name is not the app's (#7233)", () => {
+    const lock = (
+      folder: string,
+      runtime: string,
+      app?: { readonly name?: string; readonly version?: string },
+    ) =>
+      JSON.stringify({
+        name: folder,
+        ...(app?.version === undefined ? {} : { version: app.version }),
+        lockfileVersion: 3,
+        requires: true,
+        packages: {
+          "": {
+            ...(app?.name === undefined ? {} : { name: app.name }),
+            ...(app?.version === undefined ? {} : { version: app.version }),
+            devDependencies: { "@deftai/directive-runtime": runtime },
+          },
+          "node_modules/@deftai/directive-runtime": { version: runtime },
+        },
+      });
+    expect(
+      classifyDirectiveOwnedChange(
+        "package-lock.json",
+        lock("consumer", "0.131.3"),
+        lock("consumer-worktree", "0.131.4"),
+      ),
+    ).toBe("directive-only");
+    expect(
+      classifyDirectiveOwnedChange(
+        "package-lock.json",
+        lock("app", "0.131.3", { name: "app" }),
+        lock("renamed", "0.131.4", { name: "renamed" }),
+      ),
+    ).toBe("mixed");
+    expect(
+      classifyDirectiveOwnedChange(
+        "package-lock.json",
+        lock("consumer", "0.131.3", { version: "1.0.0" }),
+        lock("consumer-worktree", "0.131.4", { version: "1.1.0" }),
+      ),
+    ).toBe("mixed");
+    const v1 = (name: string) =>
+      JSON.stringify({
+        name,
+        lockfileVersion: 1,
+        dependencies: { "@deftai/directive-runtime": { version: "0.131.3" } },
+      });
+    expect(classifyDirectiveOwnedChange("package-lock.json", v1("app"), v1("renamed"))).toBe(
+      "mixed",
+    );
+  });
+
   it("unknown paths are not owned", () => {
     expect(classifyDirectiveOwnedChange("README.md", "a", "b")).toBe("not-owned");
     expect(classifyDirectiveOwnedChange("pnpm-workspace.yaml", "a", "b")).toBe("not-owned");

@@ -162,3 +162,32 @@ describe("consumer header one-liner drop (#6973)", () => {
     expect(result.kept).toEqual([{ path: "AGENTS.md", reason: "mixed", directivePath: true }]);
   });
 });
+
+describe("worktree upgrade lockfile (#7233)", () => {
+  it("drops a lockfile whose extra change is the folder-derived top-level name", () => {
+    const lock = (folder: string, runtime: string) =>
+      JSON.stringify({
+        name: folder,
+        lockfileVersion: 3,
+        requires: true,
+        packages: {
+          "": { devDependencies: { "@deftai/directive-runtime": runtime } },
+          "node_modules/@deftai/directive-runtime": { version: runtime },
+        },
+      });
+    const before = lock("consumer", "0.131.3");
+    const after = lock("consumer-worktree", "0.131.4");
+    const result = partitionDirectiveOnlyEntries({
+      projectRoot: "/project",
+      entries: [{ path: "package-lock.json", kind: "M", mode: "100644", blob: "staged0" }],
+      readStagedBlob: (_root, blob) => (blob === "staged0" ? after : null),
+      readHeadTree: () => ({
+        kind: "entries",
+        entries: new Map([["package-lock.json", { mode: "100644", oid: "head0" }]]),
+      }),
+      readHeadBlob: (_root, oid) => (oid === "head0" ? before : null),
+    });
+    expect(result.dropped).toEqual(["package-lock.json"]);
+    expect(result.kept).toEqual([]);
+  });
+});
