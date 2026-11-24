@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "xbriefRelPath": "xbrief/active/2026-11-24-7175-admit-npm-pnpm-verification-commands.xbrief.json",
+  "planId": "7175",
+  "approvedAt": "2026-11-24T02:52:45Z",
+  "fileScope": [
+    "changelog.d/7175-verification-commands.md",
+    "packages/core/src/literal-acceptance/literal-acceptance.test.ts",
+    "packages/core/src/literal-acceptance/safety-branches.test.ts",
+    "packages/core/src/literal-acceptance/safety.ts"
+  ],
+  "fileScopeDigest": "3998fcda12fd73a025e9075ddb8f2fca5b5159e40bf9a922697ebab57cdb3916",
+  "humanApproval": {
+    "kind": "operator",
+    "actor": "MScottAdams",
+    "mintedAt": "2026-11-24T02:52:45Z",
+    "mintedVia": "scope:record-approved-scope"
+  },
+  "intentDigest": "8d3fcdc233e98a6a23d91b22311334c5114400c33e8cd57bb19666ae9fc1d39d",
+  "digestAlgo": "intent-extract-v1",
+  "authHashV1": "sha256:08be67064d995ceefc2877ea3a1c6a995fab0dda5d03916e809d9a10ea5504c0"
+}
