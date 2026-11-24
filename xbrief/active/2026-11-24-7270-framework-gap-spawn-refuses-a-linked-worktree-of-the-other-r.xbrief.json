@@ -1,0 +1,806 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #7270",
+    "updated": "2026-11-24T15:05:01Z"
+  },
+  "plan": {
+    "title": "Foreign linked-worktree spawn admit with begun-from checkout root",
+    "status": "running",
+    "narratives": {
+      "Overview": "",
+      "Description": "",
+      "UserStory": "As an operator of a two-repo epic, I need spawn into a foreign linked worktree admitted when pre-dispatch bound it with a live begun-from checkout ledger.",
+      "ImplementationPlan": "Prefer-A Recut-2 7133945693 limbs; tests; changelog.d."
+    },
+    "items": [
+      {
+        "title": "Keep-default-foreign-refuse — Keep destination-foreign as the default refuse when mainWorktreeRoot(dest) differs from mainWorktreeRoot(payloadRoot). relieves: P1",
+        "status": "proposed",
+        "id": "clause.1"
+      },
+      {
+        "title": "Widen-foreign-binding-write — Widen swarm:pre-dispatch begin so a foreign linked worktree that is a Directive project writes its story-binding under that dest git-common-dir, and end/cancel cleanup removes from that same store. relieves: P1 disposes critic 7133690048",
+        "status": "proposed",
+        "id": "clause.2"
+      },
+      {
+        "title": "Begun-from-checkout-root — When that binding is written, record begun-from as the originating checkout project root that owns the delivery-attempt ledger for the attempt_ids; do not use git-common-dir alone as that locator. relieves: P1 disposes critic 7133871483 disposes critic 7133932844",
+        "status": "proposed",
+        "id": "clause.3"
+      },
+      {
+        "title": "Live-attempt-admit — Admit that foreign linked worktree on spawn only when the dest-common-dir story-binding exists for the dest path, begun-from checkout root is present and readable, and at least one attempt_id is still open in that begun-from checkout ledger for this story_id and canonical worktree_path; refuse empty, missing, malformed, unreadable begun-from, unknown ledger, or all-ended attempt_ids. relieves: P1 disposes critic 7133794843 disposes critic 7133871483 disposes critic 7133932844",
+        "status": "proposed",
+        "id": "clause.4"
+      },
+      {
+        "title": "Dest-store-lifecycle — On that admit path, use the dest repo store for reservation consult, persist, and leftover release together while keeping parent identity and incarnation checks. relieves: P2 disposes critic 7133690048 disposes critic 7133794843",
+        "status": "proposed",
+        "id": "clause.5"
+      },
+      {
+        "title": "Keep-implement-class-rules — Keep linked-worktree required, primary-path refuse, and process-only critic skip unchanged. relieves: P2",
+        "status": "proposed",
+        "id": "clause.6"
+      },
+      {
+        "title": "Deny-recovery-text — Name missing-binding, unreadable begun-from, and stale-ended-attempt recovery on the destination-foreign deny path. relieves: P3",
+        "status": "proposed",
+        "id": "clause.7"
+      },
+      {
+        "title": "Fixtures — Add fixtures for foreign-bound-admit, missing-binding-refuse, empty-or-ended-attempt-refuse, unreadable-begun-from-refuse, common-dir-only-begun-from-refuse, valid-attempt-from-other-checkout, same-repo unchanged, dest-store consult/persist/release round-trip, and two-parent contention for one dest. relieves: P3",
+        "status": "proposed",
+        "id": "clause.8"
+      },
+      {
+        "title": "Reject-drop-foreign-deny — Reject dropping destination-foreign entirely.",
+        "status": "proposed",
+        "id": "clause.9"
+      },
+      {
+        "title": "Reject-parent-reroot — Reject requiring the parent session to re-root into the foreign repo before spawn.",
+        "status": "proposed",
+        "id": "clause.10"
+      },
+      {
+        "title": "Reject-symphony-1090 — Reject opening #1090 or a new cross-repo epic CLI as this ticket'''s remedy.",
+        "status": "proposed",
+        "id": "clause.11"
+      },
+      {
+        "title": "Reject-shell-as-leaf — Reject treating shell access to the foreign worktree as Gap C leaf discharge. relieves: P3",
+        "status": "proposed",
+        "id": "clause.12"
+      }
+    ],
+    "tags": [
+      "bug",
+      "swarm",
+      "agent-experience",
+      "process",
+      "harness",
+      "urgent",
+      "dogfood",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:swarm"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/7270",
+        "type": "x-xbrief/github-issue"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/comments/7133945693",
+        "type": "x-xbrief/github-comment"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per harvested lean item (12), in list order (#6333)",
+      "sentences": [
+        "Keep-default-foreign-refuse — Keep destination-foreign as the default refuse when mainWorktreeRoot(dest) differs from mainWorktreeRoot(payloadRoot). relieves: P1",
+        "Widen-foreign-binding-write — Widen swarm:pre-dispatch begin so a foreign linked worktree that is a Directive project writes its story-binding under that dest git-common-dir, and end/cancel cleanup removes from that same store. relieves: P1 disposes critic 7133690048",
+        "Begun-from-checkout-root — When that binding is written, record begun-from as the originating checkout project root that owns the delivery-attempt ledger for the attempt_ids; do not use git-common-dir alone as that locator. relieves: P1 disposes critic 7133871483 disposes critic 7133932844",
+        "Live-attempt-admit — Admit that foreign linked worktree on spawn only when the dest-common-dir story-binding exists for the dest path, begun-from checkout root is present and readable, and at least one attempt_id is still open in that begun-from checkout ledger for this story_id and canonical worktree_path; refuse empty, missing, malformed, unreadable begun-from, unknown ledger, or all-ended attempt_ids. relieves: P1 disposes critic 7133794843 disposes critic 7133871483 disposes critic 7133932844",
+        "Dest-store-lifecycle — On that admit path, use the dest repo store for reservation consult, persist, and leftover release together while keeping parent identity and incarnation checks. relieves: P2 disposes critic 7133690048 disposes critic 7133794843",
+        "Keep-implement-class-rules — Keep linked-worktree required, primary-path refuse, and process-only critic skip unchanged. relieves: P2",
+        "Deny-recovery-text — Name missing-binding, unreadable begun-from, and stale-ended-attempt recovery on the destination-foreign deny path. relieves: P3",
+        "Fixtures — Add fixtures for foreign-bound-admit, missing-binding-refuse, empty-or-ended-attempt-refuse, unreadable-begun-from-refuse, common-dir-only-begun-from-refuse, valid-attempt-from-other-checkout, same-repo unchanged, dest-store consult/persist/release round-trip, and two-parent contention for one dest. relieves: P3",
+        "Reject-drop-foreign-deny — Reject dropping destination-foreign entirely.",
+        "Reject-parent-reroot — Reject requiring the parent session to re-root into the foreign repo before spawn.",
+        "Reject-symphony-1090 — Reject opening #1090 or a new cross-repo epic CLI as this ticket'''s remedy.",
+        "Reject-shell-as-leaf — Reject treating shell access to the foreign worktree as Gap C leaf discharge. relieves: P3"
+      ],
+      "admitted_source_sentences": [
+        "Keep-default-foreign-refuse — Keep destination-foreign as the default refuse when mainWorktreeRoot(dest) differs from mainWorktreeRoot(payloadRoot). relieves: P1",
+        "Widen-foreign-binding-write — Widen swarm:pre-dispatch begin so a foreign linked worktree that is a Directive project writes its story-binding under that dest git-common-dir, and end/cancel cleanup removes from that same store. relieves: P1 disposes critic 7133690048",
+        "Begun-from-checkout-root — When that binding is written, record begun-from as the originating checkout project root that owns the delivery-attempt ledger for the attempt_ids; do not use git-common-dir alone as that locator. relieves: P1 disposes critic 7133871483 disposes critic 7133932844",
+        "Live-attempt-admit — Admit that foreign linked worktree on spawn only when the dest-common-dir story-binding exists for the dest path, begun-from checkout root is present and readable, and at least one attempt_id is still open in that begun-from checkout ledger for this story_id and canonical worktree_path; refuse empty, missing, malformed, unreadable begun-from, unknown ledger, or all-ended attempt_ids. relieves: P1 disposes critic 7133794843 disposes critic 7133871483 disposes critic 7133932844",
+        "Dest-store-lifecycle — On that admit path, use the dest repo store for reservation consult, persist, and leftover release together while keeping parent identity and incarnation checks. relieves: P2 disposes critic 7133690048 disposes critic 7133794843",
+        "Keep-implement-class-rules — Keep linked-worktree required, primary-path refuse, and process-only critic skip unchanged. relieves: P2",
+        "Deny-recovery-text — Name missing-binding, unreadable begun-from, and stale-ended-attempt recovery on the destination-foreign deny path. relieves: P3",
+        "Fixtures — Add fixtures for foreign-bound-admit, missing-binding-refuse, empty-or-ended-attempt-refuse, unreadable-begun-from-refuse, common-dir-only-begun-from-refuse, valid-attempt-from-other-checkout, same-repo unchanged, dest-store consult/persist/release round-trip, and two-parent contention for one dest. relieves: P3",
+        "Reject-drop-foreign-deny — Reject dropping destination-foreign entirely.",
+        "Reject-parent-reroot — Reject requiring the parent session to re-root into the foreign repo before spawn.",
+        "Reject-symphony-1090 — Reject opening #1090 or a new cross-repo epic CLI as this ticket'''s remedy.",
+        "Reject-shell-as-leaf — Reject treating shell access to the foreign worktree as Gap C leaf discharge. relieves: P3"
+      ],
+      "admitted_source_digest": "f674ca4ad10f80c6a11fc7a4ed7457f3f46425801675c74549aed69fcb8c4c18",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Keep-default-foreign-refuse — Keep destination-foreign as the default refuse when mainWorktreeRoot(dest) differs from mainWorktreeRoot(payloadRoot). relieves: P1",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Widen-foreign-binding-write — Widen swarm:pre-dispatch begin so a foreign linked worktree that is a Directive project writes its story-binding under that dest git-common-dir, and end/cancel cleanup removes from that same store. relieves: P1 disposes critic 7133690048",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Begun-from-checkout-root — When that binding is written, record begun-from as the originating checkout project root that owns the delivery-attempt ledger for the attempt_ids; do not use git-common-dir alone as that locator. relieves: P1 disposes critic 7133871483 disposes critic 7133932844",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Live-attempt-admit — Admit that foreign linked worktree on spawn only when the dest-common-dir story-binding exists for the dest path, begun-from checkout root is present and readable, and at least one attempt_id is still open in that begun-from checkout ledger for this story_id and canonical worktree_path; refuse empty, missing, malformed, unreadable begun-from, unknown ledger, or all-ended attempt_ids. relieves: P1 disposes critic 7133794843 disposes critic 7133871483 disposes critic 7133932844",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Dest-store-lifecycle — On that admit path, use the dest repo store for reservation consult, persist, and leftover release together while keeping parent identity and incarnation checks. relieves: P2 disposes critic 7133690048 disposes critic 7133794843",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Keep-implement-class-rules — Keep linked-worktree required, primary-path refuse, and process-only critic skip unchanged. relieves: P2",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Deny-recovery-text — Name missing-binding, unreadable begun-from, and stale-ended-attempt recovery on the destination-foreign deny path. relieves: P3",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Fixtures — Add fixtures for foreign-bound-admit, missing-binding-refuse, empty-or-ended-attempt-refuse, unreadable-begun-from-refuse, common-dir-only-begun-from-refuse, valid-attempt-from-other-checkout, same-repo unchanged, dest-store consult/persist/release round-trip, and two-parent contention for one dest. relieves: P3",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Reject-drop-foreign-deny — Reject dropping destination-foreign entirely.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Reject-parent-reroot — Reject requiring the parent session to re-root into the foreign repo before spawn.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Reject-symphony-1090 — Reject opening #1090 or a new cross-repo epic CLI as this ticket'''s remedy.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "Reject-shell-as-leaf — Reject treating shell access to the foreign worktree as Gap C leaf discharge. relieves: P3",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "files": [
+          "packages/core/src/session/spawn-occupancy.ts",
+          "packages/core/src/swarm/pre-dispatch.ts",
+          "packages/core/src/swarm/story-binding-record.ts",
+          "packages/core/src/session/spawn-occupancy.test.ts",
+          "packages/core/src/swarm/pre-dispatch.test.ts",
+          "changelog.d/7270-foreign-cross-repo-spawn.md"
+        ],
+        "module_boundary": "packages/core/src/session",
+        "cohesion_exemption": "Bound-localized foreign dest admit across spawn-occupancy + pre-dispatch (#7270)"
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4\n```quarantined\nrole: parent\n```\n\nLean: Prefer-A draft (arc 7270; no-ingest yolo)\n\nconflict_group: spawn-destination-foreign-cross-repo-epic-predispatch-bound\nSpec-path: packages/core/src/session/spawn-occupancy.ts\nTarget-digest: sha256:49d06211c2b5b454057acb3bbde36707ffa7176a468f795132a8a11c00ba8126\ndispatch-sha: 60e8921207e77d526c9392a6da1e83345d77a6de\ndest: .deft-scratch/worktrees/arc-7270\n\n## In plain English\nA parent sitting in one product repo cannot spawn a worker into a linked worktree of the other repo in the same epic, even after swarm:pre-dispatch bound that worktree. The spawn occupancy gate treats any different main worktree root as foreign and refuses. Closed #6871 fixed commit/Write for other repos; this gate is separate. The expected fix is a narrow admit when the foreign linked worktree already has a live pre-dispatch story binding, so the parent can still own the leaf through spawn instead of implementing it.\n\n## Bound remedy\n- Keep destination-foreign as the default refuse when mainWorktreeRoot(dest) differs from mainWorktreeRoot(payloadRoot).\n- Admit that foreign linked worktree only when swarm:pre-dispatch has a live story-binding record for the dest path under the dest repo common dir.\n- On that admit, place child occupancy and dispatch reservation under the dest repo store, not the parent repo store.\n- Keep implement-class rules: linked worktree required, primary-path refuse, process-only critic skip unchanged.\n- Name the admit in deny recovery text when a foreign dest exists but the binding is missing.\n- Add fixtures for bound-admit, missing-binding-refuse, and same-repo path unchanged.\n- Reject dropping destination-foreign entirely.\n- Reject requiring the parent to re-root its session into the foreign repo before spawn.\n- Reject opening #1090 symphony or a new cross-repo epic CLI as this ticket's remedy.\n- Reject treating shell access to the foreign worktree as discharge of Gap C leaf ownership.\n\nReject list: drop-foreign-deny; parent-reroot-required; symphony-1090; shell-as-leaf.\n\nFiled for @MScottAdams",
+          "id": 7133373863,
+          "html_url": "https://github.com/deftai/directive/issues/7270#issuecomment-7133373863",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T13:48:47Z",
+          "updated_at": "2026-11-24T14:13:02Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4\n```quarantined\nrole: triage\n```\n\nStop 1 — Gate (arc 7270; no-ingest)\n\nmechanism-shaped: true\ndesign-critique: warranted, because the spawn occupancy destination-foreign refuse blocks a lawful two-repo epic leaf path after pre-dispatch bind, and the remedy must choose how narrow the admit is.\n\nTarget-digest: sha256:49d06211c2b5b454057acb3bbde36707ffa7176a468f795132a8a11c00ba8126\ndispatch-sha: 60e8921207e77d526c9392a6da1e83345d77a6de\ndest: .deft-scratch/worktrees/arc-7270 (pinKind origin-default, process-only-no-install)\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\ncharter: open critique\nspend-recommend: N≥3\nspend: N≥3\nspend-ask: resolved\nspend-why: open solution space and high blast on spawn occupancy cross-repo admit; operator note Claude unavailable will spend-amend to N=2 before Round-1.\ndual-stop-reserved: yes\nverification-path: pin-read git show 60e8921207e77d526c9392a6da1e83345d77a6de: ; dest cwd-without-occupy for on-pin file reads\n\npain: P1, P2, P3\n\npain-notes:\n- P1 destination-foreign hard-refuses a foreign linked worktree even when swarm:pre-dispatch already bound it\n- P2 parent cannot lawfully spawn the leaf for stories whose code lives in the other repo of the epic\n- P3 shell access is not a Gap C substitute, so the epic stalls with no legal leaf path\n\nrefutation-target: none (open critique)\n\nFiled for @MScottAdams",
+          "id": 7133374316,
+          "html_url": "https://github.com/deftai/directive/issues/7270#issuecomment-7133374316",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T13:48:48Z",
+          "updated_at": "2026-11-24T14:13:03Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4\n```quarantined\nrole: parent\n```\n\nspend-amend: N≥3 → N=2\nreason: operator note Claude is not available; limit n to 2 before Round-1 (unavailable-seat class; family #5478 / arc-6040).\nseat-families: codex, grok\nreduced-panel: yes\nspend-ask: resolved\n\nFiled for @MScottAdams",
+          "id": 7133374768,
+          "html_url": "https://github.com/deftai/directive/issues/7270#issuecomment-7133374768",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T13:48:49Z",
+          "updated_at": "2026-11-24T13:48:49Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4\n```quarantined\nrole: parent\n```\n\npanel-deposit (arc 7270; Round-1)\ninput-ceiling: 7133379868\ncharter: open critique\nspend: N=2 (amended from N≥3; Claude unavailable)\nseat-families: codex, grok\nreduced-panel: yes\ndispatch-sha: 60e8921207e77d526c9392a6da1e83345d77a6de\ndest: .deft-scratch/worktrees/arc-7270\nverification-path: pin-read git show 60e8921207e77d526c9392a6da1e83345d77a6de:\nPrefer-A draft: 7133373863\nStop 1: 7133374316\nspend-amend: 7133374768\n\nFiled for @MScottAdams",
+          "id": 7133379868,
+          "html_url": "https://github.com/deftai/directive/issues/7270#issuecomment-7133379868",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T13:49:01Z",
+          "updated_at": "2026-11-24T13:49:02Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4\n```quarantined\nrole: parent\n```\n\nnative-spawn-deny (Round-1 seating): spawn_subagent process_only into arc-7270 dest refused (untrusted:no same-PR approved-scope record / #6361). Recovery: dest-rooted Codex+Grok CLI seats after recorded native miss.\n\nFiled for @MScottAdams",
+          "id": 7133409300,
+          "html_url": "https://github.com/deftai/directive/issues/7270#issuecomment-7133409300",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T13:50:14Z",
+          "updated_at": "2026-11-24T13:50:14Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nRound: 1\nPrefer-A draft: 7133373863\nStop 1: 7133374316\npanel-deposit / id-ceiling: 7133379868\ndispatch-sha: 60e8921207e77d526c9392a6da1e83345d77a6de\nSpec-path: packages/core/src/session/spawn-occupancy.ts\nverification-path: dest on-pin file reads (shell pin-read/gh denied by runtime hook); read spawn-occupancy.ts destination-foreign deny, pre-dispatch.ts linkedTarget/ensureBeginStoryBinding, story-binding-record.ts store layout\n\n## Injection / swarm lens\nThis lean changes spawn destination authority, cross-repo worktree identity, and shared occupancy/reservation state. A false admit launches a mutating leaf into another repository. A Prefer-A that keys admit on a record parent-rooted pre-dispatch cannot write, or that persists reservations where later consult cannot see them, fails closed for the dogfood path or breaks unique-reservation.\n\nblocks-the-design: unreachable dest story-binding admit key\nEvidence: Prefer-A limb 2 admits only when swarm:pre-dispatch has a live story-binding under the dest repo common dir. Pin `linkedTarget` in packages/core/src/swarm/pre-dispatch.ts requires sameRepoPath(projectCommon, destCommon) and otherwise returns \"target … is not a worktree of this repository\". `ensureBeginStoryBinding` uses that resolver and never fails begin on a write miss (\"never changes begin's exit code; a failed resolution writes nothing\"). Parent-rooted begin still records a live delivery-attempt unit for a foreign targetId under the parent project. Pin destination-foreign in spawn-occupancy.ts:638-650 remains an unconditional mainWorktreeRoot mismatch refuse with no binding probe. Issue body dogfood is a parent session in one repo spawning into the other after pre-dispatch \"bound\" the worktrees.\nFailure mode: Bound ships an admit keyed on a dest-common-dir record that lawful parent-rooted pre-dispatch cannot write for the reported foreign dest; begin can look successful while storyBinding is \"no record written\"; spawn stays destination-foreign; P1–P3 stay unrelieved.\nDisposition: remint Bound so the admit key is reachable on that path — widen story-binding target resolution/write (and matching ended-attempt cleanup) to place the record under the foreign dest git-common-dir, or replace the admit key with a closed predicate parent-rooted begin already produces and still keep dest commit-fence coherence. Do not bind limb 2 as written.\n\nsharpens-framing: dest-store consult and leftover release\nEvidence: Prefer-A limb 3 says place child occupancy and dispatch reservation under the dest repo store. Pin `existingDispatchReservation` / `releaseLeftoverSpawnReservation` / `persistSpawnReservation` today take storeRoot from the parent payloadRoot; conflict lookup only walks that storeRoot and its mainWorktreeRoot. Foreign dest main is outside that walk.\nFailure mode: write-only dest-store placement with parent-store consult misses a just-persisted foreign reservation and can double-mint before dest occupancy.json is live, or leave leftover release looking at the wrong store.\nDisposition: on the foreign-admit path, name the same dest repo store for consult conflict lookup, persist, and leftover release — not persist alone.\n\nfootnote: destination-foreign deny text matches pin\nPin consultDeny message for destination-foreign matches the issue Deny block (\"linked worktree of a foreign repository\" / \"linked worktree of this repo\"). Limb 1 keep-default-refuse and limb 5 missing-binding recovery text are the right thin shape once the admit key is reachable.\n\nfootnote: thin Prefer-A shape otherwise holds\nKeep default destination-foreign, linked-worktree / primary-path / process-only critic rules, fixtures, and the Reject list (drop-foreign-deny; parent-reroot-required; symphony-1090; shell-as-leaf). Do not thicken with #1090 or parent re-root.\n\nroad-not-taken: parent delivery-attempt unit as sole admit key\nSteelmanning Prefer-A: dest-common-dir story-binding is the SoT dest commit/Write already reads for story selection (#6379), so spawn-only use of the parent `.deft/delivery-attempts` unit would open Gap C while leaving the dest fence unbound. Flip condition: keep Prefer-A’s dest-binding admit only if Bound also widens the foreign write/cleanup path so parent-rooted begin actually deposits that record.",
+          "id": 7133690048,
+          "html_url": "https://github.com/deftai/directive/issues/7270#issuecomment-7133690048",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T14:00:42Z",
+          "updated_at": "2026-11-24T14:00:42Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\n\nfinding-classes: blocking, sharpening\nclean-result: no\n\nRound 1, open critique. Input ceiling: 7133379868. Reviewed Prefer-A draft 7133373863, issue body, Stop 1, spend amendment, and panel deposit within that ceiling. Source verification used git show at 60e8921207e77d526c9392a6da1e83345d77a6de; no product implementation or fixture execution. This is a source-derived design verdict, not a runtime reproduction of the reported incident.\n\n## C1 — blocks-the-design: define what makes a story binding live\n\nEvidence: at the dispatch SHA, packages/core/src/swarm/story-binding-record.ts defines StoryBindingRecord as story_id, worktree_path, and attempt_ids. readStoryBindingRecord validates shape and canonical destination but does not establish attempt liveness; parseRecord accepts an empty attempt_ids array. ensureStoryBindingRecord retains attempt IDs unknown to the caller's ledgers. In packages/core/src/swarm/pre-dispatch.ts, complete/cancel saves the ledger before removing binding IDs, and removal can fail on the store lock. The record-store comments explicitly describe cooperative story selection, not an authorization credential.\n\nConcrete failure: a completed attempt can leave a valid-looking record behind. Treating successful read/nonempty IDs as the draft's \"live story-binding\" would admit a foreign spawn without a current pre-dispatch attempt. Conversely, checking only a convenient destination checkout's ledger can reject a valid attempt recorded by another checkout. The record itself does not identify its ledger owner. This matters because the proposal promotes story-selection state into an exception to a repository boundary.\n\nDisposition: the lean cannot bind with \"live\" left as an assumed property of that reader. Specify the authoritative liveness witness and how it is resolved for this destination; missing, malformed, empty, ended, or unverifiable evidence must not grant the exception. Reuse the existing binding and delivery-attempt mechanisms where sufficient; do not introduce a cross-repo orchestration platform. If the intended contract is merely valid binding presence within the existing same-user cooperative trust model, state and justify that weaker predicate explicitly instead of claiming liveness. Add a stale-record-after-failed-cleanup fixture and a valid-binding-from-another-checkout fixture alongside the happy path.\n\n## C2 — sharpens-framing: destination-store ownership is a lifecycle invariant\n\nEvidence: pinned spawn-occupancy.ts consults existingDispatchReservation(payloadRoot, destPath), releases leftovers using payloadRoot, and builds a parent-owned dispatch record. hooks/dispatcher.ts calls persistSpawnReservation(payloadRoot, reservation). Persistence already uses an exclusive destination lock and checks live occupancy again after consult. allocatedWorktreeMatches additionally requires store and candidate to belong to the same repository and checks the presented incarnation and parent. destIsProven also requires matching common directories and influences the parent ritual path.\n\nConcrete failure: moving only the write to the destination store leaves lookup or leftover cleanup aimed at the parent store, so an unlaunched dispatch can remain reserved and block retry. A reader still rooted at the parent can also fail to recognize an allocated foreign destination. With parents from two repositories targeting one destination, separate store selection would defeat the intended single reservation namespace.\n\nDisposition: the draft's destination-store choice is sound and can bind, but state it as consistent consult/persist/retry/release ownership while retaining parent identity and incarnation checks. Preserve existing exclusive-lock and live-occupant controls. Add lifecycle fixtures: two different-repository parents contend for one destination and only one reserves; failed launch can release and retry; stale-incarnation cleanup cannot release a successor; the child starts with the destination root and can claim its reservation. Explicitly decide the foreign destination's destProven/ritual behavior rather than changing it accidentally through a same-repo predicate. These are implementation obligations of the proposed store move, not a new subsystem.\n\n## Existing mechanisms and alternative considered\n\nThe pinned destination-foreign branch confirms the reported unconditional cross-repository denial. Existing binding resolution, delivery-attempt state, canonical worktree identity, exclusive destination locks, child occupancy, and incarnation-scoped cleanup provide the relevant mechanisms. pre-dispatch's linkedTarget requires the invocation project and target to share a common directory, and binding failure does not change begin's exit code. Recovery therefore needs a destination-repository invocation and verification of its story-binding result; a generic \"run pre-dispatch\" from the parent repository is insufficient. This does not require relocating the parent session.\n\nKeeping the unconditional foreign deny has the strongest simple isolation argument, but leaves the stated two-repository leaf workflow blocked. I favor a narrow exception once C1 is resolved and the C2 lifecycle is verified. Dropping the deny entirely is unnecessary. Neither an epic-membership registry nor #1090 is required by these findings. A same-user-writable binding is not protection against a hostile same-user process; do not imply that this patch creates that security boundary.\n\nCritic exit: return to the parent for this round's synthesis; no ingest or implementation.",
+          "id": 7133794843,
+          "html_url": "https://github.com/deftai/directive/issues/7270#issuecomment-7133794843",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T14:04:22Z",
+          "updated_at": "2026-11-24T14:04:22Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4\n```quarantined\nrole: parent\n```\n\nLean: Prefer-A Bound (arc 7270; no-ingest yolo)\n\nconflict_group: spawn-destination-foreign-cross-repo-epic-predispatch-bound\nSpec-path: packages/core/src/session/spawn-occupancy.ts\nTarget-digest: sha256:49d06211c2b5b454057acb3bbde36707ffa7176a468f795132a8a11c00ba8126\ndispatch-sha: 60e8921207e77d526c9392a6da1e83345d77a6de\ndest: .deft-scratch/worktrees/arc-7270\nRound-1: grok 7133690048; codex 7133794843\nspend: N=2 reduced-panel (codex, grok)\n\n## In plain English\nKeep the foreign-repo spawn refuse by default. For a two-repo epic, widen pre-dispatch so a foreign linked worktree gets its story-binding written under that dest repo, define when that binding still counts as open, and only then let spawn admit that dest while keeping reservation consult/persist/release on the dest store together. Do not drop the refuse, re-root the parent, open symphony, or treat shell as the leaf.\n\n## Bound remedy\n- Keep-default-foreign-refuse — Keep destination-foreign as the default refuse when mainWorktreeRoot(dest) differs from mainWorktreeRoot(payloadRoot). relieves: P1\n- Widen-foreign-binding-write — Widen swarm:pre-dispatch begin so a foreign linked worktree that is a Directive project writes its story-binding under that dest git-common-dir, and end/cancel cleanup removes from that same store. relieves: P1 disposes critic 7133690048\n- Live-attempt-admit — Admit that foreign linked worktree on spawn only when the dest-common-dir story-binding exists for the dest path and at least one attempt_id in the record is still open in the delivery-attempt ledger of the project that began it; refuse empty, missing, malformed, or all-ended attempt_ids. relieves: P1 disposes critic 7133794843\n- Dest-store-lifecycle — On that admit path, use the dest repo store for reservation consult, persist, and leftover release together while keeping parent identity and incarnation checks. relieves: P2 disposes critic 7133690048 disposes critic 7133794843\n- Keep-implement-class-rules — Keep linked-worktree required, primary-path refuse, and process-only critic skip unchanged. relieves: P2\n- Deny-recovery-text — Name missing-binding and stale-ended-attempt recovery on the destination-foreign deny path. relieves: P3\n- Fixtures — Add fixtures for foreign-bound-admit, missing-binding-refuse, empty-or-ended-attempt-refuse, same-repo unchanged, dest-store consult/persist/release round-trip, and two-parent contention for one dest. relieves: P3\n- Reject-drop-foreign-deny — Reject dropping destination-foreign entirely.\n- Reject-parent-reroot — Reject requiring the parent session to re-root into the foreign repo before spawn.\n- Reject-symphony-1090 — Reject opening #1090 or a new cross-repo epic CLI as this ticket'''s remedy.\n- Reject-shell-as-leaf — Reject treating shell access to the foreign worktree as Gap C leaf discharge. relieves: P3\n\nReject list: drop-foreign-deny; parent-reroot-required; symphony-1090; shell-as-leaf.\n\nFiled for @MScottAdams",
+          "id": 7133821599,
+          "html_url": "https://github.com/deftai/directive/issues/7270#issuecomment-7133821599",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T14:05:21Z",
+          "updated_at": "2026-11-24T14:13:05Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1,pain-P2,pain-P3\nfinding-classes: blocking,footnote\nharvest-changed: true\n\nPain-audit of Prefer-A Bound 7133821599. Input ceiling: 7133821599. Reviewed the issue body and comments through that ceiling, including Round-1 critics 7133690048 and 7133794843. Verification used git show at 60e8921207e77d526c9392a6da1e83345d77a6de for the design-critique contract, story-binding-record.ts, pre-dispatch.ts, and spawn-occupancy.ts. Source-derived design verdict; no fixture execution or incident reproduction.\n\n## PA1 — blocks-the-design: originating-ledger resolution remains unspecified\n\nBound improves C1 by requiring an actually open attempt rather than treating record presence as liveness. However, \"the delivery-attempt ledger of the project that began it\" names the desired witness without specifying how spawn resolves that witness. This is the unresolved half of Codex C1, not a new subsystem request.\n\nEvidence: pinned StoryBindingRecord contains only story_id, worktree_path, and attempt_ids. parseRecord preserves only those fields. pre-dispatch saves ledgers under input.projectRoot; endedAttemptIds explicitly treats another checkout's unknown attempt as unknown, not ended. ensureStoryBindingRecord retains such IDs. Widening the destination binding write does not supply originating-checkout provenance. The Bound adds neither a resolvable owner reference nor a restriction tying the admissible witness to a specified invoking checkout. Repository identity alone does not select a checkout-local ledger.\n\nConcrete failure: checkout A begins a valid attempt and deposits the binding in destination B's common directory. A spawn from another checkout of A, or another permitted parent, can read that binding but cannot determine where its attempt is recorded. Checking the convenient parent or destination ledger falsely refuses a valid binding; treating an unknown ID as still open admits stale evidence. The Bound's empty/all-ended cases do not settle unknown-owner evidence. Its same-store cleanup promise also needs a way for completion to resolve the foreign store after begin.\n\nDisposition: do not bind the current harvest as fully disposing C1. Add one thin mechanism clause defining the authoritative ledger locator (or an explicit supported invocation restriction), validating that the open attempt belongs to this story and canonical destination, and denying unverifiable evidence. Reuse binding and delivery-attempt state; no epic registry or #1090. Cover a valid attempt begun from another checkout, unreadable/unknown owner evidence, and stale binding after failed cleanup. Exact storage syntax can remain an implementation choice; the ownership/resolution contract cannot. This changes the harvested mechanism, hence harvest-changed: true.\n\n## footnote: the other Round-1 dispositions are substantially addressed\n\nWiden-foreign-binding-write directly addresses Grok's unreachable destination-binding writer and includes matching end/cancel cleanup. Dest-store-lifecycle addresses both critics' central consult/persist/release split and retains parent identity and incarnation checks; the contention fixture is appropriate. Keep the existing exclusive-lock/live-occupant controls, failed-launch retry, stale-incarnation protection, child reservation claim, and explicit destProven/ritual behavior as implementation verification obligations from Codex C2. I am not promoting those omissions into a second blocker or requesting another subsystem.\n\n## Pain verdict\n\nP1: partial design progress, but relief is not established until a valid foreign binding has a determinate live-witness lookup. P2: destination-store lifecycle is the right mechanism, but lawful leaf admission still depends on that unresolved predicate. P3: recovery text and rejecting shell-as-leaf preserve the intended workflow; they do not independently provide a working leaf path while P1 remains unresolved. The remedies must be evaluated together, not by counting relieves markers.\n\nThe swarm/authority concern is false admission or false refusal across checkout boundaries. These stores are cooperative same-user state, not protection against a hostile same-user writer. The strongest case for accepting the Bound now is that its positive open-attempt predicate already implies fail-closed behavior. That settles the desired truth condition, but not the discoverability needed for the reported multi-repository workflow; an explicit locator or supported-origin restriction would resolve this objection.\n\nCritic exit: return to parent for the blocking pain-audit disposition under the existing contract. No implementation or ingest.\r\n\n",
+          "id": 7133871483,
+          "html_url": "https://github.com/deftai/directive/issues/7270#issuecomment-7133871483",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T14:07:16Z",
+          "updated_at": "2026-11-24T14:07:16Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1,pain-P2,pain-P3\nfinding-classes: none\nharvest-changed: false\n\nRound: pain-audit of Prefer-A Bound 7133821599\nid-ceiling: 7133821599\ndispatch-sha: 60e8921207e77d526c9392a6da1e83345d77a6de\nRound-1 disposed: grok 7133690048; codex 7133794843\nStop 1: 7133374316\nverification-path: dest on-pin file reads of spawn-occupancy.ts destination-foreign, pre-dispatch.ts linkedTarget/ensureBeginStoryBinding, story-binding-record.ts; raw pin at dispatch-sha (shell/gh denied by runtime hook)\n\n## Verdict\nBound 7133821599 relieves P1–P3 and honestly disposes both Round-1 critics. No remint. Harvest unchanged.\n\n## pain-P1\nStop 1: destination-foreign hard-refuses a foreign linked worktree even when swarm:pre-dispatch already bound it.\n\nBound keeps default foreign refuse, widens begin so a foreign linked Directive worktree writes/cleans story-binding under that dest git-common-dir, and admits only when that dest-common-dir record exists and at least one attempt_id is still open in the delivery-attempt ledger of the project that began it; empty, missing, malformed, and all-ended refuse.\n\nPin evidence: spawn-occupancy.ts:638-650 is still unconditional mainWorktreeRoot mismatch refuse; linkedTarget still requires sameRepoPath(projectCommon, destCommon); ensureBeginStoryBinding never fails begin on a write miss. Widen-foreign-binding-write makes the admit key reachable. Live-attempt-admit closes the Round-1 “live” gap.\n\nDisposition of 7133690048 blocking (unreachable dest story-binding admit key): accepted into Widen-foreign-binding-write.\nDisposition of 7133794843 C1 (define live binding): accepted into Live-attempt-admit.\n\n## pain-P2\nStop 1: parent cannot lawfully spawn the leaf for stories whose code lives in the other repo of the epic.\n\nBound Dest-store-lifecycle puts consult, persist, and leftover release on the dest repo store together while keeping parent identity and incarnation checks; Keep-implement-class-rules leaves linked-worktree / primary-path / process-only critic skip unchanged. That is the lawful leaf path once P1 admit holds.\n\nPin evidence: existingDispatchReservation / persistSpawnReservation / releaseLeftoverSpawnReservation still take storeRoot from parent payloadRoot today; dispatcher persist path matches. Bound names the full lifecycle, not persist-alone.\n\nDisposition of 7133690048 sharpening and 7133794843 C2: accepted into Dest-store-lifecycle.\n\n## pain-P3\nStop 1: shell access is not a Gap C substitute, so the epic stalls with no legal leaf path.\n\nBound Reject-shell-as-leaf keeps that premise; Deny-recovery-text names missing-binding and stale-ended-attempt recovery; Fixtures cover foreign-bound-admit, missing-binding-refuse, empty-or-ended-attempt-refuse, same-repo unchanged, dest-store round-trip, and two-parent contention. The P1/P2 admit stack is the legal leaf path; shell remains rejected.\n\n## Reject list honesty\ndrop-foreign-deny, parent-reroot-required, symphony-1090, and shell-as-leaf stay rejected. Matches both Round-1 footnotes and Codex’s favor of a narrow exception.\n\n## Clearance\nfinding-classes: none\nharvest-changed: false\n\nCritic exit: return to parent. No ingest. No implementation.",
+          "id": 7133888652,
+          "html_url": "https://github.com/deftai/directive/issues/7270#issuecomment-7133888652",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T14:07:54Z",
+          "updated_at": "2026-11-24T14:07:54Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4\n```quarantined\nrole: parent\n```\n\nLean: Prefer-A Recut-1 (arc 7270; no-ingest yolo)\n\nconflict_group: spawn-destination-foreign-cross-repo-epic-predispatch-bound\nSpec-path: packages/core/src/session/spawn-occupancy.ts\nRecut: supersedes Prefer-A Bound 7133821599\nTarget-digest: sha256:49d06211c2b5b454057acb3bbde36707ffa7176a468f795132a8a11c00ba8126\ndispatch-sha: 60e8921207e77d526c9392a6da1e83345d77a6de\ndest: .deft-scratch/worktrees/arc-7270\nPA-1: grok 7133888652 clear; codex 7133871483 blocking\ndual-stop-raise: +1\nspend: N=2 reduced-panel (codex, grok)\n\n## In plain English\nSame Prefer-A as Bound, plus one thin fix: when begin writes the foreign dest story-binding, record which project ledger owns the open attempt, and spawn admit uses that locator so live-attempt checks are not guesswork across checkouts.\n\n## Bound remedy\n- Keep-default-foreign-refuse — Keep destination-foreign as the default refuse when mainWorktreeRoot(dest) differs from mainWorktreeRoot(payloadRoot). relieves: P1\n- Widen-foreign-binding-write — Widen swarm:pre-dispatch begin so a foreign linked worktree that is a Directive project writes its story-binding under that dest git-common-dir, and end/cancel cleanup removes from that same store. relieves: P1 disposes critic 7133690048\n- Begun-from-ledger-locator — When that binding is written, record the begun-from project root (or its git-common-dir) that owns the delivery-attempt ledger for the attempt_ids. relieves: P1 disposes critic 7133871483\n- Live-attempt-admit — Admit that foreign linked worktree on spawn only when the dest-common-dir story-binding exists for the dest path, begun-from is present and readable, and at least one attempt_id is still open in that begun-from ledger for this story_id and canonical worktree_path; refuse empty, missing, malformed, unreadable begun-from, unknown ledger, or all-ended attempt_ids. relieves: P1 disposes critic 7133794843 disposes critic 7133871483\n- Dest-store-lifecycle — On that admit path, use the dest repo store for reservation consult, persist, and leftover release together while keeping parent identity and incarnation checks. relieves: P2 disposes critic 7133690048 disposes critic 7133794843\n- Keep-implement-class-rules — Keep linked-worktree required, primary-path refuse, and process-only critic skip unchanged. relieves: P2\n- Deny-recovery-text — Name missing-binding, unreadable begun-from, and stale-ended-attempt recovery on the destination-foreign deny path. relieves: P3\n- Fixtures — Add fixtures for foreign-bound-admit, missing-binding-refuse, empty-or-ended-attempt-refuse, unreadable-begun-from-refuse, valid-attempt-from-other-checkout, same-repo unchanged, dest-store consult/persist/release round-trip, and two-parent contention for one dest. relieves: P3\n- Reject-drop-foreign-deny — Reject dropping destination-foreign entirely.\n- Reject-parent-reroot — Reject requiring the parent session to re-root into the foreign repo before spawn.\n- Reject-symphony-1090 — Reject opening #1090 or a new cross-repo epic CLI as this ticket'''s remedy.\n- Reject-shell-as-leaf — Reject treating shell access to the foreign worktree as Gap C leaf discharge. relieves: P3\n\nReject list: drop-foreign-deny; parent-reroot-required; symphony-1090; shell-as-leaf.\n\nFiled for @MScottAdams",
+          "id": 7133889221,
+          "html_url": "https://github.com/deftai/directive/issues/7270#issuecomment-7133889221",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T14:07:56Z",
+          "updated_at": "2026-11-24T14:13:07Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1,pain-P2,pain-P3\nfinding-classes: blocking\nharvest-changed: true\n\nPain-audit of Prefer-A Recut-1 7133889221. Input ceiling: 7133889221. Read the issue body and comments only through that ceiling. Source verification used git show at 60e8921207e77d526c9392a6da1e83345d77a6de for the Pain coverage contract, story-binding-record.ts, pre-dispatch.ts, delivery-attempt/ledger.ts, and spawn-occupancy.ts. This is a design audit, not fixture execution or incident reproduction.\n\n## PA1 — blocks-the-design: originating-ledger resolution remains unspecified for the permitted common-dir alternative\n\nRecut-1 substantially addresses prior PA1 (7133871483): it records provenance, checks an open attempt against the story and canonical destination, and explicitly refuses unreadable or unknown evidence. Recording the actual originating project root provides a workable thin resolution path. However, Begun-from-ledger-locator expressly permits \"project root (or its git-common-dir)\". Those are not interchangeable ledger locators at the pinned revision.\n\nEvidence: delivery-attempt/ledger.ts deliveryAttemptsDir(projectRoot) joins the supplied project root with the delivery-attempt directory; unitLedgerPath uses that checkout-local directory. pre-dispatch.ts endedAttemptIds reads listUnitLedgers(projectRoot) and explicitly distinguishes another checkout's unknown attempts. Multiple linked checkouts share a Git common directory while holding different delivery-attempt ledgers. No common-dir-to-originating-checkout resolver is specified in Recut-1.\n\nConcrete failure: begin in linked checkout A1 writes an open attempt into A1's ledger and deposits a foreign destination binding with only A's common directory. Spawn from checkout A2 reads that binding. The common directory identifies the repository but loses A1's ledger location. Reading the main checkout or A2 ledger fails to find the valid attempt; fail-closed handling then reproduces the foreign-spawn refusal. The new valid-attempt-from-other-checkout fixture must cover this explicitly permitted representation, not only the project-root representation.\n\nDisposition: retain PA1 as unresolved only for this alternative. Require the canonical originating checkout/project root that actually owns the ledger (or a direct authoritative ledger locator). Remove the bare common-dir alternative, unless it comes with a determinate mapping to that checkout-local ledger. Preserve the association between each retained attempt and its owner when existing binding records accumulate attempts from different checkouts; a later begin must not relabel older IDs with its own owner. Storage syntax can remain an implementation choice. No ledger migration, epic registry, or new orchestration platform is needed. This narrows the harvested locator clause, hence harvest-changed: true.\n\nThe strongest case for clearance is the phrase \"that owns the delivery-attempt ledger\": read strictly, it already rules out a non-resolving locator. But the explicit common-dir alternative gives implementers a representation that cannot satisfy that ownership lookup under the existing storage model. Removing that alternative resolves the contradiction without broadening the design. This is the remaining part of prior PA1, not a new blocker category.\n\n## Pain verdict and retained dispositions\n\nP1 relief is designed for the actual-project-root path, but is not established across all locator choices expressly allowed by Recut-1. P2 and P3 depend on that admission predicate: destination-store consult/persist/release and rejecting shell-as-leaf are appropriate, but cannot rescue an otherwise valid leaf whose originating ledger cannot be resolved.\n\nWiden-foreign-binding-write still addresses Grok's unreachable writer. Dest-store-lifecycle still addresses the reservation ownership findings. The new story/destination match and unknown/unreadable refusal address the other substantive parts of prior PA1. I am not reopening those dispositions or promoting prior lifecycle verification obligations into new findings. The relevant swarm risk remains false refusal or false admission across checkout boundaries; cooperative same-user state is not a hostile-writer security boundary.\n\nCritic exit: return to parent with PA1 still blocking for the common-dir alternative. No implementation or ingest; no further critic work in this dispatch.\r\n\n",
+          "id": 7133932844,
+          "html_url": "https://github.com/deftai/directive/issues/7270#issuecomment-7133932844",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T14:09:37Z",
+          "updated_at": "2026-11-24T14:09:37Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1,pain-P2,pain-P3\nfinding-classes: none\nharvest-changed: false\n\nRound: pain-audit of Prefer-A Recut-1 7133889221\nid-ceiling: 7133889221\ndispatch-sha: 60e8921207e77d526c9392a6da1e83345d77a6de\nPrior PA: grok 7133888652 clear; codex 7133871483 blocking (must be disposed by Recut-1)\nRound-1 disposed: grok 7133690048; codex 7133794843\nStop 1: 7133374316\nverification-path: dest on-pin file reads of spawn-occupancy.ts destination-foreign, pre-dispatch.ts linkedTarget/ensureBeginStoryBinding/endedAttemptIds, story-binding-record.ts StoryBindingRecord shape; raw pin at dispatch-sha (shell/gh denied by runtime hook)\n\n## Verdict\nRecut-1 7133889221 relieves P1–P3 and honestly disposes Codex PA blocking 7133871483 plus the prior Round-1 dispositions. No remint. Harvest unchanged.\n\n## pain-P1\nStop 1: destination-foreign hard-refuses a foreign linked worktree even when swarm:pre-dispatch already bound it.\n\nRecut keeps default foreign refuse, widens begin so a foreign linked Directive worktree writes/cleans story-binding under that dest git-common-dir, records begun-from (project root or git-common-dir that owns the delivery-attempt ledger) on that write, and admits only when dest-common-dir binding exists, begun-from is present and readable, and at least one attempt_id is still open in that begun-from ledger for this story_id and canonical worktree_path; refuse empty, missing, malformed, unreadable begun-from, unknown ledger, or all-ended.\n\nPin evidence: spawn-occupancy.ts:639-650 is still unconditional mainWorktreeRoot mismatch refuse; linkedTarget still requires sameRepoPath(projectCommon, destCommon); StoryBindingRecord today is only story_id/worktree_path/attempt_ids with no owner locator; endedAttemptIds treats unknown-other-checkout ids as not ended. Begun-from-ledger-locator plus Live-attempt-admit close Codex PA1’s discoverability gap without a new epic registry.\n\nDisposition of 7133871483 blocking (originating-ledger resolution unspecified): accepted into Begun-from-ledger-locator and Live-attempt-admit.\nDisposition of 7133690048 blocking (unreachable dest story-binding admit key): retained via Widen-foreign-binding-write.\nDisposition of 7133794843 C1 (define live binding): retained and completed via Live-attempt-admit with begun-from witness.\n\n## pain-P2\nStop 1: parent cannot lawfully spawn the leaf for stories whose code lives in the other repo of the epic.\n\nDest-store-lifecycle still puts consult, persist, and leftover release on the dest repo store together while keeping parent identity and incarnation checks; Keep-implement-class-rules leaves linked-worktree / primary-path / process-only critic skip unchanged. Lawful leaf path holds once the Recut-1 P1 admit predicate holds.\n\nDisposition of 7133690048 sharpening and 7133794843 C2: retained in Dest-store-lifecycle.\n\n## pain-P3\nStop 1: shell access is not a Gap C substitute, so the epic stalls with no legal leaf path.\n\nReject-shell-as-leaf stays; Deny-recovery-text now names missing-binding, unreadable begun-from, and stale-ended-attempt recovery; Fixtures add unreadable-begun-from-refuse and valid-attempt-from-other-checkout beside the prior foreign-bound / missing / empty-or-ended / same-repo / dest-store / two-parent set. The P1/P2 admit stack is the legal leaf path; shell remains rejected.\n\n## Reject list honesty\ndrop-foreign-deny, parent-reroot-required, symphony-1090, and shell-as-leaf stay rejected.\n\n## Clearance\nfinding-classes: none\nharvest-changed: false\n\nCritic exit: return to parent. No ingest. No implementation.\n\nFiled for @MScottAdams",
+          "id": 7133945226,
+          "html_url": "https://github.com/deftai/directive/issues/7270#issuecomment-7133945226",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T14:10:06Z",
+          "updated_at": "2026-11-24T14:10:06Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4\n```quarantined\nrole: parent\n```\n\nLean: Prefer-A Recut-2 (arc 7270; no-ingest yolo)\n\nconflict_group: spawn-destination-foreign-cross-repo-epic-predispatch-bound\nSpec-path: packages/core/src/session/spawn-occupancy.ts\nRecut: supersedes Prefer-A Recut-1 7133889221\nTarget-digest: sha256:49d06211c2b5b454057acb3bbde36707ffa7176a468f795132a8a11c00ba8126\ndispatch-sha: 60e8921207e77d526c9392a6da1e83345d77a6de\ndest: .deft-scratch/worktrees/arc-7270\nPA-2: codex 7133932844 blocking; grok clear (this post)\ndual-stop-raise: +1\nspend: N=2 reduced-panel (codex, grok)\n\n## In plain English\nSame Prefer-A as Recut-1, except begun-from must be the originating checkout project root that owns the delivery-attempt ledger. A git-common-dir alone is not enough because one common dir can have several checkouts.\n\n## Bound remedy\n- Keep-default-foreign-refuse — Keep destination-foreign as the default refuse when mainWorktreeRoot(dest) differs from mainWorktreeRoot(payloadRoot). relieves: P1\n- Widen-foreign-binding-write — Widen swarm:pre-dispatch begin so a foreign linked worktree that is a Directive project writes its story-binding under that dest git-common-dir, and end/cancel cleanup removes from that same store. relieves: P1 disposes critic 7133690048\n- Begun-from-checkout-root — When that binding is written, record begun-from as the originating checkout project root that owns the delivery-attempt ledger for the attempt_ids; do not use git-common-dir alone as that locator. relieves: P1 disposes critic 7133871483 disposes critic 7133932844\n- Live-attempt-admit — Admit that foreign linked worktree on spawn only when the dest-common-dir story-binding exists for the dest path, begun-from checkout root is present and readable, and at least one attempt_id is still open in that begun-from checkout ledger for this story_id and canonical worktree_path; refuse empty, missing, malformed, unreadable begun-from, unknown ledger, or all-ended attempt_ids. relieves: P1 disposes critic 7133794843 disposes critic 7133871483 disposes critic 7133932844\n- Dest-store-lifecycle — On that admit path, use the dest repo store for reservation consult, persist, and leftover release together while keeping parent identity and incarnation checks. relieves: P2 disposes critic 7133690048 disposes critic 7133794843\n- Keep-implement-class-rules — Keep linked-worktree required, primary-path refuse, and process-only critic skip unchanged. relieves: P2\n- Deny-recovery-text — Name missing-binding, unreadable begun-from, and stale-ended-attempt recovery on the destination-foreign deny path. relieves: P3\n- Fixtures — Add fixtures for foreign-bound-admit, missing-binding-refuse, empty-or-ended-attempt-refuse, unreadable-begun-from-refuse, common-dir-only-begun-from-refuse, valid-attempt-from-other-checkout, same-repo unchanged, dest-store consult/persist/release round-trip, and two-parent contention for one dest. relieves: P3\n- Reject-drop-foreign-deny — Reject dropping destination-foreign entirely.\n- Reject-parent-reroot — Reject requiring the parent session to re-root into the foreign repo before spawn.\n- Reject-symphony-1090 — Reject opening #1090 or a new cross-repo epic CLI as this ticket'''s remedy.\n- Reject-shell-as-leaf — Reject treating shell access to the foreign worktree as Gap C leaf discharge. relieves: P3\n\nReject list: drop-foreign-deny; parent-reroot-required; symphony-1090; shell-as-leaf.\n\nFiled for @MScottAdams",
+          "id": 7133945693,
+          "html_url": "https://github.com/deftai/directive/issues/7270#issuecomment-7133945693",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T14:10:07Z",
+          "updated_at": "2026-11-24T14:13:09Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1,pain-P2,pain-P3\nfinding-classes: none\nharvest-changed: false\n\nPain-audit of Prefer-A Recut-2 7133945693. Input ceiling: 7133945693. Dispatch SHA: 60e8921207e77d526c9392a6da1e83345d77a6de. Reviewed the issue body and bounded comment history, including prior Codex PA-2 7133932844 and Grok PA-2 7133945226. Source checks used git show at that SHA for story-binding-record.ts, pre-dispatch.ts, delivery-attempt/ledger.ts, spawn-occupancy.ts, and the Pain coverage contract. This is design clearance, not an executed fixture pass or incident reproduction.\n\nRecut-2 resolves the remaining PA1 blocker. Begun-from-checkout-root now requires the originating checkout project root that actually owns the ledger and expressly excludes a bare git-common-dir. This matches deliveryAttemptsDir(projectRoot) and unitLedgerPath at the pin. A begin in checkout A1 can therefore leave a witness that spawn from A2 resolves without guessing the owning checkout from their shared common directory. The common-dir-only refusal and valid-attempt-from-other-checkout fixtures directly cover the previously contradictory alternative.\n\npain-P1: covered by the combined writer and admission changes. Widen-foreign-binding-write removes the pinned linkedTarget same-repository restriction for the specified foreign linked Directive worktree and places binding write/cleanup in its destination common directory. The checkout locator makes the positive open-attempt test reachable. Live-attempt-admit requires that witness to match the story and canonical destination and refuses absent, malformed, unreadable, unknown, or ended evidence. Default foreign refusal remains intact.\n\npain-P2: covered by that narrow admission together with Dest-store-lifecycle. Consult, persist, and leftover release share destination-store ownership while retaining parent identity and incarnation checks. The linked-worktree and primary-path rules remain. This preserves a lawful spawned-leaf path instead of making the parent implement the other repository's story.\n\npain-P3: covered by the P1/P2 path plus explicit recovery for missing binding, unreadable origin, and ended attempts. Reject-shell-as-leaf remains honest: shell access alone does not satisfy leaf ownership. Neither parent-session re-rooting nor #1090 is required.\n\nPrior dispositions hold. The unreachable-writer finding is addressed by widening write and cleanup; the liveness finding by a positive matching ledger witness; the reservation finding by consistent destination-store lifecycle. The originating-root requirement must remain true for every retained attempt when records accumulate attempts from multiple checkouts; relabeling old IDs with a later caller's root would violate that requirement, not constitute an allowed locator alternative. Storage syntax remains an implementation choice. Existing contention, child-claim, stale-incarnation, and retry checks remain implementation verification obligations rather than new design findings.\n\nThe swarm boundary remains cooperative same-user state, not protection against a hostile same-user writer. No further harvested mechanism change is needed. Recut-2 relieves all three named pains at the design level.\n\nCritic exit: return to parent for synthesis. No implementation or ingest; this dispatch ends after this post.\r\n\n",
+          "id": 7133981750,
+          "html_url": "https://github.com/deftai/directive/issues/7270#issuecomment-7133981750",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T14:11:31Z",
+          "updated_at": "2026-11-24T14:11:31Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1,pain-P2,pain-P3\nfinding-classes: none\nharvest-changed: false\n\nRound: pain-audit of Prefer-A Recut-2 7133945693\nid-ceiling: 7133945693\ndispatch-sha: 60e8921207e77d526c9392a6da1e83345d77a6de\nPrior PA-2: codex 7133932844 blocking; grok 7133945226 clear\nRound-1 disposed: grok 7133690048; codex 7133794843\nStop 1: 7133374316\nverification-path: dest on-pin file reads of spawn-occupancy.ts destination-foreign, pre-dispatch.ts linkedTarget/endedAttemptIds, story-binding-record.ts StoryBindingRecord/ensure merge, delivery-attempt/ledger.ts deliveryAttemptsDir; raw pin at dispatch-sha (shell/gh denied by runtime hook)\n\n## Verdict\nRecut-2 7133945693 relieves P1–P3 and honestly disposes Codex PA-2 blocking 7133932844 plus prior Round-1 and PA-1 dispositions. No remint. Harvest unchanged.\n\n## pain-P1\nStop 1: destination-foreign hard-refuses a foreign linked worktree even when swarm:pre-dispatch already bound it.\n\nRecut keeps default foreign refuse, widens begin so a foreign linked Directive worktree writes/cleans story-binding under that dest git-common-dir, records begun-from as the originating checkout project root that owns the delivery-attempt ledger (explicitly forbidding git-common-dir alone), and admits only when dest-common-dir binding exists, that checkout root is present and readable, and at least one attempt_id is still open in that begun-from checkout ledger for this story_id and canonical worktree_path; refuse empty, missing, malformed, unreadable begun-from, unknown ledger, common-dir-only locator, or all-ended.\n\nPin evidence: spawn-occupancy.ts:639-650 is still unconditional mainWorktreeRoot mismatch refuse; linkedTarget still requires sameRepoPath(projectCommon, destCommon); StoryBindingRecord today is only story_id/worktree_path/attempt_ids; deliveryAttemptsDir(projectRoot) is checkout-local; endedAttemptIds treats unknown-other-checkout ids as not ended. Begun-from-checkout-root plus Live-attempt-admit close Codex PA-2’s common-dir alternative without a new epic registry. Fixtures add common-dir-only-begun-from-refuse beside unreadable-begun-from-refuse and valid-attempt-from-other-checkout.\n\nDisposition of 7133932844 blocking (common-dir alternative): accepted into Begun-from-checkout-root and Live-attempt-admit; Codex’s no-relabel / per-attempt owner association stays an implementation duty under those limbs (storage syntax remains an implementation choice).\nDisposition of 7133871483 blocking: retained via Begun-from-checkout-root / Live-attempt-admit.\nDisposition of 7133690048 blocking (unreachable dest story-binding admit key): retained via Widen-foreign-binding-write.\nDisposition of 7133794843 C1 (define live binding): retained via Live-attempt-admit with checkout-root witness.\n\n## pain-P2\nStop 1: parent cannot lawfully spawn the leaf for stories whose code lives in the other repo of the epic.\n\nDest-store-lifecycle still puts consult, persist, and leftover release on the dest repo store together while keeping parent identity and incarnation checks; Keep-implement-class-rules leaves linked-worktree / primary-path / process-only critic skip unchanged. Lawful leaf path holds once the Recut-2 P1 admit predicate holds.\n\nDisposition of 7133690048 sharpening and 7133794843 C2: retained in Dest-store-lifecycle.\n\n## pain-P3\nStop 1: shell access is not a Gap C substitute, so the epic stalls with no legal leaf path.\n\nReject-shell-as-leaf stays; Deny-recovery-text names missing-binding, unreadable begun-from, and stale-ended-attempt recovery; Fixtures keep foreign-bound / missing / empty-or-ended / common-dir-only / unreadable-begun-from / valid-attempt-from-other-checkout / same-repo / dest-store / two-parent. The P1/P2 admit stack is the legal leaf path; shell remains rejected.\n\n## Reject list honesty\ndrop-foreign-deny, parent-reroot-required, symphony-1090, and shell-as-leaf stay rejected.\n\n## Clearance\nfinding-classes: none\nharvest-changed: false\n\nCritic exit: return to parent. No ingest. No implementation.\n\nFiled for @MScottAdams",
+          "id": 7133996053,
+          "html_url": "https://github.com/deftai/directive/issues/7270#issuecomment-7133996053",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T14:12:04Z",
+          "updated_at": "2026-11-24T14:12:04Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Evidence | Status |\n|---|---|---|\n| Prefer-A Recut-2 is the live successor lean | comment 7133945693 | verified |\n| P1 relieved by keep-default + widen-foreign-binding-write + begun-from-checkout-root + live-attempt-admit | Recut-2 Bound remedy; PA-3 clear | verified |\n| P2 relieved by dest-store-lifecycle + keep-implement-class-rules | Recut-2; PA-3 clear | verified |\n| P3 relieved by deny-recovery-text + fixtures + reject-shell-as-leaf | Recut-2; PA-3 clear | verified |\n| Round-1 blockers disposed | grok 7133690048; codex 7133794843 | verified |\n| PA blockers disposed by Recuts | codex 7133871483 → Recut-1; codex 7133932844 → Recut-2 | verified |\n| PA-3 clear both seats | codex 7133981750; grok 7133996053; finding-classes none; harvest-changed false | verified |\n| Reduced panel N=2 (Claude unavailable) | spend-amend 7133374768; seats codex+grok | verified |\n| Reject list held | drop-foreign-deny; parent-reroot; symphony-1090; shell-as-leaf | verified |\n\nFiled for @MScottAdams",
+          "id": 7133996648,
+          "html_url": "https://github.com/deftai/directive/issues/7270#issuecomment-7133996648",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T14:12:06Z",
+          "updated_at": "2026-11-24T14:12:06Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4\n```quarantined\nrole: parent\n```\n\ndesign-critique: synthesis accepted, because agents agreed\n\nsuccessor lean: 7133945693\nverified-claims table: 7133996648\ncompleted-arc: yes\narc-mode: no-ingest\nspend: N=2 reduced-panel\ndispatch-sha: 60e8921207e77d526c9392a6da1e83345d77a6de\ndest: .deft-scratch/worktrees/arc-7270\n\n## In plain English\nKeep foreign-repo spawn refused by default. For a two-repo epic, widen pre-dispatch so the foreign linked worktree gets a story-binding under that dest repo, record the originating checkout root that owns the open attempt, admit spawn only while that attempt is still open for that story and path, and keep reservation consult/persist/release on the dest store together. Do not drop the refuse, re-root the parent, open symphony, or treat shell as the leaf.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nNext operator verb when wanted: task issue:ingest\n\nFiled for @MScottAdams",
+          "id": 7133997355,
+          "html_url": "https://github.com/deftai/directive/issues/7270#issuecomment-7133997355",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T14:12:07Z",
+          "updated_at": "2026-11-24T14:12:07Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## What happened\n\nPhase 6 of deftai/evolution#1840 is one epic in two repositories, deftai/evolution and deftai/deftvisage. The runbook sends one worker per story into a worktree of the repo that owns the code. From a Grok session rooted in evolution I created deftvisage worktrees, wrote the briefs, ran preflight, and `swarm:pre-dispatch` bound them. `spawn_subagent` with `cwd` set to those worktrees was refused.\n\n## Deny\n\n```\nDirective denied spawn: destination /Users/johnmcdaniel/Projects/WarpDev/DEFTvisage/.deft-scratch/worktrees/desk-health-flows is a linked worktree of a foreign repository. Spawned mutating work takes a linked worktree of this repo.\n```\n\nThe same deny fired for `desk-job-snapshot-cards` and `desk-plan-create-guard`.\n\n## Where\n\n`vendor/directive-core/dist/session/spawn-occupancy.js` returns `destination-foreign` when `mainWorktreeRoot(dest)` and `mainWorktreeRoot(payloadRoot)` differ.\n\n## Expected\n\nA parent whose epic already spans two product repos can spawn a leaf into a linked worktree of the other repo after `swarm:pre-dispatch` has bound that worktree to its story. Shell access to that worktree is not a substitute. The parent is not allowed to implement the leaf itself.\n\n## Not the same as\n\nClosed #6871 covered commit and Write hooks refusing other repos. This is the spawn occupancy gate. #1090 is a future cross-operator tier, not this deny.\n\n## Evidence\n\nSession rooted at `/Users/johnmcdaniel/.grok/worktrees/warpdev-evolution/phase6wave2` on 2026-11-24. Bound worktrees:\n\n- `story.phase6-desk-health-flows` (deftai/deftvisage#2498)\n- `story.phase6-desk-job-snapshot-cards` (deftai/deftvisage#2499)\n- `story.phase6-desk-plan-create-guard` (deftai/deftvisage#2500)\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6580876516,
+        "origin": "deftai/directive#7270",
+        "id": "github.issue.6580876516"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "49d06211c2b5b454057acb3bbde36707ffa7176a468f795132a8a11c00ba8126"
+      },
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 7270,
+        "leanCommentId": 7133945693,
+        "harvestDigest": "f674ca4ad10f80c6a11fc7a4ed7457f3f46425801675c74549aed69fcb8c4c18",
+        "slice": null
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": false,
+        "size": "medium",
+        "file_scope": [
+          "packages/core/src/session/spawn-occupancy.ts",
+          "packages/core/src/swarm/pre-dispatch.ts",
+          "packages/core/src/swarm/story-binding-record.ts",
+          "packages/core/src/session/spawn-occupancy.test.ts",
+          "packages/core/src/swarm/pre-dispatch.test.ts",
+          "changelog.d/7270-foreign-cross-repo-spawn.md"
+        ],
+        "file_scope_confidence": "high",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/session/spawn-occupancy.test.ts"
+        ],
+        "missing_traces_justification": "Prefer-A Bound limbs are the acceptance surface; traces deferred to product PR evidence.",
+        "depends_on": [],
+        "conflict_group": "spawn-destination-foreign-cross-repo-epic-predispatch-bound"
+      }
+    },
+    "id": "github.issue.6580876516",
+    "updated": "2026-11-24T15:05:01Z"
+  }
+}
