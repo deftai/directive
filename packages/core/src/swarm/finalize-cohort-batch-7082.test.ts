@@ -479,7 +479,7 @@ describe("cohort lifecycle: one closer run, one lifecycle PR (#7082 clauses 2, 4
     // No changelog fragment: the lifecycle commit stages only the lifecycle trees.
     const adds = git.filter((c) => c[1] === "add");
     expect(adds.length).toBeGreaterThan(0);
-    for (const add of adds) expect(add.slice(2)).toEqual(["-A", "xbrief/", "vbrief/"]);
+    for (const add of adds) expect(add.slice(2)).toEqual(["-A", "xbrief/"]);
     expect(git.flat().some((part) => part.includes("changelog.d"))).toBe(false);
 
     const files = [7102, 7103].flatMap((issue) => [
