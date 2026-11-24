@@ -8,6 +8,7 @@ import {
   listActiveRunningBriefs,
   productPullRequestFromPlan,
 } from "../orphan-active/running-briefs.js";
+import { collectGithubRefs } from "../orphan-active/refs.js";
 import { storyIssueOfBrief } from "../pr-closing-keywords/story-issue.js";
 import { defaultRunGh, fetchClosingIssuesReferences } from "../pr-protected-issues/gh.js";
 import { githubOwnerRepoFromRemoteUrl } from "../release/closed-verb-gate.js";
@@ -166,27 +167,52 @@ export function evaluateSlowPathCompleteGate(args: {
     if (repo.length === 0) {
       continue;
     }
-    const prNumber = productPullRequestFromPlan(brief.plan);
+    let prNumber = productPullRequestFromPlan(brief.plan);
+    let prRepo = repo;
+    // Unstamped briefs still count when a github-pr ref is already merged (#7258).
     if (prNumber === null) {
-      continue;
-    }
-    const payload = fetchPr(prNumber, repo);
-    if (payload === null) {
-      return {
-        refuse: true,
-        merged: [],
-        message:
-          `slow-path: could not read merge state for product PR #${String(prNumber)} in ${repo}; ` +
-          "retry after fixing gh auth, rate limit, or network",
-      };
-    }
-    if (!isMergedPrPayload(payload)) {
-      continue;
+      const { prs } = collectGithubRefs(brief.plan, repo);
+      let found: { number: number; repo: string } | null = null;
+      for (const pr of prs) {
+        const payload = fetchPr(pr.number, pr.repo);
+        if (payload === null) {
+          return {
+            refuse: true,
+            merged: [],
+            message:
+              `slow-path: could not read merge state for product PR #${String(pr.number)} in ${pr.repo}; ` +
+              "retry after fixing gh auth, rate limit, or network",
+          };
+        }
+        if (isMergedPrPayload(payload)) {
+          found = { number: pr.number, repo: pr.repo };
+          break;
+        }
+      }
+      if (found === null) {
+        continue;
+      }
+      prNumber = found.number;
+      prRepo = found.repo;
+    } else {
+      const payload = fetchPr(prNumber, prRepo);
+      if (payload === null) {
+        return {
+          refuse: true,
+          merged: [],
+          message:
+            `slow-path: could not read merge state for product PR #${String(prNumber)} in ${prRepo}; ` +
+            "retry after fixing gh auth, rate limit, or network",
+        };
+      }
+      if (!isMergedPrPayload(payload)) {
+        continue;
+      }
     }
     merged.push({
       prNumber,
-      cohortId: cohortIdForPlan(brief.plan, repo, brief.path),
-      repository: repo,
+      cohortId: cohortIdForPlan(brief.plan, prRepo, brief.path),
+      repository: prRepo,
     });
   }
   if (merged.length < 2) {

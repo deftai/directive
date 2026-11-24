@@ -626,7 +626,7 @@ describe("slow-path scope:complete gate (#7252)", () => {
 
   function writeRunning(
     name: string,
-    opts: { id: string; productPr?: number; repository?: string },
+    opts: { id: string; productPr?: number; productPrRef?: number; repository?: string },
   ): string {
     const active = join(root, "xbrief", "active");
     mkdirSync(active, { recursive: true });
@@ -641,16 +641,23 @@ describe("slow-path scope:complete gate (#7252)", () => {
           id: opts.id,
           items: [],
           acceptance: { commands: [], none_stated: true },
-          ...(repository !== undefined
-            ? {
-                references: [
-                  {
-                    type: "x-xbrief/github-issue",
-                    uri: `https://github.com/${repository}/issues/${opts.id}`,
-                  },
-                ],
-              }
-            : {}),
+          ...(() => {
+            const references: Array<{ type: string; uri: string }> = [];
+            if (repository !== undefined) {
+              references.push({
+                type: "x-xbrief/github-issue",
+                uri: `https://github.com/${repository}/issues/${opts.id}`,
+              });
+            }
+            if (opts.productPrRef !== undefined) {
+              const repo = repository ?? "acme/app";
+              references.push({
+                type: "x-xbrief/github-pr",
+                uri: `https://github.com/${repo}/pull/${opts.productPrRef}`,
+              });
+            }
+            return references.length > 0 ? { references } : {};
+          })(),
           ...(opts.productPr !== undefined
             ? { metadata: { productPullRequest: opts.productPr } }
             : {}),
@@ -660,6 +667,33 @@ describe("slow-path scope:complete gate (#7252)", () => {
     );
     return file;
   }
+
+  it("counts unstamped github-pr refs that are already merged", () => {
+    root = mkdtempSync(join(tmpdir(), "slow-path-unstamped-"));
+    const a = writeRunning("2026-01-01-a.xbrief.json", {
+      id: "story-a",
+      productPrRef: 21,
+      repository: "acme/app",
+    });
+    const b = writeRunning("2026-01-01-b.xbrief.json", {
+      id: "story-b",
+      productPrRef: 22,
+      repository: "acme/app",
+    });
+    const gate = evaluateSlowPathCompleteGate({
+      projectRoot: root,
+      repository: "acme/app",
+      fetchPrPayload: (pr) =>
+        pr === 21 || pr === 22 ? { merged_at: "2026-01-02T00:00:00Z" } : null,
+    });
+    expect(gate.refuse).toBe(true);
+    if (gate.refuse) {
+      expect(gate.merged.map((row) => row.prNumber).sort()).toEqual([21, 22]);
+      expect(gate.merged.map((row) => row.cohortId).sort()).toEqual(
+        [a, b].map((p) => p.replace(/\\/g, "/")).sort(),
+      );
+    }
+  });
 
   it("allows complete when fewer than two merged product PRs are active", () => {
     root = mkdtempSync(join(tmpdir(), "slow-path-one-"));
