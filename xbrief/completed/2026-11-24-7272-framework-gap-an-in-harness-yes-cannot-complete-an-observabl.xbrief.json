@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #7272",
-    "updated": "2026-11-24T21:10:58.775Z"
+    "updated": "2026-11-24T21:56:01Z"
   },
   "plan": {
     "title": "Observable-scope rediscovery scrub",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Overview": "relieves: P1 — Tip-bind #7031 declared any-shell writers for observable-scope and intent-constraint and refuse restoring --minted-via or in-harness-ask as primary for those verbs. relieves: P1 — Scrub named rediscovery coaches in content/docs/durable-effect-acquisition.md (in-harness-ask example implying obs/intent mint UX) and packages/core/src/observable-scope/types.ts JSDoc that still names #5010 in-harness ask, while leaving historical CHANGELOG #5010 as history and live commands/docs as SoT.",
       "Description": "",
@@ -18,22 +18,36 @@
         "id": "clause.1",
         "title": "relieves: P1 — Tip-bind #7031 declared any-shell writers for observable-scope and intent-constraint and refuse restoring --minted-via or in-harness-ask as primary for those verbs.",
         "status": "completed",
-        "x-directive/evidence": {
-          "kind": "test",
-          "pointer": "packages/core/src/observable-scope/types.test.ts (merged PR #7296)",
-          "recorded_at": "2026-11-24T19:52:08.157Z",
-          "recorded_by": "leftover-closer/finalize-7272"
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A Bound coach/docs scrub landed in merged PR #7296; claims not executable against shipped artifacts",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "operator",
+            "mintedAt": "2026-11-24T20:19:47Z",
+            "mintedVia": "deft authz:grant",
+            "eventRef": "template:acceptance-disposition",
+            "grantId": "grant-20261124201947-279d2c"
+          },
+          "recorded_at": "2026-11-24T21:56:01Z"
         }
       },
       {
         "id": "clause.2",
         "title": "relieves: P1 — Scrub named rediscovery coaches in content/docs/durable-effect-acquisition.md (in-harness-ask example implying obs/intent mint UX) and packages/core/src/observable-scope/types.ts JSDoc that still names #5010 in-harness ask, while leaving historical CHANGELOG #5010 as history and live commands/docs as SoT.",
         "status": "completed",
-        "x-directive/evidence": {
-          "kind": "test",
-          "pointer": "packages/core/src/observable-scope/types.test.ts (merged PR #7296)",
-          "recorded_at": "2026-11-24T19:52:08.157Z",
-          "recorded_by": "leftover-closer/finalize-7272"
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A Bound coach/docs scrub landed in merged PR #7296; claims not executable against shipped artifacts",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "operator",
+            "mintedAt": "2026-11-24T20:19:47Z",
+            "mintedVia": "deft authz:grant",
+            "eventRef": "template:acceptance-disposition",
+            "grantId": "grant-20261124201947-279d2c"
+          },
+          "recorded_at": "2026-11-24T21:56:01Z"
         }
       },
       {
@@ -43,24 +57,34 @@
         "x-directive/disposition": {
           "disposition": "deferred",
           "reason": "operator-deferred harness-attended approved-scope/authz mint",
-          "recorded_at": "2026-11-24T19:52:08.157Z",
-          "recorded_by": "leftover-closer/finalize-7272",
           "provenance": {
-            "kind": "operator-session",
-            "actor": "Scott",
-            "deferred_to": "#7279"
-          }
+            "kind": "operator-cli",
+            "actor": "operator",
+            "mintedAt": "2026-11-24T20:20:34Z",
+            "mintedVia": "deft authz:grant",
+            "eventRef": "template:acceptance-disposition",
+            "grantId": "grant-20261124202034-77de1b"
+          },
+          "recorded_at": "2026-11-24T21:56:01Z",
+          "deferred_to": "#7279"
         }
       },
       {
         "id": "clause.4",
         "title": "relieves: P3 — Keep unsigned declaration vs signed approval distinct, preserve admitSignedRecord and --request/--assertion plus #6945 keep-out, and refuse chat-yes humanApproval for observable-scope or intent-constraint.",
         "status": "completed",
-        "x-directive/evidence": {
-          "kind": "test",
-          "pointer": "packages/core/src/observable-scope/types.test.ts (merged PR #7296)",
-          "recorded_at": "2026-11-24T19:52:08.157Z",
-          "recorded_by": "leftover-closer/finalize-7272"
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Prefer-A Bound coach/docs scrub landed in merged PR #7296; claims not executable against shipped artifacts",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "operator",
+            "mintedAt": "2026-11-24T20:19:47Z",
+            "mintedVia": "deft authz:grant",
+            "eventRef": "template:acceptance-disposition",
+            "grantId": "grant-20261124201947-279d2c"
+          },
+          "recorded_at": "2026-11-24T21:56:01Z"
         }
       }
     ],
@@ -89,7 +113,7 @@
     ],
     "acceptance": {
       "commands": [],
-      "none_stated": false,
+      "none_stated": true,
       "derived_reason": "Prefer-A Bound limbs same-text (#5055/#4374)",
       "source_rung": "derived",
       "clauses": [
@@ -505,9 +529,38 @@
         "conflict_group": "harness-yes-obs-scope-relieved-by-7031-scrub-rediscovery",
         "missing_traces_justification": "Prefer-A Bound limbs are the acceptance surface; traces deferred to product PR evidence."
       },
-      "productPullRequest": 7296
+      "productPullRequest": 7296,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "1036ea98597a81bf61d5766bbfcd9ba8aa71b6da",
+        "prNumber": 7296,
+        "prBase": "master",
+        "mergeCommit": "de55c71ae6cb84dd789041037126cc02d12d1e13",
+        "deliveryBranch": "master",
+        "deliveryCommit": "bc7e60bb78c0bf1d9145674462a3d1e1f3897cd8",
+        "verifiedAt": "2026-11-24T21:56:01Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          7302,
+          7306,
+          7308
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-24T21:56:01Z",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-24T21:56:01Z"
+      }
     },
     "id": "github.issue.6580877468",
-    "updated": "2026-11-24T14:17:27Z"
+    "updated": "2026-11-24T21:56:01Z"
   }
 }
