@@ -216,9 +216,7 @@ export function evaluateSlowPathCompleteGate(args: {
         continue;
       }
       const evidenceRepo =
-        evidence !== null &&
-        evidence !== undefined &&
-        typeof evidence.repository === "string"
+        evidence !== null && evidence !== undefined && typeof evidence.repository === "string"
           ? evidence.repository.trim()
           : "";
       prNumber = discoveredPr;
