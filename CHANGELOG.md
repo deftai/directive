@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Activate the running brief for foreign linked-worktree spawn admit (#7270).
+- Activate the running brief for the exact-word commit gate (#7273).
+
 - Record approved file permissions for foreign linked-worktree spawn admit. This records approval only; it does not change product behavior (#7270).
 - Record approved file permissions for the exact-word commit gate. This records approval only; it does not change product behavior (#7273).
 
