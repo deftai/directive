@@ -2,22 +2,25 @@
   "schemaVersion": 1,
   "xbriefRelPath": "xbrief/active/2026-11-24-7274-framework-gap-parallel-pre-dispatch-locks-the-binding-store.xbrief.json",
   "planId": "github.issue.6580878198",
-  "approvedAt": "2026-11-24T17:12:22Z",
+  "approvedAt": "2026-11-24T21:38:10Z",
   "fileScope": [
+    ".deft/approved-scope/github.issue.6580878198.intent.json",
+    ".deft/approved-scope/github.issue.6580878198.json",
     "changelog.d/7274-pre-dispatch-binding-lock-repair.md",
+    "packages/core/src/swarm/pre-dispatch-story-binding.test.ts",
     "packages/core/src/swarm/pre-dispatch.test.ts",
     "packages/core/src/swarm/pre-dispatch.ts",
     "packages/core/src/swarm/story-binding-record.test.ts",
     "packages/core/src/swarm/story-binding-record.ts"
   ],
-  "fileScopeDigest": "f9adcdfdde4fba9183a8be063b55b4c3becb91936030d6602233e3f869d93da2",
+  "fileScopeDigest": "88fe03d0642121331c0d68055b7e21a04fe50bf5eb63a437e9227c431ff3ae9f",
   "humanApproval": {
     "kind": "operator",
     "actor": "MScottAdams",
-    "mintedAt": "2026-11-24T17:12:22Z",
+    "mintedAt": "2026-11-24T21:37:55Z",
     "mintedVia": "scope:record-approved-scope"
   },
-  "intentDigest": "ade3e3d9e376d5c0a2f4f66be356fe0f5061782d93c68a4e932b6c586e6bdd1f",
+  "intentDigest": "f88237bee3edab366b196d5004ac8a5101efb82b1cb8deda966eaf05538f12b9",
   "digestAlgo": "intent-extract-v1",
-  "authHashV1": "sha256:66aefe1d3ba1e22047fa55cc2031574d9872046fd396bba9e5a7fc45aa3169b0"
+  "authHashV1": "sha256:ea519ac0eba9357fb236dc41695295f4ef323b2c3d466a87aa8a4f22504d6cc7"
 }

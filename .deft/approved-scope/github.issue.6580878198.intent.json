@@ -530,7 +530,10 @@
           "packages/core/src/swarm/pre-dispatch.ts",
           "packages/core/src/swarm/story-binding-record.test.ts",
           "packages/core/src/swarm/pre-dispatch.test.ts",
-          "changelog.d/7274-pre-dispatch-binding-lock-repair.md"
+          "changelog.d/7274-pre-dispatch-binding-lock-repair.md",
+          "packages/core/src/swarm/pre-dispatch-story-binding.test.ts",
+          ".deft/approved-scope/github.issue.6580878198.json",
+          ".deft/approved-scope/github.issue.6580878198.intent.json"
         ],
         "missing_traces_justification": "Prefer-A Bound limbs are the acceptance surface; traces deferred to product PR evidence."
       }
