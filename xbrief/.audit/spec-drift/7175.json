@@ -1,0 +1,13 @@
+{
+  "scopeId": "7175",
+  "unresolved": [
+    {
+      "scopeId": "7175",
+      "reason": "shape-changing completion missing x-directive/specImpact (none|delta|new)",
+      "specImpact": null,
+      "completedAt": "2026-11-24T09:54:22Z"
+    }
+  ],
+  "coverage": [],
+  "shadowFindings": []
+}

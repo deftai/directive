@@ -3,11 +3,11 @@
     "version": "0.8",
     "description": "Admit npm and pnpm build, lint, and typecheck without script arguments, and npm and pnpm audit only through a closed flag table. Keep npx tsc refused.",
     "created": "2026-11-24T02:37:07Z",
-    "updated": "2026-11-24T09:51:40Z"
+    "updated": "2026-11-24T09:52:21Z"
   },
   "plan": {
     "title": "Admit npm and pnpm verification commands at scope complete",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Overview": "Scope brief for Admit npm and pnpm verification commands at scope complete.",
       "Description": ""
@@ -15,7 +15,7 @@
     "items": [
       {
         "title": "npm and pnpm run build, run lint, and run typecheck are admitted without a positional, a double-dash, a runner flag, --if-present, or pnpm --filter.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "x-directive/requires": "merge",
         "x-directive/evidence": {
@@ -27,7 +27,7 @@
       },
       {
         "title": "npm audit and pnpm audit are admitted only through the closed flag table, and npx tsc and pnpm exec tsc stay refused.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "x-directive/requires": "merge",
         "x-directive/evidence": {
@@ -39,7 +39,7 @@
       },
       {
         "title": "Rewriting a structured record to npm run typecheck clears that record's old rejection and leaves unrelated rejections in place.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "x-directive/requires": "merge",
         "x-directive/evidence": {
@@ -72,7 +72,37 @@
       "productPullRequest": 7260,
       "deliveryDisposition": "delivered",
       "handoffState": "delivered",
-      "capacityBucket": "new-capability"
+      "capacityBucket": "new-capability",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "986527c9b0c16c026dec827fd0bcf1f026940897",
+        "prNumber": 7260,
+        "prBase": "master",
+        "mergeCommit": "30655363b10926b50c1edcde548a6d75ebe8204b",
+        "deliveryBranch": "master",
+        "deliveryCommit": "ba666ef4adc036dc6190bc85a68bba0f10554dd1",
+        "verifiedAt": "2026-11-24T09:52:21Z",
+        "verifier": "swarm:finalize-cohort",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMjBjYTAtOTI5OS03NjExLWIzNzAtYTM3OGRmN2Y5ZTE2",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          7266,
+          7267
+        ],
+        "competingMarkedPrs": [
+          7263
+        ]
+      },
+      "completedAt": "2026-11-24T09:52:21Z",
+      "completedSessionId": "host:grok:v1:MDFhMjBjYTAtOTI5OS03NjExLWIzNzAtYTM3OGRmN2Y5ZTE2",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-24T09:52:21Z"
+      }
     },
     "id": "7175",
     "acceptance": {
@@ -110,7 +140,7 @@
         "Rewriting a structured record to npm run typecheck clears that record's old rejection and leaves unrelated rejections in place."
       ]
     },
-    "updated": "2026-11-24T09:51:40Z",
+    "updated": "2026-11-24T09:52:21Z",
     "references": [
       {
         "type": "x-xbrief/github-issue",
