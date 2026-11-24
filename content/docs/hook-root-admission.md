@@ -258,7 +258,7 @@ commit runs. It reads them on the **target root**, the checkout the commit names
 
 | Command shape | Target root |
 | --- | --- |
-| `git -C <absolute path> commit …` | The named path, admitted as below. |
+| `git -C <absolute path> commit …` | The named path, admitted as below. One absolute `-C` is enough even when an earlier statement is a separate `cd` (same or different path) (#7273). |
 | `cd <absolute path> && … git commit …` (one `cd`, joined to the commit by `&&`) | The named path, admitted as below. |
 | A commit with no `cd` and no `-C` | The hook project root, as before. |
 
@@ -291,10 +291,11 @@ resolver's reason (never a fallback to another eligible story); `none` keeps the
 selection. The empty-index and lifecycle-only passes still apply, read from the target root.
 
 **Refused as unresolvable** (the message names the two absolute forms): a relative path after
-`cd` or `-C`; more than one `cd` or `-C` before the commit; a `cd` joined to the commit by `;` or
-`||`, or reached through an `||` that can skip it (a `{ … }` brace group runs in the current
-shell, so a `cd` or commit inside one is read the same way; a `( … )` subshell `cd` does not move
-a later commit); a variable, `~` or substitution in the path; `--git-dir` / `--work-tree`; and a `GIT_DIR`,
+`cd` or `-C`; more than one `-C` on one git invocation, or more than one reaching `cd` when there
+is no `-C`; a `cd` joined to the commit by `;` or `||` when there is no absolute `-C`, or reached
+through an `||` that can skip it (a `{ … }` brace group runs in the current shell, so a `cd` or
+commit inside one is read the same way; a `( … )` subshell `cd` does not move a later commit); a
+variable, `~` or substitution in the path; `--git-dir` / `--work-tree`; and a `GIT_DIR`,
 `GIT_WORK_TREE`, `GIT_INDEX_FILE` or `GIT_COMMON_DIR` prefix on the commit. In each case the gate
 cannot know which index the commit will use.
 
@@ -311,14 +312,19 @@ variable (`git $SUB`), refused even when it never commits; and, when the call sh
 string that holds a variable or substitution. An unquoted heredoc body raises no signal, and its
 parentheses open or close a group only inside a `$( … )`; only the commits it shows are read.
 
-**The commit word (#6871).** A variable command word, and a `-c`, `env -S` or `eval` string that
-holds a variable, is a signal only when the call shows `commit` (any case, as part of any word) in
-the decoded word values of its command chunks or in the same text before decoding. Quoted heredoc
-bodies are removed, unquoted bodies kept and line continuations joined, so `$GIT co''mmit` and a
+**The commit word (#6871 / #7273).** A variable command word, and a `-c`, `env -S` or `eval` string
+that holds a variable, is a signal only when the call shows exact-word `commit` (any case) among
+decoded shell words, including inside `sh`/`bash`/`zsh`/`pwsh -c`, `eval`, and `env -S` payloads.
+Pathspecs, filenames, and data/here-string bodies that only contain the substring do not count.
+Quoted heredoc bodies are removed and line continuations joined, so `$GIT co''mmit` and a
 `commit` split by a backslash-newline still show it. A call such as `$D verify:x`,
-`$env:X = "1"; deft foo` or `bash -c "deft foo $X"` is not a commit. Limit: a command supplied
-wholly by variables set earlier (`$RUN`, `eval "$RUN"`, or the word `commit` split across
-variables) is not read.
+`$BIN scope:promote --path with-commit-in-name`, `$env:X = "1"; deft foo` or
+`bash -c "deft foo $X"` is not a commit. A lifecycle `$BIN` beside a later named absolute
+`git -C` / `cd && git commit` is admitted on that named target; opaque commit-shaped wrappers
+(`$GIT commit`, `timeout … $CMD commit`, expanding `-c`/`eval`/`env -S` payloads that hold
+exact-word `commit`) stay refused even next to a named commit. Hand-expanding every binary path
+is not required for the admitted cases. Limit: a command supplied wholly by variables set earlier
+(`$RUN`, `eval "$RUN"`, or the word `commit` split across variables) is not read.
 
 **Array assignments (#6871).** A bash array-element assignment, `NAME[subscript]=value` or
 `NAME[subscript]+=value`, is read as an assignment, like `NAME=value`, when the word holds no `$(`
