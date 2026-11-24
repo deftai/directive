@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #7272",
-    "updated": "2026-11-24T20:42:45.003Z"
+    "updated": "2026-11-24T21:10:58.775Z"
   },
   "plan": {
     "title": "Observable-scope rediscovery scrub",
@@ -125,7 +125,15 @@
       "ambiguity_attestation": "none_found",
       "confessions": [
         "Observable-scope rediscovery scrub"
-      ]
+      ],
+      "admitted_source_sentences": [
+        "relieves: P1 — Tip-bind #7031 declared any-shell writers for observable-scope and intent-constraint and refuse restoring --minted-via or in-harness-ask as primary for those verbs.",
+        "relieves: P1 — Scrub named rediscovery coaches in content/docs/durable-effect-acquisition.md (in-harness-ask example implying obs/intent mint UX) and packages/core/src/observable-scope/types.ts JSDoc that still names #5010 in-harness ask, while leaving historical CHANGELOG #5010 as history and live commands/docs as SoT.",
+        "operator-deferred: P2 #7279 — Harness-attended human-presence mint for approved-scope and authz only, with host-authenticated yes bound to the intended request and checkout.",
+        "relieves: P3 — Keep unsigned declaration vs signed approval distinct, preserve admitSignedRecord and --request/--assertion plus #6945 keep-out, and refuse chat-yes humanApproval for observable-scope or intent-constraint."
+      ],
+      "admitted_source_digest": "6541eb8d6be918dfa6b048409919e53ccddc6f8ca7aed7c4e8a1eca8619c408e",
+      "admitted_source_extractor": 2
     },
     "metadata": {
       "intended_placement": {
