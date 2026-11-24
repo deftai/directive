@@ -3,7 +3,7 @@
     "version": "0.8",
     "description": "Admit Antigravity CLI as a design-critique critic seat",
     "created": "2026-11-24T04:00:00Z",
-    "updated": "2026-11-24T04:00:00Z"
+    "updated": "2026-11-24T20:03:49Z"
   },
   "plan": {
     "title": "Admit Antigravity CLI as a design-critique critic seat",
@@ -16,8 +16,15 @@
     "items": [
       {
         "title": "agy is admitted as its own critic-seat family on SeatLauncher and the existing launcher-argv classifier without a new swarm worker role.",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/launcher-argv.test.ts",
+          "recorded_at": "2026-11-24T20:03:49Z",
+          "recorded_by": "scope:stamp-evidence"
+        }
       }
     ],
     "metadata": {
@@ -35,11 +42,27 @@
         "size": "medium",
         "file_scope_confidence": "medium",
         "depends_on": []
-      }
+      },
+      "productPullRequest": 7301
     },
     "acceptance": {
       "commands": [],
-      "none_stated": true
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 1 independently testable clause from the task statement before product edit (#3323)",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "agy is admitted as its own critic-seat family on SeatLauncher and the existing launcher-argv classifier without a new swarm worker role.",
+          "artifact_path": "packages/core/src/hooks/launcher-argv.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "sentences": [
+        "agy is admitted as its own critic-seat family on SeatLauncher and the existing launcher-argv classifier without a new swarm worker role."
+      ]
     },
     "references": [
       {
