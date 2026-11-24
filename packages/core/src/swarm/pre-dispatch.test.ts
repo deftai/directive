@@ -1,17 +1,22 @@
+import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   activeAttempts,
   type DeliveryUnitLedger,
   loadUnitLedger,
 } from "../delivery-attempt/index.js";
+import { gitCommonDir } from "../session/git.js";
 import {
   formatPreDispatchReport,
   IMPLEMENT_LEAF_WORKFLOW_ID,
+  isDirectiveProjectRoot,
+  resolveStoryBindingTarget,
   swarmPreDispatch,
 } from "./pre-dispatch.js";
+import { readStoryBindingRecord } from "./story-binding-record.js";
 
 const temps: string[] = [];
 afterEach(() => {
@@ -431,5 +436,90 @@ describe("swarmPreDispatch (#3228)", () => {
     });
     // Distinct physical dirs may each have an active attempt.
     expect(second.exitCode).toBe(0);
+  });
+});
+
+describe("foreign Directive story-binding write (#7270)", () => {
+  function gitInit(root: string): void {
+    execFileSync("git", ["init", "-q"], { cwd: root, encoding: "utf8" });
+    execFileSync("git", ["config", "user.email", "t@t.local"], { cwd: root, encoding: "utf8" });
+    execFileSync("git", ["config", "user.name", "T"], { cwd: root, encoding: "utf8" });
+    writeFileSync(join(root, "README"), "x\n", "utf8");
+    execFileSync("git", ["add", "README"], { cwd: root, encoding: "utf8" });
+    execFileSync("git", ["commit", "-q", "-m", "init"], { cwd: root, encoding: "utf8" });
+  }
+
+  function addLinkedWorktree(root: string, dest: string): void {
+    execFileSync("git", ["worktree", "add", "--detach", dest, "HEAD"], {
+      cwd: root,
+      encoding: "utf8",
+    });
+  }
+
+  it("writes begun-from checkout root under a foreign Directive dest common-dir", () => {
+    const parent = tempRoot();
+    const foreign = tempRoot();
+    gitInit(parent);
+    gitInit(foreign);
+    const foreignWt = join(foreign, "wt");
+    addLinkedWorktree(foreign, foreignWt);
+    mkdirSync(join(foreignWt, "xbrief", "active"), { recursive: true });
+    writeFileSync(
+      join(foreignWt, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan: {} }),
+      "utf8",
+    );
+    writeFileSync(
+      join(foreignWt, "xbrief", "active", "story-7270.xbrief.json"),
+      JSON.stringify({
+        xBRIEFInfo: { version: "0.8" },
+        plan: { id: "github.issue.7270", status: "running", narratives: {} },
+      }),
+      "utf8",
+    );
+    expect(isDirectiveProjectRoot(foreignWt)).toBe(true);
+    expect(resolveStoryBindingTarget(parent, foreignWt).ok).toBe(true);
+    const begun = swarmPreDispatch({
+      projectRoot: parent,
+      scopeId: "github.issue.7270",
+      targetId: foreignWt,
+      action: "begin",
+      sourceRevision: "rev",
+    });
+    expect(begun.exitCode).toBe(0);
+    expect(begun.storyBinding).toContain("-> github.issue.7270");
+    const binding = readStoryBindingRecord(foreignWt);
+    expect(binding.ok).toBe(true);
+    if (!binding.ok || binding.record === null) return;
+    expect(binding.record.begun_from).toBe(resolve(parent));
+    expect(binding.commonDir).toBe(gitCommonDir(foreignWt));
+    const cancelled = swarmPreDispatch({
+      projectRoot: parent,
+      scopeId: "github.issue.7270",
+      targetId: foreignWt,
+      action: "cancel",
+      attemptId: begun.attempt?.attemptId,
+      preCancelForce: true,
+      preCancelReason: "t",
+      agentId: "a",
+      cancellerId: "p",
+    });
+    expect(cancelled.exitCode).toBe(0);
+    expect(cancelled.storyBinding).toContain("removed");
+    const after = readStoryBindingRecord(foreignWt);
+    expect(after.ok).toBe(true);
+    if (after.ok) expect(after.record).toBeNull();
+  });
+
+  it("still refuses a foreign non-Directive linked worktree", () => {
+    const parent = tempRoot();
+    const foreign = tempRoot();
+    gitInit(parent);
+    gitInit(foreign);
+    const foreignWt = join(foreign, "wt");
+    addLinkedWorktree(foreign, foreignWt);
+    const target = resolveStoryBindingTarget(parent, foreignWt);
+    expect(target.ok).toBe(false);
+    if (!target.ok) expect(target.reason).toContain("not a worktree of this repository");
   });
 });

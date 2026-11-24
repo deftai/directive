@@ -1,14 +1,18 @@
 import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { beginAttempt, emptyUnitLedger, saveUnitLedger } from "../delivery-attempt/index.js";
 import { SPAWN_CLASS_RECOVERY } from "../hooks/readonly.js";
+import { ensureStoryBindingRecord } from "../swarm/story-binding-record.js";
+import { resolveWorkerAuthDestPath } from "../swarm/worker-auth-assignment.js";
 import {
   listChildOccupancyLeases,
   readChildOccupancyLease,
   recordChildOccupancyLease,
 } from "./child-occupancy.js";
+import { gitCommonDir } from "./git.js";
 import { canonicalHostSessionId } from "./host-session-owner.js";
 import {
   applyWorktreeOccupancy,
@@ -21,11 +25,13 @@ import {
   applyCursorNurseryOccupancy,
   consultImplementSpawnOccupancy,
   cursorTaskMissingDestMessage,
+  evaluateForeignDestAdmit,
   evaluateImplementSpawnOccupancy,
   FENCE_IN_PLACE_PARKED_UNTIL,
   GROK_CRITIC_SPAWN_NOT_READY_RECOVERY,
   GROK_VENDOR_COMPAT_HOOKS_DISABLE_REFUSE,
   inspectSpawnDestination,
+  isBegunFromCommonDirOnly,
   mintImplementSpawnReservation,
   persistSpawnReservation,
   presentedSpawnSubagentType,
@@ -34,6 +40,7 @@ import {
   releaseSpawnReservation,
   rerootDestKeyList,
   rerootMissingDestImperative,
+  resolveSpawnReservationStoreRoot,
 } from "./spawn-occupancy.js";
 
 const temps: string[] = [];
@@ -218,7 +225,10 @@ describe("evaluateImplementSpawnOccupancy (#4066)", () => {
       host: "grok",
     });
     expect(decision.allow).toBe(false);
-    if (!decision.allow) expect(decision.reason).toBe("destination-foreign");
+    if (!decision.allow) {
+      expect(decision.reason).toBe("destination-foreign");
+      expect(decision.message).toContain("missing-binding");
+    }
   });
 
   it("refuses a destination that already has a live occupant", () => {
@@ -1366,6 +1376,310 @@ describe("leftover dest-lock consult reuse (#4254)", () => {
     expect(second.ok).toBe(false);
     if (!second.ok) expect(second.reason).toBe("conflict");
     expect(readSpawnReservationIncarnation(root, dest)).toBe("inc-winner");
+  });
+});
+
+describe("foreign dest pre-dispatch admit (#7270)", () => {
+  function markDirective(root: string): void {
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      JSON.stringify({ xBRIEFInfo: { version: "0.8" }, plan: {} }),
+      "utf8",
+    );
+  }
+
+  function writeOpenAttempt(
+    begunFrom: string,
+    storyId: string,
+    worktreePath: string,
+    attemptId: string,
+  ): void {
+    const ledger = emptyUnitLedger({
+      scopeId: storyId,
+      targetId: resolve(worktreePath).replace(/\\/g, "/").toLowerCase(),
+      workflowId: "drive-to:merge-ready",
+    });
+    const next = beginAttempt(ledger, {
+      attemptId,
+      sourceRevision: "rev",
+      trigger: "automatic",
+      status: "running",
+    });
+    saveUnitLedger(begunFrom, next.ledger);
+  }
+
+  function bindForeign(opts: {
+    parent: string;
+    foreignWt: string;
+    storyId: string;
+    attemptId: string;
+    begunFrom?: string;
+    ended?: boolean;
+  }): string {
+    const canonical = resolveWorkerAuthDestPath(opts.foreignWt);
+    const common = gitCommonDir(opts.foreignWt);
+    if (common === null) throw new Error("expected foreign common dir");
+    const begunFrom = opts.begunFrom ?? resolve(opts.parent);
+    if (!opts.ended) writeOpenAttempt(begunFrom, opts.storyId, canonical, opts.attemptId);
+    const wrote = ensureStoryBindingRecord({
+      commonDir: common,
+      worktreePath: canonical,
+      storyId: opts.storyId,
+      attemptIds: [opts.attemptId],
+      begunFrom,
+    });
+    if (!wrote.ok) throw new Error(wrote.detail);
+    return canonical;
+  }
+
+  it("admits a foreign linked worktree with a live begun-from binding", () => {
+    const parent = mkdtempSync(join(tmpdir(), "spawn-7270-adm-p-"));
+    const foreign = mkdtempSync(join(tmpdir(), "spawn-7270-adm-f-"));
+    temps.push(parent, foreign);
+    gitInit(parent);
+    gitInit(foreign);
+    const foreignWt = join(foreign, "wt");
+    addLinkedWorktree(foreign, foreignWt);
+    markDirective(foreignWt);
+    bindForeign({
+      parent,
+      foreignWt,
+      storyId: "github.issue.7270",
+      attemptId: "att-live-1",
+    });
+    const decision = consultImplementSpawnOccupancy({
+      payload: { tool_name: "spawn_subagent", tool_input: { cwd: foreignWt, prompt: "implement" } },
+      payloadRoot: parent,
+      host: "grok",
+      parentId: "parent-7270",
+    });
+    expect(decision.allow).toBe(true);
+    expect(evaluateForeignDestAdmit(foreignWt).admit).toBe(true);
+  });
+
+  it("refuses missing-binding on a foreign dest", () => {
+    const parent = mkdtempSync(join(tmpdir(), "spawn-7270-miss-p-"));
+    const foreign = mkdtempSync(join(tmpdir(), "spawn-7270-miss-f-"));
+    temps.push(parent, foreign);
+    gitInit(parent);
+    gitInit(foreign);
+    const foreignWt = join(foreign, "wt");
+    addLinkedWorktree(foreign, foreignWt);
+    markDirective(foreignWt);
+    const decision = consultImplementSpawnOccupancy({
+      payload: { tool_name: "spawn_subagent", tool_input: { cwd: foreignWt, prompt: "implement" } },
+      payloadRoot: parent,
+      host: "grok",
+    });
+    expect(decision.allow).toBe(false);
+    if (!decision.allow) {
+      expect(decision.reason).toBe("destination-foreign");
+      expect(decision.message).toContain("missing-binding");
+    }
+  });
+
+  it("refuses empty or ended attempt bindings", () => {
+    const parent = mkdtempSync(join(tmpdir(), "spawn-7270-end-p-"));
+    const foreign = mkdtempSync(join(tmpdir(), "spawn-7270-end-f-"));
+    temps.push(parent, foreign);
+    gitInit(parent);
+    gitInit(foreign);
+    const foreignWt = join(foreign, "wt");
+    addLinkedWorktree(foreign, foreignWt);
+    markDirective(foreignWt);
+    const canonical = resolveWorkerAuthDestPath(foreignWt);
+    const common = gitCommonDir(foreignWt);
+    if (common === null) throw new Error("expected common");
+    // Ended: binding lists an id that is not open in begun-from.
+    writeOpenAttempt(parent, "story-ended", canonical, "att-other");
+    ensureStoryBindingRecord({
+      commonDir: common,
+      worktreePath: canonical,
+      storyId: "story-ended",
+      attemptIds: ["att-ended"],
+      begunFrom: resolve(parent),
+    });
+    const decision = consultImplementSpawnOccupancy({
+      payload: { tool_name: "spawn_subagent", tool_input: { cwd: foreignWt, prompt: "implement" } },
+      payloadRoot: parent,
+      host: "grok",
+    });
+    expect(decision.allow).toBe(false);
+    if (!decision.allow) expect(decision.message).toContain("stale-ended-attempt");
+  });
+
+  it("refuses unreadable begun-from", () => {
+    const parent = mkdtempSync(join(tmpdir(), "spawn-7270-unr-p-"));
+    const foreign = mkdtempSync(join(tmpdir(), "spawn-7270-unr-f-"));
+    temps.push(parent, foreign);
+    gitInit(parent);
+    gitInit(foreign);
+    const foreignWt = join(foreign, "wt");
+    addLinkedWorktree(foreign, foreignWt);
+    markDirective(foreignWt);
+    bindForeign({
+      parent,
+      foreignWt,
+      storyId: "story-unreadable",
+      attemptId: "att-u1",
+      begunFrom: join(parent, "missing-checkout-root"),
+      ended: true,
+    });
+    const decision = consultImplementSpawnOccupancy({
+      payload: { tool_name: "spawn_subagent", tool_input: { cwd: foreignWt, prompt: "implement" } },
+      payloadRoot: parent,
+      host: "grok",
+    });
+    expect(decision.allow).toBe(false);
+    if (!decision.allow) expect(decision.message).toContain("unreadable-begun-from");
+  });
+
+  it("refuses common-dir-only begun-from", () => {
+    const parent = mkdtempSync(join(tmpdir(), "spawn-7270-cd-p-"));
+    const foreign = mkdtempSync(join(tmpdir(), "spawn-7270-cd-f-"));
+    temps.push(parent, foreign);
+    gitInit(parent);
+    gitInit(foreign);
+    const foreignWt = join(foreign, "wt");
+    addLinkedWorktree(foreign, foreignWt);
+    markDirective(foreignWt);
+    const parentCommon = gitCommonDir(parent);
+    if (parentCommon === null) throw new Error("expected parent common");
+    expect(isBegunFromCommonDirOnly(parentCommon)).toBe(true);
+    bindForeign({
+      parent,
+      foreignWt,
+      storyId: "story-common",
+      attemptId: "att-c1",
+      begunFrom: parentCommon,
+      ended: true,
+    });
+    const decision = consultImplementSpawnOccupancy({
+      payload: { tool_name: "spawn_subagent", tool_input: { cwd: foreignWt, prompt: "implement" } },
+      payloadRoot: parent,
+      host: "grok",
+    });
+    expect(decision.allow).toBe(false);
+    if (!decision.allow) expect(decision.message).toContain("common-dir-begun-from");
+  });
+
+  it("admits when the open attempt lives in another checkout of the begun-from repo", () => {
+    const primary = mkdtempSync(join(tmpdir(), "spawn-7270-oth-p-"));
+    const foreign = mkdtempSync(join(tmpdir(), "spawn-7270-oth-f-"));
+    temps.push(primary, foreign);
+    gitInit(primary);
+    gitInit(foreign);
+    const otherCheckout = join(primary, "other");
+    addLinkedWorktree(primary, otherCheckout);
+    const foreignWt = join(foreign, "wt");
+    addLinkedWorktree(foreign, foreignWt);
+    markDirective(foreignWt);
+    const canonical = resolveWorkerAuthDestPath(foreignWt);
+    writeOpenAttempt(otherCheckout, "story-other", canonical, "att-other-co");
+    const common = gitCommonDir(foreignWt);
+    if (common === null) throw new Error("expected common");
+    ensureStoryBindingRecord({
+      commonDir: common,
+      worktreePath: canonical,
+      storyId: "story-other",
+      attemptIds: ["att-other-co"],
+      begunFrom: resolve(otherCheckout),
+    });
+    const fromPrimary = consultImplementSpawnOccupancy({
+      payload: { tool_name: "spawn_subagent", tool_input: { cwd: foreignWt, prompt: "implement" } },
+      payloadRoot: primary,
+      host: "grok",
+    });
+    expect(fromPrimary.allow).toBe(true);
+  });
+
+  it("keeps same-repo spawn unchanged", () => {
+    const root = mkdtempSync(join(tmpdir(), "spawn-7270-same-"));
+    temps.push(root);
+    gitInit(root);
+    const dest = join(root, "wt");
+    addLinkedWorktree(root, dest);
+    const decision = consultImplementSpawnOccupancy({
+      payload: { tool_name: "spawn_subagent", tool_input: { cwd: dest, prompt: "implement" } },
+      payloadRoot: root,
+      host: "grok",
+      parentId: "parent-same",
+    });
+    expect(decision.allow).toBe(true);
+  });
+
+  it("uses the dest store for consult/persist/release on a foreign admit", () => {
+    const parent = mkdtempSync(join(tmpdir(), "spawn-7270-store-p-"));
+    const foreign = mkdtempSync(join(tmpdir(), "spawn-7270-store-f-"));
+    temps.push(parent, foreign);
+    gitInit(parent);
+    gitInit(foreign);
+    const foreignWt = join(foreign, "wt");
+    addLinkedWorktree(foreign, foreignWt);
+    markDirective(foreignWt);
+    bindForeign({
+      parent,
+      foreignWt,
+      storyId: "story-store",
+      attemptId: "att-store",
+    });
+    expect(resolveSpawnReservationStoreRoot(parent, foreignWt)).toBe(resolve(foreign));
+    const minted = evaluateImplementSpawnOccupancy({
+      payload: { tool_name: "spawn_subagent", tool_input: { cwd: foreignWt, prompt: "implement" } },
+      payloadRoot: parent,
+      host: "grok",
+      parentId: "parent-store",
+    });
+    expect(minted.allow).toBe(true);
+    if (!minted.allow || minted.reservation === null) return;
+    expect(persistSpawnReservation(parent, minted.reservation).ok).toBe(true);
+    expect(readSpawnReservationIncarnation(parent, foreignWt)).toBe(minted.incarnation);
+    expect(readSpawnReservationIncarnation(foreign, foreignWt)).toBe(minted.incarnation);
+    expect(
+      releaseLeftoverSpawnReservation(parent, foreignWt, minted.incarnation ?? "", new Date()),
+    ).toBe(true);
+    expect(readSpawnReservationIncarnation(foreign, foreignWt)).toBeNull();
+  });
+
+  it("lets only one of two parents reserve one foreign dest", () => {
+    const parentA = mkdtempSync(join(tmpdir(), "spawn-7270-twa-"));
+    const parentB = mkdtempSync(join(tmpdir(), "spawn-7270-twb-"));
+    const foreign = mkdtempSync(join(tmpdir(), "spawn-7270-twf-"));
+    temps.push(parentA, parentB, foreign);
+    gitInit(parentA);
+    gitInit(parentB);
+    gitInit(foreign);
+    const foreignWt = join(foreign, "wt");
+    addLinkedWorktree(foreign, foreignWt);
+    markDirective(foreignWt);
+    bindForeign({
+      parent: parentA,
+      foreignWt,
+      storyId: "story-two",
+      attemptId: "att-two",
+    });
+    const first = persistSpawnReservation(parentA, {
+      agentId: "a",
+      parentId: "pa",
+      occupancyOwner: "pa",
+      worktreePath: foreignWt,
+      identitySourceKind: "host-env",
+      incarnation: "inc-a",
+      provenance: "dispatch",
+    });
+    const second = persistSpawnReservation(parentB, {
+      agentId: "b",
+      parentId: "pb",
+      occupancyOwner: "pb",
+      worktreePath: foreignWt,
+      identitySourceKind: "host-env",
+      incarnation: "inc-b",
+      provenance: "dispatch",
+    });
+    expect(first.ok).toBe(true);
+    expect(second.ok).toBe(false);
+    if (!second.ok) expect(second.reason).toBe("conflict");
   });
 });
 

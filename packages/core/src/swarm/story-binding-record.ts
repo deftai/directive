@@ -39,6 +39,16 @@ export interface StoryBindingRecord {
   readonly story_id: string;
   readonly worktree_path: string;
   readonly attempt_ids: readonly string[];
+  /**
+   * Originating checkout project root that owns the delivery-attempt ledger for
+   * attempt_ids (#7270). Must be a checkout root, not a git-common-dir alone.
+   */
+  readonly begun_from?: string;
+  /**
+   * Per-attempt checkout roots when several checkouts share one record (#7270).
+   * A later begin must not relabel an older attempt with its own root.
+   */
+  readonly attempt_begun_from?: Readonly<Record<string, string>>;
 }
 
 export type ReadStoryBindingRecordResult =
@@ -82,6 +92,17 @@ function ticketRel(): string {
   return join(STORY_BINDING_STORE_DIR, `${STORY_BINDING_LOCK_NAME}.reclaim`);
 }
 
+function parseAttemptBegunFrom(raw: unknown): Record<string, string> | null | undefined {
+  if (raw === undefined) return undefined;
+  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const out: Record<string, string> = {};
+  for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
+    if (key.length === 0 || typeof value !== "string" || value.trim().length === 0) return null;
+    out[key] = value.trim();
+  }
+  return out;
+}
+
 function parseRecord(raw: unknown): StoryBindingRecord | null {
   if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return null;
   const rec = raw as Record<string, unknown>;
@@ -92,7 +113,21 @@ function parseRecord(raw: unknown): StoryBindingRecord | null {
   if (!Array.isArray(ids) || ids.some((id) => typeof id !== "string" || id.length === 0)) {
     return null;
   }
-  return { story_id: storyId, worktree_path: worktreePath, attempt_ids: [...(ids as string[])] };
+  const begunRaw = rec.begun_from;
+  let begunFrom: string | undefined;
+  if (begunRaw !== undefined) {
+    if (typeof begunRaw !== "string" || begunRaw.trim().length === 0) return null;
+    begunFrom = begunRaw.trim();
+  }
+  const owners = parseAttemptBegunFrom(rec.attempt_begun_from);
+  if (owners === null) return null;
+  return {
+    story_id: storyId,
+    worktree_path: worktreePath,
+    attempt_ids: [...(ids as string[])],
+    ...(begunFrom !== undefined ? { begun_from: begunFrom } : {}),
+    ...(owners !== undefined ? { attempt_begun_from: owners } : {}),
+  };
 }
 
 function loadRecordFile(abs: string): StoryBindingRecord | "missing" | "malformed" {
@@ -284,6 +319,11 @@ export interface EnsureStoryBindingRecordInput {
   readonly storyId: string;
   readonly attemptIds: readonly string[];
   /**
+   * Originating checkout project root that owns the delivery-attempt ledger for
+   * `attemptIds` (#7270). Not a git-common-dir alone.
+   */
+  readonly begunFrom?: string;
+  /**
    * Called under the store lock: returns the ids among those given that a
    * ledger known to the caller shows as ended. They are dropped from the new
    * ids and from the ids the record already lists, so an attempt that ended
@@ -306,19 +346,36 @@ export function ensureStoryBindingRecord(
   const rel = recordRel(storyBindingRecordName(input.worktreePath));
   return withStoreLock(input.commonDir, (): EnsureStoryBindingRecordResult => {
     const existing = loadRecordFile(join(input.commonDir, rel));
-    const kept =
-      typeof existing === "object" && existing.story_id === input.storyId
-        ? existing.attempt_ids
-        : [];
+    const sameStory = typeof existing === "object" && existing.story_id === input.storyId;
+    const kept = sameStory ? existing.attempt_ids : [];
     const candidates = [...new Set([...kept, ...input.attemptIds])];
     const ended = new Set(input.endedAttemptIds?.(candidates) ?? []);
     if (input.attemptIds.every((id) => ended.has(id))) {
       return { ok: false, detail: "no attempt of this unit is still running" };
     }
+    const attemptIds = candidates.filter((id) => !ended.has(id));
+    const begunFrom = input.begunFrom?.trim() ?? "";
+    const priorOwners =
+      sameStory && existing.attempt_begun_from !== undefined
+        ? { ...existing.attempt_begun_from }
+        : sameStory && existing.begun_from !== undefined
+          ? Object.fromEntries(kept.map((id) => [id, existing.begun_from as string]))
+          : {};
+    const owners: Record<string, string> = {};
+    for (const id of attemptIds) {
+      const prior = priorOwners[id]?.trim() ?? "";
+      if (prior.length > 0) {
+        owners[id] = prior;
+      } else if (begunFrom.length > 0) {
+        owners[id] = begunFrom;
+      }
+    }
     const record: StoryBindingRecord = {
       story_id: input.storyId,
       worktree_path: input.worktreePath,
-      attempt_ids: candidates.filter((id) => !ended.has(id)),
+      attempt_ids: attemptIds,
+      ...(begunFrom.length > 0 ? { begun_from: begunFrom } : {}),
+      ...(Object.keys(owners).length > 0 ? { attempt_begun_from: owners } : {}),
     };
     const failed = writeRecordAtomic(input.commonDir, rel, record);
     if (failed !== null) {

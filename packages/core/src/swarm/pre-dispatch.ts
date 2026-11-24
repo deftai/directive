@@ -10,7 +10,7 @@
  */
 
 import { existsSync, readFileSync, realpathSync, statSync } from "node:fs";
-import { isAbsolute, normalize, resolve } from "node:path";
+import { isAbsolute, join, normalize, resolve } from "node:path";
 import {
   type AttemptTrigger,
   activeAttempts,
@@ -365,6 +365,15 @@ function linkedWorktreesOnBranch(
   return hits;
 }
 
+/** True when the checkout looks like a Directive project (#7270 foreign bind). */
+export function isDirectiveProjectRoot(root: string): boolean {
+  const top = resolve(root);
+  return (
+    existsSync(join(top, "xbrief", "PROJECT-DEFINITION.xbrief.json")) ||
+    existsSync(join(top, "vbrief", "PROJECT-DEFINITION.vbrief.json"))
+  );
+}
+
 function linkedTarget(
   projectCommon: string,
   dir: string,
@@ -377,8 +386,14 @@ function linkedTarget(
     return { ok: false, reason: `target ${label} is not a linked worktree` };
   }
   const commonDir = gitCommonDir(top, runGit);
-  if (commonDir === null || !sameRepoPath(projectCommon, commonDir)) {
+  if (commonDir === null) {
     return { ok: false, reason: `target ${label} is not a worktree of this repository` };
+  }
+  if (!sameRepoPath(projectCommon, commonDir)) {
+    // #7270: foreign linked Directive worktree writes under its own common-dir.
+    if (!isDirectiveProjectRoot(top)) {
+      return { ok: false, reason: `target ${label} is not a worktree of this repository` };
+    }
   }
   return { ok: true, worktreePath: resolveWorkerAuthDestPath(top, runGit), commonDir };
 }
@@ -499,6 +514,8 @@ export function ensureBeginStoryBinding(
       worktreePath: target.worktreePath,
       storyId: scope.storyId,
       attemptIds,
+      // Checkout root that owns the delivery-attempt ledger (#7270); not common-dir.
+      begunFrom: resolve(input.projectRoot),
       // Re-read under the store lock: an attempt a concurrent cancel/complete
       // ended after begin read the ledger is not written back; ids only
       // another checkout's ledger knows are kept.
@@ -514,24 +531,47 @@ export function ensureBeginStoryBinding(
   }
 }
 
+function removeEndedFromCommonDir(
+  commonDir: string,
+  endedAttemptIds: readonly string[],
+): { ok: true; updated: number; deleted: number } | { ok: false; detail: string } {
+  const removed = removeStoryBindingAttempts({ commonDir, attemptIds: endedAttemptIds });
+  if (!removed.ok) return { ok: false, detail: removed.detail };
+  return { ok: true, updated: removed.updated.length, deleted: removed.deleted.length };
+}
+
 /**
  * Remove ended attempt ids from every story-binding record of this repository
- * (#6379 item 5). Returns null when nothing listed them.
+ * (#6379 item 5), and from a foreign dest store when `targetId` resolves there
+ * (#7270). Returns null when nothing listed them.
  */
 export function removeEndedStoryBindings(
   projectRoot: string,
   endedAttemptIds: readonly string[],
+  targetId?: string,
 ): string | null {
   if (endedAttemptIds.length === 0) return null;
   try {
     const commonDir = gitCommonDir(projectRoot);
     if (commonDir === null) return null;
-    const removed = removeStoryBindingAttempts({ commonDir, attemptIds: endedAttemptIds });
-    if (!removed.ok) return `story-binding: attempt ids not removed: ${removed.detail}`;
-    if (removed.updated.length === 0 && removed.deleted.length === 0) return null;
+    const primary = removeEndedFromCommonDir(commonDir, endedAttemptIds);
+    if (!primary.ok) return `story-binding: attempt ids not removed: ${primary.detail}`;
+    let updated = primary.updated;
+    let deleted = primary.deleted;
+    const rawTarget = targetId?.trim() ?? "";
+    if (rawTarget.length > 0) {
+      const target = resolveStoryBindingTarget(projectRoot, rawTarget);
+      if (target.ok && !sameRepoPath(commonDir, target.commonDir)) {
+        const foreign = removeEndedFromCommonDir(target.commonDir, endedAttemptIds);
+        if (!foreign.ok) return `story-binding: attempt ids not removed: ${foreign.detail}`;
+        updated += foreign.updated;
+        deleted += foreign.deleted;
+      }
+    }
+    if (updated === 0 && deleted === 0) return null;
     return (
       `story-binding: removed ${endedAttemptIds.join(",")} ` +
-      `(records deleted ${removed.deleted.length}, kept ${removed.updated.length})`
+      `(records deleted ${deleted}, kept ${updated})`
     );
   } catch (err) {
     return `story-binding: attempt ids not removed: ${errorText(err)}`;
@@ -801,7 +841,7 @@ function runComplete(
     if (closed !== null && closed.endedAt !== null && !ended.includes(closed.attemptId)) {
       ended.push(closed.attemptId);
     }
-    const note = removeEndedStoryBindings(input.projectRoot, ended);
+    const note = removeEndedStoryBindings(input.projectRoot, ended, input.targetId);
     return note === null ? result : { ...result, storyBinding: note };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

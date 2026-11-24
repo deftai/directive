@@ -19,6 +19,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { existsSync, readFileSync, realpathSync, statSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, resolve } from "node:path";
+import { activeAttempts, listUnitLedgers } from "../delivery-attempt/index.js";
 import {
   ContainedWriteError,
   ContainedWriteErrorCode,
@@ -31,6 +32,7 @@ import {
   isProcessOnlyCriticSpawn,
   SPAWN_CLASS_RECOVERY,
 } from "../hooks/readonly.js";
+import { readStoryBindingRecord } from "../swarm/story-binding-record.js";
 import {
   type ChildOccupancyDispatchInput,
   type ChildOccupancyRecord,
@@ -44,6 +46,7 @@ import {
   type GitRunner,
   gitCommonDir,
   sameWorktreePath,
+  worktreePathOrNull,
 } from "./git.js";
 import { isLinkedWorktreePath, isMainWorktreePath, mainWorktreeRoot } from "./main-worktree.js";
 import {
@@ -395,6 +398,25 @@ function reservationLockRoot(storeRoot: string): string {
   return mainWorktreeRoot(root) ?? root;
 }
 
+/**
+ * Reservation store for a dest (#7270): foreign dests use the dest repo main so
+ * consult/persist/release share one namespace; same-repo keeps the parent store.
+ */
+export function resolveSpawnReservationStoreRoot(
+  payloadRoot: string,
+  destPath: string | null,
+  runGit: GitRunner = defaultGitRunner,
+): string {
+  const parent = resolve(payloadRoot);
+  if (destPath === null) return parent;
+  const dest = resolve(destPath);
+  const destRepo = mainWorktreeRoot(dest, runGit);
+  const parentRepo = mainWorktreeRoot(parent, runGit);
+  if (destRepo === null || parentRepo === null) return parent;
+  if (sameTree(destRepo, parentRepo)) return parent;
+  return destRepo;
+}
+
 function existingDispatchReservation(storeRoot: string, worktreePath: string) {
   const want = resolve(worktreePath);
   const roots = [resolve(storeRoot)];
@@ -409,6 +431,137 @@ function existingDispatchReservation(storeRoot: string, worktreePath: string) {
     }
   }
   return null;
+}
+
+export type ForeignDestAdmitDenyKind =
+  | "missing-binding"
+  | "malformed-binding"
+  | "unreadable-begun-from"
+  | "common-dir-begun-from"
+  | "stale-ended-attempt";
+
+export type ForeignDestAdmitResult =
+  | { readonly admit: true }
+  | { readonly admit: false; readonly kind: ForeignDestAdmitDenyKind };
+
+function pathKey(value: string): string {
+  let key = resolve(value).replace(/\\/g, "/").toLowerCase();
+  if (key.length > 1 && key.endsWith("/")) key = key.slice(0, -1);
+  return key;
+}
+
+/** True when locator is a git-common-dir alone, not a checkout project root (#7270). */
+export function isBegunFromCommonDirOnly(
+  begunFrom: string,
+  runGit: GitRunner = defaultGitRunner,
+): boolean {
+  const root = resolve(begunFrom);
+  if (!existsSync(root)) return false;
+  const top = worktreePathOrNull(root, runGit);
+  if (top === null) return true;
+  if (!sameTree(root, top)) return true;
+  const common = gitCommonDir(root, runGit);
+  return common !== null && sameTree(root, common);
+}
+
+function ownerForAttempt(
+  record: {
+    readonly begun_from?: string;
+    readonly attempt_begun_from?: Readonly<Record<string, string>>;
+  },
+  attemptId: string,
+): string {
+  const per = record.attempt_begun_from?.[attemptId]?.trim() ?? "";
+  if (per.length > 0) return per;
+  return record.begun_from?.trim() ?? "";
+}
+
+/**
+ * Narrow foreign-dest admit when pre-dispatch bound the dest with a live
+ * begun-from checkout ledger (#7270 Recut-2).
+ */
+export function evaluateForeignDestAdmit(
+  destPath: string,
+  runGit: GitRunner = defaultGitRunner,
+): ForeignDestAdmitResult {
+  const binding = readStoryBindingRecord(destPath, null, runGit);
+  if (!binding.ok) return { admit: false, kind: "malformed-binding" };
+  if (binding.record === null) return { admit: false, kind: "missing-binding" };
+  const rec = binding.record;
+  if (rec.attempt_ids.length === 0) return { admit: false, kind: "stale-ended-attempt" };
+  if (!sameTree(rec.worktree_path, destPath)) return { admit: false, kind: "malformed-binding" };
+
+  const owners = new Set(
+    rec.attempt_ids.map((id) => ownerForAttempt(rec, id)).filter((o) => o.length > 0),
+  );
+  if (owners.size === 0) return { admit: false, kind: "unreadable-begun-from" };
+
+  let sawReadableOwner = false;
+  let sawOpen = false;
+  let sawCommonDirOnly = false;
+  for (const owner of owners) {
+    if (!existsSync(owner)) continue;
+    if (isBegunFromCommonDirOnly(owner, runGit)) {
+      sawCommonDirOnly = true;
+      continue;
+    }
+    sawReadableOwner = true;
+    const wantStory = rec.story_id;
+    const wantPath = pathKey(rec.worktree_path);
+    for (const ledger of listUnitLedgers(owner)) {
+      if (ledger.scopeId !== wantStory) continue;
+      if (pathKey(ledger.targetId) !== wantPath && !sameTree(ledger.targetId, rec.worktree_path)) {
+        continue;
+      }
+      const active = new Set(activeAttempts(ledger).map((a) => a.attemptId));
+      if (rec.attempt_ids.some((id) => active.has(id))) {
+        sawOpen = true;
+        break;
+      }
+    }
+    if (sawOpen) break;
+  }
+  if (sawOpen) return { admit: true };
+  if (sawCommonDirOnly && !sawReadableOwner) return { admit: false, kind: "common-dir-begun-from" };
+  if (!sawReadableOwner) return { admit: false, kind: "unreadable-begun-from" };
+  return { admit: false, kind: "stale-ended-attempt" };
+}
+
+function foreignDestDenyRecovery(kind: ForeignDestAdmitDenyKind, destPath: string): string {
+  const base =
+    `Directive denied spawn: destination ${destPath} is a linked worktree of a foreign repository. ` +
+    "Spawned mutating work takes a linked worktree of this repo";
+  switch (kind) {
+    case "missing-binding":
+      return (
+        `${base}, or a foreign linked Directive worktree with a live swarm:pre-dispatch ` +
+        "story-binding under that dest. Recovery: run swarm:pre-dispatch begin for this " +
+        "worktree from the checkout that owns the delivery-attempt ledger (missing-binding)."
+      );
+    case "malformed-binding":
+      return (
+        `${base}, or a foreign linked Directive worktree with a readable story-binding. ` +
+        "Recovery: re-run swarm:pre-dispatch begin to rewrite the dest story-binding (malformed-binding)."
+      );
+    case "unreadable-begun-from":
+      return (
+        `${base}, or a foreign bound dest whose begun-from checkout root is present and readable. ` +
+        "Recovery: restore that originating checkout or re-begin from a live checkout root " +
+        "(unreadable-begun-from)."
+      );
+    case "common-dir-begun-from":
+      return (
+        `${base}, or a foreign bound dest whose begun-from is the originating checkout project root ` +
+        "(not a git-common-dir alone). Recovery: re-run swarm:pre-dispatch begin so begun-from " +
+        "records the checkout root (common-dir-begun-from)."
+      );
+    case "stale-ended-attempt":
+      return (
+        `${base}, or a foreign bound dest with at least one still-open attempt in the begun-from ` +
+        "checkout ledger for that story and path. Recovery: swarm:pre-dispatch begin again " +
+        "(stale-ended-attempt)."
+      );
+  }
 }
 
 export type ConsultImplementSpawnOccupancyInput = {
@@ -635,18 +788,22 @@ export function consultImplementSpawnOccupancy(
     );
   }
 
+  let foreignDestAdmitted = false;
   if (destPath !== null && existsSync(destPath)) {
     const destRepo = mainWorktreeRoot(destPath, runGit);
     const parentRepo = mainWorktreeRoot(payloadRoot, runGit);
     if (destRepo !== null && parentRepo !== null && !sameTree(destRepo, parentRepo)) {
-      return consultDeny(
-        "destination-foreign",
-        `Directive denied spawn: destination ${destPath} is a linked worktree of a foreign repository. ` +
-          "Spawned mutating work takes a linked worktree of this repo.",
-        parentId,
-        destination,
-        destPath,
-      );
+      const foreign = evaluateForeignDestAdmit(destPath, runGit);
+      if (!foreign.admit) {
+        return consultDeny(
+          "destination-foreign",
+          foreignDestDenyRecovery(foreign.kind, destPath),
+          parentId,
+          destination,
+          destPath,
+        );
+      }
+      foreignDestAdmitted = true;
     }
   }
 
@@ -667,7 +824,10 @@ export function consultImplementSpawnOccupancy(
         destPath,
       );
     }
-    const existing = existingDispatchReservation(payloadRoot, destPath);
+    const reservationStore = foreignDestAdmitted
+      ? resolveSpawnReservationStoreRoot(payloadRoot, destPath, runGit)
+      : payloadRoot;
+    const existing = existingDispatchReservation(reservationStore, destPath);
     if (existing !== null) {
       const leftover = leftoverReuseIncarnation(
         existing,
@@ -786,12 +946,12 @@ export function evaluateImplementSpawnOccupancy(
   }
   const leftover = consult.leftoverIncarnation?.trim() ?? "";
   if (leftover.length > 0 && consult.destPath !== null) {
-    releaseLeftoverSpawnReservation(
-      resolve(input.payloadRoot),
+    const store = resolveSpawnReservationStoreRoot(
+      input.payloadRoot,
       consult.destPath,
-      leftover,
-      input.now,
+      input.runGit ?? defaultGitRunner,
     );
+    releaseLeftoverSpawnReservation(store, consult.destPath, leftover, input.now);
   }
   return mintImplementSpawnReservation(consult, input);
 }
@@ -836,8 +996,10 @@ export function readSpawnReservationIncarnation(
   storeRoot: string,
   destPath: string,
 ): string | null {
-  const lockRoot = reservationLockRoot(resolve(storeRoot));
-  const target = reservationLockPath(lockRoot, destPath);
+  const dest = resolve(destPath);
+  const root = resolve(resolveSpawnReservationStoreRoot(storeRoot, dest));
+  const lockRoot = reservationLockRoot(root);
+  const target = reservationLockPath(lockRoot, dest);
   if (!existsSync(target)) return null;
   const text = readFileSync(target, "utf8").trim();
   return text.length > 0 ? text : null;
@@ -856,9 +1018,10 @@ export function persistSpawnReservation(
   reservation: ChildOccupancyDispatchInput,
   now?: Date,
 ): PersistSpawnReservationResult {
-  const root = resolve(storeRoot);
-  if (!existsSync(root)) return { ok: true };
   const dest = resolve(reservation.worktreePath);
+  // #7270: foreign dest reservations live under the dest repo store together.
+  const root = resolve(resolveSpawnReservationStoreRoot(storeRoot, dest));
+  if (!existsSync(root)) return { ok: true };
   const incarnation = reservation.incarnation?.trim() ?? "";
   if (incarnation.length === 0) return { ok: false, reason: "conflict" };
   // Dest-keyed lock lives under the shared git common-dir (main clone) so two
@@ -925,7 +1088,8 @@ export function releaseLeftoverSpawnReservation(
   // Revalidate immediately before dest-lock delete so a child that claimed
   // after the first read keeps its dispatch record (#4254 Greptile P1).
   if (liveOccupant(dest, now) !== null) return false;
-  const root = resolve(storeRoot);
+  // #7270: foreign dest leftover release uses the dest repo store.
+  const root = resolve(resolveSpawnReservationStoreRoot(storeRoot, dest));
   const lockRoot = reservationLockRoot(root);
   const releasedLock = releaseSpawnReservation(root, dest, want);
   if (liveOccupant(dest, now) !== null) return false;
@@ -1014,7 +1178,8 @@ export function allocatedWorktreeMatches(
   if (presentedIncarnation.length === 0 || presentedIncarnation === "missing") return false;
   const runGit = opts.runGit ?? defaultGitRunner;
   const want = resolve(candidate);
-  const root = resolve(storeRoot);
+  // #7270: when candidate is a foreign dest, consult that dest's reservation store.
+  const root = resolve(resolveSpawnReservationStoreRoot(storeRoot, want, runGit));
   if (!existsSync(root)) return false;
   const storeRepo = mainWorktreeRoot(root, runGit);
   const candidateRepo = mainWorktreeRoot(want, runGit);
@@ -1026,19 +1191,23 @@ export function allocatedWorktreeMatches(
   if (presentedIncarnation !== currentIncarnation) {
     return false;
   }
-  for (const rec of listChildOccupancyLeases(root)) {
-    if (rec.provenance !== "dispatch") continue;
-    if (rec.incarnation.length === 0 || rec.incarnation === "missing") continue;
-    if (rec.incarnation !== currentIncarnation) continue;
-    if (rec.occupancyOwner.trim().length === 0) continue;
-    if (rec.parentId !== parentId) continue;
-    const recorded = resolve(rec.worktreePath);
-    if (!sameTree(recorded, want)) continue;
-    const live = liveOccupant(want);
-    if (live !== null && live.sessionId !== rec.occupancyOwner && live.sessionId !== parentId) {
-      continue;
+  const leaseRoots = [root];
+  if (existsSync(want) && !sameTree(root, want)) leaseRoots.push(want);
+  for (const leaseRoot of leaseRoots) {
+    for (const rec of listChildOccupancyLeases(leaseRoot)) {
+      if (rec.provenance !== "dispatch") continue;
+      if (rec.incarnation.length === 0 || rec.incarnation === "missing") continue;
+      if (rec.incarnation !== currentIncarnation) continue;
+      if (rec.occupancyOwner.trim().length === 0) continue;
+      if (rec.parentId !== parentId) continue;
+      const recorded = resolve(rec.worktreePath);
+      if (!sameTree(recorded, want)) continue;
+      const live = liveOccupant(want);
+      if (live !== null && live.sessionId !== rec.occupancyOwner && live.sessionId !== parentId) {
+        continue;
+      }
+      return true;
     }
-    return true;
   }
   return false;
 }
