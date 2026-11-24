@@ -675,8 +675,9 @@ describe("slow-path scope:complete gate (#7252)", () => {
 
   it("refuses complete when two active briefs already have merged product PRs", () => {
     root = mkdtempSync(join(tmpdir(), "slow-path-two-"));
-    const a = writeRunning("2026-01-01-a.xbrief.json", { id: "1001", productPr: 11 });
-    const b = writeRunning("2026-01-01-b.xbrief.json", { id: "1002", productPr: 12 });
+    // Non-numeric plan.id so the only --cohort selectors are brief paths (#7258 / #7252).
+    const a = writeRunning("2026-01-01-a.xbrief.json", { id: "story-a", productPr: 11 });
+    const b = writeRunning("2026-01-01-b.xbrief.json", { id: "story-b", productPr: 12 });
     const gate = evaluateSlowPathCompleteGate({
       projectRoot: root,
       repository: "acme/app",
