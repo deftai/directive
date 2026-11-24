@@ -47,8 +47,7 @@
         "size": "medium",
         "file_scope_confidence": "medium",
         "depends_on": []
-      },
-      "productPullRequest": 7260
+      }
     },
     "id": "7175",
     "acceptance": {
