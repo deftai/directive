@@ -1,0 +1,479 @@
+{
+  "schemaVersion": 1,
+  "algo": "intent-extract-v1",
+  "plan": {
+    "title": "[framework-gap] acceptance-disposition deferral is never applied when the clause walk fails (scope:complete refuses before reading the grant)",
+    "narratives": {
+      "Description": "[framework-gap] acceptance-disposition deferral is never applied when the clause walk fails (scope:complete refuses before reading the grant)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/7254",
+      "Overview": "**Version:** `@deftai/directive-runtime` 0.131.x (deftai/deftvisage pin)\n**Command:** `deft scope:complete -- xbrief/active/2026-11-23-phase6-desk-research-store.xbrief.json --pr 2485 --merge-commit 262240662e…`\n\nThe operator minted an acceptance-disposition deferral for `clause.1`:\n\n`deft authz:grant -- --template acceptance-disposition --plan-ref story.phase6-desk-research-store --story-ids clause.1 --deferred-to 2497 --reason \"…\" --confirm`\n\nThe grant was recorded in `.deft/authz/grants/` of the main clone, and the clause text is unchanged since the grant. `scope:complete` still refuses at the verify:ac clause walk, before the deferral is applied:\n\n```\n[failed] clause 1 @ server/routes/desk-research.test.mjs: … This is the \"reload or second machine\" case. — expected token(s) missing …: reload or second machine\nacceptance verdict (#3497): clause-walk-failed\n```\n\nThe output never mentions the grant. commands.md (#6318) says scope:complete writes `deferred` with the grant id on those items instead of merge evidence. In practice the clause walk gate runs first and fails, so a deferral can never take effect for a clause-walk failure.\n\nTwo problems:\n1. A deferral grant for a clause should exclude that clause from the clause walk, or the walk should honour it.\n2. The underlying false match: a quoted phrase in descriptive clause text is treated as a required literal token (see #7170).\n\nThe behaviour is tested (`desk-research.test.mjs:122`) and the literal acceptance command passes. Tracking issue: deftai/deftvisage#2497.\n\n",
+      "Labels": "bug, agent-experience, process, urgent, dogfood, design-critique:ingest-ready, framework-gap, core-capabilities, promise:lifecycle, promise:tickets, promise:gates",
+      "UserStory": "**Version:** `@deftai/directive-runtime` 0.131.x (deftai/deftvisage pin)\n**Command:** `deft scope:complete -- xbrief/active/2026-11-23-phase6-desk-research-store.xbrief.json --pr 2485 --merge-commit 262240662e…`\n\nThe operator minted an acceptance-disposition deferral for `clause.1`:\n\n`deft authz:grant -- --template acceptance-disposition --plan-ref story.phase6-desk-research-store --story-ids clause.1 --deferred-to 2497 --reason \"…\" --confirm`\n\nThe grant was recorded in `.deft/authz/grants/` of the main clone, and the clause text is unchanged since the grant. `scope:complete` still refuses at the verify:ac clause walk, before the deferral is applied:\n\n```\n[failed] clause 1 @ server/routes/desk-research.test.mjs: … This is the \"reload or second machine\" case. — expected token(s) missing …: reload or second machine\nacceptance verdict (#3497): clause-walk-failed\n```\n\nThe output never mentions the grant. commands.md (#6318) says scope:complete writes `deferred` with the grant id on those items instead of merge evidence. In practice the clause walk gate runs first and fails, so a deferral can never take effect for a clause-walk failure.\n\nTwo problems:\n1. A deferral grant for a clause should exclude that clause from the clause walk, or the walk should honour it.\n2. The underlying false match: a quoted phrase in descriptive clause text is treated as a required literal token (see #7170).\n\nThe behaviour is tested (`desk-research.test.mjs:122`) and the literal acceptance command passes. Tracking issue: deftai/deftvisage#2497.\n\n",
+      "ImplementationPlan": "Implement Prefer-A Bound comment 7133464614 limbs; tests; changelog.d."
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Keep the existing #6644 grantedClauses leave-out in applyClauseWalk; do not add a parallel leave-out."
+      },
+      {
+        "id": "clause.2",
+        "title": "After persist + applyAcceptanceDispositionGrants, every digest-matching live unused deferred cover for clause.N on this plan.id must appear in grantedClauses (or refuse naming the grant id)."
+      },
+      {
+        "id": "clause.3",
+        "title": "When resolveAcceptanceDispositionStore fails, refuse with store reason — never ok covers:[] that falls through to clause-walk-failed."
+      },
+      {
+        "id": "clause.4",
+        "title": "Unrelated plan grants must not authorize or block this completion; digest mismatch still remints."
+      },
+      {
+        "id": "clause.5",
+        "title": "Regression: deferred grant for clause.1 on linked worktree reading main-clone store → scope:complete [granted] without [failed] for that clause."
+      },
+      {
+        "id": "clause.6",
+        "title": "changelog.d fragment."
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/7254",
+        "type": "x-xbrief/github-issue"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/comments/7133464614",
+        "type": "x-xbrief/github-comment"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "deft authz:grant -- --template acceptance-disposition --plan-ref story.phase6-desk-research-store --story-ids clause.1 --deferred-to 2497 --reason \"…\" --confirm",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L8"
+        }
+      ],
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/policy/acceptance-disposition-grant.ts",
+          "packages/core/src/scope/transition.ts",
+          "packages/core/src/scope/acceptance-grant-walk.test.ts",
+          "packages/core/src/scope/transition.test.ts",
+          "changelog.d/7254-acceptance-disposition-deferral-walk.md"
+        ]
+      },
+      "intended_placement": {
+        "files": [
+          "packages/core/src/policy/acceptance-disposition-grant.ts",
+          "packages/core/src/scope/transition.ts",
+          "packages/core/src/scope/acceptance-grant-walk.test.ts",
+          "packages/core/src/scope/transition.test.ts",
+          "changelog.d/7254-acceptance-disposition-deferral-walk.md"
+        ],
+        "module_boundary": "packages/core/src",
+        "cohesion_exemption": "Bound-localized change in existing hot modules for Prefer-A Bound #7254"
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: parent\n```\nLean: Prefer-A draft (open critique)\n\n## In plain English\nAn operator already deferred a clause with an acceptance-disposition grant, but scope:complete still walks that clause and fails it. The grant should keep that clause out of the walk and show up in the output.\n\n## Prefer-A Bound\nconflict_group: acceptance-disposition-deferral-leaves-clause-walk\n\n## Bound remedy\n- Leave grant-covered clauses out of the scope:complete clause walk before any clause-walk-failed verdict; pass them as grantedClauses after applyAcceptanceDispositionGrants.\n- After persistClauseKeyedPendingItems, a live unused deferred grant for clause.N that matches digest and plan.id must enter grantedClauses even when the brief only had the clause in acceptance.clauses before persist.\n- When the main-clone store has an unused acceptance-disposition grant for this plan.id but covers stay empty or a covered clause is dropped from grantedClauses, refuse and name the grant id and reason; do not fall through to a silent clause-walk-failed.\n- Regression: failing artifact-token clause + minted deferred grant for clause.1 under plan id story.* → walk ok with [granted] clause 1 and no [failed] for that clause; digest mismatch still remints; plan-ref mismatch names the grant.\n- Keep #7170 quoted-token false match on a separate track; this Bound does not change the token lexer.\n\n## Reject\n- Skipping the whole verify:ac / clause walk when any grant exists\n- Agent-minted dispositions or weakening digest match\n- Folding #7170 token quoting into this issue\n\nTarget-digest: pending-stop1",
+          "id": 7133307441,
+          "html_url": "https://github.com/deftai/directive/issues/7254#issuecomment-7133307441",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T13:46:07Z",
+          "updated_at": "2026-11-24T13:46:07Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: triage\n```\ndesign-critique: warranted, because a live acceptance-disposition deferral can never take effect when the covered clause fails the walk first — mechanism-shaped gate order / silent miss in scope:complete.\nmechanism-shaped: true\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nspend-recommend: N≥3\nspend: N≥3\nspend-ask: resolved\nspend-why: Stop 2 panel permission — open remedy on when/how grants leave the walk and how miss diagnostics fail closed; operator later amends to N=2 (Claude unavailable).\ncharter: open critique\ndispatch-sha: 60e8921207e77d526c9392a6da1e83345d77a6de\nverification-path: pin-read git show 60e8921207e77d526c9392a6da1e83345d77a6de: (dest cwd-without-occupy .deft-scratch/worktrees/arc-7254)\ndual-stop-reserved: yes\npain: P1, P2, P3\n- P1: Live deferred grant does not stop clause-walk-failed on the covered clause\n- P2: scope:complete output never names the grant when the leave-out misses\n- P3: Operator cannot tell plan-ref/store/apply miss from a real clause failure\nrefutation-target: omitted (open critique charter)\n\n## In plain English\nDeferral is recorded, but complete still fails the deferred clause as if the grant were not there.",
+          "id": 7133307983,
+          "html_url": "https://github.com/deftai/directive/issues/7254#issuecomment-7133307983",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T13:46:08Z",
+          "updated_at": "2026-11-24T13:46:08Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: parent\n```\nspend-amend: N≥3 → N=2\nseat-families: codex, grok\nreason: operator note — Claude is not available; limit n to 2 (unavailable-seat class; #5478 family).\nreduced-panel: yes\nFiled for @MScottAdams",
+          "id": 7133308449,
+          "html_url": "https://github.com/deftai/directive/issues/7254#issuecomment-7133308449",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T13:46:09Z",
+          "updated_at": "2026-11-24T13:46:09Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: parent\n```\npanel-deposit\nround: 1\nsiblings: 2\ninput-ceiling: 7133358225\nfamilies: codex, grok\nspend: N=2\nspend-amend-of: 7133308449\ndispatch-sha: 60e8921207e77d526c9392a6da1e83345d77a6de\nverification-path: pin-read git show 60e8921207e77d526c9392a6da1e83345d77a6de:\ncharter: open critique\nid-ceiling-source: this panel-deposit comment id after PATCH\n\n## In plain English\nReduced panel Codex+Grok (Claude unavailable). Critics read only through this deposit id.",
+          "id": 7133358225,
+          "html_url": "https://github.com/deftai/directive/issues/7254#issuecomment-7133358225",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T13:48:09Z",
+          "updated_at": "2026-11-24T13:48:27Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: codex\n```quarantined\nrole: critic\n```\n\n## In plain English\nPrefer-A has the right outcome, but the pinned code already applies grants before the walk and excludes granted clauses. The unresolved problem is where the grant disappears. Distinguish failed lookup from legitimate absence without treating another story's grant as authority.\n\n1. **sharpens-framing — P1: ordering already exists; require a completion-path reproduction.** At `60e8921207e77d526c9392a6da1e83345d77a6de`, `scope/transition.ts` calls `persistClauseKeyedPendingItems`, then `applyAcceptanceDispositionGrants`, then passes `granted.grantedClauses` to `evaluateScopeCompleteAcceptanceWalk`. `product-first-done-gate/evaluate.ts::applyClauseWalk` excludes those IDs before walking. `scope/acceptance-grant-walk.test.ts` already tests an absent token with a supplied granted set, but that positive test does not mint and resolve a grant through completion. Keep the proposed real-mint regression (story.* ID, initially clauses-only brief, linked worktree/main-clone store, deferred clause with failing token), and require it to expose the failing boundary before prescribing another ordering change. Static inspection does not establish the incident's cause.\n\n2. **blocks-the-design — P2/P3: the same-plan grant check cannot diagnose an unresolved store.** `policy/acceptance-disposition-grant.ts::resolveAcceptanceDispositionGrants` explicitly returns `{ ok: true, covers: [] }` when `resolveAcceptanceDispositionStore` fails. The draft only refuses when the main-clone store *has* an unused grant for this plan; that predicate cannot be established when store resolution fails. Preserve that failure as a distinct actionable diagnostic/refusal rather than empty success. Name the attempted project/store context and reason; a grant ID cannot be required when the store was never readable. Test this separately from a successfully resolved store with genuinely no matching grants, which should retain ordinary clause evaluation.\n\n3. **blocks-the-design — P3: “plan-ref mismatch names the grant” lacks a safe association rule.** `planGrantViews` filters `scope.planRef` to the current plan before decoding, then requires the stored plan surface to agree. A grant consistently minted for plan B is indistinguishable from an unrelated valid grant while completing plan A. Do not infer relevance from `clause.1` or equal text: those repeat across stories. Define the narrow mismatch case: a candidate explicitly associated with the current plan whose two stored plan identifiers disagree can refuse with its grant ID; a grant wholly belonging to another plan must not block or authorize this completion. If the intended case is an operator typo selecting another real plan, report the current plan ID and resolved store/no-match context unless there is an explicit grant reference. Add a two-plan regression proving unrelated grants do not interfere.\n\nThe rejection of whole-walk skipping and separation from #7170 are sound. Retain existing digest, human-origin, and replay behavior; no new grant subsystem is needed.\n\nVerification: read-only inspection of the four envelope-listed source files at the dispatch SHA, issue body, and comments through 7133358225. No tests executed; no product changes.",
+          "id": 7133420440,
+          "html_url": "https://github.com/deftai/directive/issues/7254#issuecomment-7133420440",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T13:50:41Z",
+          "updated_at": "2026-11-24T13:50:41Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: critic\n```\nround: 1\ncharter: open critique\nid-ceiling: 7133358225\ndispatch-sha: 60e8921207e77d526c9392a6da1e83345d77a6de\naudit-targets: prefer-a-draft-7133307441 vs pain-P1,pain-P2,pain-P3\nfinding-classes: blocks-the-design, sharpens-framing, footnote\n\n## In plain English\nOn pin SHA 60e8921 the walk already leaves grantedClauses out of verify:ac (#6644), and scope:complete already wires applyAcceptanceDispositionGrants before evaluateScopeCompleteAcceptanceWalk. The dogfood miss is that a live deferred grant can still yield empty covers / empty grantedClauses with no grant id in the refuse, so the clause is walked and fails as if no grant existed. Prefer-A must bind that silent miss, not restate leave-out plumbing that already ships.\n\n## Findings\n\n### F1 — blocks-the-design — silent empty covers / empty grantedClauses still become clause-walk-failed (P1+P2+P3)\nPin-read `resolveAcceptanceDispositionGrants`: when `!store.ok` or `planGrantViews` is empty it returns `{ ok: true, covers: [] }` with no grant id. `applyAcceptanceDispositionGrants` then hands `grantedClauses: []` into the walk. `applyClauseWalk` only filters ids present in `grantedClauses`, so a live unused deferred grant that never entered covers is walked and can print `[failed] clause N` / `clause-walk-failed` with zero grant mention — the exact dogfood shape for P1–P3.\n\nPrefer-A limb 3 covers one slice (unused grant for this plan.id but covers empty or dropped from grantedClauses). It does not bind the other silent empties that produce the same operator-visible miss:\n- store resolve soft-empty (`!store.ok` → covers [] despite a reason string on the store result)\n- plan-ref / `scope.planRef` mismatch (`views.length === 0` while an unused acceptance-disposition grant sits in the main-clone store under another plan surface)\n- regression line claims \"plan-ref mismatch names the grant\" with no operative Bound limb that scans unused main-clone acceptance-disposition grants that failed to enter covers and refuses naming grant id + mismatch reason before any clause-walk-failed\n\nWithout that miss-diagnostic limb, Prefer-A can ship a leave-out remint that never changes the dogfood path when covers stay empty. Remint Prefer-A so fail-closed naming of grant id (and plan-ref / store / drop reason) is mandatory whenever an unused acceptance-disposition grant is visible in the main-clone store and would otherwise fall through to a bare clause-walk-failed on a covered clause id.\n\n### F2 — sharpens-framing — limb 1 restates shipped #6644 leave-out; P1 root is populate grantedClauses\n`transition.ts` already calls `persistClauseKeyedPendingItems` → `applyAcceptanceDispositionGrants` → `evaluateScopeCompleteAcceptanceWalk(..., { grantedClauses })`. `applyClauseWalk` already filters `clauses.filter((c) => !grantedIds.has(c.id))` and prints `[granted] clause N`. Fixture `acceptance-grant-walk.test.ts` clause 18 already locks failing artifact-token + grantedClauses → walk ok, no `[failed]`.\n\nReframe Prefer-A limb 1 (and the conflict_group if needed) around: a matching live unused deferred cover MUST enter `grantedClauses` after persist+apply so the existing leave-out fires. Keep leave-out as the already-shipped association, not a new mechanism limb. Limb 2 (persist then still enter grantedClauses when the brief only had `acceptance.clauses`) stays useful as the populate proof, not as a second leave-out invention.\n\n### F3 — sharpens-framing — grantedClauses gated on applyGrantedDispositions appliedSet\n`grantedClauses` is built only for covers in `applied.appliedIds`. Digest-ok covers that somehow fail item apply refuse via `missingIds` today; covers that never resolve stay silent (F1). Prefer-A should say explicitly: every digest-matching deferred cover for `clause.N` after persist must appear in `grantedClauses` (or refuse naming grant id) — do not treat \"apply wrote disposition on the plan item\" and \"walk leave-out set\" as separable success modes for the dogfood path.\n\n### F4 — footnote — #7170 keep-out and Reject list\nKeeping quoted-token false match on #7170 and rejecting whole-walk skip / agent-minted dispositions / weakened digests is correct Thin Fail-Closed / KISS. No Bound change.\n\n## Pain map\n- P1: F1 (block) + F2/F3 (sharpen populate path); leave-out alone is false relief if covers stay empty\n- P2: F1 miss diagnostics must name grant id before clause-walk-failed\n- P3: F1 plan-ref/store/apply miss must be distinguishable from a real clause failure\n\n## Verdict\nDo not bind Prefer-A draft 7133307441 as written. Absorb F1 as a mechanism limb (fail-closed grant-named refuse on silent empty covers / plan-ref miss / drop-from-grantedClauses) and F2/F3 as framing so the Bound targets populate+diagnose rather than re-specifying #6644 leave-out. Keep F4/#7170 Reject.",
+          "id": 7133454711,
+          "html_url": "https://github.com/deftai/directive/issues/7254#issuecomment-7133454711",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T13:52:03Z",
+          "updated_at": "2026-11-24T13:52:03Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: parent\n```\nLean: Prefer-A Bound (open critique)\nconflict_group: acceptance-disposition-deferral-leaves-clause-walk\nTarget-digest: sha256:d55d15fbf4a8cc2fe3d9dcf096ab700b8807538e6eff2bd04a12a2a9d8e8e988\nrelieves: P1\nrelieves: P2\nrelieves: P3\ndisposes critic 7133420440\ndisposes critic 7133454711\nmove-forward: yes\n\n## In plain English\nDo not invent a second leave-out. The walk already skips grant-covered clauses. Make every live matching deferral actually enter that set, and refuse with a named grant or store reason when it cannot — so clause-walk-failed cannot hide a missed deferral.\n\n## Prefer-A Bound\nconflict_group: acceptance-disposition-deferral-leaves-clause-walk\n\n## Bound remedy\n- Keep the existing #6644 grantedClauses leave-out in applyClauseWalk as the association; do not add a parallel leave-out mechanism.\n- After persistClauseKeyedPendingItems + applyAcceptanceDispositionGrants, every digest-matching live unused deferred cover for clause.N on this plan.id MUST appear in grantedClauses (or the complete path refuses naming the grant id). Item apply success and walk leave-out are one success mode for the dogfood path.\n- When resolveAcceptanceDispositionStore fails, refuse with the attempted projectRoot/store reason — never return ok covers:[] that falls through to clause-walk-failed (disposes critic 7133420440).\n- When the resolved store has an unused acceptance-disposition grant whose stored plan identifiers disagree for this plan.id, refuse naming that grant id. A grant that wholly belongs to another plan must not block or authorize this completion (disposes critic 7133420440).\n- When covers resolve empty for this plan.id with a readable store and no same-plan unused grant, keep ordinary clause evaluation (legitimate absence).\n- Regression (completion-path, not unit-injected grantedClauses alone): mint deferred grant for clause.1 under plan id story.*, brief initially clauses-only then persist, linked worktree reading main-clone store, failing artifact token on clause.1 → scope:complete walk ok with [granted] clause 1 and no [failed] for that clause; store-unreadable refuse; two-plan unrelated grant does not interfere; digest mismatch still remints (disposes critic 7133454711; absorbs Codex sharpens-framing reproduction demand).\n- Keep #7170 quoted-token false match on a separate track; this Bound does not change the token lexer.\n\n## Reject\n- Skipping the whole verify:ac / clause walk when any grant exists\n- Agent-minted dispositions or weakening digest match\n- Treating another plan's grant as authority for this plan via shared clause.N or equal text\n- Folding #7170 token quoting into this issue\n- Re-specifying #6644 leave-out as if it were missing on tip\n\nFiled for @MScottAdams",
+          "id": 7133464614,
+          "html_url": "https://github.com/deftai/directive/issues/7254#issuecomment-7133464614",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T13:52:27Z",
+          "updated_at": "2026-11-24T13:56:11Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: codex\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1,pain-P2,pain-P3\nfinding-classes: none\nharvest-changed: false\n\n## In plain English\nThe revised Bound addresses all three pains without changing the harvest. It keeps the existing clause exclusion, requires matching deferrals to reach it, and makes grant/store failures visible instead of disguising them as clause failures. This is a design audit, not a claim that the incident is fixed.\n\nP1: The mandatory matching-cover-to-grantedClauses invariant, coupled with the real-mint completion-path regression (clauses-only brief, story.* plan ID, linked worktree/main-clone store, failing artifact token), targets the missing boundary. At the pinned SHA, transition.ts already persists items, applies grants, and passes grantedClauses to the walk; applyClauseWalk already excludes those clauses. The Bound correctly reuses that mechanism.\n\nP2: A matching cover that cannot reach the granted set must refuse naming its grant. Store-resolution failure must instead name the attempted project/store context and reason; it cannot truthfully name an unread grant. These requirements close the silent-fallback paths identified in the prior critique.\n\nP3: The Bound distinguishes store failure, contradictory stored plan identifiers associated with this plan, application failure, and legitimate absence. Its explicit protection for grants wholly belonging to another plan avoids treating shared clause IDs as authority. The two-plan regression preserves ordinary evaluation where no relevant grant exists.\n\nNo additional blocking, sharpening, or footnote finding. Retain the Bound's digest protection, rejection of whole-walk skipping and agent-minted dispositions, and separate handling of #7170.\n\nVerification: issue body and comments through 7133464614 only; pin-read at 60e8921207e77d526c9392a6da1e83345d77a6de of packages/core/src/policy/acceptance-disposition-grant.ts and relevant completion, walk, and regression sections in scope/transition.ts, product-first-done-gate/evaluate.ts, and scope/acceptance-grant-walk.test.ts. No tests run, product edits, or ingest.",
+          "id": 7133496560,
+          "html_url": "https://github.com/deftai/directive/issues/7254#issuecomment-7133496560",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T13:53:44Z",
+          "updated_at": "2026-11-24T13:53:44Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1,pain-P2,pain-P3\nfinding-classes: none\nharvest-changed: false\n\n## In plain English\n\nPrefer-A Bound 7133464614 already binds the real miss: keep the shipped #6644 leave-out, force matching live deferrals into grantedClauses (or refuse with a named grant/store reason), and keep ordinary walks for true absence. P1–P3 are relieved on that harvest; no Bound remint.\n\n## Pin-read (dispatch SHA 60e8921207e77d526c9392a6da1e83345d77a6de)\n\nWorktree HEAD matches the envelope pin. Confirmed on tip:\n\n- `transition.ts` already runs persistClauseKeyedPendingItems → applyAcceptanceDispositionGrants → evaluateScopeCompleteAcceptanceWalk({ grantedClauses }).\n- `applyClauseWalk` already filters granted ids and prints `[granted] clause N` (#6644).\n- Soft-empty still exists: `resolveAcceptanceDispositionGrants` returns `{ ok: true, covers: [] }` when `!store.ok` or `planGrantViews` is empty — the dogfood silent path Round-1 named.\n- `planGrantViews` filters `scope.planRef === planId` then `view.planId === planId`, so disagreeing stored plan identifiers currently vanish into empty covers instead of a named refuse.\n\n## Pain map vs Bound\n\n- **P1** — Limb 2 (must enter grantedClauses or refuse naming grant id) + limb 6 completion-path mint/persist/main-clone regression. Leave-out alone is not re-invented (limb 1 / Reject).\n- **P2** — Limbs 2–4 require grant id or store/projectRoot reason before any fall-through to bare clause-walk-failed.\n- **P3** — Limb 3 store-unreadable refuse; limb 4 same-plan identifier disagreement refuse; limb 5 legitimate empty covers stay ordinary walk; limb 6 two-plan unrelated grant must not interfere.\n\nRound-1 Codex 7133420440 and Grok 7133454711 blocks are absorbed on this Bound. #7170 stays Reject/out of harvest.\n\nVerification: pin-read of grant/walk/transition sources at 60e8921; issue body + comments through id 7133464614. No tests executed. No product edits. No ingest.\n\nFiled for @MScottAdams",
+          "id": 7133510154,
+          "html_url": "https://github.com/deftai/directive/issues/7254#issuecomment-7133510154",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T13:54:16Z",
+          "updated_at": "2026-11-24T13:54:16Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: parent\n```\nverified-claims table\nlean: 7133464614\nissue-body-digest: sha256:d55d15fbf4a8cc2fe3d9dcf096ab700b8807538e6eff2bd04a12a2a9d8e8e988\nreduced-panel: yes (N=2; Claude unavailable; spend-amend 7133308449)\n\n| Claim | Evidence | Status |\n|---|---|---|\n| Live deferred grant can miss leave-out and surface as clause-walk-failed | Issue body dogfood; resolveAcceptanceDispositionGrants soft-empty on !store.ok; Round-1 Codex 7133420440 / Grok 7133454711 | verified |\n| Tip already has grantedClauses leave-out (#6644) | pin-read applyClauseWalk + acceptance-grant-walk.test.ts clause 18 at 60e8921 | verified |\n| Prefer-A Bound targets populate+diagnose, not a second leave-out | Bound 7133464614 limbs 1–6; disposes 7133420440 / 7133454711 | verified |\n| Pains P1–P3 relieved without harvest change | PA Codex 7133496560 + Grok 7133510154: finding-classes none, harvest-changed false; audit-targets pain-P1,pain-P2,pain-P3 | verified |\n| #7170 stays out of this Bound | Bound Reject + both PAs | verified |\n\n## In plain English\nThe Bound is ready to implement: make missed deferrals fail closed with names, keep the existing walk leave-out, prove it on a real mint path.",
+          "id": 7133520571,
+          "html_url": "https://github.com/deftai/directive/issues/7254#issuecomment-7133520571",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T13:54:41Z",
+          "updated_at": "2026-11-24T13:56:13Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: parent\n```\ndesign-critique: synthesis accepted, because Prefer-A Bound 7133464614 relieves P1–P3 with dual PA clear (finding-classes none, harvest-changed false) on reduced panel N=2\ncompleted-arc: yes\nsuccessor lean: 7133464614\ncited lean: #issuecomment-7133464614\nverified-claims table: #issuecomment-7133520571\npain-audit: 7133496560, 7133510154\nrelieves: P1\nrelieves: P2\nrelieves: P3\nmove-forward: yes\n\n## In plain English\nAccepted Prefer-A Bound 7133464614. Next operator verb when wanted: task issue:ingest. No auto-ingest.\n\n## Bound contract (accepted)\nconflict_group: acceptance-disposition-deferral-leaves-clause-walk\n- Keep #6644 leave-out; require matching deferred covers into grantedClauses or refuse naming grant/store.\n- Store-unreadable and same-plan identifier disagreement refuse; other-plan grants do not authorize or block.\n- Completion-path mint regression under story.* + failing token → [granted] not [failed].\n- #7170 separate.\n\nFiled for @MScottAdams",
+          "id": 7133521210,
+          "html_url": "https://github.com/deftai/directive/issues/7254#issuecomment-7133521210",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T13:54:42Z",
+          "updated_at": "2026-11-24T13:55:21Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6574186917,
+        "origin": "deftai/directive#7254",
+        "id": "github.issue.6574186917"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "d55d15fbf4a8cc2fe3d9dcf096ab700b8807538e6eff2bd04a12a2a9d8e8e988"
+      },
+      "kind": "story"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "derived_reason": "derived 6 independently testable clauses from the task statement before product edit (#3323)",
+      "source_rung": "derived",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Keep the existing #6644 grantedClauses leave-out in applyClauseWalk; do not add a parallel leave-out.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "After persist + applyAcceptanceDispositionGrants, every digest-matching live unused deferred cover for clause.N on this plan.id must appear in grantedClauses (or refuse naming the grant id).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "When resolveAcceptanceDispositionStore fails, refuse with store reason — never ok covers:[] that falls through to clause-walk-failed.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Unrelated plan grants must not authorize or block this completion; digest mismatch still remints.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Regression: deferred grant for clause.1 on linked worktree reading main-clone store → scope:complete [granted] without [failed] for that clause.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "changelog.d fragment.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.6574186917"
+  },
+  "approvedRepos": [
+    "deftai/directive"
+  ],
+  "unknownPaths": [
+    "metadata.intended_placement",
+    "metadata.issueCommentThread",
+    "metadata.kind",
+    "metadata.literal_acceptance_commands",
+    "metadata.literal_acceptance_rejected",
+    "metadata.x-directive/admitted-target-digest",
+    "metadata.x-directive/plan-id"
+  ]
+}

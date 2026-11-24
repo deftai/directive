@@ -13,6 +13,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Record approved file permissions for missing-runtime outer install admit. This records approval only; it does not change product behavior (#7275).
+- Record approved file permissions for obs-scope rediscovery scrub. This records approval only; it does not change product behavior (#7272).
+- Record approved file permissions for acceptance-disposition deferral walk. This records approval only; it does not change product behavior (#7254).
+- Record approved file permissions for pre-dispatch binding-store lock repair. This records approval only; it does not change product behavior (#7274).
+- Record approved file permissions for spawn dest story-binding selection. This records approval only; it does not change product behavior (#7271).
+
 - Activate the running brief for missing-runtime outer install admit (#7275).
 - Activate the running brief for obs-scope rediscovery scrub (#7272).
 - Activate the running brief for acceptance-disposition deferral walk (#7254).

@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "xbriefRelPath": "xbrief/active/2026-11-24-7274-framework-gap-parallel-pre-dispatch-locks-the-binding-store.xbrief.json",
+  "planId": "github.issue.6580878198",
+  "approvedAt": "2026-11-24T14:46:59Z",
+  "fileScope": [
+    "changelog.d/7274-pre-dispatch-binding-lock-repair.md",
+    "packages/core/src/swarm/pre-dispatch.test.ts",
+    "packages/core/src/swarm/pre-dispatch.ts",
+    "packages/core/src/swarm/story-binding-record.test.ts",
+    "packages/core/src/swarm/story-binding-record.ts"
+  ],
+  "fileScopeDigest": "f9adcdfdde4fba9183a8be063b55b4c3becb91936030d6602233e3f869d93da2",
+  "humanApproval": {
+    "kind": "operator",
+    "actor": "MScottAdams",
+    "mintedAt": "2026-11-24T14:46:59Z",
+    "mintedVia": "scope:record-approved-scope"
+  },
+  "intentDigest": "4046687912d05dadc6aa72e325208e3ec2576ebf0c751a43066292f4375efe7a",
+  "digestAlgo": "intent-extract-v1",
+  "authHashV1": "sha256:66aefe1d3ba1e22047fa55cc2031574d9872046fd396bba9e5a7fc45aa3169b0"
+}

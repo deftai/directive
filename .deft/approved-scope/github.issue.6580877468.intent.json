@@ -1,0 +1,452 @@
+{
+  "schemaVersion": 1,
+  "algo": "intent-extract-v1",
+  "plan": {
+    "title": "Observable-scope rediscovery scrub",
+    "narratives": {
+      "Overview": "",
+      "Description": "",
+      "UserStory": "",
+      "ImplementationPlan": ""
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "relieves: P1 — Tip-bind #7031 declared any-shell writers for observable-scope and intent-constraint and refuse restoring --minted-via or in-harness-ask as primary for those verbs."
+      },
+      {
+        "id": "clause.2",
+        "title": "relieves: P1 — Scrub named rediscovery coaches in content/docs/durable-effect-acquisition.md (in-harness-ask example implying obs/intent mint UX) and packages/core/src/observable-scope/types.ts JSDoc that still names #5010 in-harness ask, while leaving historical CHANGELOG #5010 as history and live commands/docs as SoT."
+      },
+      {
+        "id": "clause.3",
+        "title": "operator-deferred: P2 #7279 — Harness-attended human-presence mint for approved-scope and authz only, with host-authenticated yes bound to the intended request and checkout."
+      },
+      {
+        "id": "clause.4",
+        "title": "relieves: P3 — Keep unsigned declaration vs signed approval distinct, preserve admitSignedRecord and --request/--assertion plus #6945 keep-out, and refuse chat-yes humanApproval for observable-scope or intent-constraint."
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/7272",
+        "type": "x-xbrief/github-issue"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/comments/7133452865",
+        "type": "x-xbrief/github-comment"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": false,
+      "derived_reason": "Prefer-A Bound limbs same-text (#5055/#4374)",
+      "source_rung": "derived",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "relieves: P1 — Tip-bind #7031 declared any-shell writers for observable-scope and intent-constraint and refuse restoring --minted-via or in-harness-ask as primary for those verbs.",
+          "artifact_path": "packages/core/src/observable-scope/types.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "relieves: P1 — Scrub named rediscovery coaches in content/docs/durable-effect-acquisition.md (in-harness-ask example implying obs/intent mint UX) and packages/core/src/observable-scope/types.ts JSDoc that still names #5010 in-harness ask, while leaving historical CHANGELOG #5010 as history and live commands/docs as SoT.",
+          "artifact_path": "content/docs/durable-effect-acquisition.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "operator-deferred: P2 #7279 — Harness-attended human-presence mint for approved-scope and authz only, with host-authenticated yes bound to the intended request and checkout.",
+          "artifact_path": "packages/core/src/observable-scope/types.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "relieves: P3 — Keep unsigned declaration vs signed approval distinct, preserve admitSignedRecord and --request/--assertion plus #6945 keep-out, and refuse chat-yes humanApproval for observable-scope or intent-constraint.",
+          "artifact_path": "packages/core/src/observable-scope/types.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "files": [
+          "content/docs/durable-effect-acquisition.md",
+          "packages/core/src/observable-scope/types.ts",
+          "changelog.d/7272-scrub-obs-scope-rediscovery.md"
+        ],
+        "module_boundary": "packages/core/src/observable-scope",
+        "cohesion_exemption": "Bound-localized scrub for Prefer-A Bound #7272"
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because the evolution dogfood showed an attended harness yes that could not complete the observable-scope record the agent was coached to land, and the Expected still names a harness-native completion path.\n\narc-mode: no-ingest\nmateriality-bar: open\nspend-recommend: N≥3\nspend: N≥3\nspend-ask: resolved\ndual-stop-reserved: first post-lean pain-audit of asserted coverage is in-cap via Dual-stop reserved slot\nverification-path: pin-read git show 60e8921207e77d526c9392a6da1e83345d77a6de: and dest cwd-without-occupy for on-pin file reads\ncharter: open critique\ndispatch-sha: 60e8921207e77d526c9392a6da1e83345d77a6de\nyolo-standing: on\n\npain: P1, P2, P3\n- P1: On tip, scope:record-observable-scope and scope:record-intent-constraint already write kind declared from any shell including agents (#7031) and refuse --minted-via / in-harness-ask, so the exact argv in the issue body is dead on tip; rediscovery remains when stale #5010 coach or an older consumer pin still asks then refuses the agent that heard yes.\n- P2: The Expected harness-yes-lands-the-record path was never built for verbs that still require human-presence mint (scope:record-approved-scope and authz:*); chat yes still forces leave-harness TTY, and unsetting agent-shell markers would forge.\n- P3: #6945 already owns unforgeable zero-terminal approval for observable/intent records; this issue must not reopen a forgeable chat-yes stamp for those records or weaken #7031 declaration-vs-consent.\n\nrefutation-target: none (charter open critique)\nclosed-findings:\n\nFiled for @MScottAdams",
+          "id": 7133325664,
+          "html_url": "https://github.com/deftai/directive/issues/7272#issuecomment-7133325664",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T13:46:51Z",
+          "updated_at": "2026-11-24T13:46:51Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: parent\n```\n\nLean: Prefer-A draft (not Bound)\n\n## In plain English\nThe dogfood failure matches the old #5010 in-harness-ask path: preflight/coach said ask; the operator said yes in chat; the agent tried to stamp from the agent shell and was refused. On tip #7031 already replaced that path for observable-scope and intent-constraint with declared records any shell can write; merge is consent, not the stamp. Prefer-A keeps that tip relief, scrubs rediscovery coach that still points at in-harness-ask for those verbs, and leaves harness-attended completion for remaining human-presence mints as a separate leftover rather than inventing a forgeable chat-yes stamp. #6945 stays the unforgeable approval keep-out.\n\nTarget-digest: (hash at Bound)\nSpec-path: Bound remedy on successor Prefer-A Bound\nconflict_group: harness-yes-obs-scope-relieved-by-7031-scrub-rediscovery\n\n## Bound remedy (draft limbs)\n- relieves: P1 — Tip-bind #7031 declared any-shell writers for observable-scope and intent-constraint; refuse --minted-via and --kind; scrub residual #5010 in-harness-ask coach strings that still name those verbs.\n- relieves: P2 — operator-deferred: P2 leftover (harness-attended human-presence mint for approved-scope/authz only; no agent unset of markers).\n- relieves: P3 — Keep-out #6945 for unforgeable obs/intent approval; Prefer-A does not add a chat-yes humanApproval stamp for those records.\n\nReject: agent-shell bypass by unsetting GROK_AGENT/GROK_SESSION_ID; restoring in-harness-ask as primary for obs/intent; absorbing #6945 WebAuthn into this Bound; treating declared stamps as human approval for approved-scope or one-PR proof.\n\nFiled for @MScottAdams",
+          "id": 7133326261,
+          "html_url": "https://github.com/deftai/directive/issues/7272#issuecomment-7133326261",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T13:46:52Z",
+          "updated_at": "2026-11-24T13:46:52Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: parent\n```\n\nspend-amend: N≥3 → N=2\nreason: operator cue on this arc — Claude is not available; limit n to 2\nseat-families: codex, grok\nreduced-panel: unavailable (Claude)\nspend-ask: resolved (operator act on this arc)\ndual-stop-reserved: retained for first post-lean pain-audit\n\nFiled for @MScottAdams",
+          "id": 7133326985,
+          "html_url": "https://github.com/deftai/directive/issues/7272#issuecomment-7133326985",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T13:46:54Z",
+          "updated_at": "2026-11-24T13:46:54Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 2\ninput-ceiling: 7133350292\nseat-families: codex, grok\nspend: N=2 (spend-amend from N≥3; Claude unavailable per operator)\ndispatch-sha: 60e8921207e77d526c9392a6da1e83345d77a6de\nid-ceiling-inclusive: 7133350292\nverification-path: pin-read\n\nFiled for @MScottAdams",
+          "id": 7133350292,
+          "html_url": "https://github.com/deftai/directive/issues/7272#issuecomment-7133350292",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T13:47:49Z",
+          "updated_at": "2026-11-24T13:47:50Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\n\nReviewed the issue body and all four comments through 7133350292, using pin-read at 60e8921207e77d526c9392a6da1e83345d77a6de. No later comments read. Source and test assertions were inspected, not executed: session:start --read-only failed because the checkout runtime pin is absent.\n\n## C1 — blocks-the-design: deferring P2 does not deliver harness completion\n\nEvidence: draft 7133326261 labels P2 both relieved and operator-deferred, but supplies neither a different issue nor a completion mechanism. The pinned content/contracts/human-origin-authz.md operator-mint inventory retains the human-presence requirement for approved-scope and authz; packages/runtime/src/mint-audit.test.ts explicitly covers the retained approved-scope refusal. Thus the proposed scrub cannot change the remaining leave-harness terminal step.\n\nFailure: binding this draft would report relief while the stated P2 experience stays unchanged. Disposition: remove the relief claim. Either leave P2 explicitly unrelieved, or obtain an actual different-issue deferral through the existing arc process. A placeholder named \"leftover\" is not that disposition. Do not silently expand this issue into a new authority channel.\n\n## C2 — sharpens-framing: tip cleanup and old-pin recovery are different remedies\n\nEvidence: packages/runtime/src/scope-record-observable-scope.ts already rejects both legacy flags and prints the any-shell declaration usage; packages/core/src/observable-scope/types.ts already coaches that path. The analogous intent writer also rejects the flags. The pinned observable-scope and intent-constraint docs explicitly require upgrading an older reader before writing declared records. The inspected legacy in-harness-ask occurrences include backwards-compatible parser fixtures and another ceiling's stamp, not a demonstrated obsolete coach for these verbs.\n\nFailure: deleting tip strings cannot repair a consumer still running the older runtime; indiscriminate deletion could remove intentional legacy-read coverage. Disposition: make any source scrub conditional on naming an actual reachable stale coach. For old consumers, use the supported runtime-pin upgrade first, then the existing declaration command without --minted-via, landing the record on the delivery merge base before the product change. If no current coach defect is found, prefer a documented existing-path resolution over a speculative new gate or scrub implementation.\n\n## C3 — sharpens-framing: preserve the already-shipped signed branch, not merely a future keep-out\n\nEvidence: packages/core/src/scope-provenance/record-stamp.ts resolves the signed level and verifies approvals through admitSignedRecord. The observable writer already imports decideSignedWrite and exposes --request / --assertion. content/contracts/human-origin-authz.md describes the enrolled-key path with .deft/approvers.json on the merge base.\n\nFailure: unqualified \"any shell writes the record; merge is consent\" coaching can direct signed-level consumers down a declaration-only route that cannot satisfy their check. It also overstates human consent where bot merge is permitted. Disposition: distinguish unsigned declarations from signed approvals in the remedy. Preserve #6945's existing verification path and #7031's declaration semantics; no chat-yes stamp, trust-file removal, or approval downgrade.\n\n## C4 — footnote: competing remedies and authority boundary\n\nMy preferred thin remedy is existing-path recovery: identify the consumer pin and approval level, route to the existing declaration or signed path, and change only a proven stale coach. Keep P2 visibly residual until a real disposition exists. This needs no new approval mechanism.\n\nThe strongest competing remedy is a host-owned attended approval channel for approved-scope/authz. It directly addresses P2 and avoids terminal switching. But an agent opening a terminal, replaying chat \"yes\", supplying --actor, or clearing environment markers does not independently establish a human act. Concurrent worktrees also make an unbound approval vulnerable to application to the wrong request. I would favor that route only with a concrete host capability that authenticates the human event outside agent control and binds admission to the intended authority request and checkout, with replay handling. That is a separately scoped authority design, not a coach-string fix. Preserve the existing human-presence and signed-verification boundaries meanwhile.\n\nThe evidence does not require reopening #6945 or inventing another observable/intent stamp. Existing parser compatibility, cohort writers, UAT refusal, merge-base admission and signed verification should remain intact.\r\n\n",
+          "id": 7133400255,
+          "html_url": "https://github.com/deftai/directive/issues/7272#issuecomment-7133400255",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T13:49:51Z",
+          "updated_at": "2026-11-24T13:49:51Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\n## In plain English\n\nThe dogfood report describes the old #5010 coach: preflight said ask; the operator said yes in chat; the agent tried `scope:record-observable-scope … --minted-via in-harness-ask` under GROK_* markers and was refused. On tip SHA `60e8921207e77d526c9392a6da1e83345d77a6de` that argv is already dead for observable-scope and intent-constraint: those verbs write `kind: \"declared\"` from any shell, refuse `--kind` / `--minted-via`, and treat merge as the control. Prefer-A draft 7133326261 tip-binds that relief and correctly keep-outs a forgeable chat-yes stamp and #6945 WebAuthn. The remaining real gap is harness-attended completion for verbs that still keep human-presence mint (`scope:record-approved-scope`, `authz:*`), which belongs as leftover, not a chat stamp for the dropped pair.\n\n## Re-verify (pin-read / dest files at dispatch)\n\n- `packages/runtime/src/scope-record-observable-scope.ts`: WRITER_VERB + REFUSED_FLAGS `--kind`/`--minted-via`; usage states any-shell declared write; `--confirm` accepted and ignored.\n- `packages/runtime/src/mint-audit.test.ts`: agent-shell (CLAUDECODE/CI, no TTY) exit 0 writes `kind: \"declared\"`; `--minted-via=in-harness-ask` exit 2; `isHumanApprovalStamp(declared)` false; approved-scope still refuses without terminal mint.\n- `content/contracts/human-origin-authz.md` § Operator mint inventory (#7031): obs/intent rows `dropped; writes kind: \"declared\"`; approved-scope/authz rows `kept`.\n- `packages/core/src/content-contracts/standards/declared_records_7031.test.ts`: worker surfaces must say write-the-declaration and must not coach park / real-TTY land for those verbs.\n- Residual rediscovery risk: CHANGELOG still carries the #5010 “in-harness ask … mintedVia: in-harness-ask” narrative; `content/docs/durable-effect-acquisition.md` still shows an `in-harness-ask` example stamp. Tip writer/docs for obs/intent already teach declared any-shell.\n\n## Competing remedies\n\n### Approach A — Tip-bind #7031 + scrub rediscovery + leftover P2 (Prefer-A draft shape; recommended)\n\nShort limbs: (1) bind tip declared any-shell writers for obs/intent; refuse restoring `--minted-via` / in-harness-ask as primary for those verbs; scrub residual #5010 coach that still names ask-then-TTY / `--minted-via in-harness-ask` for them; (2) `operator-deferred: P2 #<new-or-named leftover>` for harness-attended human-presence mint on approved-scope/authz only; (3) keep-out #6945 unforgeable obs/intent approval and refuse a forgeable chat-yes `humanApproval` for those records.\n\nThin Fail-Closed fit: mechanism is already on tip; this Bound is scrub + defer + keep-out.\n\n### Approach B — Close as already-shipped / duplicate of #7031\n\nDispose the issue as tip-relieved by #7031 with no Bound product limbs beyond a one-line tip-bind cite. Still requires an explicit leftover (or accepted residual) for the Expected harness-yes path on kept-mint verbs, or that Expected stays unrelieved pain.\n\nFailure mode vs A: under-scrubs rediscovery surfaces (CHANGELOG #5010 prose, durable-effect example, older consumer pins) so the same dogfood argv can recur even when tip writers are correct.\n\n### Approach C — Build harness-yes as primary for obs/intent again\n\nRestore or invent an attended chat-yes that lands obs/intent records (or re-enable `--minted-via in-harness-ask` from the shell that heard yes).\n\nRejected: forges or weakens declaration-vs-consent (#7031); collides with #6945’s unforgeable keep-out; contradicts tip refuse of `--minted-via` on those writers. Envelope already forbids inventing a forgeable chat-yes stamp for those records.\n\n### Approach D — Absorb #6945 WebAuthn into this Bound\n\nShip signed zero-terminal approval here so harness-yes becomes cryptographically unforgeable for obs/intent.\n\nRejected for this issue: #6945 already owns that surface; absorbing it widens blast radius past the dogfood failure (stale coach + refused agent stamp). Keep as keep-out, not co-equal limb.\n\n## Findings\n\n### sharpens-framing — Bound must use closed leftover cite form for P2\n\nEvidence: Prefer-A draft limb `relieves: P2 — operator-deferred: P2 leftover (harness-attended…)` names no different-issue id. Contract/ingest consumers require `operator-deferred: Pn #<issue>` (or true `relieves:`) for pain clearance; prose “leftover” alone leaves unrelieved-pain risk (memory of #5727-class cite form).\n\nFailure mode: successor Bound ships, chip refuses unrelieved P2, Recut thrash on cite form.\n\nDisposition: when parent binds Prefer-A, either file/name the leftover issue and write `operator-deferred: P2 #<id>`, or retract P2 relief and leave P2 residual until that file lands. Do not invent a forgeable harness stamp inside this Bound to “relieve” P2.\n\n### sharpens-framing — Scrub inventory should name residual rediscovery surfaces\n\nEvidence: tip worker surfaces already pass `declared_records_7031` “write the declaration / no park-for-mint” checks, yet CHANGELOG #5010 entry and durable-effect’s `mintedVia: \"in-harness-ask\"` example still teach the dead path that produced the dogfood argv.\n\nFailure mode: agents or operators reading historical CHANGELOG / adjacent docs rediscover ask → `--minted-via in-harness-ask` and re-hit agent-shell refuse (or try marker unset).\n\nDisposition: Prefer-A Bound scrub limb should name concrete scrub targets (at least CHANGELOG #5010 narrative for obs/intent, durable-effect example if it implies obs/intent mint UX) or accept footnote that historical CHANGELOG stays and only live remediation/commands/skills are SoT — with an explicit parent take either way.\n\n### footnote — Tip already refuses the issue-body argv\n\n`--minted-via=in-harness-ask` on obs/intent is exit 2 on tip (`mint-audit.test.ts`, parseArgs REFUSED_FLAGS). The Exact Expected “yes lands the record” for those verbs is already the declared writer + merge control, not a restored in-harness stamp.\n\n### footnote — Injection / swarm lens\n\nTarget changes authority stamps and shell/env markers. Approach C (chat-yes or marker unset) is an injection/self-approval path; Approach A keeps marker refuse and declared≠humanApproval. No extra limb beyond the stated Reject list in draft 7133326261.\n\n## Road not taken\n\nChose Approach A over B because rediscovery is the live P1 remainder after tip writers shipped; a pure close-as-#7031 under-names scrub. Chose A over C/D per Thin Fail-Closed and the envelope keep-outs (#6945 / no forgeable chat-yes).\n\n## Steelman of rejected Approach C\n\nStrongest case: the operator already answered in the attended harness; forcing a second TTY is pure ceremony once presence was shown. Flip condition: an unforgeable harness attestation that cannot be agent-written (exactly #6945), applied only where consent is still required. For obs/intent on tip, consent already moved to merge under #7031, so C does not relieve the dogfood without reopening declaration-vs-consent.\n\n## Verdict on Prefer-A draft 7133326261\n\nCan bind after the two sharpens above are folded (closed P2 leftover cite; named scrub inventory or explicit historical-CHANGELOG take). Reject list is sound. Do not widen into #6945 or restore in-harness-ask for obs/intent.\n\nFiled for @MScottAdams",
+          "id": 7133408830,
+          "html_url": "https://github.com/deftai/directive/issues/7272#issuecomment-7133408830",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T13:50:12Z",
+          "updated_at": "2026-11-24T13:50:12Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: parent\n```\n\nLean: Prefer-A Bound\n\n## In plain English\nThe evolution dogfood hit the old ask-then-agent-stamp path for observable-scope. On tip that path is already gone: #7031 declared writers run from any shell and refuse --minted-via. This Bound tip-binds that relief, scrubs the named rediscovery coaches that still teach in-harness-ask for those verbs, defers harness-attended completion for kept human-presence mints to leftover #7279, and keeps unsigned declaration vs signed approval distinct without a forgeable chat-yes stamp.\n\nTarget-digest: sha256:834b7bfc2c52d108c680bea323670ce72ac8cd28cbb77844c5ad7d972d9fd875\nSpec-path: Bound remedy on this lean\nconflict_group: harness-yes-obs-scope-relieved-by-7031-scrub-rediscovery\nBound-harvest-digest: (computed after limbs)\ndisposes critic 7133400255\ndisposes critic 7133408830\nSupersedes: Prefer-A draft 7133326261\n\n## Bound remedy\n- relieves: P1 — Tip-bind #7031 declared any-shell writers for observable-scope and intent-constraint and refuse restoring --minted-via or in-harness-ask as primary for those verbs.\n- relieves: P1 — Scrub named rediscovery coaches in content/docs/durable-effect-acquisition.md (in-harness-ask example implying obs/intent mint UX) and packages/core/src/observable-scope/types.ts JSDoc that still names #5010 in-harness ask, while leaving historical CHANGELOG #5010 as history and live commands/docs as SoT.\n- operator-deferred: P2 #7279 — Harness-attended human-presence mint for approved-scope and authz only, with host-authenticated yes bound to the intended request and checkout.\n- relieves: P3 — Keep unsigned declaration vs signed approval distinct, preserve admitSignedRecord and --request/--assertion plus #6945 keep-out, and refuse chat-yes humanApproval for observable-scope or intent-constraint.\n\nReject: agent-shell bypass by unsetting GROK_AGENT/GROK_SESSION_ID; restoring in-harness-ask as primary for obs/intent; absorbing #6945 WebAuthn into this Bound; treating declared stamps as human approval for approved-scope or one-PR proof; scrubbing intentional legacy-read fixtures.\n\nFiled for @MScottAdams",
+          "id": 7133452865,
+          "html_url": "https://github.com/deftai/directive/issues/7272#issuecomment-7133452865",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T13:51:58Z",
+          "updated_at": "2026-11-24T13:51:58Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1,pain-P2,pain-P3\nfinding-classes: footnote\nharvest-changed: false\n\nPain audit of [Bound 7133452865](https://github.com/deftai/directive/issues/7272#issuecomment-7133452865) against [Stop 1 7133325664](https://github.com/deftai/directive/issues/7272#issuecomment-7133325664), ceiling 7133452865. Pin-read at 60e8921207e77d526c9392a6da1e83345d77a6de; no later sibling comments read.\n\nP1: The tip-bound relief is honest. Both packages/runtime/src/scope-record-{observable-scope,intent-constraint}.ts refuse --kind and --minted-via, describe any-shell declared writes, and retain --request/--assertion. packages/core/src/observable-scope/types.ts still has the contradictory #5010 in-harness-ask JSDoc above the already-correct declaration remediation. Removing that coach supports the existing mechanism rather than recreating attended minting.\n\nP2: Honestly operator-deferred to #7279, the closed deferral supplied by this envelope. This is not a claim that approved-scope/authz harness-attended completion ships in this Bound. The request-and-checkout binding stays in that deferred work; no agent-shell marker bypass is admitted here.\n\nP3: The separation is preserved. packages/core/src/scope-provenance/record-stamp.ts distinguishes declared stamps from human approval, and admitSignedRecord verifies signed approval; both observable-scope and intent-constraint evaluators call it at signed level. Keeping those checks and --request/--assertion while rejecting a new chat-yes stamp leaves #6945 authority intact. Legacy read compatibility is not permission to mint fresh chat-yes approval.\n\n### F1 - footnote: Keep the documentation cleanup specific\n\ncontent/docs/durable-effect-acquisition.md shows a presentation-ceiling amendment example, not an observable/intent writer invocation. Clarify its distinction from those declared writers without implying that a declaration grants durable-effect amendment authority. The Bound already limits the scrub to misleading obs/intent coaching; this is an implementation note, not a new mechanism or a changed fail-closed association. Likewise, tip-bound relief does not update an older consumer pin automatically.\n\nNo blocking findings. No Bound remint required. Verification was source inspection, not runtime tests: the pinned runtime is not installed in this process-only worktree.\n\nFiled for @MScottAdams",
+          "id": 7133493459,
+          "html_url": "https://github.com/deftai/directive/issues/7272#issuecomment-7133493459",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T13:53:36Z",
+          "updated_at": "2026-11-24T13:53:36Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1,pain-P2,pain-P3\nfinding-classes: footnote\nharvest-changed: false\n\n## In plain English\nPrefer-A Bound 7133452865 honestly tip-binds #7031 for P1, operator-defers P2 to leftover #7279 in closed cite form, and keeps P3 declaration-vs-signed/#6945 keep-out. No false-relief or forgeable chat-yes. One footnote on scrub-target association; fail-closed association unchanged.\n\n## Pain-audit (Stop 1 7133325664 → Bound 7133452865)\n\n### P1 — relieves (honest)\nStop 1: tip already writes declared obs/intent from any shell and refuses `--minted-via` / in-harness-ask; rediscovery remains from stale #5010 coach or older consumer pins.\n\nBound limb 1 tip-bind matches pin-read at `60e8921207e77d526c9392a6da1e83345d77a6de`:\n- `packages/runtime/src/scope-record-observable-scope.ts` / intent twin: `REFUSED_FLAGS = [\"--kind\", \"--minted-via\"]`; writers stamp `kind: \"declared\"` from any shell.\n- `content/contracts/human-origin-authz.md` Operator mint inventory (#7031): obs/intent rows dropped → declared; approved-scope/authz kept.\n\nBound limb 2 scrub names concrete surfaces and leaves CHANGELOG #5010 as history (live commands/docs SoT). Pin-read: `packages/core/src/observable-scope/types.ts` JSDoc still says `#5010 … in-harness ask` while `OBSERVABLE_SCOPE_REMEDIATION` already coaches #7031 declared any-shell — that JSDoc is a real reachable stale coach for this verb. Reject list correctly keeps intentional legacy-read fixtures.\n\n### P2 — operator-deferred (honest)\nStop 1: harness-yes path never built for kept human-presence mints (approved-scope / authz:*); chat yes still forces leave-harness TTY; marker unset would forge.\n\nBound uses closed form `operator-deferred: P2 #7279` (not prose leftover / not false `relieves: P2`). #7279 is filed, open, scoped to harness-attended completion for those verbs only, with host-authenticated yes bound to request+checkout, and explicit keep-out of restoring in-harness-ask for obs/intent. Absorbs Round-1 Codex C1 and Grok leftover-cite sharpen. Does not claim this Bound delivers P2 completion.\n\n### P3 — relieves (honest)\nStop 1: do not reopen forgeable chat-yes or weaken #7031 declaration-vs-consent; #6945 owns unforgeable path.\n\nBound keeps unsigned declaration vs signed approval distinct, preserves `admitSignedRecord` and `--request`/`--assertion`, #6945 keep-out, and refuses chat-yes `humanApproval` for obs/intent. Matches tip signed writer seams and Round-1 Codex C3.\n\n## footnote — durable-effect scrub is adjacent hygiene\n`content/docs/durable-effect-acquisition.md` `mintedVia: \"in-harness-ask\"` example is a presentation-ceiling amendment stamp, not an obs/intent writer coach (Round-1 Codex C2 already classed it as another ceiling's stamp). Scrubbing it is fine adjacent hygiene under the Bound's \"implying\" hedge; it does not change the fail-closed association for P1 (tip refuse + types.ts JSDoc scrub + no restored in-harness-ask). No Bound remint required.\n\n## Reachability / false-relief check\nAfter Prefer-A ships: P1 live path is declared writer any-shell + merge control (and signed path when enrolled); P2 remains on #7279; P3 stays refuse chat-yes + keep signed branch. No recovery-prose-only or `--no-verify` false relief.\n\n## Verdict\nBound remedy cites honestly relieve P1/P3 and operator-defer P2. KISS / Thin Fail-Closed: footnote only → harvest-changed: false.\n\nFiled for @MScottAdams",
+          "id": 7133508013,
+          "html_url": "https://github.com/deftai/directive/issues/7272#issuecomment-7133508013",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T13:54:11Z",
+          "updated_at": "2026-11-24T13:54:11Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Evidence | Status |\n|---|---|---|\n| Tip writes declared obs/intent from any shell and refuses --minted-via | pin-read scope-record-observable-scope.ts / intent-constraint.ts; mint-audit.test.ts; PA 7133493459 / 7133508013 | verified |\n| Named rediscovery coaches remain (types.ts #5010 JSDoc; durable-effect example) | Round-1 + PA footnotes; Bound scrub limbs | verified |\n| P2 harness-attended path for approved-scope/authz is deferred to #7279 | Bound operator-deferred cite; leftover filed | verified |\n| Unsigned declaration vs signed approval kept distinct; #6945 keep-out | Bound P3 limb; PA clear harvest-changed:false | verified |\n| Reduced panel N=2 (Codex+Grok); Claude unavailable per operator | spend-amend 7133326985; seat-families on panel 7133350292 | verified |\n| Pain-audit clear | 7133493459 / 7133508013 finding-classes: footnote; harvest-changed: false | verified |\n\nCited Prefer-A Bound: 7133452865\nStop 1: 7133325664\nRound-1: 7133400255, 7133408830\ndispatch-sha: 60e8921207e77d526c9392a6da1e83345d77a6de\nissue-body sha256: 834b7bfc2c52d108c680bea323670ce72ac8cd28cbb77844c5ad7d972d9fd875\n\nFiled for @MScottAdams",
+          "id": 7133516333,
+          "html_url": "https://github.com/deftai/directive/issues/7272#issuecomment-7133516333",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T13:54:31Z",
+          "updated_at": "2026-11-24T13:54:31Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: parent\n```\n\ndesign-critique: synthesis accepted, because Prefer-A Bound 7133452865 tip-binds #7031 declared writers, scrubs named rediscovery coaches, operator-defers P2 to #7279, and keeps declaration vs signed approval distinct; pain-audits footnote-only with harvest-changed: false.\n\nsuccessor lean: 7133452865\nverified-claims table: 7133516333\npain-audits: Codex 7133493459; Grok 7133508013\narc-mode: no-ingest\nyolo-standing: yes\nspend: N=2\ndisagree: (none)\nBound-harvest note: live issue-body digest at close sha256:834b7bfc2c52d108c680bea323670ce72ac8cd28cbb77844c5ad7d972d9fd875 (not Target-digest)\n\n## In plain English\nArc #7272 closes on Prefer-A Bound 7133452865. The dogfood argv is already dead on tip (#7031). The Bound tip-binds that relief, scrubs named rediscovery coaches, defers harness-attended completion for kept human-presence mints to leftover #7279, and keeps declaration vs signed approval distinct without a forgeable chat-yes stamp. Pain-audit Codex 7133493459 and Grok 7133508013 returned footnote-only with harvest-changed: false. Reduced panel N=2 (Claude unavailable). Ingest remains a separate operator verb.\n\nFiled for @MScottAdams",
+          "id": 7133516810,
+          "html_url": "https://github.com/deftai/directive/issues/7272#issuecomment-7133516810",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-24T13:54:32Z",
+          "updated_at": "2026-11-24T13:55:03Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## What happened\n\nSix UI briefs were activated with `plan[\"x-directive/observableChange\"]`. Preflight said ask the human, and on yes the human lands the record. The operator answered in the chat: \"please mint for me.\" The agent ran:\n\n```\nscope:record-observable-scope --actor John --confirm --minted-via in-harness-ask -- <brief>\n```\n\n## Deny\n\n```\nscope:record-observable-scope: refusing operator-cli stamp from an agent/host/CI shell (matched agent-shell env markers: GROK_AGENT, GROK_SESSION_ID). Unset GROK_AGENT, GROK_SESSION_ID and retry from a human interactive TTY\n```\n\nUnsetting those markers to get past the check would forge the mint. The operator still has to leave the harness and type `mint` in another terminal. The six briefs are deftai/evolution#2189 through #2194. The operator did then mint them from a TTY. The records are in evolution#2195.\n\n## Expected\n\nA yes from the operator in the attended harness is enough to land the record, or the harness opens the real TTY prompt in the session the operator is already in. An agent-written JSON file must still not count.\n\n## Not the same as\n\n#6945 asks for an approval an agent cannot forge, with no terminal step. This is the current `in-harness-ask` path, which tells the agent to ask and then refuses the only process that heard the answer. #7256 is bulk mint targeting one checkout.\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6580877468,
+        "origin": "deftai/directive#7272",
+        "id": "github.issue.6580877468"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "834b7bfc2c52d108c680bea323670ce72ac8cd28cbb77844c5ad7d972d9fd875"
+      },
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 7272,
+        "leanCommentId": 7133452865,
+        "harvestDigest": "6541eb8d6be918dfa6b048409919e53ccddc6f8ca7aed7c4e8a1eca8619c408e",
+        "slice": null
+      },
+      "kind": "story",
+      "swarm": {
+        "file_scope": [
+          "content/docs/durable-effect-acquisition.md",
+          "packages/core/src/observable-scope/types.ts",
+          "changelog.d/7272-scrub-obs-scope-rediscovery.md"
+        ]
+      }
+    },
+    "id": "github.issue.6580877468"
+  },
+  "approvedRepos": [
+    "deftai/directive"
+  ],
+  "unknownPaths": [
+    "metadata.intended_placement",
+    "metadata.issueBody",
+    "metadata.issueCommentThread",
+    "metadata.kind",
+    "metadata.x-directive/admitted-target-digest",
+    "metadata.x-directive/plan-id",
+    "metadata.x-directive/spec-path-source"
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "xbriefRelPath": "xbrief/active/2026-11-24-7272-framework-gap-an-in-harness-yes-cannot-complete-an-observabl.xbrief.json",
+  "planId": "github.issue.6580877468",
+  "approvedAt": "2026-11-24T14:46:51Z",
+  "fileScope": [
+    "changelog.d/7272-scrub-obs-scope-rediscovery.md",
+    "content/docs/durable-effect-acquisition.md",
+    "packages/core/src/observable-scope/types.ts"
+  ],
+  "fileScopeDigest": "51f833648d8ec45440d0d8089e42a3d6c15258ee0e4d4be3c0db04acdb6466d5",
+  "humanApproval": {
+    "kind": "operator",
+    "actor": "MScottAdams",
+    "mintedAt": "2026-11-24T14:46:51Z",
+    "mintedVia": "scope:record-approved-scope"
+  },
+  "intentDigest": "da886cb9badacb552c338cf74756c83730c5f95a7c0b46968a0ce06e02994c58",
+  "digestAlgo": "intent-extract-v1",
+  "authHashV1": "sha256:bed79cd3c396bf55e85112f5914216803fcfe5741be1dc3e3eb31c0bb3b92426"
+}
