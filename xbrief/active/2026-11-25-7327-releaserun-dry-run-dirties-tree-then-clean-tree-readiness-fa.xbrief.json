@@ -767,159 +767,37 @@
     },
     "acceptance": {
       "commands": [],
-      "none_stated": true,
-      "source_rung": "derived",
-      "derived_reason": "one clause per sentence-list entry (14), in order (#6333)",
-      "sentences": [
-        "`deft release:run` readiness runs the Phase 2 dry-run before the Phase 1 clean working-tree check.",
-        "On this host the dry-run (or something it invokes) leaves: - `M .gitignore` (un-ignore rules for `.deft/approved-scope/`, `.deft/directive/`, `GENERATION.json`, etc.) - `??",
-        ".deft/GENERATION.json` - `??",
-        ".deft/directive/` The clean-tree check then refuses even when the tree was clean at entry.",
-        "Result: readiness always fails after a successful dry-run on a tip cut worktree.",
-        "Fresh worktree at `origin/master` (`30fa5344c`), `git status --porcelain` empty before `release:run`.",
-        "Dry-run OK (35 fragments folded).",
-        "Then:",
-        "Run clean-tree check before dry-run, or ignore dry-run-local dirtiness that the cut will not commit.",
-        "Stop dry-run / readiness from mutating `.gitignore` / writing untracked `.deft/` scratch that fails the same readiness gate.",
-        "Or accept `--allow-dirty` on `release:run` with an explicit disclosure when the only dirt is that scratch class.",
-        "Manual cut path with `task release -- <version> --allow-dirty` (or clean + re-enter) after operator confirm.",
-        "Operator cut attempt for v0.131.5",
-        "Related: #7326 (github-issue triage cache as hard release preflight)"
-      ],
-      "admitted_source_sentences": [
-        "`deft release:run` readiness runs the Phase 2 dry-run before the Phase 1 clean working-tree check.",
-        "On this host the dry-run (or something it invokes) leaves: - `M .gitignore` (un-ignore rules for `.deft/approved-scope/`, `.deft/directive/`, `GENERATION.json`, etc.) - `??",
-        ".deft/GENERATION.json` - `??",
-        ".deft/directive/` The clean-tree check then refuses even when the tree was clean at entry.",
-        "Result: readiness always fails after a successful dry-run on a tip cut worktree.",
-        "Fresh worktree at `origin/master` (`30fa5344c`), `git status --porcelain` empty before `release:run`.",
-        "Dry-run OK (35 fragments folded).",
-        "Then:",
-        "Run clean-tree check before dry-run, or ignore dry-run-local dirtiness that the cut will not commit.",
-        "Stop dry-run / readiness from mutating `.gitignore` / writing untracked `.deft/` scratch that fails the same readiness gate.",
-        "Or accept `--allow-dirty` on `release:run` with an explicit disclosure when the only dirt is that scratch class.",
-        "Manual cut path with `task release -- <version> --allow-dirty` (or clean + re-enter) after operator confirm.",
-        "Operator cut attempt for v0.131.5",
-        "Related: #7326 (github-issue triage cache as hard release preflight)"
-      ],
-      "admitted_source_digest": "de25b854db7e765128909cf5b89fde915dce0daafe0834218bfa679f2d6a17ce",
-      "admitted_source_extractor": 2,
+      "none_stated": false,
       "clauses": [
         {
-          "id": 1,
-          "text": "`deft release:run` readiness runs the Phase 2 dry-run before the Phase 1 clean working-tree check.",
-          "artifact_path": "packages/core/src/release/run-readiness.ts",
-          "ambiguous": false,
-          "provenance": "statement",
-          "title": "`deft release:run` readiness runs the Phase 2 dry-run before the Phase 1 clean working-tree check."
+          "id": "clause.1",
+          "title": "Keep the readiness entry clean check before the Phase 2 dry-run seam"
         },
         {
-          "id": 2,
-          "text": "On this host the dry-run (or something it invokes) leaves: - `M .gitignore` (un-ignore rules for `.deft/approved-scope/`, `.deft/directive/`, `GENERATION.json`, etc.) - `??",
-          "artifact_path": "packages/core/src/release/run-readiness.test.ts",
-          "ambiguous": false,
-          "provenance": "statement",
-          "title": "On this host the dry-run (or something it invokes) leaves: - `M .gitignore` (un-ignore rules for `approved-scope store`, `named directive scratch tree`, `GENERATION.json`, etc.) - `??"
+          "id": "clause.2",
+          "title": "Keep the dry-run path project working-tree neutral on every returned status"
         },
         {
-          "id": 3,
-          "text": ".deft/GENERATION.json` - `??",
-          "artifact_path": "packages/core/src/release/run.ts",
-          "ambiguous": false,
-          "provenance": "statement",
-          "title": "named generation marker` - `??"
+          "id": "clause.3",
+          "title": "After dry-run, run a second clean check and fail readiness when the tree is dirty"
         },
         {
-          "id": 4,
-          "text": ".deft/directive/` The clean-tree check then refuses even when the tree was clean at entry.",
-          "artifact_path": "packages/core/src/release/run.test.ts",
-          "ambiguous": false,
-          "provenance": "statement",
-          "title": "named directive scratch tree` The clean-tree check then refuses even when the tree was clean at entry."
+          "id": "clause.4",
+          "title": "Refuse copy must not claim write-nothing when post-dry-run dirt or a Git error is observed"
         },
         {
-          "id": 5,
-          "text": "Result: readiness always fails after a successful dry-run on a tip cut worktree.",
-          "artifact_path": "changelog.d/7327-release-run-tree-neutral.md",
-          "ambiguous": false,
-          "provenance": "statement",
-          "title": "Result: readiness always fails after a successful dry-run on a tip cut worktree."
+          "id": "clause.5",
+          "title": "Entry clean-check refuse must not claim the whole release run invocation wrote nothing"
         },
         {
-          "id": 6,
-          "text": "Fresh worktree at `origin/master` (`30fa5344c`), `git status --porcelain` empty before `release:run`.",
-          "artifact_path": "changelog.d/7327-release-run-tree-neutral.md",
-          "ambiguous": false,
-          "provenance": "statement",
-          "title": "Fresh worktree at `delivery tip` (`30fa5344c`), `git status --porcelain` empty before `release:run`."
+          "id": "clause.6",
+          "title": "Measure and fix the live writer of the observed readiness dirt class"
         },
         {
-          "id": 7,
-          "text": "Dry-run OK (35 fragments folded).",
-          "artifact_path": "changelog.d/7327-release-run-tree-neutral.md",
-          "ambiguous": false,
-          "provenance": "statement",
-          "title": "Dry-run OK (35 fragments folded)."
-        },
-        {
-          "id": 8,
-          "text": "Then:",
-          "artifact_path": "changelog.d/7327-release-run-tree-neutral.md",
-          "ambiguous": false,
-          "provenance": "statement",
-          "title": "Then:"
-        },
-        {
-          "id": 9,
-          "text": "Run clean-tree check before dry-run, or ignore dry-run-local dirtiness that the cut will not commit.",
-          "artifact_path": "changelog.d/7327-release-run-tree-neutral.md",
-          "ambiguous": false,
-          "provenance": "statement",
-          "title": "Run clean-tree check before dry-run, or ignore dry-run-local dirtiness that the cut will not commit."
-        },
-        {
-          "id": 10,
-          "text": "Stop dry-run / readiness from mutating `.gitignore` / writing untracked `.deft/` scratch that fails the same readiness gate.",
-          "artifact_path": "changelog.d/7327-release-run-tree-neutral.md",
-          "ambiguous": false,
-          "provenance": "statement",
-          "title": "Stop dry-run / readiness from mutating `.gitignore` / writing untracked `.deft/` scratch that fails the same readiness gate."
-        },
-        {
-          "id": 11,
-          "text": "Or accept `--allow-dirty` on `release:run` with an explicit disclosure when the only dirt is that scratch class.",
-          "artifact_path": "changelog.d/7327-release-run-tree-neutral.md",
-          "ambiguous": false,
-          "provenance": "statement",
-          "title": "Or accept `allow-dirty hatch` on `release:run` with an explicit disclosure when the only dirt is that scratch class."
-        },
-        {
-          "id": 12,
-          "text": "Manual cut path with `task release -- <version> --allow-dirty` (or clean + re-enter) after operator confirm.",
-          "artifact_path": "changelog.d/7327-release-run-tree-neutral.md",
-          "ambiguous": false,
-          "provenance": "statement",
-          "title": "Manual cut path with `task release -- <version> allow-dirty hatch` (or clean + re-enter) after operator confirm."
-        },
-        {
-          "id": 13,
-          "text": "Operator cut attempt for v0.131.5",
-          "artifact_path": "changelog.d/7327-release-run-tree-neutral.md",
-          "ambiguous": false,
-          "provenance": "statement",
-          "title": "Operator cut attempt for v0.131.5"
-        },
-        {
-          "id": 14,
-          "text": "Related: #7326 (github-issue triage cache as hard release preflight)",
-          "artifact_path": "changelog.d/7327-release-run-tree-neutral.md",
-          "ambiguous": false,
-          "provenance": "statement",
-          "title": "Related: #7326 (github-issue triage cache as hard release preflight)"
+          "id": "clause.7",
+          "title": "Add a fresh-worktree regression through the real release run entry path including self-complete"
         }
-      ],
-      "ambiguity_attestation": "none_found",
-      "quality_notice": "plan.items is empty after body harvest (checkbox list, Acceptance Criteria heading, or whole-line Requirements: colon-label). Add structured list items on the issue body before promote/activate; bare prose stays under #4374. Example harvestable shape: a `## Acceptance Criteria` heading with a list item such as `- [ ] ship the fix` (fenced command blocks alone are not harvested)."
+      ]
     },
     "id": "github.issue.6596789058",
     "updated": "2026-11-25T05:18:26Z"
