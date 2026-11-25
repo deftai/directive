@@ -21,43 +21,64 @@
         "id": "clause.1",
         "status": "pending",
         "title": "Keep the readiness entry clean check before the Phase 2 dry-run seam",
-        "x-directive/artifact_path": "packages/core/src/release/run-readiness.ts"
+        "x-directive/artifact_path": "packages/core/src/release/run-readiness.ts",
+        "narrative": {
+          "Acceptance": "Keep the readiness entry clean check before the Phase 2 dry-run seam"
+        }
       },
       {
         "id": "clause.2",
         "status": "pending",
         "title": "Keep the dry-run path project working-tree neutral on every returned status",
-        "x-directive/artifact_path": "packages/core/src/release/run-readiness.ts"
+        "x-directive/artifact_path": "packages/core/src/release/run-readiness.ts",
+        "narrative": {
+          "Acceptance": "Keep the dry-run path project working-tree neutral on every returned status"
+        }
       },
       {
         "id": "clause.3",
         "status": "pending",
         "title": "After dry-run, run a second clean check and fail readiness when the tree is dirty",
-        "x-directive/artifact_path": "packages/core/src/release/run-readiness.ts"
+        "x-directive/artifact_path": "packages/core/src/release/run-readiness.ts",
+        "narrative": {
+          "Acceptance": "After dry-run, run a second clean check and fail readiness when the tree is dirty"
+        }
       },
       {
         "id": "clause.4",
         "status": "pending",
         "title": "Refuse copy must not claim write-nothing when post-dry-run dirt or a Git error is observed",
-        "x-directive/artifact_path": "packages/core/src/release/run-readiness.ts"
+        "x-directive/artifact_path": "packages/core/src/release/run-readiness.ts",
+        "narrative": {
+          "Acceptance": "Refuse copy must not claim write-nothing when post-dry-run dirt or a Git error is observed"
+        }
       },
       {
         "id": "clause.5",
         "status": "pending",
         "title": "Entry clean-check refuse must not claim the whole release run invocation wrote nothing",
-        "x-directive/artifact_path": "packages/core/src/release/run-readiness.ts"
+        "x-directive/artifact_path": "packages/core/src/release/run-readiness.ts",
+        "narrative": {
+          "Acceptance": "Entry clean-check refuse must not claim the whole release run invocation wrote nothing"
+        }
       },
       {
         "id": "clause.6",
         "status": "pending",
         "title": "Measure and fix the live writer of the observed readiness dirt class",
-        "x-directive/artifact_path": "packages/core/src/release/run.ts"
+        "x-directive/artifact_path": "packages/core/src/release/run.ts",
+        "narrative": {
+          "Acceptance": "Measure and fix the live writer of the observed readiness dirt class"
+        }
       },
       {
         "id": "clause.7",
         "status": "pending",
         "title": "Add a fresh-worktree regression through the real release run entry path including self-complete",
-        "x-directive/artifact_path": "packages/core/src/release/run.test.ts"
+        "x-directive/artifact_path": "packages/core/src/release/run.test.ts",
+        "narrative": {
+          "Acceptance": "Add a fresh-worktree regression through the real release run entry path including self-complete"
+        }
       }
     ],
     "tags": [
@@ -767,35 +788,35 @@
     },
     "acceptance": {
       "commands": [],
-      "none_stated": false,
+      "none_stated": true,
       "clauses": [
         {
           "id": "clause.1",
-          "title": "Keep the readiness entry clean check before the Phase 2 dry-run seam"
+          "text": "Keep the readiness entry clean check before the Phase 2 dry-run seam"
         },
         {
           "id": "clause.2",
-          "title": "Keep the dry-run path project working-tree neutral on every returned status"
+          "text": "Keep the dry-run path project working-tree neutral on every returned status"
         },
         {
           "id": "clause.3",
-          "title": "After dry-run, run a second clean check and fail readiness when the tree is dirty"
+          "text": "After dry-run, run a second clean check and fail readiness when the tree is dirty"
         },
         {
           "id": "clause.4",
-          "title": "Refuse copy must not claim write-nothing when post-dry-run dirt or a Git error is observed"
+          "text": "Refuse copy must not claim write-nothing when post-dry-run dirt or a Git error is observed"
         },
         {
           "id": "clause.5",
-          "title": "Entry clean-check refuse must not claim the whole release run invocation wrote nothing"
+          "text": "Entry clean-check refuse must not claim the whole release run invocation wrote nothing"
         },
         {
           "id": "clause.6",
-          "title": "Measure and fix the live writer of the observed readiness dirt class"
+          "text": "Measure and fix the live writer of the observed readiness dirt class"
         },
         {
           "id": "clause.7",
-          "title": "Add a fresh-worktree regression through the real release run entry path including self-complete"
+          "text": "Add a fresh-worktree regression through the real release run entry path including self-complete"
         }
       ]
     },

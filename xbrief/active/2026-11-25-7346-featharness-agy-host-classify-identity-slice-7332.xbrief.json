@@ -20,17 +20,26 @@
       {
         "id": "clause.1",
         "status": "pending",
-        "title": "Register agy in HOOK_HOSTS, AGENT_HOOK_PATH_BY_HOST, HOST_IDENTITY_PROVIDERS with sessionEndSupport unsupported"
+        "title": "Register agy in HOOK_HOSTS, AGENT_HOOK_PATH_BY_HOST, HOST_IDENTITY_PROVIDERS with sessionEndSupport unsupported",
+        "narrative": {
+          "Acceptance": "Register agy in HOOK_HOSTS, AGENT_HOOK_PATH_BY_HOST, HOST_IDENTITY_PROVIDERS with sessionEndSupport unsupported"
+        }
       },
       {
         "id": "clause.2",
         "status": "pending",
-        "title": "Add plan.policy.hostHooks.agy with DEFAULT_HOST_HOOKS_POLICY.agy false (no deposit yet)"
+        "title": "Add plan.policy.hostHooks.agy with DEFAULT_HOST_HOOKS_POLICY.agy false (no deposit yet)",
+        "narrative": {
+          "Acceptance": "Add plan.policy.hostHooks.agy with DEFAULT_HOST_HOOKS_POLICY.agy false (no deposit yet)"
+        }
       },
       {
         "id": "clause.3",
         "status": "pending",
-        "title": "Land host-keyed payload normalization, narrow overwrite.CommandLine rewrites, spend-resolve alignment, SessionStart notices, fail-closed deny of unsupported native spawn tools"
+        "title": "Land host-keyed payload normalization, narrow overwrite.CommandLine rewrites, spend-resolve alignment, SessionStart notices, fail-closed deny of unsupported native spawn tools",
+        "narrative": {
+          "Acceptance": "Land host-keyed payload normalization, narrow overwrite.CommandLine rewrites, spend-resolve alignment, SessionStart notices, fail-closed deny of unsupported native spawn tools"
+        }
       }
     ],
     "tags": [
@@ -47,36 +56,20 @@
     "acceptance": {
       "commands": [],
       "none_stated": true,
-      "source_rung": "derived",
-      "derived_reason": "one clause per sentence-list entry (2), in order (#6333)",
-      "sentences": [
-        "Parent: #7332 def-slice PLACEHOLDER Prefer-A Bound Spec-path from comments 7168371043 / 7168462854.",
-        "Slice classify-identity: register agy in HOOK_HOSTS, AGENT_HOOK_PATH_BY_HOST, HOST_IDENTITY_PROVIDERS (sessionEndSupport unsupported), plan.policy.hostHooks with DEFAULT_HOST_HOOKS_POLICY.agy=false; host-keyed payload normalization; narrow overwrite.CommandLine lifecycle rewrites; spend-resolve alignment; SessionStart injectSteps catalog; fail-closed deny unsupported native spawn tools."
-      ],
-      "admitted_source_sentences": [
-        "Parent: #7332 def-slice PLACEHOLDER Prefer-A Bound Spec-path from comments 7168371043 / 7168462854.",
-        "Slice classify-identity: register agy in HOOK_HOSTS, AGENT_HOOK_PATH_BY_HOST, HOST_IDENTITY_PROVIDERS (sessionEndSupport unsupported), plan.policy.hostHooks with DEFAULT_HOST_HOOKS_POLICY.agy=false; host-keyed payload normalization; narrow overwrite.CommandLine lifecycle rewrites; spend-resolve alignment; SessionStart injectSteps catalog; fail-closed deny unsupported native spawn tools."
-      ],
-      "admitted_source_digest": "76b64cf4624fda3b5e496afe5dc833cf3d8655244b91acb1e4e779b59e9e5f57",
-      "admitted_source_extractor": 2,
       "clauses": [
         {
-          "id": 1,
-          "text": "Parent: #7332 def-slice PLACEHOLDER Prefer-A Bound Spec-path from comments 7168371043 / 7168462854.",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
+          "id": "clause.1",
+          "text": "Register agy in HOOK_HOSTS, AGENT_HOOK_PATH_BY_HOST, HOST_IDENTITY_PROVIDERS with sessionEndSupport unsupported"
         },
         {
-          "id": 2,
-          "text": "Slice classify-identity: register agy in HOOK_HOSTS, AGENT_HOOK_PATH_BY_HOST, HOST_IDENTITY_PROVIDERS (sessionEndSupport unsupported), plan.policy.hostHooks with DEFAULT_HOST_HOOKS_POLICY.agy=false; host-keyed payload normalization; narrow overwrite.CommandLine lifecycle rewrites; spend-resolve alignment; SessionStart injectSteps catalog; fail-closed deny unsupported native spawn tools.",
-          "artifact_path": null,
-          "ambiguous": false,
-          "provenance": "statement"
+          "id": "clause.2",
+          "text": "Add plan.policy.hostHooks.agy with DEFAULT_HOST_HOOKS_POLICY.agy false (no deposit yet)"
+        },
+        {
+          "id": "clause.3",
+          "text": "Land host-keyed payload normalization, narrow overwrite.CommandLine rewrites, spend-resolve alignment, SessionStart notices, fail-closed deny of unsupported native spawn tools"
         }
-      ],
-      "ambiguity_attestation": "none_found",
-      "quality_notice": "plan.items is empty after body harvest (checkbox list, Acceptance Criteria heading, or whole-line Requirements: colon-label). Add structured list items on the issue body before promote/activate; bare prose stays under #4374. Example harvestable shape: a `## Acceptance Criteria` heading with a list item such as `- [ ] ship the fix` (fenced command blocks alone are not harvested)."
+      ]
     },
     "metadata": {
       "intended_placement": {

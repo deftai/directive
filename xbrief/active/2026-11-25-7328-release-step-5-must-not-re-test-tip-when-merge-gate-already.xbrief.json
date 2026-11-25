@@ -22,19 +22,28 @@
         "title": "relieves: P1 — Provide one named release-input classifier that returns clean, session-scratch-only, or dirty and is used by readiness Phase 1, pipeline Step 1, and evaluateCiReuse; session-scratch-only means working-tree .gitignore pure additions where every added line is a member of imported directive gitignore allowlist and/or untracked paths limited to the named constant named generation marker and named directive scratch tree in porcelain collapsed form, with a no-concealment check that the union of untracked paths visible under HEAD ignore rules and candidate working-tree rules still refuses any non-allowlisted path; refuse removals, modified lines, non-member lines, staged .gitignore, and other tracked dirt; print ignored entries; pass readiness and Step 1 without allow-dirty hatch; fixture the observed 21-line delta plus named ?? entries and a negative case where a member addition would hide non-allowlisted dirt.",
         "status": "pending",
         "id": "clause.1",
-        "x-directive/artifact_path": "packages/core/src/release/ci-reuse.ts"
+        "x-directive/artifact_path": "packages/core/src/release/ci-reuse.ts",
+        "narrative": {
+          "Acceptance": "relieves: P1 — Provide one named release-input classifier that returns clean, session-scratch-only, or dirty and is used by readiness Phase 1, pipeline Step 1, and evaluateCiReuse; session-scratch-only means working-tree .gitignore pure additions where every added line is a member of imported directive gitignore allowlist and/or untracked paths limited to the named constant named generation marker and named directive scratch tree in porcelain collapsed form, with a no-concealment check that the union of untracked paths visible under HEAD ignore rules and candidate working-tree rules still refuses any non-allowlisted path; refuse removals, modified lines, non-member lines, staged .gitignore, and other tracked dirt; print ignored entries; pass readiness and Step 1 without allow-dirty hatch; fixture the observed 21-line delta plus named ?? entries and a negative case where a member addition would hide non-allowlisted dirt."
+        }
       },
       {
         "title": "relieves: P2 — Admit CI reuse and host-smoke from HEAD tree equals tip tree plus selecting the latest required-check attempt before testing completed/success without a hard nightly-lane success conjunct; amend skill Routine vs hard cut line 247 and the silent soft-pass forbid so tip-green reuse with printed per-lane nightly disposition is an allowed named mode; print truthful per-lane reason and URL and never claim lanes ran when they did not.",
         "status": "pending",
         "id": "clause.2",
-        "x-directive/artifact_path": "packages/core/src/release/ci-reuse.test.ts"
+        "x-directive/artifact_path": "packages/core/src/release/ci-reuse.test.ts",
+        "narrative": {
+          "Acceptance": "relieves: P2 — Admit CI reuse and host-smoke from HEAD tree equals tip tree plus selecting the latest required-check attempt before testing completed/success without a hard nightly-lane success conjunct; amend skill Routine vs hard cut line 247 and the silent soft-pass forbid so tip-green reuse with printed per-lane nightly disposition is an allowed named mode; print truthful per-lane reason and URL and never claim lanes ran when they did not."
+        }
       },
       {
         "title": "relieves: P3 — Make the #5855 untied caller consult resolvePresentedIdentity so occupancyAdmission compares occupant to the host-published presenter and self-lease admits; acceptance proves occupant id equals resolved presenter id; genuinely foreign leases still refuse.",
         "status": "pending",
         "id": "clause.3",
-        "x-directive/artifact_path": "packages/core/src/release/run-readiness.ts"
+        "x-directive/artifact_path": "packages/core/src/release/run-readiness.ts",
+        "narrative": {
+          "Acceptance": "relieves: P3 — Make the #5855 untied caller consult resolvePresentedIdentity so occupancyAdmission compares occupant to the host-published presenter and self-lease admits; acceptance proves occupant id equals resolved presenter id; genuinely foreign leases still refuse."
+        }
       }
     ],
     "tags": [
@@ -51,46 +60,20 @@
     "acceptance": {
       "commands": [],
       "none_stated": true,
-      "source_rung": "derived",
-      "derived_reason": "one clause per harvested lean item (3), in list order (#6333)",
-      "sentences": [
-        "relieves: P1 — Provide one named release-input classifier that returns clean, session-scratch-only, or dirty and is used by readiness Phase 1, pipeline Step 1, and evaluateCiReuse; session-scratch-only means working-tree .gitignore pure additions where every added line is a member of imported DIRECTIVE_GITIGNORE_LINES and/or untracked paths limited to the named constant .deft/GENERATION.json and .deft/directive/ in porcelain collapsed form, with a no-concealment check that the union of untracked paths visible under HEAD ignore rules and candidate working-tree rules still refuses any non-allowlisted path; refuse removals, modified lines, non-member lines, staged .gitignore, and other tracked dirt; print ignored entries; pass readiness and Step 1 without --allow-dirty; fixture the observed 21-line delta plus named ?? entries and a negative case where a member addition would hide non-allowlisted dirt.",
-        "relieves: P2 — Admit CI reuse and host-smoke from HEAD tree equals tip tree plus selecting the latest required-check attempt before testing completed/success without a hard nightly-lane success conjunct; amend skill Routine vs hard cut line 247 and the silent soft-pass forbid so tip-green reuse with printed per-lane nightly disposition is an allowed named mode; print truthful per-lane reason and URL and never claim lanes ran when they did not.",
-        "relieves: P3 — Make the #5855 untied caller consult resolvePresentedIdentity so occupancyAdmission compares occupant to the host-published presenter and self-lease admits; acceptance proves occupant id equals resolved presenter id; genuinely foreign leases still refuse."
-      ],
-      "admitted_source_sentences": [
-        "relieves: P1 — Provide one named release-input classifier that returns clean, session-scratch-only, or dirty and is used by readiness Phase 1, pipeline Step 1, and evaluateCiReuse; session-scratch-only means working-tree .gitignore pure additions where every added line is a member of imported DIRECTIVE_GITIGNORE_LINES and/or untracked paths limited to the named constant .deft/GENERATION.json and .deft/directive/ in porcelain collapsed form, with a no-concealment check that the union of untracked paths visible under HEAD ignore rules and candidate working-tree rules still refuses any non-allowlisted path; refuse removals, modified lines, non-member lines, staged .gitignore, and other tracked dirt; print ignored entries; pass readiness and Step 1 without --allow-dirty; fixture the observed 21-line delta plus named ?? entries and a negative case where a member addition would hide non-allowlisted dirt.",
-        "relieves: P2 — Admit CI reuse and host-smoke from HEAD tree equals tip tree plus selecting the latest required-check attempt before testing completed/success without a hard nightly-lane success conjunct; amend skill Routine vs hard cut line 247 and the silent soft-pass forbid so tip-green reuse with printed per-lane nightly disposition is an allowed named mode; print truthful per-lane reason and URL and never claim lanes ran when they did not.",
-        "relieves: P3 — Make the #5855 untied caller consult resolvePresentedIdentity so occupancyAdmission compares occupant to the host-published presenter and self-lease admits; acceptance proves occupant id equals resolved presenter id; genuinely foreign leases still refuse."
-      ],
-      "admitted_source_digest": "4956a30bd81fbaff0793c3ff8a19e98e0cb5ed64758397e518036eb0d07126c7",
       "clauses": [
         {
-          "id": 1,
-          "text": "relieves: P1 — Provide one named release-input classifier that returns clean, session-scratch-only, or dirty and is used by readiness Phase 1, pipeline Step 1, and evaluateCiReuse; session-scratch-only means working-tree .gitignore pure additions where every added line is a member of imported DIRECTIVE_GITIGNORE_LINES and/or untracked paths limited to the named constant .deft/GENERATION.json and .deft/directive/ in porcelain collapsed form, with a no-concealment check that the union of untracked paths visible under HEAD ignore rules and candidate working-tree rules still refuses any non-allowlisted path; refuse removals, modified lines, non-member lines, staged .gitignore, and other tracked dirt; print ignored entries; pass readiness and Step 1 without --allow-dirty; fixture the observed 21-line delta plus named ?? entries and a negative case where a member addition would hide non-allowlisted dirt.",
-          "artifact_path": "packages/core/src/release/ci-reuse.ts",
-          "ambiguous": false,
-          "provenance": "statement",
-          "title": "relieves: P1 — Provide one named release-input classifier that returns clean, session-scratch-only, or dirty and is used by readiness Phase 1, pipeline Step 1, and evaluateCiReuse; session-scratch-only means working-tree .gitignore pure additions where every added line is a member of imported directive gitignore allowlist and/or untracked paths limited to the named constant named generation marker and named directive scratch tree in porcelain collapsed form, with a no-concealment check that the union of untracked paths visible under HEAD ignore rules and candidate working-tree rules still refuses any non-allowlisted path; refuse removals, modified lines, non-member lines, staged .gitignore, and other tracked dirt; print ignored entries; pass readiness and Step 1 without allow-dirty hatch; fixture the observed 21-line delta plus named ?? entries and a negative case where a member addition would hide non-allowlisted dirt."
+          "id": "clause.1",
+          "text": "relieves: P1 — Provide one named release-input classifier that returns clean, session-scratch-only, or dirty and is used by readiness Phase 1, pipeline Step 1, and evaluateCiReuse; session-scratch-only means working-tree .gitignore pure additions where every added line is a member of imported directive gitignore allowlist and/or untracked paths limited to the named constant named generation marker and named directive scratch tree in porcelain collapsed form, with a no-concealment check that the union of untracked paths visible under HEAD ignore rules and candidate working-tree rules still refuses any non-allowlisted path; refuse removals, modified lines, non-member lines, staged .gitignore, and other tracked dirt; print ignored entries; pass readiness and Step 1 without allow-dirty hatch; fixture the observed 21-line delta plus named ?? entries and a negative case where a member addition would hide non-allowlisted dirt."
         },
         {
-          "id": 2,
-          "text": "relieves: P2 — Admit CI reuse and host-smoke from HEAD tree equals tip tree plus selecting the latest required-check attempt before testing completed/success without a hard nightly-lane success conjunct; amend skill Routine vs hard cut line 247 and the silent soft-pass forbid so tip-green reuse with printed per-lane nightly disposition is an allowed named mode; print truthful per-lane reason and URL and never claim lanes ran when they did not.",
-          "artifact_path": "packages/core/src/release/ci-reuse.test.ts",
-          "ambiguous": false,
-          "provenance": "statement",
-          "title": "relieves: P2 — Admit CI reuse and host-smoke from HEAD tree equals tip tree plus selecting the latest required-check attempt before testing completed/success without a hard nightly-lane success conjunct; amend skill Routine vs hard cut line 247 and the silent soft-pass forbid so tip-green reuse with printed per-lane nightly disposition is an allowed named mode; print truthful per-lane reason and URL and never claim lanes ran when they did not."
+          "id": "clause.2",
+          "text": "relieves: P2 — Admit CI reuse and host-smoke from HEAD tree equals tip tree plus selecting the latest required-check attempt before testing completed/success without a hard nightly-lane success conjunct; amend skill Routine vs hard cut line 247 and the silent soft-pass forbid so tip-green reuse with printed per-lane nightly disposition is an allowed named mode; print truthful per-lane reason and URL and never claim lanes ran when they did not."
         },
         {
-          "id": 3,
-          "text": "relieves: P3 — Make the #5855 untied caller consult resolvePresentedIdentity so occupancyAdmission compares occupant to the host-published presenter and self-lease admits; acceptance proves occupant id equals resolved presenter id; genuinely foreign leases still refuse.",
-          "artifact_path": "packages/core/src/release/run-readiness.ts",
-          "ambiguous": false,
-          "provenance": "statement",
-          "title": "relieves: P3 — Make the #5855 untied caller consult resolvePresentedIdentity so occupancyAdmission compares occupant to the host-published presenter and self-lease admits; acceptance proves occupant id equals resolved presenter id; genuinely foreign leases still refuse."
+          "id": "clause.3",
+          "text": "relieves: P3 — Make the #5855 untied caller consult resolvePresentedIdentity so occupancyAdmission compares occupant to the host-published presenter and self-lease admits; acceptance proves occupant id equals resolved presenter id; genuinely foreign leases still refuse."
         }
-      ],
-      "ambiguity_attestation": "none_found"
+      ]
     },
     "metadata": {
       "intended_placement": {

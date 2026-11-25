@@ -21,17 +21,26 @@
       {
         "id": "clause.1",
         "status": "pending",
-        "title": "Ship durable pin-PR setup that ensures the changelog fragment directory exists before write"
+        "title": "Ship durable pin-PR setup that ensures the changelog fragment directory exists before write",
+        "narrative": {
+          "Acceptance": "Ship durable pin-PR setup that ensures the changelog fragment directory exists before write"
+        }
       },
       {
         "id": "clause.2",
         "status": "pending",
-        "title": "On local-update ff-only, remediate untracked approved-scope twins per path (identical remove / divergent move-aside)"
+        "title": "On local-update ff-only, remediate untracked approved-scope twins per path (identical remove / divergent move-aside)",
+        "narrative": {
+          "Acceptance": "On local-update ff-only, remediate untracked approved-scope twins per path (identical remove / divergent move-aside)"
+        }
       },
       {
         "id": "clause.3",
         "status": "pending",
-        "title": "Final lines and skill exit card name both runnable post-run paths"
+        "title": "Final lines and skill exit card name both runnable post-run paths",
+        "narrative": {
+          "Acceptance": "Final lines and skill exit card name both runnable post-run paths"
+        }
       }
     ],
     "tags": [
@@ -50,46 +59,20 @@
     "acceptance": {
       "commands": [],
       "none_stated": true,
-      "source_rung": "derived",
-      "derived_reason": "one clause per harvested lean item (3), in list order (#6333)",
-      "sentences": [
-        "Ship durable pin-PR setup (release:pin-pr and/or release-skill post-run Phase): tip worktree + chore/pin-directive-<version>; bump package.json pin + replace minimumReleaseAgeExclude; ensure changelog.d/ exists; write pin fragment; pnpm update -w @deftai/directive-runtime@<version> + frozen-lockfile verify; open PR with Documentation impact change_class: none — relieves: P1",
-        "On the release:local-update path that owns git pull --ff-only, for untracked tip-tracked .deft/approved-scope/** (same-class mint paths): tip-byte-identical → remove untracked; else → move aside to OS temp; retry ff-only; print one-step remediation; never git clean -fd the whole tree — relieves: P2",
-        "releaseRunFinalLines and skill exit / post-run card after finish+promote name both runnable paths (pin-PR setup + local-update clash remediation) — relieves: P3"
-      ],
-      "admitted_source_sentences": [
-        "Ship durable pin-PR setup (release:pin-pr and/or release-skill post-run Phase): tip worktree + chore/pin-directive-<version>; bump package.json pin + replace minimumReleaseAgeExclude; ensure changelog.d/ exists; write pin fragment; pnpm update -w @deftai/directive-runtime@<version> + frozen-lockfile verify; open PR with Documentation impact change_class: none — relieves: P1",
-        "On the release:local-update path that owns git pull --ff-only, for untracked tip-tracked .deft/approved-scope/** (same-class mint paths): tip-byte-identical → remove untracked; else → move aside to OS temp; retry ff-only; print one-step remediation; never git clean -fd the whole tree — relieves: P2",
-        "releaseRunFinalLines and skill exit / post-run card after finish+promote name both runnable paths (pin-PR setup + local-update clash remediation) — relieves: P3"
-      ],
-      "admitted_source_digest": "d1a08d2f1ed3f22094549183f37f4615e59c2016382a96c84d32797df7c276d8",
       "clauses": [
         {
-          "id": 1,
-          "text": "Ship durable pin-PR setup (release:pin-pr and/or release-skill post-run Phase): tip worktree + chore/pin-directive-<version>; bump package.json pin + replace minimumReleaseAgeExclude; ensure changelog.d/ exists; write pin fragment; pnpm update -w @deftai/directive-runtime@<version> + frozen-lockfile verify; open PR with Documentation impact change_class: none — relieves: P1",
-          "artifact_path": "packages/core/src/release/run.ts",
-          "ambiguous": false,
-          "provenance": "statement",
-          "title": "Ship durable pin-PR setup (release:pin-pr and/or release-skill post-run Phase): tip worktree + chore/pin-directive-<version>; bump root package manifest pin + replace minimumReleaseAgeExclude; ensure changelog.d/ exists; write pin fragment; pnpm update -w @deftai/directive-runtime@<version> + frozen-lockfile verify; open PR with Documentation impact change_class: none — relieves: P1"
+          "id": "clause.1",
+          "text": "Ship durable pin-PR setup that ensures the changelog fragment directory exists before write"
         },
         {
-          "id": 2,
-          "text": "On the release:local-update path that owns git pull --ff-only, for untracked tip-tracked .deft/approved-scope/** (same-class mint paths): tip-byte-identical → remove untracked; else → move aside to OS temp; retry ff-only; print one-step remediation; never git clean -fd the whole tree — relieves: P2",
-          "artifact_path": "packages/core/src/release/run.test.ts",
-          "ambiguous": false,
-          "provenance": "statement",
-          "title": "On the release:local-update path that owns git pull --ff-only, for untracked tip-tracked approved-scope store** (same-class mint paths): tip-byte-identical → remove untracked; else → move aside to OS temp; retry ff-only; print one-step remediation; never git clean -fd the whole tree — relieves: P2"
+          "id": "clause.2",
+          "text": "On local-update ff-only, remediate untracked approved-scope twins per path (identical remove / divergent move-aside)"
         },
         {
-          "id": 3,
-          "text": "releaseRunFinalLines and skill exit / post-run card after finish+promote name both runnable paths (pin-PR setup + local-update clash remediation) — relieves: P3",
-          "artifact_path": "content/skills/deft-directive-release/SKILL.md",
-          "ambiguous": false,
-          "provenance": "statement",
-          "title": "releaseRunFinalLines and skill exit / post-run card after finish+promote name both runnable paths (pin-PR setup + local-update clash remediation) — relieves: P3"
+          "id": "clause.3",
+          "text": "Final lines and skill exit card name both runnable post-run paths"
         }
-      ],
-      "ambiguity_attestation": "none_found"
+      ]
     },
     "metadata": {
       "intended_placement": {

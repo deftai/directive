@@ -20,17 +20,26 @@
       {
         "id": "clause.1",
         "status": "pending",
-        "title": "Keep both twin fixtures at 16k-class shifts with unknown classification asserts"
+        "title": "Keep both twin fixtures at 16k-class shifts with unknown classification asserts",
+        "narrative": {
+          "Acceptance": "Keep both twin fixtures at 16k-class shifts with unknown classification asserts"
+        }
       },
       {
         "id": "clause.2",
         "status": "pending",
-        "title": "Replace absolute one-second asserts with a shared N/2N ratio helper and hang ceilings"
+        "title": "Replace absolute one-second asserts with a shared N/2N ratio helper and hang ceilings",
+        "narrative": {
+          "Acceptance": "Replace absolute one-second asserts with a shared N/2N ratio helper and hang ceilings"
+        }
       },
       {
         "id": "clause.3",
         "status": "pending",
-        "title": "Reject delete-twin, raise-only budget, skip-under-coverage, shrink-N, or production API for the meter"
+        "title": "Reject delete-twin, raise-only budget, skip-under-coverage, shrink-N, or production API for the meter",
+        "narrative": {
+          "Acceptance": "Reject delete-twin, raise-only budget, skip-under-coverage, shrink-N, or production API for the meter"
+        }
       }
     ],
     "tags": [
@@ -46,48 +55,20 @@
     "acceptance": {
       "commands": [],
       "none_stated": true,
-      "source_rung": "derived",
-      "derived_reason": "one clause per sentence-list entry (3), in order (#6333)",
-      "sentences": [
-        "<!-- deft-nightly-lane: coverage --> This issue tracks the Nightly coverage (Linux) lane of the nightly workflow (`.github/workflows/nightly.yml`).",
-        "The workflow reopens it and comments when the lane is red, and comments and closes it when the lane passes.",
-        "Release readiness reuses a lane only when its latest attempt succeeded on the release tree (docs/RELEASING.md)."
-      ],
-      "admitted_source_sentences": [
-        "<!-- deft-nightly-lane: coverage --> This issue tracks the Nightly coverage (Linux) lane of the nightly workflow (`.github/workflows/nightly.yml`).",
-        "The workflow reopens it and comments when the lane is red, and comments and closes it when the lane passes.",
-        "Release readiness reuses a lane only when its latest attempt succeeded on the release tree (docs/RELEASING.md)."
-      ],
-      "admitted_source_digest": "57fe9c5fc8ebccbc357ca8325104f1946016c992bd12851823224ae2cd43159f",
-      "admitted_source_extractor": 2,
       "clauses": [
         {
-          "id": 1,
-          "text": "<!-- deft-nightly-lane: coverage --> This issue tracks the Nightly coverage (Linux) lane of the nightly workflow (`.github/workflows/nightly.yml`).",
-          "artifact_path": "packages/core/src/authz/classify.test.ts",
-          "ambiguous": false,
-          "provenance": "statement",
-          "title": "<!-- deft-nightly-lane: coverage --> This issue tracks the Nightly coverage (Linux) lane of the nightly workflow (`nightly workflow`)."
+          "id": "clause.1",
+          "text": "Keep both twin fixtures at 16k-class shifts with unknown classification asserts"
         },
         {
-          "id": 2,
-          "text": "The workflow reopens it and comments when the lane is red, and comments and closes it when the lane passes.",
-          "artifact_path": "changelog.d/7265-nightly-quadratic-guard-meter.md",
-          "ambiguous": false,
-          "provenance": "statement",
-          "title": "The workflow reopens it and comments when the lane is red, and comments and closes it when the lane passes."
+          "id": "clause.2",
+          "text": "Replace absolute one-second asserts with a shared N/2N ratio helper and hang ceilings"
         },
         {
-          "id": 3,
-          "text": "Release readiness reuses a lane only when its latest attempt succeeded on the release tree (docs/RELEASING.md).",
-          "artifact_path": "changelog.d/7265-nightly-quadratic-guard-meter.md",
-          "ambiguous": false,
-          "provenance": "statement",
-          "title": "Release readiness reuses a lane only when its latest attempt succeeded on the release tree (releasing docs)."
+          "id": "clause.3",
+          "text": "Reject delete-twin, raise-only budget, skip-under-coverage, shrink-N, or production API for the meter"
         }
-      ],
-      "ambiguity_attestation": "none_found",
-      "quality_notice": "plan.items is empty after body harvest (checkbox list, Acceptance Criteria heading, or whole-line Requirements: colon-label). Add structured list items on the issue body before promote/activate; bare prose stays under #4374. Example harvestable shape: a `## Acceptance Criteria` heading with a list item such as `- [ ] ship the fix` (fenced command blocks alone are not harvested)."
+      ]
     },
     "metadata": {
       "intended_placement": {

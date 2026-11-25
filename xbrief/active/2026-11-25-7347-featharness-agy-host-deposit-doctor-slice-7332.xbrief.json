@@ -21,19 +21,28 @@
         "id": "clause.1",
         "status": "pending",
         "title": "Implement named-object agent hooks deposit repair and uninstall keyed by Directive name plus command marker",
-        "artifact_path": "packages/core/src/init-deposit/host-hook-outer.ts"
+        "artifact_path": "packages/core/src/init-deposit/host-hook-outer.ts",
+        "narrative": {
+          "Acceptance": "Implement named-object agent hooks deposit repair and uninstall keyed by Directive name plus command marker"
+        }
       },
       {
         "id": "clause.2",
         "status": "pending",
         "title": "Gate deposit-doctor activation behind deterministic contract test reading committed observe verdict",
-        "artifact_path": "packages/core/src/init-deposit/hygiene.ts"
+        "artifact_path": "packages/core/src/init-deposit/hygiene.ts",
+        "narrative": {
+          "Acceptance": "Gate deposit-doctor activation behind deterministic contract test reading committed observe verdict"
+        }
       },
       {
         "id": "clause.3",
         "status": "pending",
         "title": "On fail or absent verdict halt activation with pains unmet and route leftover issue",
-        "artifact_path": "packages/core/src/doctor/checks.ts"
+        "artifact_path": "packages/core/src/doctor/checks.ts",
+        "narrative": {
+          "Acceptance": "On fail or absent verdict halt activation with pains unmet and route leftover issue"
+        }
       }
     ],
     "tags": [
@@ -50,39 +59,23 @@
     "acceptance": {
       "commands": [],
       "none_stated": true,
-      "source_rung": "derived",
-      "derived_reason": "one clause per sentence-list entry (3), in order (#6333)",
-      "sentences": [
-        "Parent: #7332 def-slice PLACEHOLDER Prefer-A Bound Spec-path from comments 7168371043 / 7168462854.",
-        "Slice deposit-doctor: named-object .agents/hooks.json deposit/repair/uninstall; gate activation behind deterministic contract test reading committed observe verdict; on fail/absent verdict halt and route leftover issue.",
-        "Depends on observe + classify-identity."
-      ],
-      "admitted_source_sentences": [
-        "Parent: #7332 def-slice PLACEHOLDER Prefer-A Bound Spec-path from comments 7168371043 / 7168462854.",
-        "Slice deposit-doctor: named-object .agents/hooks.json deposit/repair/uninstall; gate activation behind deterministic contract test reading committed observe verdict; on fail/absent verdict halt and route leftover issue.",
-        "Depends on observe + classify-identity."
-      ],
-      "admitted_source_digest": "bb1e02fd3e57d38c6cf7176201d5d9d9e2d6a197bf69eb549c4f8c1e7ec21b6d",
-      "admitted_source_extractor": 2,
       "clauses": [
         {
           "id": "clause.1",
-          "title": "Implement named-object agent hooks deposit repair and uninstall keyed by Directive name plus command marker",
+          "text": "Implement named-object agent hooks deposit repair and uninstall keyed by Directive name plus command marker",
           "artifact_path": "packages/core/src/init-deposit/host-hook-outer.ts"
         },
         {
           "id": "clause.2",
-          "title": "Gate deposit-doctor activation behind deterministic contract test reading committed observe verdict",
+          "text": "Gate deposit-doctor activation behind deterministic contract test reading committed observe verdict",
           "artifact_path": "packages/core/src/init-deposit/hygiene.ts"
         },
         {
           "id": "clause.3",
-          "title": "On fail or absent verdict halt activation with pains unmet and route leftover issue",
+          "text": "On fail or absent verdict halt activation with pains unmet and route leftover issue",
           "artifact_path": "packages/core/src/doctor/checks.ts"
         }
-      ],
-      "ambiguity_attestation": "none_found",
-      "quality_notice": "plan.items is empty after body harvest (checkbox list, Acceptance Criteria heading, or whole-line Requirements: colon-label). Add structured list items on the issue body before promote/activate; bare prose stays under #4374. Example harvestable shape: a `## Acceptance Criteria` heading with a list item such as `- [ ] ship the fix` (fenced command blocks alone are not harvested)."
+      ]
     },
     "metadata": {
       "intended_placement": {
