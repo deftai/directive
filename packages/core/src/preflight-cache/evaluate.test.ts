@@ -4,10 +4,14 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import * as emptyPopulate from "../cache/empty-populate.js";
 import { writeOpenInventoryStamp } from "../cache/fetch.js";
+import { releaseCheckEnv } from "../release/preflight.js";
+import { COMMANDS } from "../render/framework-commands.js";
+import { runCacheFreshMain } from "../session/ritual-entrypoint.js";
 import {
   CACHE_DIR_NAME,
   CANDIDATES_RELPATH,
   DEFAULT_SOURCE,
+  ENV_RELEASE_PREFLIGHT,
   evaluate,
   normaliseRepoUrl,
   recoveryHintForStaleFailure,
@@ -890,5 +894,42 @@ describe("evaluate -- empty cache auto-populate (#2575)", () => {
     evaluate(root, { allowMissingBootstrap: true });
     expect(populateSpy).not.toHaveBeenCalled();
     populateSpy.mockRestore();
+  });
+});
+
+/**
+ * #7326 Prefer-A Recut-1: lock Step 5 / framework verify:cache-fresh admission for
+ * missing github-issue triage cache via COMMANDS defaultArgs dispatch
+ * (--allow-missing-bootstrap), not evaluate()-only with the flag hand-set.
+ * Do not widen DEFT_RELEASE_PREFLIGHT (age-only bypass stays as today).
+ */
+describe("release Step 5 missing github-issue cache admission (#7326)", () => {
+  const prevReleasePreflight = process.env[ENV_RELEASE_PREFLIGHT];
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    if (prevReleasePreflight === undefined) delete process.env[ENV_RELEASE_PREFLIGHT];
+    else process.env[ENV_RELEASE_PREFLIGHT] = prevReleasePreflight;
+  });
+
+  it("framework-commands defaultArgs inject --allow-missing-bootstrap", () => {
+    const spec = COMMANDS["verify:cache-fresh"];
+    expect(spec).toBeDefined();
+    expect(spec.defaultArgs).toContain("--allow-missing-bootstrap");
+  });
+
+  it("dispatched verify:cache-fresh admits missing cache under releaseCheckEnv without fetch-all", () => {
+    const root = makeTmpDir();
+    const env = releaseCheckEnv();
+    expect(env[ENV_RELEASE_PREFLIGHT]).toBe("1");
+    process.env[ENV_RELEASE_PREFLIGHT] = env[ENV_RELEASE_PREFLIGHT] as string;
+
+    const populateSpy = vi.spyOn(emptyPopulate, "maybeAutoPopulateEmptyCache");
+    const defaultArgs = [...(COMMANDS["verify:cache-fresh"].defaultArgs ?? [])];
+    expect(defaultArgs).toContain("--allow-missing-bootstrap");
+
+    const code = runCacheFreshMain([...defaultArgs, "--project-root", root]);
+    expect(code).toBe(0);
+    expect(populateSpy).not.toHaveBeenCalled();
   });
 });
