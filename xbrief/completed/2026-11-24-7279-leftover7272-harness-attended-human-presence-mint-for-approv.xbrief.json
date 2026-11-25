@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #7279",
-    "updated": "2026-11-24T22:43:45Z"
+    "updated": "2026-11-25T03:22:08Z"
   },
   "plan": {
     "title": "leftover(#7272): harness-attended human-presence mint for approved-scope and authz",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "leftover(#7272): harness-attended human-presence mint for approved-scope and authz",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/7279",
@@ -18,28 +18,58 @@
     "items": [
       {
         "title": "relieves: P1 — Route only scope:record-approved-scope and inventoried authz kept-mint mutators from the harness into an operator-controlled confirmation surface (controlling-TTY phrase or host-authenticated user-event) that lands the stamp while agent-shell markers stay set and without forge-by-unset.",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/runtime/src/human-presence-mint.test.ts",
+          "recorded_at": "2026-11-25T03:17:17.435Z",
+          "recorded_by": "leftover-closer/7279"
+        }
       },
       {
         "title": "relieves: P1 — Treat bare chat-yes as request-open only so it never authorizes the write itself and never substitutes for that confirmation surface.",
-        "status": "proposed",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/runtime/src/human-presence-mint.open-flag.test.ts",
+          "recorded_at": "2026-11-25T03:17:17.435Z",
+          "recorded_by": "leftover-closer/7279"
+        }
       },
       {
         "title": "relieves: P2 — Freeze verb, authority payload, canonical checkout, and resolved destination set under a single-use request id before confirmation, and refuse changed, cancelled, expired, or already-completed requests.",
-        "status": "proposed",
-        "id": "clause.3"
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/runtime/src/scope-record-approved-scope.test.ts",
+          "recorded_at": "2026-11-25T03:17:17.435Z",
+          "recorded_by": "leftover-closer/7279"
+        }
       },
       {
         "title": "relieves: P2 — Complete only through existing writers after a fresh command-specific admission recheck at confirm time, including active-UAT restrictions and the suspend exception.",
-        "status": "proposed",
-        "id": "clause.4"
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/runtime/src/scope-record-approved-scope-cohort.test.ts",
+          "recorded_at": "2026-11-25T03:17:17.435Z",
+          "recorded_by": "leftover-closer/7279"
+        }
       },
       {
         "title": "relieves: P3 — Keep obs/intent on #7031 declared writers plus merge control, refuse restoring --minted-via in-harness-ask for those verbs, keep #6945 signed-approval keep-out, and preserve ordinary human CLI mint outside the harness path.",
-        "status": "proposed",
-        "id": "clause.5"
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/runtime/src/authz.test.ts",
+          "recorded_at": "2026-11-25T03:17:17.435Z",
+          "recorded_by": "leftover-closer/7279"
+        }
       }
     ],
     "tags": [
@@ -212,9 +242,39 @@
         ],
         "model_tier": "standard",
         "Traces": []
+      },
+      "productPullRequest": 7323,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "931a45f2bc44027f9dfffc9bf1f0df1307436f90",
+        "prNumber": 7323,
+        "prBase": "master",
+        "mergeCommit": "e985053790d1c7763ba1d597a794e1cafb14003c",
+        "deliveryBranch": "master",
+        "deliveryCommit": "a4cc1f69c89f803d4469208f0e9467ad4f4afef5",
+        "verifiedAt": "2026-11-25T03:22:08Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMjEwYjEtOWE4Mi03YjUwLWI2ZDMtZTRhYjY5OTM3ZWQ2",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          7318
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-25T03:22:08Z",
+      "completedSessionId": "host:grok:v1:MDFhMjEwYjEtOWE4Mi03YjUwLWI2ZDMtZTRhYjY5OTM3ZWQ2",
+      "capacityBucket": "agentic-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-25T03:22:08Z"
       }
     },
     "id": "github.issue.6583313038",
-    "updated": "2026-11-24T22:43:45Z"
+    "updated": "2026-11-25T03:22:08Z"
   }
 }
