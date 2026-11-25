@@ -160,20 +160,26 @@ function parseGitignoreAddedLines(
   return { ok: true, added };
 }
 
+type NestedGitignoreBodiesResult =
+  | { readonly ok: true; readonly bodies: ReadonlyMap<string, string> }
+  | { readonly ok: false; readonly reason: string };
+
 /**
  * Load tracked nested `.gitignore` bodies (not the repo-root file).
- * Fail closed on list/read errors so no-concealment never drops nested rules.
+ * Fail closed via returned-failure so no-concealment never drops nested rules
+ * (operational probe path — no throw-site hard fact).
  */
 function loadNestedGitignoreBodies(
   projectRoot: string,
   seams: ReleaseSeams,
-): ReadonlyMap<string, string> {
+): NestedGitignoreBodiesResult {
   const listed = runGit(projectRoot, ["ls-files", "-z", "--", ":(glob)**/.gitignore"], seams);
   if (listed.status !== 0) {
     const detail = listed.stderr.trim() || listed.stdout.trim() || "unknown";
-    throw new Error(
-      `git ls-files nested .gitignore failed (exit ${String(listed.status)}): ${detail}`,
-    );
+    return {
+      ok: false,
+      reason: `git ls-files nested .gitignore failed (exit ${String(listed.status)}): ${detail}`,
+    };
   }
   const out = new Map<string, string>();
   for (const raw of listed.stdout.split("\0")) {
@@ -185,31 +191,39 @@ function loadNestedGitignoreBodies(
       out.set(rel, readFileSync(join(projectRoot, rel), "utf8"));
     } catch (err) {
       const detail = err instanceof Error ? err.message : String(err);
-      throw new Error(`could not read nested .gitignore ${rel}: ${detail}`);
+      return { ok: false, reason: `could not read nested .gitignore ${rel}: ${detail}` };
     }
   }
-  return out;
+  return { ok: true, bodies: out };
 }
+
+type IgnoreProbeResult =
+  | { readonly ok: true; readonly ignored: boolean }
+  | { readonly ok: false; readonly reason: string };
 
 /**
  * Evaluate whether `path` is ignored by an arbitrary root gitignore body plus
  * nested `.gitignore` files from the project. Uses a throwaway repo —
  * `git check-ignore` has no `-f` exclude-file flag (unlike check-attr). Exit 0
- * = ignored, 1 = not ignored; any other status throws so no-concealment fails
- * closed. Nested rules (e.g. `packages/runtime/.gitignore` → `.pack-stage/`)
- * must be materialized or `ls-files -o` hits poison session-scratch-only.
+ * = ignored, 1 = not ignored; any other status is a returned-failure so
+ * no-concealment fails closed without a throw-site hard fact. Nested rules
+ * (e.g. `packages/runtime/.gitignore` → `.pack-stage/`) must be materialized
+ * or `ls-files -o` hits poison session-scratch-only.
  */
 function defaultIsIgnoredBy(
   gitignoreBody: string,
   path: string,
   seams: ReleaseSeams,
   nestedBodies: ReadonlyMap<string, string>,
-): boolean {
+): IgnoreProbeResult {
   const dir = mkdtempSync(join(tmpdir(), "deft-rel-ign-"));
   try {
     const init = runGit(dir, ["init", "-q"], seams);
     if (init.status !== 0) {
-      throw new Error(`git init for ignore probe failed: ${init.stderr.trim() || "unknown"}`);
+      return {
+        ok: false,
+        reason: `git init for ignore probe failed: ${init.stderr.trim() || "unknown"}`,
+      };
     }
     for (const [rel, nestedBody] of nestedBodies) {
       const data = nestedBody.endsWith("\n") ? nestedBody : `${nestedBody}\n`;
@@ -231,10 +245,13 @@ function defaultIsIgnoredBy(
     });
     // check-ignore has no -f; rules come from this temp work tree's ignores.
     const check = runGit(dir, ["check-ignore", "--no-index", "-q", "--", path], seams);
-    if (check.status === 0) return true;
-    if (check.status === 1) return false;
+    if (check.status === 0) return { ok: true, ignored: true };
+    if (check.status === 1) return { ok: true, ignored: false };
     const detail = check.stderr.trim() || check.stdout.trim() || "unknown";
-    throw new Error(`git check-ignore probe failed (exit ${String(check.status)}): ${detail}`);
+    return {
+      ok: false,
+      reason: `git check-ignore probe failed (exit ${String(check.status)}): ${detail}`,
+    };
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
@@ -390,39 +407,54 @@ export function classifyReleaseInputCleanliness(
     };
   }
 
-  let isIgnored: (body: string, path: string) => boolean;
+  type IgnoreFn = (body: string, path: string) => IgnoreProbeResult;
+  let probeIgnored: IgnoreFn;
   if (options.isIgnoredBy) {
-    isIgnored = options.isIgnoredBy;
+    const seam = options.isIgnoredBy;
+    probeIgnored = (body, path) => {
+      try {
+        return { ok: true, ignored: seam(body, path) };
+      } catch (err) {
+        const detail = err instanceof Error ? err.message : String(err);
+        return { ok: false, reason: detail };
+      }
+    };
   } else {
-    let nestedBodies: ReadonlyMap<string, string>;
-    try {
-      nestedBodies =
-        options.nestedGitignoreBodies?.() ?? loadNestedGitignoreBodies(projectRoot, seams);
-    } catch (err) {
-      const detail = err instanceof Error ? err.message : String(err);
+    const nestedLoaded =
+      options.nestedGitignoreBodies !== undefined
+        ? { ok: true as const, bodies: options.nestedGitignoreBodies() }
+        : loadNestedGitignoreBodies(projectRoot, seams);
+    if (!nestedLoaded.ok) {
       return {
         kind: "dirty",
-        reason: `no-concealment nested .gitignore load failed: ${detail}`,
+        reason: `no-concealment nested .gitignore load failed: ${nestedLoaded.reason}`,
         porcelain: trimmed.trimEnd(),
       };
     }
-    isIgnored = (body, path) => defaultIsIgnoredBy(body, path, seams, nestedBodies);
+    const nestedBodies = nestedLoaded.bodies;
+    probeIgnored = (body, path) => defaultIsIgnoredBy(body, path, seams, nestedBodies);
   }
 
-  let visible: Set<string>;
-  try {
-    visible = new Set<string>();
-    for (const path of allUntracked) {
-      if (!isIgnored(headIgnore, path)) visible.add(collapseReleaseSessionScratchPath(path));
-      if (!isIgnored(wtIgnore, path)) visible.add(collapseReleaseSessionScratchPath(path));
+  const visible = new Set<string>();
+  for (const path of allUntracked) {
+    const headProbe = probeIgnored(headIgnore, path);
+    if (!headProbe.ok) {
+      return {
+        kind: "dirty",
+        reason: `no-concealment ignore probe failed: ${headProbe.reason}`,
+        porcelain: trimmed.trimEnd(),
+      };
     }
-  } catch (err) {
-    const detail = err instanceof Error ? err.message : String(err);
-    return {
-      kind: "dirty",
-      reason: `no-concealment ignore probe failed: ${detail}`,
-      porcelain: trimmed.trimEnd(),
-    };
+    if (!headProbe.ignored) visible.add(collapseReleaseSessionScratchPath(path));
+    const wtProbe = probeIgnored(wtIgnore, path);
+    if (!wtProbe.ok) {
+      return {
+        kind: "dirty",
+        reason: `no-concealment ignore probe failed: ${wtProbe.reason}`,
+        porcelain: trimmed.trimEnd(),
+      };
+    }
+    if (!wtProbe.ignored) visible.add(collapseReleaseSessionScratchPath(path));
   }
   for (const path of visible) {
     if (!isAllowlistedReleaseSessionScratch(path)) {
