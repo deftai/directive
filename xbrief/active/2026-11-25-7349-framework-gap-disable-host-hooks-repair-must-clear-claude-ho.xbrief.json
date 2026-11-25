@@ -23,28 +23,28 @@
         "id": "clause.1",
         "status": "pending",
         "title": "relieves: P1 — Confirm disable strips or chains repair for the named host’s managed hook entries before exit 0",
-        "artifact_path": "packages/core/src/policy/host-hooks.ts",
         "narrative": {
           "Acceptance": "relieves: P1 — Confirm disable strips or chains repair for the named host’s managed hook entries before exit 0"
-        }
+        },
+        "x-directive/artifact_path": "packages/core/src/policy/host-hooks.ts"
       },
       {
         "id": "clause.2",
         "status": "pending",
         "title": "relieves: P2 — Root-mismatch recovery names launch-checkout repair or stripping disable, not new-session alone",
-        "artifact_path": "packages/core/src/install-health/constants.ts",
         "narrative": {
           "Acceptance": "relieves: P2 — Root-mismatch recovery names launch-checkout repair or stripping disable, not new-session alone"
-        }
+        },
+        "x-directive/artifact_path": "packages/core/src/install-health/constants.ts"
       },
       {
         "id": "clause.3",
         "status": "pending",
         "title": "relieves: P3 — Repair disclosure lists `.claude/settings.json` and `.claude/deft-hook-*.mjs` when it changes them",
-        "artifact_path": "packages/core/src/init-deposit/host-hook-outer.ts",
         "narrative": {
           "Acceptance": "relieves: P3 — Repair disclosure lists `.claude/settings.json` and `.claude/deft-hook-*.mjs` when it changes them"
-        }
+        },
+        "x-directive/artifact_path": "packages/core/src/init-deposit/host-hook-outer.ts"
       }
     ],
     "tags": [
@@ -66,17 +66,17 @@
         {
           "id": "clause.1",
           "text": "relieves: P1 — Confirm disable strips or chains repair for the named host’s managed hook entries before exit 0",
-          "artifact_path": "packages/core/src/policy/host-hooks.ts"
+          "x-directive/artifact_path": "packages/core/src/policy/host-hooks.ts"
         },
         {
           "id": "clause.2",
           "text": "relieves: P2 — Root-mismatch recovery names launch-checkout repair or stripping disable, not new-session alone",
-          "artifact_path": "packages/core/src/install-health/constants.ts"
+          "x-directive/artifact_path": "packages/core/src/install-health/constants.ts"
         },
         {
           "id": "clause.3",
           "text": "relieves: P3 — Repair disclosure lists `.claude/settings.json` and `.claude/deft-hook-*.mjs` when it changes them",
-          "artifact_path": "packages/core/src/init-deposit/host-hook-outer.ts"
+          "x-directive/artifact_path": "packages/core/src/init-deposit/host-hook-outer.ts"
         }
       ],
       "sentences": [
