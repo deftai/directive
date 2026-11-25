@@ -140,15 +140,16 @@ The warn period is counted per release, not per consumer, and no per-consumer wa
 
 ## Step 5 CI reuse (#6791)
 
-Step 5 reuses CI, with no flag, citation or prompt, when all three hold:
+Step 5 reuses CI, with no flag, citation or prompt, when both hold:
 
-- The clean Step 5 input tree (the release branch HEAD before Step 6 writes) is identical to the tree of the fetched `origin/<base>` tip.
+- The Step 5 input tree (the release branch HEAD before Step 6 writes) is identical to the tree of the fetched `origin/<base>` tip, and the shared release-input classifier returns `clean` or `session-scratch-only` (not `dirty`). Session-scratch-only admits pure working-tree `.gitignore` additions that are members of imported `DIRECTIVE_GITIGNORE_LINES` and/or untracked `.deft/GENERATION.json` + `.deft/directive/` (porcelain collapsed), with a no-concealment check; it does not require `--allow-dirty`. Readiness Phase 1, pipeline Step 1, and `evaluateCiReuse` share that classifier. Suite-stamp still uses raw `checkGitClean`.
 - The latest run of each required check on that tip SHA (`TypeScript (build + lint)`, `Merge gate (task check)`) completed `success`. A missing, pending, failed or re-running latest attempt never reuses an older success.
-- Both nightly lanes are reusable on that tree (§ Nightly coverage and Windows lanes (#6849)).
 
-On reuse, Step 5 prints the tip SHA, the check-run URLs and both nightly run URLs, and runs only the **host smoke check**: `pnpm run build`, then `pnpm exec vitest run` without coverage on a fixed small set of host test files (`RELEASE_HOST_SMOKE_TEST_FILES` in `packages/core/src/release/ci-reuse.ts`: release spawn, release paths, the check-lane runner and the reuse rule). It takes a few minutes. A failed smoke check fails Step 5.
+Nightly lanes are **not** a hard conjunct for tip-green reuse (#7328). Readiness and Step 5 still read and print each lane's status, reason, run URL and head SHA, and never claim a lane ran when it did not. When a lane is not reusable under tip-green reuse, smoke-only reuse continues; the workflow start command stays printed (`gh workflow run nightly.yml --repo deftai/directive --ref master`), and the Windows full-suite boundary is reported independently of host OS.
 
-**A reused cut runs no host coverage** (operator ruling B on #6791). The nightly coverage lane measured the same tree instead, and the nightly Windows lane ran the full suite on it. When the rule does not hold, or a read fails, Step 5 prints why and runs the full local check with host coverage as below. Under `deft release:run` (#6876), Step 5 also prints when its decision changed since readiness. `--skip-ci` stays incident-only.
+On reuse, Step 5 prints the tip SHA, the check-run URLs and nightly disposition, and runs only the **host smoke check**: `pnpm run build`, then `pnpm exec vitest run` without coverage on a fixed small set of host test files (`RELEASE_HOST_SMOKE_TEST_FILES` in `packages/core/src/release/ci-reuse.ts`: release spawn, release paths, the check-lane runner and the reuse rule). It takes a few minutes. A failed smoke check fails Step 5.
+
+**A reused cut runs no host coverage** (operator ruling B on #6791). Both nightly lanes are reusable on that tree (§ Nightly coverage and Windows lanes (#6849)) when they stand in for the skipped local coverage/Windows suite; when they are not, tip-green smoke-only reuse still admits without silently claiming those lanes ran. When tip-green does not hold, or a read fails, Step 5 prints why and runs the full local check with host coverage as below. Under `deft release:run` (#6876), Step 5 also prints when its decision changed since readiness. `--skip-ci` stays incident-only.
 
 ## Nightly coverage and Windows lanes (#6849)
 
@@ -161,9 +162,9 @@ Both lanes use the merge gate preparation (Node from `.nvmrc`, corepack pnpm, fr
 
 **Reuse rule.** Readiness and Step 5 read the nightly runs (`packages/core/src/release/nightly-reuse.ts`). For each lane the witness is the newest nightly run whose head commit tree equals the clean Step 5 input tree. The lane is reusable only when the latest attempt of that lane in that run concluded `success`. A pending, failed or missing latest attempt is not reusable, an older success is never used, and a green run on an ancestor with a different tree never counts. Readiness prints each lane's status, run URL and head SHA.
 
-**Fallback.** When a lane is not reusable, readiness says before the mint which lane and why, that the full local Step 5 check will run and about how long, and prints the command that starts the workflow on `master` (`gh workflow run nightly.yml --repo deftai/directive --ref master`). Step 5 evaluates the rule again and continues without a prompt either way: it runs the full local check with host coverage.
+**Fallback.** When tip-green does not hold, readiness says before the mint which required check or tree condition failed, that the full local Step 5 check will run and about how long. When tip-green holds but a nightly lane is not reusable, readiness and Step 5 still name the lane and why, keep printing the command that starts the workflow on `master` (`gh workflow run nightly.yml --repo deftai/directive --ref master`), and continue smoke-only reuse without claiming those lanes ran. Step 5 evaluates the rule again and continues without a prompt either way: full local check with host coverage only when tip-green does not hold.
 
-**Windows host boundary.** When that fallback runs on a host that is not Windows and the Windows lane is not reusable, readiness and Step 5 print that the Windows suite did not run for this release. Nothing refuses.
+**Windows host boundary.** When tip-green smoke-only reuse runs without a reusable Windows nightly lane, or when full local fallback runs on a non-Windows host without that lane, readiness and Step 5 print that the Windows suite did not run for this release. Nothing refuses. The Windows boundary is reported independently of host OS under tip-green reuse (#7328).
 
 **Red lanes.** A reporting job runs after both lanes and classifies each one as `passed`, `test-failure`, `setup-failure`, `timed-out-or-cancelled` or `report-unavailable`. Each lane has one durable tracking issue (found by a hidden body marker among issues opened by `github-actions[bot]`). A red lane reopens it, or creates it once, and comments with the outcome, SHA, run id and attempt, run URL, failing test files and, on the coverage lane, the four coverage totals; a value the run did not produce is written as unknown. A passed lane comments on and closes an open issue. One comment per run id and attempt. The issue is assigned to the login in the `NIGHTLY_OWNER` repository variable; when it is unset, the run summary says no one was assigned. These issues are not coverage-debt issues and do not feed the Step 5 hatch.
 
@@ -257,9 +258,9 @@ Canonical agent contract: `skills/deft-directive-release/SKILL.md` § **Step 5 b
 
 ## Routine vs hard cut for Step 5 (#2953)
 
-Step 5 has one rule, and no mode or flag changes it. When the clean Step 5 input tree is identical to a fetched tip whose latest required checks succeeded, and both nightly lanes are reusable on that tree (#6849), Step 5 reuses CI on its own and runs only the host smoke check, with no host coverage (§ Step 5 CI reuse (#6791)). Otherwise it runs the full `task check` with host `--coverage` (#6041), where the branch-hairline auto-hatch and `--allow-coverage-debt=#N` apply. `deft release:run` asks for no choice: readiness says which path Step 5 will take, and Step 5 says again if that changed.
+Step 5 has one rule, and no mode or flag changes it. When the Step 5 input tree (clean or session-scratch-only) is identical to a fetched tip whose latest required checks succeeded, Step 5 reuses CI on its own and runs only the host smoke check, with no host coverage (§ Step 5 CI reuse (#6791 / #7328)). Nightly disposition is printed truthfully; tip-green smoke-only reuse is the named allowed mode when a nightly lane is not reusable. Otherwise it runs the full `task check` with host `--coverage` (#6041), where the branch-hairline auto-hatch and `--allow-coverage-debt=#N` apply. `deft release:run` asks for no choice: readiness says which path Step 5 will take, and Step 5 says again if that changed.
 
-There is no routine-cut skip path. `--skip-ci` with `--allow-skip-ci=#N` (#2652) is incident-only (a tracked hang or an untested ship under review), is never passed by `deft release:run`, and prints a loud WARN. Silent soft-pass of coverage is forbidden.
+There is no routine-cut skip path. `--skip-ci` with `--allow-skip-ci=#N` (#2652) is incident-only (a tracked hang or an untested ship under review), is never passed by `deft release:run`, and prints a loud WARN. Silent soft-pass of coverage is forbidden; tip-green reuse with printed nightly disposition is not a silent soft-pass.
 
 What makes a full Step 5 faster is hygiene, not a lighter gate:
 

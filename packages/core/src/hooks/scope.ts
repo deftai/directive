@@ -25,10 +25,12 @@ import {
 } from "../scope/lands-with-product.js";
 import { isLinkedWorktreePath } from "../session/main-worktree.js";
 import {
+  formatPresentedIdentityDisagreement,
   liveOccupant,
   type OccupancyAdmission,
   type OccupancyRecord,
   occupancyAdmission,
+  resolvePresentedIdentity,
 } from "../session/occupancy.js";
 import {
   type ReadStoryBindingRecordResult,
@@ -935,15 +937,20 @@ function admitUntiedWithWorkerAuth(
   const live = liveReader(projectRoot);
   if (live !== null) {
     const env = options.env ?? process.env;
-    const caller = (env[CALLER_SESSION_ENV] ?? "").trim();
+    // #7328 Prefer-A: compare occupant to host-published presenter via
+    // resolvePresentedIdentity (not raw DEFT_SESSION_ID alone).
+    const identity = resolvePresentedIdentity({ env });
+    const caller = identity.sessionId;
     const admissionFn = options.occupancyAdmission ?? occupancyAdmission;
     const admission = admissionFn(live, caller);
     if (admission === "stranger") {
+      const split = formatPresentedIdentityDisagreement(identity);
       return {
         kind: "refuse",
         message:
           `foreign live occupancy lease on worktree (occupant=${live.sessionId}); ` +
-          `refuse admitted-untied soft-missing (#5855). Active: ${fencedCandidates(scanned)}.`,
+          `refuse admitted-untied soft-missing (#5855). Active: ${fencedCandidates(scanned)}.` +
+          split,
         denyKind: "pin-miss",
       };
     }

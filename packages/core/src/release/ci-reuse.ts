@@ -1,37 +1,363 @@
 /**
- * Release Step 5 CI reuse (#6791, S1 of #6845).
+ * Release Step 5 CI reuse (#6791, S1 of #6845; #7328 tip-green).
  *
- * Step 5 reuses CI when the clean Step 5 input tree (the release branch HEAD
- * before Step 6 writes) is identical to the tree of the fetched delivery-branch
- * tip, and the latest run of each required check on that tip SHA completed
+ * Step 5 reuses CI when the Step 5 input tree equals the fetched delivery-branch
+ * tip tree (clean or session-scratch-only per classifyReleaseInputCleanliness),
+ * and the latest run of each required check on that tip SHA completed
  * `success`. A missing, pending, failed or re-running latest attempt never
  * reuses an older success. Any read that fails returns a full-run decision;
  * nothing here throws.
  *
  * A reused cut runs no host coverage (operator ruling B on #6791): it runs only
- * the short host smoke check below. Reuse also needs both nightly lanes
- * (#6849, nightly-reuse.ts) reusable on the same tree, so the nightly coverage
- * lane and the Windows full-suite lane stand in for the skipped local check.
+ * the short host smoke check below. Nightly lanes (#6849) are printed with a
+ * truthful per-lane disposition; tip-green reuse does not hard-require nightly
+ * success (#7328). Suite-stamp still uses raw checkGitClean.
  */
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { cliSpawnPlan } from "../check/cli-native-gates.js";
 import {
   runTimedChild,
   type SupervisedGateResult,
   type TimedChildPlan,
 } from "../check/suite-gate-supervisor.js";
+import { containedWrite } from "../fs/contained-write.js";
+import { DIRECTIVE_GITIGNORE_LINES } from "../install-health/owned-paths.js";
 import { type CheckRunRecord, defaultRunGh, fetchCheckRunsRest } from "../pr-merge-readiness/gh.js";
 import type { RunGhFn } from "../pr-merge-readiness/types.js";
 import { MERGE_GATE_TASK_CHECK_NAME } from "../pr-wait-mergeable/constants.js";
 import { resolvePnpm, sanitizeTsLaneEnv } from "../ts-check-lane/run-lane.js";
 import { RELEASE_CHECK_TIMEOUT_MS } from "./constants.js";
-import { checkGitClean, runGit } from "./git.js";
+import { runGit } from "./git.js";
 import {
   evaluateNightlyReuse,
   formatNightlyLanes,
   NIGHTLY_LANES,
   type NightlyReuse,
+  windowsLaneReusable,
 } from "./nightly-reuse.js";
 import type { ReleaseSeams } from "./types.js";
+
+/**
+ * Windows full-suite boundary on tip-green smoke-only reuse (#7328).
+ * Reported independently of host OS; never refuses.
+ */
+export function windowsSuiteSkippedLineForSmokeOnly(
+  nightly: NightlyReuse | null | undefined,
+  platform: NodeJS.Platform,
+): string | null {
+  if (windowsLaneReusable(nightly)) return null;
+  return (
+    "The Windows suite did not run for this release: the nightly Windows lane is not reusable " +
+    `(smoke-only tip-green reuse; host ${platform}).`
+  );
+}
+
+/** Named untracked session-scratch path admitted by the release-input classifier (#7328). */
+export const RELEASE_SESSION_SCRATCH_GENERATION = ".deft/GENERATION.json" as const;
+
+/** Named untracked session-scratch directory (porcelain-collapsed) (#7328). */
+export const RELEASE_SESSION_SCRATCH_DIRECTIVE_DIR = ".deft/directive/" as const;
+
+export type ReleaseInputCleanlinessKind = "clean" | "session-scratch-only" | "dirty";
+
+export type ReleaseInputCleanliness =
+  | { readonly kind: "clean" }
+  | {
+      readonly kind: "session-scratch-only";
+      /** Porcelain / path entries admitted as session scratch. */
+      readonly ignoredEntries: readonly string[];
+      readonly detail: string;
+    }
+  | { readonly kind: "dirty"; readonly reason: string; readonly porcelain: string };
+
+/** Optional seams for {@link classifyReleaseInputCleanliness} (tests). */
+export interface ClassifyReleaseInputCleanlinessSeams {
+  readonly porcelain?: () => string;
+  readonly stagedGitignoreDiff?: () => string;
+  readonly worktreeGitignoreDiff?: () => string;
+  readonly headGitignore?: () => string | null;
+  readonly worktreeGitignore?: () => string | null;
+  readonly allUntracked?: () => readonly string[];
+  readonly isIgnoredBy?: (gitignoreBody: string, path: string) => boolean;
+}
+
+function normalizePosix(path: string): string {
+  return path.replace(/\\/g, "/").replace(/^\.\//, "");
+}
+
+/** Collapse `.deft/directive/...` to the named directory form used in porcelain. */
+export function collapseReleaseSessionScratchPath(path: string): string {
+  const norm = normalizePosix(path);
+  if (norm === RELEASE_SESSION_SCRATCH_GENERATION) return norm;
+  if (norm === ".deft/directive" || norm.startsWith(".deft/directive/")) {
+    return RELEASE_SESSION_SCRATCH_DIRECTIVE_DIR;
+  }
+  return norm;
+}
+
+export function isAllowlistedReleaseSessionScratch(path: string): boolean {
+  const collapsed = collapseReleaseSessionScratchPath(path);
+  return (
+    collapsed === RELEASE_SESSION_SCRATCH_GENERATION ||
+    collapsed === RELEASE_SESSION_SCRATCH_DIRECTIVE_DIR
+  );
+}
+
+export function releaseInputAllowsProceed(cleanliness: ReleaseInputCleanliness): boolean {
+  return cleanliness.kind === "clean" || cleanliness.kind === "session-scratch-only";
+}
+
+function parsePorcelainPaths(porcelain: string): {
+  readonly entries: readonly { readonly xy: string; readonly path: string }[];
+} {
+  const entries: { xy: string; path: string }[] = [];
+  for (const raw of porcelain.split(/\r?\n/)) {
+    if (raw.length < 4) continue;
+    const xy = raw.slice(0, 2);
+    let path = raw.slice(3);
+    const renameSep = path.indexOf(" -> ");
+    if (renameSep >= 0) path = path.slice(renameSep + 4);
+    entries.push({ xy, path: normalizePosix(path) });
+  }
+  return { entries };
+}
+
+function parseGitignoreAddedLines(
+  diff: string,
+):
+  | { readonly ok: true; readonly added: readonly string[] }
+  | { readonly ok: false; readonly reason: string } {
+  const added: string[] = [];
+  for (const line of diff.split(/\r?\n/)) {
+    if (
+      line.length === 0 ||
+      line.startsWith("diff ") ||
+      line.startsWith("index ") ||
+      line.startsWith("---") ||
+      line.startsWith("+++") ||
+      line.startsWith("@@")
+    ) {
+      continue;
+    }
+    if (line.startsWith("-")) {
+      return { ok: false, reason: "working-tree .gitignore has removals or modified lines" };
+    }
+    if (line.startsWith("+")) {
+      const content = line.slice(1);
+      if (!(DIRECTIVE_GITIGNORE_LINES as readonly string[]).includes(content)) {
+        return {
+          ok: false,
+          reason: `working-tree .gitignore addition is not a DIRECTIVE_GITIGNORE_LINES member: ${content}`,
+        };
+      }
+      added.push(content);
+    }
+  }
+  return { ok: true, added };
+}
+
+/**
+ * Evaluate whether `path` is ignored by an arbitrary gitignore body.
+ * Uses a throwaway repo + `.gitignore` — `git check-ignore` has no `-f`
+ * exclude-file flag (unlike check-attr). Exit 0 = ignored, 1 = not ignored;
+ * any other status throws so no-concealment fails closed.
+ */
+function defaultIsIgnoredBy(gitignoreBody: string, path: string, seams: ReleaseSeams): boolean {
+  const dir = mkdtempSync(join(tmpdir(), "deft-rel-ign-"));
+  try {
+    const init = runGit(dir, ["init", "-q"], seams);
+    if (init.status !== 0) {
+      throw new Error(`git init for ignore probe failed: ${init.stderr.trim() || "unknown"}`);
+    }
+    const body = gitignoreBody.endsWith("\n") ? gitignoreBody : `${gitignoreBody}\n`;
+    containedWrite({
+      root: dir,
+      target: ".gitignore",
+      data: body,
+      mode: "create",
+      mutation: false,
+    });
+    // check-ignore has no -f; rules come from this temp work tree's .gitignore.
+    const check = runGit(dir, ["check-ignore", "--no-index", "-q", "--", path], seams);
+    if (check.status === 0) return true;
+    if (check.status === 1) return false;
+    const detail = check.stderr.trim() || check.stdout.trim() || "unknown";
+    throw new Error(`git check-ignore probe failed (exit ${String(check.status)}): ${detail}`);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+/**
+ * One named release-input classifier shared by readiness Phase 1, pipeline
+ * Step 1, and evaluateCiReuse (#7328 Prefer-A Recut-3).
+ *
+ * `session-scratch-only` means pure working-tree `.gitignore` additions where
+ * every added line is a member of imported DIRECTIVE_GITIGNORE_LINES and/or
+ * untracked paths limited to `.deft/GENERATION.json` and `.deft/directive/`
+ * (porcelain collapsed), with a no-concealment union check. Removals, modified
+ * lines, non-member lines, staged `.gitignore`, and other tracked dirt are
+ * `dirty`. Does not invent `--allow-dirty`.
+ */
+export function classifyReleaseInputCleanliness(
+  projectRoot: string,
+  seams: ReleaseSeams = {},
+  options: ClassifyReleaseInputCleanlinessSeams = {},
+): ReleaseInputCleanliness {
+  const porcelain =
+    options.porcelain?.() ??
+    (() => {
+      const result = runGit(projectRoot, ["status", "--porcelain"], seams);
+      if (result.status !== 0) {
+        return `\0git-status-failed:${result.stderr.trim()}`;
+      }
+      return result.stdout;
+    })();
+  if (porcelain.startsWith("\0git-status-failed:")) {
+    return {
+      kind: "dirty",
+      reason: porcelain.slice("\0git-status-failed:".length) || "git status failed",
+      porcelain: "",
+    };
+  }
+  const trimmed = porcelain.replace(/^\uFEFF/, "");
+  if (trimmed.trim().length === 0) return { kind: "clean" };
+
+  const { entries } = parsePorcelainPaths(trimmed);
+  const ignoredEntries: string[] = [];
+  let gitignoreTouched = false;
+
+  for (const entry of entries) {
+    if (entry.path === ".gitignore") {
+      gitignoreTouched = true;
+      const indexStatus = entry.xy[0] ?? " ";
+      const workStatus = entry.xy[1] ?? " ";
+      if (indexStatus !== " " && indexStatus !== "?") {
+        return {
+          kind: "dirty",
+          reason: "staged .gitignore changes are not session-scratch-only",
+          porcelain: trimmed.trimEnd(),
+        };
+      }
+      if (workStatus !== "M" && workStatus !== "A" && entry.xy !== "??") {
+        return {
+          kind: "dirty",
+          reason: `unsupported .gitignore porcelain status '${entry.xy}'`,
+          porcelain: trimmed.trimEnd(),
+        };
+      }
+      ignoredEntries.push(`${entry.xy} .gitignore`);
+      continue;
+    }
+    if (entry.xy === "??" && isAllowlistedReleaseSessionScratch(entry.path)) {
+      ignoredEntries.push(`${entry.xy} ${collapseReleaseSessionScratchPath(entry.path)}`);
+      continue;
+    }
+    return {
+      kind: "dirty",
+      reason: `non-allowlisted dirt: ${entry.xy} ${entry.path}`,
+      porcelain: trimmed.trimEnd(),
+    };
+  }
+
+  if (gitignoreTouched) {
+    const stagedDiff =
+      options.stagedGitignoreDiff?.() ??
+      runGit(projectRoot, ["diff", "--cached", "--", ".gitignore"], seams).stdout;
+    if (stagedDiff.trim().length > 0) {
+      return {
+        kind: "dirty",
+        reason: "staged .gitignore changes are not session-scratch-only",
+        porcelain: trimmed.trimEnd(),
+      };
+    }
+    const wtDiff =
+      options.worktreeGitignoreDiff?.() ??
+      runGit(projectRoot, ["diff", "--", ".gitignore"], seams).stdout;
+    const parsed = parseGitignoreAddedLines(wtDiff);
+    if (!parsed.ok) {
+      return { kind: "dirty", reason: parsed.reason, porcelain: trimmed.trimEnd() };
+    }
+    if (parsed.added.length === 0 && !entries.some((e) => e.xy === "??")) {
+      return {
+        kind: "dirty",
+        reason: "working-tree .gitignore change has no pure DIRECTIVE_GITIGNORE_LINES additions",
+        porcelain: trimmed.trimEnd(),
+      };
+    }
+  }
+
+  const headIgnore =
+    options.headGitignore?.() ??
+    (() => {
+      const shown = runGit(projectRoot, ["show", "HEAD:.gitignore"], seams);
+      return shown.status === 0 ? shown.stdout : null;
+    })();
+  const wtIgnore =
+    options.worktreeGitignore?.() ??
+    (() => {
+      try {
+        return readFileSync(join(projectRoot, ".gitignore"), "utf8");
+      } catch {
+        return null;
+      }
+    })();
+  if (headIgnore === null || wtIgnore === null) {
+    return {
+      kind: "dirty",
+      reason: "could not read HEAD or working-tree .gitignore for no-concealment",
+      porcelain: trimmed.trimEnd(),
+    };
+  }
+
+  const allUntracked =
+    options.allUntracked?.() ??
+    (() => {
+      const listed = runGit(projectRoot, ["ls-files", "-o", "--directory", "-z"], seams);
+      if (listed.status !== 0) return [] as string[];
+      return listed.stdout
+        .split("\0")
+        .filter((p) => p.length > 0)
+        .map(normalizePosix);
+    })();
+
+  const isIgnored =
+    options.isIgnoredBy ?? ((body: string, path: string) => defaultIsIgnoredBy(body, path, seams));
+
+  let visible: Set<string>;
+  try {
+    visible = new Set<string>();
+    for (const path of allUntracked) {
+      if (!isIgnored(headIgnore, path)) visible.add(collapseReleaseSessionScratchPath(path));
+      if (!isIgnored(wtIgnore, path)) visible.add(collapseReleaseSessionScratchPath(path));
+    }
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : String(err);
+    return {
+      kind: "dirty",
+      reason: `no-concealment ignore probe failed: ${detail}`,
+      porcelain: trimmed.trimEnd(),
+    };
+  }
+  for (const path of visible) {
+    if (!isAllowlistedReleaseSessionScratch(path)) {
+      return {
+        kind: "dirty",
+        reason: `no-concealment: non-allowlisted untracked path visible under HEAD or working-tree ignore rules: ${path}`,
+        porcelain: trimmed.trimEnd(),
+      };
+    }
+  }
+
+  const uniqueIgnored = [...new Set(ignoredEntries)];
+  return {
+    kind: "session-scratch-only",
+    ignoredEntries: uniqueIgnored,
+    detail: uniqueIgnored.join("\n"),
+  };
+}
 
 /** Required CI check name for the TypeScript build and lint job (#6791). */
 export const TYPESCRIPT_BUILD_LINT_CHECK_NAME = "TypeScript (build + lint)" as const;
@@ -178,25 +504,17 @@ export function decideCiReuseFromRuns(
 }
 
 /**
- * #6849: the nightly conjunct. A check-runs reuse holds only when both nightly
- * lanes are reusable on the same tree. The nightly read rides on the decision
- * either way, so readiness and Step 5 print each lane.
+ * Attach nightly lane disposition to a CI reuse decision (#6849 / #7328).
+ *
+ * Tip-green reuse admits without a hard nightly-lane success conjunct; the
+ * nightly read still rides the decision so readiness and Step 5 print each
+ * lane truthfully. Name kept for call-site stability.
  */
 export function applyNightlyConjunct(
   decision: CiReuseDecision,
   nightly: NightlyReuse,
 ): CiReuseDecision {
-  if (decision.kind === "full") return { ...decision, nightly };
-  if (nightly.reusable) return { ...decision, nightly };
-  const blocked = nightly.lanes
-    .filter((lane) => !lane.reusable)
-    .map((lane) => `nightly ${lane.label}: ${lane.reason}`);
-  return {
-    kind: "full",
-    reason: `a nightly lane is not reusable (${blocked.join("; ")})`,
-    tipSha: decision.tipSha,
-    nightly,
-  };
+  return { ...decision, nightly };
 }
 
 /**
@@ -214,9 +532,13 @@ export function evaluateCiReuse(
   if (env.DEFT_NO_NETWORK === "1") {
     return full("check runs are not readable under DEFT_NO_NETWORK=1");
   }
-  const [clean] = checkGitClean(projectRoot, seams);
-  if (!clean) {
-    return full("the Step 5 input tree is not clean");
+  const cleanliness = classifyReleaseInputCleanliness(projectRoot, seams);
+  if (!releaseInputAllowsProceed(cleanliness)) {
+    return full(
+      cleanliness.kind === "dirty"
+        ? `the Step 5 input tree is not clean (${cleanliness.reason})`
+        : "the Step 5 input tree is not clean",
+    );
   }
   const fetch = runGit(projectRoot, ["fetch", "origin", baseBranch], seams);
   if (fetch.status !== 0) {
@@ -269,11 +591,19 @@ export function formatCiReuseDecision(decision: CiReuseDecision): string[] {
   }
   if (decision.nightly !== undefined && decision.nightly !== null) {
     lines.push(...formatNightlyLanes(decision.nightly));
+    if (decision.nightly.reusable) {
+      lines.push(
+        `CI reuse: the nightly ${NIGHTLY_LANES.map((lane) => lane.label).join(" and ")} lanes ran on this tree instead`,
+      );
+    } else {
+      for (const lane of decision.nightly.lanes.filter((entry) => !entry.reusable)) {
+        lines.push(
+          `CI reuse: nightly ${lane.label} not reusable (${lane.reason}); tip-green smoke-only reuse continues`,
+        );
+      }
+    }
   }
   lines.push("CI reuse: a reused cut runs no host coverage; only the short host smoke check runs");
-  lines.push(
-    `CI reuse: the nightly ${NIGHTLY_LANES.map((lane) => lane.label).join(" and ")} lanes ran on this tree instead`,
-  );
   return lines;
 }
 

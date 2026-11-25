@@ -8,12 +8,14 @@ import {
   superviseTimedChild,
   type TimedChildPlan,
 } from "../check/suite-gate-supervisor.js";
+import { DIRECTIVE_GITIGNORE_LINES } from "../install-health/owned-paths.js";
 import type { CheckRunRecord } from "../pr-merge-readiness/gh.js";
 import { MERGE_GATE_TASK_CHECK_NAME } from "../pr-wait-mergeable/constants.js";
 import { sanitizeTsLaneEnv } from "../ts-check-lane/run-lane.js";
 import {
   applyNightlyConjunct,
   checkRunUrl,
+  classifyReleaseInputCleanliness,
   decideCiReuseFromRuns,
   describeSmokeFailure,
   evaluateCiReuse,
@@ -21,6 +23,8 @@ import {
   formatCiReuseDecision,
   RELEASE_CI_REUSE_REQUIRED_CHECKS,
   RELEASE_HOST_SMOKE_TEST_FILES,
+  RELEASE_SESSION_SCRATCH_DIRECTIVE_DIR,
+  RELEASE_SESSION_SCRATCH_GENERATION,
   runHostSmokeCheck,
   runSmokeCommand,
   selectLatestCheckRun,
@@ -243,17 +247,15 @@ describe("evaluateCiReuse (#6791)", () => {
     if (decision.kind === "full") expect(decision.reason).toMatch(reason);
   });
 
-  it("requires both nightly lanes reusable on the HEAD tree (#6849 clause 6)", () => {
+  it("admits tip-green reuse without a hard nightly conjunct and still reads lanes (#7328)", () => {
     const gh = ghReturning(GREEN, "failure");
     const decision = evaluateCiReuse("/repo", REPO, "master", gitSeams(), {
       runGh: gh.runGh,
       env: {},
     });
-    expect(decision.kind).toBe("full");
-    if (decision.kind === "full") {
-      expect(decision.reason).toMatch(
-        /a nightly lane is not reusable \(nightly full suite \(Windows\)/,
-      );
+    expect(decision.kind).toBe("reuse");
+    if (decision.kind === "reuse") {
+      expect(decision.nightly?.reusable).toBe(false);
       expect(decision.nightly?.lanes[0]?.reusable).toBe(true);
     }
     const trees: string[] = [];
@@ -266,7 +268,8 @@ describe("evaluateCiReuse (#6791)", () => {
       },
     });
     expect(trees).toEqual([TREE]);
-    expect(seamed.kind).toBe("full");
+    expect(seamed.kind).toBe("reuse");
+    if (seamed.kind === "reuse") expect(seamed.nightly?.reusable).toBe(false);
   });
 
   it("returns a full-run decision when git rev-parse fails", () => {
@@ -335,10 +338,11 @@ describe("formatting (#6791)", () => {
     expect(text).toMatch(/lanes ran on this tree instead/);
     const red = decideNightlyReuse([], TREE, () => ({ jobs: [] }));
     const blocked = applyNightlyConjunct(decideCiReuseFromRuns(REPO, TIP, TREE, GREEN), red);
-    expect(blocked.kind).toBe("full");
-    expect(formatCiReuseDecision(blocked).join("\n")).toContain(
-      "Nightly coverage (Linux): not reusable",
-    );
+    expect(blocked.kind).toBe("reuse");
+    const blockedText = formatCiReuseDecision(blocked).join("\n");
+    expect(blockedText).toContain("Nightly coverage (Linux): not reusable");
+    expect(blockedText).toMatch(/tip-green smoke-only reuse continues/);
+    expect(blockedText).not.toMatch(/lanes ran on this tree instead/);
     const alreadyFull = applyNightlyConjunct({ kind: "full", reason: "x", tipSha: null }, green);
     expect(alreadyFull).toMatchObject({ kind: "full", reason: "x", nightly: green });
   });
@@ -350,6 +354,158 @@ describe("formatting (#6791)", () => {
     expect(formatCiReuseChange("full", fullRun)).toBeNull();
     expect(formatCiReuseChange("reuse", fullRun)).toMatch(/was reuse, now the full local check/);
     expect(formatCiReuseChange("full", reuse)).toMatch(/now reuse/);
+  });
+});
+
+describe("classifyReleaseInputCleanliness (#7328)", () => {
+  const start = DIRECTIVE_GITIGNORE_LINES.indexOf("!.deft/plan-sequence.json");
+  const end = DIRECTIVE_GITIGNORE_LINES.indexOf(".deft/directive/wiring-ready.*.json");
+  const memberLines = DIRECTIVE_GITIGNORE_LINES.slice(start, end + 1);
+  const memberDiff = [
+    "diff --git a/.gitignore b/.gitignore",
+    "--- a/.gitignore",
+    "+++ b/.gitignore",
+    "@@ -1,0 +1,21 @@",
+    ...memberLines.map((line) => `+${line}`),
+    "",
+  ].join("\n");
+
+  it("admits the observed 21-line DIRECTIVE_GITIGNORE_LINES delta plus named ?? scratch", () => {
+    const porcelain = [
+      " M .gitignore",
+      `?? ${RELEASE_SESSION_SCRATCH_GENERATION}`,
+      `?? ${RELEASE_SESSION_SCRATCH_DIRECTIVE_DIR}`,
+      "",
+    ].join("\n");
+    const decision = classifyReleaseInputCleanliness(
+      "/repo",
+      {},
+      {
+        porcelain: () => porcelain,
+        stagedGitignoreDiff: () => "",
+        worktreeGitignoreDiff: () => memberDiff,
+        headGitignore: () => "node_modules/\n",
+        worktreeGitignore: () => `node_modules/\n${memberLines.join("\n")}\n`,
+        allUntracked: () => [
+          RELEASE_SESSION_SCRATCH_GENERATION,
+          `${RELEASE_SESSION_SCRATCH_DIRECTIVE_DIR}data-schema.json`,
+        ],
+        isIgnoredBy: () => false,
+      },
+    );
+    expect(decision.kind).toBe("session-scratch-only");
+    if (decision.kind === "session-scratch-only") {
+      expect(decision.detail).toContain(".gitignore");
+      expect(decision.detail).toContain(RELEASE_SESSION_SCRATCH_GENERATION);
+      expect(decision.detail).toContain(RELEASE_SESSION_SCRATCH_DIRECTIVE_DIR);
+    }
+  });
+
+  it("refuses when a member addition would conceal non-allowlisted dirt", () => {
+    const porcelain = [" M .gitignore", ""].join("\n");
+    const decision = classifyReleaseInputCleanliness(
+      "/repo",
+      {},
+      {
+        porcelain: () => porcelain,
+        stagedGitignoreDiff: () => "",
+        worktreeGitignoreDiff: () => memberDiff,
+        headGitignore: () => "node_modules/\n",
+        worktreeGitignore: () => `node_modules/\n${memberLines.join("\n")}\n`,
+        allUntracked: () => ["secrets.env"],
+        isIgnoredBy: (body, path) => body.includes(".deft/*") && path.startsWith(".deft/"),
+      },
+    );
+    expect(decision.kind).toBe("dirty");
+    if (decision.kind === "dirty") expect(decision.reason).toMatch(/no-concealment/);
+  });
+
+  it("refuses staged .gitignore and non-member additions", () => {
+    expect(
+      classifyReleaseInputCleanliness(
+        "/repo",
+        {},
+        {
+          porcelain: () => "M  .gitignore\n",
+          stagedGitignoreDiff: () => memberDiff,
+          worktreeGitignoreDiff: () => "",
+          headGitignore: () => "a\n",
+          worktreeGitignore: () => "a\n",
+          allUntracked: () => [],
+          isIgnoredBy: () => true,
+        },
+      ).kind,
+    ).toBe("dirty");
+    expect(
+      classifyReleaseInputCleanliness(
+        "/repo",
+        {},
+        {
+          porcelain: () => " M .gitignore\n",
+          stagedGitignoreDiff: () => "",
+          worktreeGitignoreDiff: () =>
+            "diff --git a/.gitignore b/.gitignore\n+++ b/.gitignore\n+not-a-member\n",
+          headGitignore: () => "a\n",
+          worktreeGitignore: () => "a\nnot-a-member\n",
+          allUntracked: () => [],
+          isIgnoredBy: () => true,
+        },
+      ).kind,
+    ).toBe("dirty");
+  });
+
+  it("real git ignore probe keeps ignored deps from poisoning session-scratch-only", () => {
+    // Omit isIgnoredBy so defaultIsIgnoredBy runs real `git check-ignore`
+    // against a throwaway repo (no unsupported -f). ls-files -o lists
+    // node_modules/; a broken probe would mark it visible → dirty.
+    const porcelain = [
+      " M .gitignore",
+      `?? ${RELEASE_SESSION_SCRATCH_GENERATION}`,
+      `?? ${RELEASE_SESSION_SCRATCH_DIRECTIVE_DIR}`,
+      "",
+    ].join("\n");
+    const headBody = "node_modules/\n";
+    const wtBody = `node_modules/\n${memberLines.join("\n")}\n`;
+    const decision = classifyReleaseInputCleanliness(
+      "/repo",
+      {},
+      {
+        porcelain: () => porcelain,
+        stagedGitignoreDiff: () => "",
+        worktreeGitignoreDiff: () => memberDiff,
+        headGitignore: () => headBody,
+        worktreeGitignore: () => wtBody,
+        allUntracked: () => [
+          "node_modules/",
+          "node_modules/pkg/index.js",
+          RELEASE_SESSION_SCRATCH_GENERATION,
+          `${RELEASE_SESSION_SCRATCH_DIRECTIVE_DIR}data-schema.json`,
+        ],
+      },
+    );
+    expect(decision.kind).toBe("session-scratch-only");
+  });
+
+  it("fails closed when the ignore probe errors", () => {
+    const decision = classifyReleaseInputCleanliness(
+      "/repo",
+      {},
+      {
+        porcelain: () => " M .gitignore\n",
+        stagedGitignoreDiff: () => "",
+        worktreeGitignoreDiff: () => memberDiff,
+        headGitignore: () => "node_modules/\n",
+        worktreeGitignore: () => `node_modules/\n${memberLines.join("\n")}\n`,
+        allUntracked: () => ["node_modules/"],
+        isIgnoredBy: () => {
+          throw new Error("git check-ignore probe failed (exit 128): boom");
+        },
+      },
+    );
+    expect(decision.kind).toBe("dirty");
+    if (decision.kind === "dirty") {
+      expect(decision.reason).toMatch(/no-concealment ignore probe failed/);
+    }
   });
 });
 
