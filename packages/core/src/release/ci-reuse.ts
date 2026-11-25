@@ -330,9 +330,21 @@ export function classifyReleaseInputCleanliness(
   }
 
   if (gitignoreTouched) {
-    const stagedDiff =
-      options.stagedGitignoreDiff?.() ??
-      runGit(projectRoot, ["diff", "--cached", "--", ".gitignore"], seams).stdout;
+    // #7328 Greptile P1: a failed/timed-out git diff must not parse as empty success
+    let stagedDiff: string;
+    if (options.stagedGitignoreDiff) {
+      stagedDiff = options.stagedGitignoreDiff();
+    } else {
+      const staged = runGit(projectRoot, ["diff", "--cached", "--", ".gitignore"], seams);
+      if (staged.status !== 0) {
+        return {
+          kind: "dirty",
+          reason: `git diff --cached -- .gitignore failed: ${staged.stderr.trim() || `exit ${staged.status}`}`,
+          porcelain: trimmed.trimEnd(),
+        };
+      }
+      stagedDiff = staged.stdout;
+    }
     if (stagedDiff.trim().length > 0) {
       return {
         kind: "dirty",
@@ -340,9 +352,20 @@ export function classifyReleaseInputCleanliness(
         porcelain: trimmed.trimEnd(),
       };
     }
-    const wtDiff =
-      options.worktreeGitignoreDiff?.() ??
-      runGit(projectRoot, ["diff", "--", ".gitignore"], seams).stdout;
+    let wtDiff: string;
+    if (options.worktreeGitignoreDiff) {
+      wtDiff = options.worktreeGitignoreDiff();
+    } else {
+      const wt = runGit(projectRoot, ["diff", "--", ".gitignore"], seams);
+      if (wt.status !== 0) {
+        return {
+          kind: "dirty",
+          reason: `git diff -- .gitignore failed: ${wt.stderr.trim() || `exit ${wt.status}`}`,
+          porcelain: trimmed.trimEnd(),
+        };
+      }
+      wtDiff = wt.stdout;
+    }
     const parsed = parseGitignoreAddedLines(wtDiff);
     if (!parsed.ok) {
       return { kind: "dirty", reason: parsed.reason, porcelain: trimmed.trimEnd() };

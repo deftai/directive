@@ -401,6 +401,44 @@ describe("classifyReleaseInputCleanliness (#7328)", () => {
     }
   });
 
+  it("refuses when worktree .gitignore diff command fails", () => {
+    const porcelain = [
+      " M .gitignore",
+      `?? ${RELEASE_SESSION_SCRATCH_GENERATION}`,
+      "",
+    ].join("\n");
+    const decision = classifyReleaseInputCleanliness(
+      "/repo",
+      {
+        spawnText: (_cmd, args) => {
+          const joined = args.join(" ");
+          if (joined.includes("status --porcelain")) {
+            return { status: 0, stdout: porcelain, stderr: "" };
+          }
+          if (joined.includes("diff --cached") && joined.includes(".gitignore")) {
+            return { status: 0, stdout: "", stderr: "" };
+          }
+          if (joined.includes("diff --") && joined.includes(".gitignore")) {
+            return { status: 128, stdout: "", stderr: "fatal: timed out" };
+          }
+          return { status: 0, stdout: "", stderr: "" };
+        },
+      },
+      {
+        // Force live git-diff path (no worktreeGitignoreDiff seam)
+        porcelain: () => porcelain,
+        headGitignore: () => "node_modules/\n",
+        worktreeGitignore: () => "node_modules/\n",
+        allUntracked: () => [RELEASE_SESSION_SCRATCH_GENERATION],
+        isIgnoredBy: () => false,
+      },
+    );
+    expect(decision.kind).toBe("dirty");
+    if (decision.kind === "dirty") {
+      expect(decision.reason).toContain("git diff -- .gitignore failed");
+    }
+  });
+
   it("refuses when a member addition would conceal non-allowlisted dirt", () => {
     const porcelain = [" M .gitignore", ""].join("\n");
     const decision = classifyReleaseInputCleanliness(
