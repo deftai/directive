@@ -7,9 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- [release-line] v0.131.4
+- [release-line] v0.131.5
 
 ### Added
+
+### Changed
+
+### Fixed
+
+### Removed
+
+## [0.131.5] - 2026-11-25
+
+> Harness-attended human-presence mint, dest story-binding on spawn, pre-dispatch binding-store wait, shell-gate PowerShell false positives, and merge-gate/finalize pathspec isolation.
+
+### Added
+
+- Admit Antigravity CLI (`agy`) as its own design-critique critic seat on `SeatLauncher` and the launcher-argv classifier, with published gemini-3.8-flash-high pong/pointer argv and family-specific paste-ready refusal (#7245).
 
 ### Changed
 
@@ -55,10 +69,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Record approved file permissions for dest-worktree mint spawn admission. This records approval only; it does not change product behavior (#7256 / #7257).
 
 - Prepare dest-worktree mint admission so overnight bulk builders can start from a linked-worktree mint without a second mint pass (#7256 / #7257).
+- Recorded the decision that #6298 needs no design-critique arc, in `xbrief/decisions/` (#6298).
+- Completed the #6298 scope brief after the session-start test host-env isolation merged (#6298).
+- The temporary kill-switch is now a kill record (#6740). A bare root disable flag file no longer turns Directive off; hooks, `doctor` and `session:start` warn about it. To turn enforcement off, a person runs `deft kill-switch:on --confirm` at a terminal; `deft kill-switch:off --confirm` turns it back on. Then start a new agent session. Run `directive upgrade` or `directive install --repair` so existing hooks read the record.
+- Complete #7025 after merge of #7228.
+- Record approved file permissions for npm/pnpm verification admission (#7175). Approval record only; no product behavior change.
+- Admit npm and pnpm `run build|lint|typecheck` and a closed `audit` flag table at scope-complete acceptance; keep `npx tsc` and `pnpm exec tsc` refused (#7175).
+- Complete #7200 after merge of #7215.
+- chore(dogfood): pin Directive to 0.131.4.
+- Recorded the decision that #7223 needs no design-critique arc, in `xbrief/decisions/` (#7223).
+- Complete #7223 after merge of #7231.
+- Recorded the decision that #7233 needs no design-critique arc, in `xbrief/decisions/` (#7233).
+- Complete #7233 after merge of #7246.
+- Recorded the decision that #7234 needs no design-critique arc, in `xbrief/decisions/` (#7234).
+- Record approved file permissions for the slow-path scope:complete gate (#7252). Approval record only; no product behavior change.
+- Refuse a one-story `scope:complete` when another merged story is still active; use live PR reads, delivery lookup for unstamped product PRs, and repo-aware `swarm:finalize-cohort` hints instead (#7252 / #7258).
+- Fail closed on unstamped delivery-lookup read failures (unparseable JSON, HTTP 502, and other non-confirmed-missing errors) so one-story complete cannot under-count merged actives (#7252 / #7258).
+- An agent reads `onePrScopeProof` and explains the mint and off routes before a batch (mint vs off review counts, shared finalize) and does not pick a route in silence. Fresh-clone launch at `mint` admits an unmerged story branch with a matching mint pair via `base_branch` so workers build before merge (#7253).
 
 ### Fixed
 
+- Session-start tests now clear ambient host markers (`CLAUDE*`, `CODEX_*`, `AI_AGENT`, ...), so `task check` passes inside an agent shell (#6298).
+- Declared intent-constraint record for #6945 signed-approvals facts (82 rows).
+- Signed approvals (#6945): historical trust replay no longer fails when an old attestation certificate expires (re-root recovery stays open); local unsigned repos keep declared record writes without an origin remote; the ceremony page shows every proposed RP origin and the resulting membership before signing, and refuses newline-bearing display fields.
+- `scope:complete` no longer takes a context link as the story issue (#7025). Only a reference typed exactly `x-xbrief/github-issue` (or the legacy `github-issue` forms) anchors a brief; an upstream issue cited as `x-xbrief/external` or `x-xbrief/refs` no longer makes the identity join fetch a same-numbered PR from that repository. A brief whose only issue links are context takes the PR-only path: stamp `productPullRequest` or add a story issue reference. The merge-commit mismatch refusal now names the repository it read.
+- A `directive upgrade` in a linked worktree is no longer refused by scope-cover when npm only rewrote the lockfile's top-level folder name. A name the app declares in the lockfile still counts as the app's own change (#7233).
+- A consumer project's AGENTS.md again cites the installed preamble and main.md, which exist under `node_modules/@deftai/directive-runtime/` (#7234).
+- The managed AGENTS.md size limit moves with that restored text.
+- Honour acceptance-disposition deferrals in the scope:complete clause walk: refuse when a grant file is unreadable or plan identifiers disagree, and require every matching clause cover to enter grantedClauses so clause-walk-failed cannot hide a missed deferral (#7254).
+- Spawn with a linked worktree cwd now reads active scope and the one-PR mint pair from that dest root, so a dest mint admits dest-cwd builders without a second primary mint (#7257).
+- Dest spawn binding ignores the parent's DEFT_ACTIVE_SCOPE so a registered dest assignment is not refused as an env-pin conflict; worker writes still honor the pin (#7257).
+- scope:record-approved-scope --manifest may write several distinct planId records into one shared worktree_path in a single typed mint; plan ids stay unique (#7256).
+- Spawn admits a foreign linked Directive worktree when swarm:pre-dispatch bound it with a live begun-from checkout ledger; destination-foreign stays the default refuse (#7270).
+- swarm:pre-dispatch begin writes that foreign story-binding under the dest git-common-dir and records begun-from as the originating checkout root (not a common-dir alone); end/cancel cleans that dest store (#7270).
+- Foreign-admit reservation consult, persist, and leftover release share the dest repo store while parent identity and incarnation checks stay (#7270).
+- Spawn into a linked dest with a story-binding (or worker-auth assignment) selects that story even when the session root has multiple active briefs; recovery no longer tells operators to re-run pre-dispatch when the dest binding is already readable (#7271).
+- Scrub rediscovery coaches that still pointed agents at in-harness-ask for observable-scope and intent-constraint; tip writers already declare from any shell (#7031 / #7272). Harness-attended mint for approved-scope and authz stays on leftover #7279.
+- Exact-word `commit` detection (including `-c`/`eval`/`env -S` payloads) and `git -C <absolute>` as sole chdir authority so lifecycle `$BIN` / path substring / prior `cd` no longer false-refuse named commits; opaque `$GIT commit` wrappers stay refused (#7273).
+- Begin waits briefly for the story-binding store lock, rolls back a just-created attempt if the wait fails, repair-admits an orphan active attempt that still lacks a binding and has no worker, and splits DENY_DUPLICATE_ACTIVE hints into binding-repair / pre-cancel / inspect (#7274).
+- When Directive's runtime pin is missing, the host-hook outer now allows the exact project install it already names (`pnpm install --frozen-lockfile`, `npm install`, or `npm ci`) through a shell tool at the project root, and keeps blocking every other command. The deny text names that exception. Global launcher repair stays out of this path (#7275).
+- Under agent-shell markers, approved-scope and inventoried authz kept-mint verbs open a frozen harness-attended request and complete only via controlling-TTY phrase or host-authenticated user-event; bare chat-yes is request-open only, markers may stay set, and ordinary human CLI mint is unchanged (#7279).
+- Failed validate CLI coverage tests no longer leave temporary files that flake Merge gate (#7292).
+- Cohort finalization stages only brief directories that exist in the checkout (#7292).
+
 ### Removed
+
+### Security
+
+- A repository can opt in to signed approval of observable-scope and intent-constraint records (#6945). `.deft/approvers.json` enrolls WebAuthn authenticators. The first key needs a packed attestation checked against vendor roots shipped with Directive. At that signed level a record is approved only when its approval verifies against an enrolled key over a payload rebuilt from this repository and the record's own fields. Hand-written, TTY-minted, and any-route merged records without that approval are not approved. `scope:record-observable-scope` and `scope:record-intent-constraint` take `--request` (prints a ceremony link and writes nothing) and `--assertion`. `approvers:enroll` and `approvers:remove` accept only the page's combined blob and need no terminal step. Without the trust file, the declared write is unchanged. A valid approval proves a user-verified gesture by an enrolled authenticator over exactly that set. The human read it only if the page ran on a device the agent does not drive and was deployed with credentials the agent does not hold.
+- Acceptance commands run only from the repository's own directories (#7223). A literal acceptance `cwd` or `npm --prefix` value with a `node_modules` segment or a leading-dot segment (including `..`) is refused before any run, and `verify:ac` refuses a `cwd` or `--prefix` directory whose real path below the project root passes through `node_modules`. The new `acceptance-cwd-dependency` row ships as enforce with no warn release, because an acceptance command must not run from installed dependencies or a dot folder. A `..` cwd that used to warn is now refused: write the cwd as a path inside the repository.
 
 ## [0.131.4] - 2026-11-23
 
@@ -8600,7 +8659,8 @@ If you have custom scripts or references to deft files, update these paths:
 
 
 
-[Unreleased]: https://github.com/deftai/directive/compare/v0.131.4...HEAD
+[Unreleased]: https://github.com/deftai/directive/compare/v0.131.5...HEAD
+[0.131.5]: https://github.com/deftai/directive/compare/v0.131.4...v0.131.5
 [0.131.4]: https://github.com/deftai/directive/compare/v0.131.3...v0.131.4
 [0.131.3]: https://github.com/deftai/directive/compare/v0.131.2...v0.131.3
 [0.131.2]: https://github.com/deftai/directive/compare/v0.131.1...v0.131.2
