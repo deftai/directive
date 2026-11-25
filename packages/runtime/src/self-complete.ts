@@ -117,6 +117,10 @@ export function isEligibleSelfCompleteCommand(argv: readonly string[]): boolean 
   const head = argv[0];
   if (head === undefined) return false;
   if (INELIGIBLE_HEADS.has(head)) return false;
+  // #7327: router accepts space-form `release run` before self-complete; raw
+  // head is `release`, which is not in INELIGIBLE_HEADS. Match the two-word
+  // spelling so tip cuts stay tree-clean at readiness (same as release:run).
+  if (head === "release" && argv[1] === "run") return false;
   return true;
 }
 
