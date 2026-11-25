@@ -1,0 +1,505 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #7349",
+    "updated": "2026-11-25T19:03:16Z"
+  },
+  "plan": {
+    "title": "Prefer-A Bound: Claude disable-host-hooks strip or honest repair",
+    "status": "running",
+    "narratives": {
+      "Description": "Prefer-A Bound conflict_group claude-disable-host-hooks-strip-or-honest-repair.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/7349",
+      "Overview": "Prefer-A Bound conflict_group claude-disable-host-hooks-strip-or-honest-repair.",
+      "Constraint": "- Same-repo worktree admission / launchRoot rebind (slice A; #6594 / #6767)\n- MCP / host-UI matcher narrowing (slice C)\n- #7029 `core.hooksPath` changes\n- Uninstall or kill-switch as the only documented escape\n- Silent settings edits with no printed paths\n- Widening disable to remove other hosts’ hooks when `--host` names one host",
+      "Labels": "bug, design-critique:ingest-ready, framework-gap",
+      "UserStory": "As an operator, I want disable-host-hooks to clear Claude hooks in the launch checkout, so lockout recovery is honest.",
+      "ImplementationPlan": "Implement Prefer-A Bound 7170750295; Tracking only.",
+      "Acceptance": "- relieves: P1 — Confirm disable strips or chains repair for the named host’s managed hook entries before exit 0\n- relieves: P2 — Root-mismatch recovery names launch-checkout repair or stripping disable, not new-session alone\n- relieves: P3 — Repair disclosure lists `.claude/settings.json` and `.claude/deft-hook-*.mjs` when it changes them",
+      "Confession": "Title and overview are Prefer-A Bound labels; acceptance is the three Bound remediations."
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "status": "pending",
+        "title": "relieves: P1 — Confirm disable strips or chains repair for the named host’s managed hook entries before exit 0",
+        "artifact_path": "packages/core/src/policy/host-hooks.ts",
+        "narrative": {
+          "Acceptance": "relieves: P1 — Confirm disable strips or chains repair for the named host’s managed hook entries before exit 0"
+        }
+      },
+      {
+        "id": "clause.2",
+        "status": "pending",
+        "title": "relieves: P2 — Root-mismatch recovery names launch-checkout repair or stripping disable, not new-session alone",
+        "artifact_path": "packages/core/src/install-health/constants.ts",
+        "narrative": {
+          "Acceptance": "relieves: P2 — Root-mismatch recovery names launch-checkout repair or stripping disable, not new-session alone"
+        }
+      },
+      {
+        "id": "clause.3",
+        "status": "pending",
+        "title": "relieves: P3 — Repair disclosure lists `.claude/settings.json` and `.claude/deft-hook-*.mjs` when it changes them",
+        "artifact_path": "packages/core/src/init-deposit/host-hook-outer.ts",
+        "narrative": {
+          "Acceptance": "relieves: P3 — Repair disclosure lists `.claude/settings.json` and `.claude/deft-hook-*.mjs` when it changes them"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "design-critique:ingest-ready",
+      "framework-gap"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/7349",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #7349: [framework-gap] disable-host-hooks / repair must clear Claude host hooks in the launch checkout"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "clauses": [
+        {
+          "id": "clause.1",
+          "text": "relieves: P1 — Confirm disable strips or chains repair for the named host’s managed hook entries before exit 0",
+          "artifact_path": "packages/core/src/policy/host-hooks.ts"
+        },
+        {
+          "id": "clause.2",
+          "text": "relieves: P2 — Root-mismatch recovery names launch-checkout repair or stripping disable, not new-session alone",
+          "artifact_path": "packages/core/src/install-health/constants.ts"
+        },
+        {
+          "id": "clause.3",
+          "text": "relieves: P3 — Repair disclosure lists `.claude/settings.json` and `.claude/deft-hook-*.mjs` when it changes them",
+          "artifact_path": "packages/core/src/init-deposit/host-hook-outer.ts"
+        }
+      ],
+      "sentences": [
+        "relieves: P1 — Confirm disable strips or chains repair for the named host’s managed hook entries before exit 0",
+        "relieves: P2 — Root-mismatch recovery names launch-checkout repair or stripping disable, not new-session alone",
+        "relieves: P3 — Repair disclosure lists `.claude/settings.json` and `.claude/deft-hook-*.mjs` when it changes them",
+        "Prefer-A Bound: Claude disable-host-hooks strip or honest repair",
+        "Prefer-A Bound conflict_group claude-disable-host-hooks-strip-or-honest-repair."
+      ],
+      "confessions": [
+        "Prefer-A Bound: Claude disable-host-hooks strip or honest repair",
+        "Prefer-A Bound conflict_group claude-disable-host-hooks-strip-or-honest-repair."
+      ]
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/policy/host-hooks.ts",
+          "packages/core/src/policy/host-hooks.test.ts",
+          "packages/core/src/install-health/constants.ts",
+          "packages/core/src/init-deposit/host-hook-outer.ts"
+        ],
+        "module_boundary": "packages/core/src/policy",
+        "cohesion_exemption": "Bound remedy co-travels constants and deposit disclosure"
+      },
+      "issueCommentThread": [
+        {
+          "body": "## Triage note (analysis after filing)\n\n### Plain-English impact\n\nAny Claude Code session that lands in a `.claude/worktrees/…` checkout is locked to Read-only. The printed escape (`disable-host-hooks`) does not clear the live hooks by itself, so the operator has to leave the session and repair or edit settings by hand.\n\n### Three defects in one report\n\n**1. Root mismatch still locks Claude worktrees (regression / residual of #6594)**\n\nSame refusal as closed #6594: `payloadRoot=<repo>/.claude/worktrees/<name> launchRoot=<repo>`.\n\n#6594 was closed by #6767 (RC-08): Claude’s locator was supposed to walk up to the worktree’s own git top so launch and payload stay aligned. On **0.131.0** primary `launchRoot` with worktree `payloadRoot` is still observed. That means either the session is still loading the **primary** hook entry, or the locator / `gitCheckoutTop` path is not binding for this host layout.\n\n#6599 / #6607 only admit a tiny recovery allowlist under mismatch; they do **not** admit linked worktrees. Swarm / host-worktree flow stays blocked when roots diverge.\n\n**2. `disable-host-hooks` overpromises “next session”**\n\n`packages/core/src/policy/host-hooks.ts` `disableHostHooks`:\n\n1. Sets `plan.policy.hostHooks.claude = false` in PROJECT-DEFINITION\n2. Prints: run `directive install --repair` to strip managed hook entries\n\nIt does **not** rewrite `.claude/settings.json` by itself. Seeing PreToolUse still present in both primary and worktree settings after disable + new session matches that implementation. Refusal / recovery text implies disable alone takes effect next session; the durable strip step is easy to miss, and a worktree copy of settings can stay live after primary-only repair.\n\n**3. MCP matcher is too wide**\n\nThe deposited matcher that includes `mcp__.*` (and related `__` forms) treats host-owned MCP (task list, wrap-up, browser) like merge/push-sensitive tools. Under root mismatch those UI tools die with everything else, so the agent cannot even report status. That should be a separate matcher / allow path from forge-mutation gating.\n\n### Adjacent: doctor + #7029\n\nDoctor’s `core.hooksPath` FAIL is absolute-path inheritance (#7029). Related worktree hygiene; not the PreToolUse lockout itself. Cite it; do not fold the product fix into hooksPath alone.\n\n### Recommended split\n\n| Slice | Owns |\n| --- | --- |\n| A | Re-admit or rebind Claude `.claude/worktrees/` so launchRoot ≡ payloadRoot (prove #6767 still holds on 0.131.0) |\n| B | Make `disable-host-hooks` either strip settings (or run repair) and print exact paths + verify steps |\n| C | Narrow MCP / host-internal tool matchers out of the hard refuse path |\n\n#7349 can stay the umbrella; open children if owners need to run in parallel.\n\n### Immediate operator unblock (outside the stuck session)\n\nFrom a normal terminal on the primary checkout:\n\n1. `directive policy:disable-host-hooks --host claude --confirm`\n2. `directive install --repair` (this is the step that actually clears settings)\n3. Confirm both `<repo>/.claude/settings.json` and any worktree `.claude/settings.json` no longer register Directive PreToolUse\n4. Or use the kill-switch path documented on #6594 for a faster hard off",
+          "id": 7170436949,
+          "html_url": "https://github.com/deftai/directive/issues/7349#issuecomment-7170436949",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-25T18:06:00Z",
+          "updated_at": "2026-11-25T18:06:00Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "## Second repro on 0.131.0, and the fix that worked\n\nConsumer: deftai/evolution. Host: Claude Code desktop app. Launcher and project pin are both 0.131.0.\n\n### What happened\n\n1. The operator ran `directive policy:disable-host-hooks --host claude --confirm` in the primary checkout and in one linked worktree (`.claude/worktrees/<a>`).\n2. A new Claude session was launched from the primary checkout. Claude Code put it in a **different** new worktree, `.claude/worktrees/<b>`.\n3. Every tool call was refused, including `mcp__ccd_turn__*`, the app's own task list:\n   `payload project root does not match the launching checkout (payloadRoot=<repo>/.claude/worktrees/<b> launchRoot=<repo>)`\n\nThis confirms slice B. The disable only sets `x-directive/policy.hostHooks.claude=false` in PROJECT-DEFINITION, and the refusal text still says it \"takes effect in a new session\". It did not. The hooks stayed wired in `<repo>/.claude/settings.json`.\n\n### The fix\n\nFrom a terminal in the primary checkout:\n\n```\ndirective install --repair\n```\n\nThe repair removed every Directive entry from `<repo>/.claude/settings.json` (170 lines down to `{}`) and deleted `.claude/deft-hook-8149fb11.mjs`.\n\n### Findings to add to the slices\n\n- **The fix applies in the running session.** Claude Code reloaded the settings, and the stuck session could run tools again right away. \"Restart the session\" is not needed.\n- **Hooks come from the launch root, not the worktree.** The worktree `<b>` still has all 8 `deft-hook` entries in its own `.claude/settings.json`, and so does `origin/main`. Tools work anyway, because the session was launched from the primary. So the repair has to run where the session was launched, and a worktree-only disable or repair does nothing for a primary-launched session. The refusal text should say this.\n- **The repair prompt does not say it will remove the host hooks.** It lists only \"check managed files\" and \"replace git hooks .githooks/*\". In fact it also rewrote `.claude/settings.json` and deleted the hook module. Slice B should make the prompt list those paths.\n- **The repair leaves 4 tracked files for the operator to commit:** `.claude/settings.json`, `.claude/deft-hook-8149fb11.mjs` (deleted), `.deft/GENERATION.json`, and `xbrief/PROJECT-DEFINITION.xbrief.json` (the policy block). Until that lands, every new clone and every worktree cut from `origin/main` re-arms the hooks for sessions launched there.\n- **The repair does not fix #7029.** `core.hooksPath` is still the absolute `<repo>/.githooks` after it runs.\n\n### What should change\n\n- The refusal should name `directive install --repair` (run in the **launch** checkout) as the step that clears the hooks, not only `disable-host-hooks`.\n- Or `disable-host-hooks --host claude` should strip the settings entries itself, then print the files it changed and how to verify them.\n\n",
+          "id": 7170453136,
+          "html_url": "https://github.com/deftai/directive/issues/7349#issuecomment-7170453136",
+          "user": {
+            "login": "abraderAI",
+            "id": 265949360,
+            "node_id": "U_kgDOD9oQsA",
+            "avatar_url": "https://avatars.githubusercontent.com/u/265949360?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/abraderAI",
+            "html_url": "https://github.com/abraderAI",
+            "followers_url": "https://api.github.com/users/abraderAI/followers",
+            "following_url": "https://api.github.com/users/abraderAI/following{/other_user}",
+            "gists_url": "https://api.github.com/users/abraderAI/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/abraderAI/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/abraderAI/subscriptions",
+            "organizations_url": "https://api.github.com/users/abraderAI/orgs",
+            "repos_url": "https://api.github.com/users/abraderAI/repos",
+            "events_url": "https://api.github.com/users/abraderAI/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/abraderAI/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-25T18:06:40Z",
+          "updated_at": "2026-11-25T18:06:40Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "## Tip validity check (0.131.5)\n\nChecked on this maintainer checkout today:\n\n- `directive --version` / project pin: **0.131.5** (issue body mentioned doctor on 0.131.0; behavior still present on tip)\n- Deposited Claude hooks still use the #6767 locator form (`node -e <locator> -- .claude/deft-hook-….mjs`)\n- MCP matcher still includes `mcp__.*|.*__.*|…` in `.claude/settings.json`\n\n### Root-mismatch repro (same refusal string)\n\nCreated linked worktree `.claude/worktrees/repro-7349`, then invoked tip `packages/runtime/dist/hook-dispatch.js` as Claude `tool.before` with:\n\n- `launchRoot` = primary (`…/node_modules/@deftai/directive-runtime/dist/hook-bin.js` → `C:/Repos/deft/directive`)\n- payload `cwd` = the Claude worktree\n\nResult: **deny** with\n\n`payload project root does not match the launching checkout (payloadRoot=…/.claude/worktrees/repro-7349 launchRoot=…/directive)`\n\nSame-root control (primary launch + primary payload) did **not** refuse.\n\nSo slice A is **still valid on current tip**. #6767’s locator only aligns roots when the hook process cwd is already inside a worktree that has its own Directive outer/runtime; a primary-launched hook with a worktree payload cwd still fail-closes (unchanged AC9.4 check in `hook-dispatch.ts`).\n\nSlices B (`disable-host-hooks` → policy only + needs `install --repair`) and C (broad MCP matcher) are also still present in tip deposit/policy code; not re-exercised live beyond reading the deposited settings + `host-hooks.ts`.",
+          "id": 7170507934,
+          "html_url": "https://github.com/deftai/directive/issues/7349#issuecomment-7170507934",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-25T18:08:58Z",
+          "updated_at": "2026-11-25T18:08:58Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\narc-mode: no-ingest\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\ncharter: open critique\nconflict_group: claude-disable-host-hooks-strip-or-honest-repair\nverification-path: pin-read .deft-scratch/worktrees/arc-7349 @ 24097766c7a1619c5f3d1dc43675a3a3a92da7ba\ndual-stop-reserved: 1\n\npain: P1, P2, P3\n\n## In plain English\n\nClaude Code sessions that hit a root mismatch are told to run `disable-host-hooks`, then start a new session. That verb only flips a policy flag. The hooks stay in `.claude/settings.json` until someone runs `directive install --repair` in the **launch** checkout. Operators and agents follow the printed recovery and stay locked. This Stop 1 covers only that escape-hatch honesty gap (slice B). Same-repo worktree admission and the broad MCP matcher stay out.\n\n## Pains\n\n- P1: `policy:disable-host-hooks --host claude --confirm` persists `hostHooks.claude=false` but leaves Directive PreToolUse entries wired in launch-checkout `.claude/settings.json` (and does not strip the hook module).\n- P2: Root-mismatch refusal / entry-guard recovery says disable \"takes effect in a new session\" and does not name `directive install --repair` in the **launch** checkout as the step that clears live hooks.\n- P3: `directive install --repair` can empty `.claude/settings.json` and delete `.claude/deft-hook-*.mjs`, but its operator prompt does not list those host-hook paths among the files it will change.\n\n## Keep-outs\n\n- Slice A: admit/rebind same-repo `.claude/worktrees/` / launchRoot≡payloadRoot (#6594 / #6767 residual)\n- Slice C: narrow `mcp__.*|.*__.*` matcher\n- #7029 `core.hooksPath` absolute inheritance\n- Consumer land of the workaround (e.g. evolution PR that commits repair bytes) — evidence only\n\n## Evidence (ceiling)\n\n- Issue body + OP comment on disable-alone failure and primary `install --repair` unblock (settings → `{}`, running session recovered; hooks bind to launch root)\n- Tip check: `disableHostHooks` in `packages/core/src/policy/host-hooks.ts` still prints repair-as-follow-up; ENTRY_GUARD / HOOK_ROOT_MISMATCH text still says new-session after disable\n- Dispatch SHA: 24097766c7a1619c5f3d1dc43675a3a3a92da7ba\n\nFiled for @MScottAdams",
+          "id": 7170743350,
+          "html_url": "https://github.com/deftai/directive/issues/7349#issuecomment-7170743350",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-25T18:19:07Z",
+          "updated_at": "2026-11-25T18:19:07Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: parent\n```\n\n**Lean:** Prefer-A Bound\nTarget-digest: sha256:5ae37378cbdd58ad57a65fe8a6c58c52820d6f86d1029509c46e1fa0bcea7156\nSpec-path: packages/core/src/policy/host-hooks.ts + packages/core/src/install-health/constants.ts (HOOK_ROOT_MISMATCH / ENTRY_GUARD root-mismatch) + install --repair host-hook disclosure\nconflict_group: claude-disable-host-hooks-strip-or-honest-repair\nspend: N=1\narc-mode: no-ingest\nid-ceiling: 7170743350\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\n## In plain English\n\nWhen an operator turns off Claude host hooks, Directive must actually clear those hooks in the checkout that launched the session, or refuse until repair has done so, and say exactly which files changed. The mismatch refusal must name that clear step in the launch checkout. Repair must list the Claude settings and hook module when it rewrites them. This Bound does not admit worktrees or change the MCP matcher.\n\n## Prefer-A\n\nBind Approach A: after `--confirm`, `disable-host-hooks` for host `claude` (and the same contract for every deposited host the verb accepts) either strips that host’s Directive-managed hook registration in the **current project root** in-process, or chains the existing repair strip for that host before exit 0. Stdout names every path touched and a one-line verify check. Root-mismatch recovery text drops “takes effect in a new session” as sufficient alone; it names `directive install --repair` (or the disable verb when it strips) run in the **launch** checkout. Repair’s operator-facing file list includes `.claude/settings.json` and `.claude/deft-hook-*.mjs` when those are rewritten or removed.\n\n## Bound remedy\n\n- relieves: P1 — Confirm disable strips or chains repair for the named host’s managed hook entries before exit 0\n- relieves: P2 — Root-mismatch recovery names launch-checkout repair or stripping disable, not new-session alone\n- relieves: P3 — Repair disclosure lists `.claude/settings.json` and `.claude/deft-hook-*.mjs` when it changes them\n\n## Reject\n\n- Same-repo worktree admission / launchRoot rebind (slice A; #6594 / #6767)\n- MCP / host-UI matcher narrowing (slice C)\n- #7029 `core.hooksPath` changes\n- Uninstall or kill-switch as the only documented escape\n- Silent settings edits with no printed paths\n- Widening disable to remove other hosts’ hooks when `--host` names one host\n\n## Footnotes (non-mechanism)\n\n- Docs/AGENTS lockout note should mirror the launch-checkout repair wording once the string SoT changes\n- Consumer commits that land repair bytes (evolution-style) remain the interim until this ships\n\n## Parent-side substantiation\n\n- `disableHostHooks` today mutates PROJECT-DEFINITION only and prints a separate repair step (`host-hooks.ts`)\n- ENTRY_GUARD / mismatch guidance still says disable takes effect in a new session\n- OP live path: disable alone left settings wired; primary `install --repair` emptied settings and unblocked the running session\n\nFiled for @MScottAdams\n\n\n\n\n",
+          "id": 7170750295,
+          "html_url": "https://github.com/deftai/directive/issues/7349#issuecomment-7170750295",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-25T18:19:26Z",
+          "updated_at": "2026-11-25T18:45:30Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1, pain-P2, pain-P3\nfinding-classes: none\nharvest-changed: false\n\n## In plain English\n\nChecked Prefer-A Bound 7170750295 against Stop 1 pains P1–P3. The three limbs match the live gaps: policy-only disable, overpromised new-session recovery, and repair’s incomplete file list. No mechanism change required.\n\n## Pain coverage\n\n- pain-P1: Bound limb “Confirm disable strips or chains repair…” reaches `disableHostHooks` exit path; today’s code only flips `hostHooks` and prints a follow-up repair line — Prefer-A closes that gap.\n- pain-P2: Bound limb updates root-mismatch recovery to name launch-checkout repair/strip; ENTRY_GUARD root-mismatch string today still says new-session after disable.\n- pain-P3: Bound limb requires repair disclosure to list `.claude/settings.json` and `deft-hook-*.mjs` when rewritten — matches OP observation that the prompt omitted those paths while still changing them.\n\n## False-relief check\n\nEach `relieves: P*` names a live pin after ship (disable strip/chain, recovery string SoT, repair disclosure). No prose-only or --no-verify borrow.\n\n## Verdict\n\naccept Prefer-A Bound 7170750295; harvest-changed: false\n\nFiled for @MScottAdams",
+          "id": 7170756432,
+          "html_url": "https://github.com/deftai/directive/issues/7349#issuecomment-7170756432",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-25T18:19:42Z",
+          "updated_at": "2026-11-25T18:19:42Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: parent\n```\n\n## Verified claims table\n\n| Claim | Status | Evidence |\n| --- | --- | --- |\n| disable-host-hooks is policy-only today | verified | host-hooks.ts sets hostHooks.<host>=false; prints install --repair follow-up |\n| Refusal/recovery overpromises new-session after disable | verified | ENTRY_GUARD root-mismatch / HOOK_ROOT_MISMATCH guidance text |\n| Repair strips Claude settings/hook module without listing them in prompt | verified | OP 7170453136 on evolution; settings → {} + deft-hook deleted |\n| Hooks bind to launch checkout | verified | OP: worktree settings still full; primary repair unblocked session |\n| Prefer-A Bound 7170750295 relieves P1–P3 | verified | PA 7170756432 finding-classes:none harvest-changed:false |\n| Keep-outs A/C/#7029 held | verified | Bound Reject list; Stop 1 keep-outs |\n\nspend: N=1 (no Round-1 panel; open critique)\ncited lean: 7170750295\npain-audit: 7170756432\nStop 1: 7170743350\n\nFiled for @MScottAdams",
+          "id": 7170762803,
+          "html_url": "https://github.com/deftai/directive/issues/7349#issuecomment-7170762803",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-25T18:19:58Z",
+          "updated_at": "2026-11-25T18:19:58Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nSlice B is ready to build: turning off Claude host hooks must clear the live hook files in the launch checkout (or chain repair that does), say which files changed, and stop telling people a new session alone is enough. Repair must list the Claude settings and hook module when it touches them. Worktree admission and MCP matcher stay for later slices.\n\n## Synthesis accepted\n\ndesign-critique: synthesis accepted, because Prefer-A Bound 7170750295 with ## Bound remedy limbs for P1–P3 cleared pain-audit 7170756432 (finding-classes:none, harvest-changed:false) and VCT above. conflict_group: claude-disable-host-hooks-strip-or-honest-repair. Keep-outs: slice A, slice C, #7029.\n\nCited lean: 7170750295\nStop 1: 7170743350\nPain-audit: 7170756432\n\nFiled for @MScottAdams",
+          "id": 7170763186,
+          "html_url": "https://github.com/deftai/directive/issues/7349#issuecomment-7170763186",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-25T18:20:00Z",
+          "updated_at": "2026-11-25T18:20:00Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: parent\n```\n\ndesign-critique: synthesis accepted, because Prefer-A Bound 7170750295 cleared PA 7170756432 on conflict_group claude-disable-host-hooks-strip-or-honest-repair (slice B only).\n\ncitedLeanId: 7170750295\nsynthesisCommentId: 7170763186\nstop1CommentId: 7170743350\npainAuditCommentId: 7170756432\nvctCommentId: 7170762803\narc-mode: no-ingest\nspend: N=1\n\n## In plain English\n\nArc closed for slice B escape-hatch honesty. Ingest remains a separate operator verb.\n\nFiled for @MScottAdams",
+          "id": 7170763566,
+          "html_url": "https://github.com/deftai/directive/issues/7349#issuecomment-7170763566",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-25T18:20:01Z",
+          "updated_at": "2026-11-25T18:20:01Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: parent\n```\n\ndesign-critique: synthesis accepted, because Prefer-A Bound cleared PA on conflict_group claude-disable-host-hooks-strip-or-honest-repair (slice B only).\n\nsuccessor lean: 7170750295\nsynthesisCommentId: 7170763186\nstop1CommentId: 7170743350\npainAuditCommentId: 7170756432\nvctCommentId: 7170762803\ncitedLeanId: 7170750295\narc-mode: no-ingest\nspend: N=1\n\n## In plain English\n\nArc closed for slice B escape-hatch honesty. Ingest remains a separate operator verb.\n\nFiled for @MScottAdams",
+          "id": 7170770665,
+          "html_url": "https://github.com/deftai/directive/issues/7349#issuecomment-7170770665",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-25T18:20:19Z",
+          "updated_at": "2026-11-25T18:20:19Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-1-fast-reasoning\n```quarantined\nrole: parent\n```\n\ndesign-critique: synthesis accepted, because Prefer-A Bound cleared PA on conflict_group claude-disable-host-hooks-strip-or-honest-repair (slice B only).\n\nBound contract: successor lean 7170750295, confirmed by operator, verified-claims table 7170762803.\nsynthesisCommentId: 7170763186\nstop1CommentId: 7170743350\npainAuditCommentId: 7170756432\narc-mode: no-ingest\nspend: N=1\n\n## In plain English\n\nArc closed for slice B escape-hatch honesty. Ingest remains a separate operator verb.\n\nFiled for @MScottAdams",
+          "id": 7170797675,
+          "html_url": "https://github.com/deftai/directive/issues/7349#issuecomment-7170797675",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-25T18:21:30Z",
+          "updated_at": "2026-11-25T18:21:30Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "## Split\n\nScoped this issue to **slice B** (disable/repair escape-hatch honesty). Prefer-A Bound https://github.com/deftai/directive/issues/7349#issuecomment-7170750295 and `design-critique:ingest-ready` remain the next-build contract for B only.\n\nSpun out:\n- #7351 — same-repo linked worktree root admission (was A)\n- #7352 — host MCP/UI matcher overbreadth (was C)\n\n#7029 stays cite-only. Do not implement #7351 / #7352 under this number.\n\n",
+          "id": 7171349775,
+          "html_url": "https://github.com/deftai/directive/issues/7349#issuecomment-7171349775",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-25T18:45:18Z",
+          "updated_at": "2026-11-25T18:45:18Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n\n**Slice B** (escape hatch). `directive policy:disable-host-hooks --host claude --confirm` only flips `hostHooks.claude=false`. Live PreToolUse entries stay in the **launch** checkout's `.claude/settings.json` until `directive install --repair` strips them. Refusal / recovery text still implies disable + new session is enough.\n\nSibling slices spun out:\n- **Admission (was A):** #7351\n- **MCP matcher (was C):** #7352\n- Related hygiene: #7029 (`core.hooksPath`)\n\n## Observed\n\n- Disable in primary + a worktree did not clear hooks; new Claude session in `.claude/worktrees/<b>` still refused every tool (including host MCP) with root-mismatch until primary `install --repair`.\n- Repair emptied primary `.claude/settings.json` to `{}`, deleted `.claude/deft-hook-*.mjs`, and unblocked the **running** session (Claude reloaded settings).\n- Hooks bind to the **launch** checkout; worktree-only disable/repair does not help a primary-launched session.\n- Repair's operator prompt did not list the Claude settings / hook module among files it would change.\n- Until repair lands on `main`, new clones / worktrees re-arm hooks (consumer stopgap: deftai/evolution#2227).\n\n## Expected (this issue only)\n\n- After `--confirm`, `disable-host-hooks` for the named host either strips that host's Directive-managed hook entries in the current project root in-process, or chains repair for that host before exit 0, and prints exact paths + verify steps.\n- Root-mismatch recovery names launch-checkout `install --repair` (or stripping disable) — not \"new session\" alone.\n- Repair disclosure lists `.claude/settings.json` and `.claude/deft-hook-*.mjs` when it rewrites or removes them.\n\n## Design status\n\n- Prefer-A Bound (ingest-ready): https://github.com/deftai/directive/issues/7349#issuecomment-7170750295\n- conflict_group: `claude-disable-host-hooks-strip-or-honest-repair`\n- Keep-outs on that Bound: #7351, #7352, #7029\n\n## Related\n\n- #7351 — same-repo linked worktree root admission\n- #7352 — host MCP/UI matcher overbreadth\n- #6594 / #6767 — prior Claude worktree lockout / locator\n- #6599 / #6607 — root-mismatch recovery admit\n- #7029 — core.hooksPath absolute path on worktree create\n- deftai/evolution#2227 — consumer commit of disable+repair workaround\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6610618436,
+        "origin": "deftai/directive#7349",
+        "id": "github.issue.6610618436"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "5ae37378cbdd58ad57a65fe8a6c58c52820d6f86d1029509c46e1fa0bcea7156"
+      },
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 7349,
+        "leanCommentId": 7170750295,
+        "harvestDigest": "7eb9a68ab364e106987365556b06cb304e0a25bf3713c2594d8bf85b5a66a8bf",
+        "slice": null
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "conflict_group": "claude-disable-host-hooks-strip-or-honest-repair",
+        "size": "S",
+        "file_scope": [
+          "packages/core/src/policy/host-hooks.ts",
+          "packages/core/src/policy/host-hooks.test.ts",
+          "packages/core/src/install-health/constants.ts",
+          "packages/core/src/init-deposit/host-hook-outer.ts",
+          "changelog.d/7349-disable-host-hooks-strip-or-repair.md"
+        ],
+        "file_scope_confidence": "high",
+        "depends_on": [],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/policy/host-hooks.test.ts --reporter=dot"
+        ],
+        "expected_outputs": [
+          "disable-host-hooks strips or chains repair and prints paths",
+          "root-mismatch names launch-checkout repair"
+        ],
+        "model_tier": "standard"
+      }
+    },
+    "id": "github.issue.6610618436",
+    "updated": "2026-11-25T19:03:16Z"
+  }
+}
