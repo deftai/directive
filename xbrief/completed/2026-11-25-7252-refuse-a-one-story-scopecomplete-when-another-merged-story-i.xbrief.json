@@ -1,0 +1,47 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Refuse a one-story scope:complete when another merged story is still active",
+    "created": "2026-11-25T07:58:01.675Z",
+    "updated": "2026-11-25T07:58:01.675Z"
+  },
+  "plan": {
+    "id": "github.issue.6573848246",
+    "title": "Refuse a one-story scope:complete when another merged story is still active",
+    "status": "completed",
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "Keep tip evaluateSlowPathCompleteGate on bare scope:complete with honesty admit before merge-state lookup",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/7336",
+          "recorded_at": "2026-11-25T07:58:01.675Z",
+          "recorded_by": "MScottAdams"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "productPullRequest": 7336,
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "origin": "deftai/directive#7252",
+        "id": "github.issue.6573848246"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/7252",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #7252"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true
+    }
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Tell the operator the mint and off tradeoff before a batch",
+    "created": "2026-11-25T07:58:01.675Z",
+    "updated": "2026-11-25T07:58:01.675Z"
+  },
+  "plan": {
+    "id": "github.issue.6573950395",
+    "title": "Tell the operator the mint and off tradeoff before a batch",
+    "status": "completed",
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "An agent reads onePrScopeProof and explains mint and off, including the shared finalize, and does not pick a route in silence.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "https://github.com/deftai/directive/pull/7255",
+          "recorded_at": "2026-11-25T07:58:01.675Z",
+          "recorded_by": "MScottAdams"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "productPullRequest": 7255,
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "origin": "deftai/directive#7253",
+        "id": "github.issue.6573950395"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/7253",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #7253"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true
+    }
+  }
+}
