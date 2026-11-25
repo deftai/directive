@@ -104,6 +104,29 @@ describe("session git helpers", () => {
     ).toBe(false);
   });
 
+  it("sameRepoGitCommonDir ignores inherited absolute GIT_DIR (#7351)", () => {
+    const base = mkdtempSync(join(tmpdir(), "same-repo-git-dir-"));
+    temps.push(base);
+    const repoA = join(base, "a");
+    const repoB = join(base, "b");
+    mkdirSync(repoA, { recursive: true });
+    mkdirSync(repoB, { recursive: true });
+    execFileSync("git", ["init", "-q"], { cwd: repoA });
+    execFileSync("git", ["init", "-q"], { cwd: repoB });
+    const gitDirA = execFileSync("git", ["rev-parse", "--absolute-git-dir"], {
+      cwd: repoA,
+      encoding: "utf8",
+    }).trim();
+    const prev = process.env.GIT_DIR;
+    process.env.GIT_DIR = gitDirA;
+    try {
+      expect(sameRepoGitCommonDir(repoA, repoB)).toBe(false);
+    } finally {
+      if (prev === undefined) delete process.env.GIT_DIR;
+      else process.env.GIT_DIR = prev;
+    }
+  });
+
   it("fuzzes existingAncestorDir over nested missing paths (#3794)", () => {
     const root = mkdtempSync(join(tmpdir(), "git-ancestor-fuzz-"));
     temps.push(root);

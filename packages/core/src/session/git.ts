@@ -33,6 +33,30 @@ export interface ExecGitOptions {
   readonly timeoutMs?: number;
   /** Merged over process.env when set — never replaces the child env wholesale (#6008). */
   readonly env?: NodeJS.ProcessEnv;
+  /**
+   * Child env used as-is (no merge with process.env). Prefer this when clearing
+   * Git location overrides such as `GIT_DIR` (#7351).
+   */
+  readonly envReplace?: NodeJS.ProcessEnv;
+}
+
+/** Absolute Git location env names that must not leak into same-repo probes (#7351). */
+const GIT_LOCATION_ENV_UPPER = new Set([
+  "GIT_DIR",
+  "GIT_WORK_TREE",
+  "GIT_INDEX_FILE",
+  "GIT_COMMON_DIR",
+]);
+
+/** Copy of `base` with Git repository-location overrides removed (#7351). */
+export function envWithoutGitLocationOverrides(
+  base: NodeJS.ProcessEnv = process.env,
+): NodeJS.ProcessEnv {
+  const env: NodeJS.ProcessEnv = { ...base };
+  for (const key of Object.keys(env)) {
+    if (GIT_LOCATION_ENV_UPPER.has(key.toUpperCase())) delete env[key];
+  }
+  return env;
 }
 
 function execGit(
@@ -41,7 +65,12 @@ function execGit(
   options: ExecGitOptions = {},
 ): GitRunResult {
   const timeoutMs = options.timeoutMs;
-  const childEnv = options.env === undefined ? undefined : { ...process.env, ...options.env };
+  const childEnv =
+    options.envReplace !== undefined
+      ? options.envReplace
+      : options.env === undefined
+        ? undefined
+        : { ...process.env, ...options.env };
   try {
     const stdout = execFileSync("git", [...args], {
       cwd: projectRoot,
@@ -368,14 +397,21 @@ export function gitCommonDir(
 /**
  * True when both roots resolve a git common dir and those dirs match (#7351).
  * Null/unresolved on either side is never same-repo.
+ * Default runner clears inherited `GIT_DIR` / `GIT_WORK_TREE` / related location
+ * overrides so an absolute host `GIT_DIR` cannot make unrelated roots match.
  */
 export function sameRepoGitCommonDir(
   launchRoot: string,
   payloadRoot: string,
   runGit: GitRunner = defaultGitRunner,
 ): boolean {
-  const launchCommon = gitCommonDir(launchRoot, runGit);
-  const payloadCommon = gitCommonDir(payloadRoot, runGit);
+  const effective: GitRunner =
+    runGit === defaultGitRunner
+      ? (root, args) =>
+          execGit(root, args, { envReplace: envWithoutGitLocationOverrides() })
+      : runGit;
+  const launchCommon = gitCommonDir(launchRoot, effective);
+  const payloadCommon = gitCommonDir(payloadRoot, effective);
   return launchCommon !== null && payloadCommon !== null && launchCommon === payloadCommon;
 }
 

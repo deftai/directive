@@ -17,6 +17,10 @@ import {
   admitRootMismatchRecovery,
 } from "@deftai/directive-core/dist/install-health/recovery-admit.js";
 import {
+  readInstalledRuntimeVersion,
+  readRuntimePin,
+} from "@deftai/directive-core/dist/install-health/readers.js";
+import {
   classifyRootMismatch,
   FOREIGN_RUNTIME_LINK,
   resolveLaunchingCheckoutRootFromPath,
@@ -103,6 +107,15 @@ export interface HookDispatchCliSeams {
    */
   readonly sameRepoGitCommonDir?: (launchRoot: string, payloadRoot: string) => boolean;
   /**
+   * #7351: when roots differ but common dirs match, true only if the launching
+   * checkout's installed runtime equals the payload pin. `null` means unknown
+   * (skip the cross-check). Defaults to {@link launchInstalledMatchesPayloadPin}.
+   */
+  readonly launchInstalledMatchesPayloadPin?: (
+    launchRoot: string,
+    payloadRoot: string,
+  ) => boolean | null;
+  /**
    * The launcher's own (link-side) script path, `process.argv[1]` by default
    * (#6185). Used only to choose the wording of a root-mismatch refusal; never
    * an admission input. Tests inject a path to simulate a junctioned runtime.
@@ -164,6 +177,20 @@ function realpathOrResolve(path: string): string {
 
 function rootsMatch(a: string, b: string): boolean {
   return realpathOrResolve(a) === realpathOrResolve(b);
+}
+
+/**
+ * Launch installed runtime vs payload pin (#7351). Explicit mismatch is false;
+ * either side unresolved is null (caller may still admit on common-dir alone).
+ */
+export function launchInstalledMatchesPayloadPin(
+  launchRoot: string,
+  payloadRoot: string,
+): boolean | null {
+  const pinVersion = readRuntimePin(payloadRoot).pinVersion;
+  const installedVersion = readInstalledRuntimeVersion(launchRoot);
+  if (pinVersion === null || installedVersion === null) return null;
+  return pinVersion === installedVersion;
 }
 
 function installationIdentityDeny(
@@ -464,8 +491,19 @@ function runSessionEnd(
     );
     killSwitchForEvent(projectRoot, seams, writeErr);
     const launchRoot = (seams.launchingCheckoutRoot ?? resolveLaunchingCheckoutRoot)();
+    // #7351: same-repo linked worktree sessions must release; map launch→payload
+    // when common dirs match so runSessionEndHook's path equality admits, while
+    // cross-repo mismatch and owner-only release stay unchanged.
+    let effectiveLaunchRoot = launchRoot;
+    if (launchRoot !== null && !rootsMatch(launchRoot, projectRoot)) {
+      const sameRepo = (seams.sameRepoGitCommonDir ?? sameRepoGitCommonDir)(
+        launchRoot,
+        projectRoot,
+      );
+      if (sameRepo) effectiveLaunchRoot = projectRoot;
+    }
     const ended = runSessionEndHook(
-      { host, projectRoot, payload, environ: process.env, launchRoot },
+      { host, projectRoot, payload, environ: process.env, launchRoot: effectiveLaunchRoot },
       {
         ...(seams.cheapInSync !== undefined ? { cheapInSync: seams.cheapInSync } : {}),
         ...(seams.sessionEndRelease !== undefined ? { release: seams.sessionEndRelease } : {}),
@@ -559,6 +597,24 @@ export function run(argv: string[], seams: HookDispatchCliSeams = {}): number {
         `Directive hook refuse: payload project root does not match the launching checkout ` +
         `(payloadRoot=${payloadRootText} ` +
         `launchRoot=${launchRootText}). Recovery: ${HOOK_ROOT_MISMATCH_RECOVERY_GUIDANCE}`;
+      const decision = installationIdentityDeny(args.host, args.event, projectRoot, message);
+      const rendered = renderHostDecision(args.host, decision);
+      if (rendered.length > 0) writeOut(`${rendered}\n`);
+      return 0;
+    }
+    // #7351: when roots differ, the running launch install must match the payload pin
+    // so version A cannot serve a worktree pinned/installed at B.
+    const pinMatch = (
+      seams.launchInstalledMatchesPayloadPin ?? launchInstalledMatchesPayloadPin
+    )(launchRoot, projectRoot);
+    if (pinMatch === false) {
+      const payloadPin = readRuntimePin(projectRoot).pinVersion ?? "?";
+      const launchInstalled = readInstalledRuntimeVersion(launchRoot) ?? "?";
+      const message =
+        `Directive hook refuse: launching checkout runtime does not match payload pin ` +
+        `(payloadRoot=${payloadRootText} launchRoot=${launchRootText} ` +
+        `payloadPin=${payloadPin} launchInstalled=${launchInstalled}). ` +
+        `Recovery: ${projectInstallCommand(projectRoot)}`;
       const decision = installationIdentityDeny(args.host, args.event, projectRoot, message);
       const rendered = renderHostDecision(args.host, decision);
       if (rendered.length > 0) writeOut(`${rendered}\n`);

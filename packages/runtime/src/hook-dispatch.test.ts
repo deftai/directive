@@ -957,6 +957,34 @@ describe("hook-dispatch session.end (#6274)", () => {
     expect(readFileSync(occupancyPath(root), "utf8")).toBe(before);
   });
 
+  it("same-repo linked launch root still releases on session.end (#7351)", () => {
+    const root = leasedRoot();
+    const other = mkdtempSync(join(tmpdir(), "hook-dispatch-session-end-same-repo-"));
+    roots.push(other);
+    const out: string[] = [];
+    const err: string[] = [];
+    const code = run(["--host", "claude", "--event", "session.end", `--project-root=${root}`], {
+      readStdin: () =>
+        JSON.stringify({
+          hook_event_name: "SessionEnd",
+          reason: "clear",
+          session_id: RAW,
+          cwd: root,
+        }),
+      writeOut: (text) => out.push(text),
+      writeErr: (text) => err.push(text),
+      cwd: () => root,
+      stdinEmptyRetryMs: 0,
+      launchingCheckoutRoot: () => other,
+      sameRepoGitCommonDir: () => true,
+      cheapInSync: okCheap,
+    });
+    expect(code).toBe(0);
+    expect(out.join("")).toBe("");
+    expect(err.join("").trim().split("\n")).toHaveLength(1);
+    expect(existsSync(occupancyPath(root))).toBe(false);
+  });
+
   it("pin mismatch releases nothing and prints one diagnostic line", () => {
     const root = leasedRoot();
     const before = readFileSync(occupancyPath(root), "utf8");
@@ -1085,6 +1113,7 @@ describe("#7351 same-repo Claude WT and Directive dest admit", () => {
     opts: {
       sameRepo: boolean;
       launcherPath?: string;
+      launchPinMatch?: boolean | null;
     },
   ): { code: number; text: string } {
     const out: string[] = [];
@@ -1103,6 +1132,8 @@ describe("#7351 same-repo Claude WT and Directive dest admit", () => {
       launcherPath: () => opts.launcherPath,
       cheapInSync: () => OK_CHEAP,
       sameRepoGitCommonDir: () => opts.sameRepo,
+      launchInstalledMatchesPayloadPin: () =>
+        opts.launchPinMatch === undefined ? null : opts.launchPinMatch,
     });
     return { code, text: out.join("") };
   }
@@ -1141,5 +1172,14 @@ describe("#7351 same-repo Claude WT and Directive dest admit", () => {
     });
     expect(result.text).toContain("foreign-runtime-link");
     expect(result.text).not.toContain("payload project root does not match the launching checkout");
+  });
+
+  it("refuses same-repo admit when launch install mismatches payload pin", () => {
+    const result = runAt("/repo/.claude/worktrees/agent-wt", {
+      sameRepo: true,
+      launchPinMatch: false,
+    });
+    expect(result.code).toBe(0);
+    expect(result.text).toContain("launching checkout runtime does not match payload pin");
   });
 });
