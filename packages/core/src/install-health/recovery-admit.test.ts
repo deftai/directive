@@ -12,6 +12,7 @@ import {
   PIN_MISMATCH_SIMPLE_COMMAND_SOURCE,
 } from "./index.js";
 import {
+  admitHardRefuseNonGatedMcp,
   admitRootMismatchRecovery,
   matchRootMismatchRecoveryCommand,
   rootMismatchRecoveryCommands,
@@ -177,5 +178,35 @@ describe("root-mismatch recovery admit (#6599)", () => {
     expect(
       admitRootMismatchRecovery({ shellTool: false, command: "directive doctor", host: "claude" }),
     ).toBeNull();
+  });
+});
+
+describe("admitHardRefuseNonGatedMcp (#7352)", () => {
+  it.each([
+    "mcp__ccd_turn__wrap_up",
+    "mcp__ccd_turn__task_list",
+    "mcp__claude_code__browser",
+  ])("admits host UI MCP %j", (toolName) => {
+    expect(admitHardRefuseNonGatedMcp({ toolName, mcpArgsText: null })).toBe(true);
+  });
+
+  it.each([
+    ["Bash", null],
+    ["Edit", null],
+    ["Write", null],
+    ["CallMcpTool", '{"tool_name":"mcp__ccd_turn__wrap_up"}'],
+    ["use_tool", '{"tool_name":"mcp__ccd_turn__wrap_up"}'],
+    ["mcp__github__merge_pull_request", null],
+    ["mcp__git__git_push", null],
+    ["mcp__fs__edit_record", '{"path":"/tmp/x"}'],
+    ["mcp__fs__create_note", '{"path":"/tmp/x"}'],
+    ["mcp__github__create_issue", '{"title":"x"}'],
+  ])("refuses %j", (toolName, mcpArgsText) => {
+    expect(admitHardRefuseNonGatedMcp({ toolName, mcpArgsText })).toBe(false);
+  });
+
+  it("refuses blank tool names", () => {
+    expect(admitHardRefuseNonGatedMcp({ toolName: "", mcpArgsText: null })).toBe(false);
+    expect(admitHardRefuseNonGatedMcp({ toolName: "   ", mcpArgsText: null })).toBe(false);
   });
 });
