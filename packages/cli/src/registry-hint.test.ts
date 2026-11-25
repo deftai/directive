@@ -83,7 +83,8 @@ describe("scopedRegistryHint", () => {
       "env 'npm_config_@deftai:registry=https://registry.npmjs.org/' directive upgrade",
     );
     expect(hint).toContain(
-      "PowerShell: ${env:npm_config_@deftai:registry}='https://registry.npmjs.org/'; directive upgrade; Remove-Item 'env:npm_config_@deftai:registry'",
+      "PowerShell: $" +
+        "{env:npm_config_@deftai:registry}='https://registry.npmjs.org/'; directive upgrade; Remove-Item 'env:npm_config_@deftai:registry'",
     );
     expect(hint).not.toContain("npm.pkg.github.com");
     expect(hint).not.toContain("tok123");

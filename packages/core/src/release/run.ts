@@ -229,6 +229,18 @@ export function releaseRunFinalLines(
   ];
 }
 
+/**
+ * Inherited by every release:run child verb. Runtime self-complete honors it so
+ * setupRitual's session:start (and hooks) cannot dirt a tip pin+wiring tree
+ * before the cut (#7327 Greptile P1). Must match runtime self-complete.ts.
+ */
+export const DEFT_SKIP_SELF_COMPLETE = "DEFT_SKIP_SELF_COMPLETE";
+
+/** Env for release:run child processes: suppress launcher self-complete (#7327). */
+export function releaseRunChildEnv(base: NodeJS.ProcessEnv = process.env): NodeJS.ProcessEnv {
+  return { ...base, [DEFT_SKIP_SELF_COMPLETE]: "1" };
+}
+
 export interface RunVerbOptions {
   readonly cwd: string;
   /** Only the mint reads stdin; every other child gets no stdin, so it cannot prompt. */
@@ -266,6 +278,7 @@ function defaultRunVerb(argv: readonly string[], options: RunVerbOptions): numbe
   if (entry === undefined) return EXIT_CONFIG_ERROR;
   const result = spawnSync(process.execPath, [entry, ...argv], {
     cwd: options.cwd,
+    env: releaseRunChildEnv(),
     stdio: options.interactive ? "inherit" : ["ignore", "inherit", "inherit"],
   });
   return result.status ?? EXIT_VIOLATION;

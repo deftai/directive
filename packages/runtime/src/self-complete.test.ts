@@ -10,8 +10,10 @@ import { afterEach, describe, expect, it } from "vitest";
 import { run as runHookDispatch } from "./hook-dispatch.js";
 import {
   DEFT_DOCTOR_HOOK_DIAGNOSTIC,
+  DEFT_SKIP_SELF_COMPLETE,
   isDoctorDiagnosticEnv,
   isEligibleSelfCompleteCommand,
+  isSkipSelfCompleteEnv,
   maybeSelfCompleteSetup,
   resetSelfCompleteGitHookDisclosureForTests,
 } from "./self-complete.js";
@@ -72,6 +74,29 @@ describe("isEligibleSelfCompleteCommand", () => {
     }
   });
 
+  it("rejects release:run / release-run so tip cuts stay tree-clean at readiness (#7327)", () => {
+    expect(isEligibleSelfCompleteCommand(["release:run"])).toBe(false);
+    expect(isEligibleSelfCompleteCommand(["release-run"])).toBe(false);
+    expect(
+      isEligibleSelfCompleteCommand(["release:run", "1.2.0", "--expires", "2099-01-01T00:00:00Z"]),
+    ).toBe(false);
+  });
+
+  it("rejects space-form release run (raw argv before router) (#7327)", () => {
+    expect(isEligibleSelfCompleteCommand(["release", "run"])).toBe(false);
+    expect(
+      isEligibleSelfCompleteCommand([
+        "release",
+        "run",
+        "1.2.0",
+        "--expires",
+        "2099-01-01T00:00:00Z",
+      ]),
+    ).toBe(false);
+    // Other release space-forms stay eligible unless stamped skip-env.
+    expect(isEligibleSelfCompleteCommand(["release", "finish"])).toBe(true);
+  });
+
   it("accepts ordinary product commands", () => {
     expect(isEligibleSelfCompleteCommand(["verify:branch"])).toBe(true);
     expect(isEligibleSelfCompleteCommand(["check"])).toBe(true);
@@ -85,6 +110,17 @@ describe("isDoctorDiagnosticEnv", () => {
     expect(isDoctorDiagnosticEnv({ [DEFT_DOCTOR_HOOK_DIAGNOSTIC]: "0" })).toBe(false);
     expect(isDoctorDiagnosticEnv({ [DEFT_DOCTOR_HOOK_DIAGNOSTIC]: "false" })).toBe(false);
     expect(isDoctorDiagnosticEnv({})).toBe(false);
+  });
+});
+
+describe("isSkipSelfCompleteEnv", () => {
+  it("treats 1/true as skip; 0/false/empty as not (#7327)", () => {
+    expect(isSkipSelfCompleteEnv({ [DEFT_SKIP_SELF_COMPLETE]: "1" })).toBe(true);
+    expect(isSkipSelfCompleteEnv({ [DEFT_SKIP_SELF_COMPLETE]: "true" })).toBe(true);
+    expect(isSkipSelfCompleteEnv({ [DEFT_SKIP_SELF_COMPLETE]: "0" })).toBe(false);
+    expect(isSkipSelfCompleteEnv({ [DEFT_SKIP_SELF_COMPLETE]: "false" })).toBe(false);
+    expect(isSkipSelfCompleteEnv({ [DEFT_SKIP_SELF_COMPLETE]: "no" })).toBe(false);
+    expect(isSkipSelfCompleteEnv({})).toBe(false);
   });
 });
 
@@ -158,6 +194,69 @@ describe("maybeSelfCompleteSetup (AC8.6)", () => {
     const result = maybeSelfCompleteSetup(root, { argv: ["doctor"] });
     expect(result.ran).toBe(false);
     expect(result.skipReason).toBe("ineligible");
+  });
+
+  it("#7327: release:run skips self-complete on a tip pin+wiring tree without GENERATION", () => {
+    const root = tempRoot();
+    const installed = runSetup({ operation: "install", from: "none", root });
+    pinRuntime(root, installed.runtimeVersion);
+    // Tip-cut shape: pin + wiring evidence, no GENERATION / readiness marker.
+    rmSync(join(root, ".deft", "GENERATION.json"), { force: true });
+    rmSync(join(root, ".deft", "directive"), { recursive: true, force: true });
+    const before = execFileSync("git", ["-C", root, "status", "--porcelain"], {
+      encoding: "utf8",
+    });
+
+    const releaseRun = maybeSelfCompleteSetup(root, {
+      argv: ["release:run", "1.2.0", "--expires", "2099-01-01T00:00:00Z"],
+    });
+    expect(releaseRun.ran).toBe(false);
+    expect(releaseRun.skipReason).toBe("ineligible");
+    expect(existsSync(join(root, ".deft", "GENERATION.json"))).toBe(false);
+    expect(execFileSync("git", ["-C", root, "status", "--porcelain"], { encoding: "utf8" })).toBe(
+      before,
+    );
+
+    // Measured writer still fires for ordinary product argv (contrast).
+    const ordinary = maybeSelfCompleteSetup(root, { argv: ["verify:branch"] });
+    expect(ordinary.ran).toBe(true);
+    expect(existsSync(join(root, ".deft", "GENERATION.json"))).toBe(true);
+  });
+
+  it("#7327: DEFT_SKIP_SELF_COMPLETE carries into child session:start and hooks", () => {
+    const root = tempRoot();
+    const installed = runSetup({ operation: "install", from: "none", root });
+    pinRuntime(root, installed.runtimeVersion);
+    rmSync(join(root, ".deft", "GENERATION.json"), { force: true });
+    rmSync(join(root, ".deft", "directive"), { recursive: true, force: true });
+    const before = execFileSync("git", ["-C", root, "status", "--porcelain"], {
+      encoding: "utf8",
+    });
+    const skipEnv = { [DEFT_SKIP_SELF_COMPLETE]: "1" };
+
+    // setupRitual child: session:start is otherwise eligible and would dirt the tip.
+    const child = maybeSelfCompleteSetup(root, {
+      argv: ["session:start", "--primary-claim-exception=release-cut"],
+      environ: skipEnv,
+    });
+    expect(child.ran).toBe(false);
+    expect(child.skipReason).toBe("skip-self-complete");
+    expect(existsSync(join(root, ".deft", "GENERATION.json"))).toBe(false);
+
+    // fromHook bypasses argv eligibility; the env still suppresses (#7327 P1).
+    const hook = maybeSelfCompleteSetup(root, { fromHook: true, environ: skipEnv });
+    expect(hook.ran).toBe(false);
+    expect(hook.skipReason).toBe("skip-self-complete");
+    expect(execFileSync("git", ["-C", root, "status", "--porcelain"], { encoding: "utf8" })).toBe(
+      before,
+    );
+
+    // Without the carry, the same session:start dirties the tip (contrast / cut path).
+    const bare = maybeSelfCompleteSetup(root, {
+      argv: ["session:start", "--primary-claim-exception=release-cut"],
+    });
+    expect(bare.ran).toBe(true);
+    expect(existsSync(join(root, ".deft", "GENERATION.json"))).toBe(true);
   });
 
   it("names a replaced tracked hook on writeErr once per process (#5885 / D-023)", () => {

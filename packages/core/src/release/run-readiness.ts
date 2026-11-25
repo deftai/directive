@@ -343,7 +343,11 @@ export function runReleaseReadiness(
   add(
     "Phase 1: clean working tree",
     clean,
-    clean ? "tree clean" : `working tree is dirty:\n${dirty}`,
+    clean
+      ? "tree clean"
+      : dirty.startsWith("git status failed:")
+        ? `working-tree cleanliness could not be verified at readiness entry:\n${dirty}`
+        : `working tree is dirty at readiness entry:\n${dirty}`,
   );
 
   const gh = ghOk(runGh, ["api", "rate_limit"]);
@@ -368,6 +372,18 @@ export function runReleaseReadiness(
   const dry = seams.dryRun(input);
   add("Phase 2 dry run", dry === 0, dry === 0 ? "dry run passed" : `dry run exited ${String(dry)}`);
 
+  // #7327 Prefer-A defense in depth: re-check porcelain after the dry-run seam.
+  const [postClean, postDirty] = checkGitClean(input.projectRoot, release);
+  add(
+    "Phase 2: clean working tree after dry run",
+    postClean,
+    postClean
+      ? "tree clean after dry run"
+      : postDirty.startsWith("git status failed:")
+        ? `working-tree cleanliness could not be verified after the dry-run:\n${postDirty}`
+        : `working tree is dirty after the dry-run:\n${postDirty}`,
+  );
+
   const ci = ciReuseAtTip(input, runGh, release, seams.evaluateNightly);
   checks.push({
     name: "CI reuse rule (item 3)",
@@ -388,6 +404,25 @@ export function runReleaseReadiness(
   return { ok: checks.every((c) => c.status !== "fail"), checks, ci };
 }
 
+/** Prefer-A #7327 refuse footer: entry vs post-dry-run vs other readiness fails. */
+export function formatReadinessRefuseFooter(result: ReadinessResult): string {
+  const entry = result.checks.find((c) => c.name === "Phase 1: clean working tree");
+  const post = result.checks.find((c) => c.name === "Phase 2: clean working tree after dry run");
+  if (entry?.status === "fail") {
+    const unverifiable = entry.detail.includes("git status failed:");
+    return unverifiable
+      ? "[readiness] refused: readiness wrote nothing; working-tree cleanliness could not be verified at readiness entry"
+      : "[readiness] refused: readiness wrote nothing; working tree was dirty at readiness entry";
+  }
+  if (post?.status === "fail") {
+    const unverifiable = post.detail.includes("could not be verified after the dry-run");
+    return unverifiable
+      ? "[readiness] refused: a readiness check failed; working-tree cleanliness could not be verified after the dry-run"
+      : "[readiness] refused: a readiness check failed; working tree is dirty after the dry-run";
+  }
+  return "[readiness] refused: a readiness check failed; nothing was written";
+}
+
 /** One line per check, with multi-line details indented. */
 export function formatReadiness(result: ReadinessResult): string {
   const out: string[] = [];
@@ -400,7 +435,7 @@ export function formatReadiness(result: ReadinessResult): string {
   out.push(
     result.ok
       ? "[readiness] all checks passed; nothing written yet"
-      : "[readiness] refused: a readiness check failed; nothing was written",
+      : formatReadinessRefuseFooter(result),
   );
   return `${out.join("\n")}\n`;
 }

@@ -7,11 +7,13 @@ import { EXIT_CONFIG_ERROR, EXIT_OK, EXIT_VIOLATION } from "./constants.js";
 import { releaseCommitSubject } from "./git.js";
 import {
   cmdReleaseRun,
+  DEFT_SKIP_SELF_COMPLETE,
   findRunGrants,
   parseReleaseRunFlags,
   RELEASE_RUN_HELP,
   type ReleaseRunOptions,
   type ReleaseRunSeams,
+  releaseRunChildEnv,
   releaseRunFinalLines,
   releaseRunMintArgv,
   runReleaseRun,
@@ -281,6 +283,12 @@ describe("deft release:run (#6876)", () => {
     dirs.push(dir);
     return dir;
   }
+
+  it("#7327: releaseRunChildEnv stamps DEFT_SKIP_SELF_COMPLETE for session:start/setup children", () => {
+    const env = releaseRunChildEnv({ PATH: "/bin", [DEFT_SKIP_SELF_COMPLETE]: "0" });
+    expect(env[DEFT_SKIP_SELF_COMPLETE]).toBe("1");
+    expect(env.PATH).toBe("/bin");
+  });
 
   it("clause 1: runs every phase in order and ends with the pin PR, local-update and npm i -g commands", () => {
     const dir = root();

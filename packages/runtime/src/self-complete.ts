@@ -5,8 +5,9 @@
  * wiring-ready.<V>.json marker is missing/stale, or GENERATION is missing on a
  * configured project (pin + wiring), run the same setup entry as repair (no
  * seeds, pin unchanged). Doctor and its children suppress via
- * DEFT_DOCTOR_HOOK_DIAGNOSTIC. Cheap fast path when readiness + GENERATION are
- * already valid.
+ * DEFT_DOCTOR_HOOK_DIAGNOSTIC. release:run children suppress via
+ * DEFT_SKIP_SELF_COMPLETE (#7327). Cheap fast path when readiness + GENERATION
+ * are already valid.
  */
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -24,6 +25,15 @@ import { runSetup, type SetupResult } from "./setup.js";
  * Doctor sets this before spawning committed hook probes.
  */
 export const DEFT_DOCTOR_HOOK_DIAGNOSTIC = DOCTOR_DIAGNOSTIC_ENV;
+
+/**
+ * When set (non-empty, not "0"/"false"/"no"), skip self-complete for this
+ * process. release:run stamps this on every child verb so setupRitual's
+ * session:start (and hooks it fires) cannot recreate GENERATION / wiring on a
+ * tip pin+wiring tree and fail the cut's allowDirty=false gate (#7327).
+ * Must match packages/core/src/release/run.ts.
+ */
+export const DEFT_SKIP_SELF_COMPLETE = "DEFT_SKIP_SELF_COMPLETE";
 
 /** Process once-guard for git-hook update stderr lines (#5885 / D-023). */
 const emittedGitHookLines = new Set<string>();
@@ -61,6 +71,11 @@ const INELIGIBLE_HEADS = new Set([
   "setup",
   "migrate",
   "help",
+  // #7327 Prefer-A: release:run readiness requires a clean tree at entry.
+  // Self-complete (runSetup) writes GENERATION / .gitignore / .deft/directive
+  // and would fail that check on a tip cut worktree that has pin+wiring only.
+  "release:run",
+  "release-run",
   "--version",
   "--help",
   "-h",
@@ -70,6 +85,7 @@ const INELIGIBLE_HEADS = new Set([
 export type SelfCompleteSkipReason =
   | "fast-path"
   | "doctor-diagnostic"
+  | "skip-self-complete"
   | "ineligible"
   | "not-configured"
   | "fail-closed"
@@ -81,11 +97,19 @@ export interface SelfCompleteResult {
   readonly setup: SetupResult | null;
 }
 
-export function isDoctorDiagnosticEnv(environ: NodeJS.ProcessEnv = process.env): boolean {
-  const v = environ[DEFT_DOCTOR_HOOK_DIAGNOSTIC];
-  if (v === undefined || v === "") return false;
-  const lower = v.toLowerCase();
+function isTruthySkipEnv(value: string | undefined): boolean {
+  if (value === undefined || value === "") return false;
+  const lower = value.toLowerCase();
   return lower !== "0" && lower !== "false" && lower !== "no";
+}
+
+export function isDoctorDiagnosticEnv(environ: NodeJS.ProcessEnv = process.env): boolean {
+  return isTruthySkipEnv(environ[DEFT_DOCTOR_HOOK_DIAGNOSTIC]);
+}
+
+/** True when release:run (or a test) asked this process to skip self-complete (#7327). */
+export function isSkipSelfCompleteEnv(environ: NodeJS.ProcessEnv = process.env): boolean {
+  return isTruthySkipEnv(environ[DEFT_SKIP_SELF_COMPLETE]);
 }
 
 /** True for ordinary product argv that may self-complete (AC8.6). */
@@ -93,6 +117,10 @@ export function isEligibleSelfCompleteCommand(argv: readonly string[]): boolean 
   const head = argv[0];
   if (head === undefined) return false;
   if (INELIGIBLE_HEADS.has(head)) return false;
+  // #7327: router accepts space-form `release run` before self-complete; raw
+  // head is `release`, which is not in INELIGIBLE_HEADS. Match the two-word
+  // spelling so tip cuts stay tree-clean at readiness (same as release:run).
+  if (head === "release" && argv[1] === "run") return false;
   return true;
 }
 
@@ -128,6 +156,10 @@ export function maybeSelfCompleteSetup(
   const writeErr = options.writeErr ?? ((text: string) => process.stderr.write(text));
   if (isDoctorDiagnosticEnv(environ)) {
     return { ran: false, skipReason: "doctor-diagnostic", setup: null };
+  }
+  // #7327: covers session:start / hooks under release:run (fromHook bypasses argv).
+  if (isSkipSelfCompleteEnv(environ)) {
+    return { ran: false, skipReason: "skip-self-complete", setup: null };
   }
 
   if (!options.fromHook) {
