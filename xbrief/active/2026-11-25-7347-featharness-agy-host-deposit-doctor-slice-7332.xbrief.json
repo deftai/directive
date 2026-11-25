@@ -2,18 +2,18 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #7347",
-    "updated": "2026-11-25T18:30:01.052Z"
+    "updated": "2026-11-25T18:35:09.557Z"
   },
   "plan": {
     "title": "feat(harness): agy host deposit-doctor slice (#7332)",
     "status": "running",
     "narratives": {
-      "Description": "Activate Prefer-A Bound #7347 so gated Antigravity hook deposit and doctor repair can ship after observe and classify-identity slices.",
+      "Description": "Activate Prefer-A Bound #7347 so gated Antigravity hook deposit and doctor repair can ship after the observe and classify-identity slices. Deposit activation stays gated on the committed observe verdict.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/7347",
       "Overview": "feat(harness): agy host deposit-doctor slice (#7332)",
       "Labels": "enhancement, design-critique:ingest-ready",
       "UserStory": "As an operator, I want agy-host-deposit-doctor-activation-gate, so Prefer-A Bound #7332 slice lands.",
-      "ImplementationPlan": "Implement #7347 after github.issue.6609698619 and github.issue.6609698953; deposit/doctor surfaces in file_scope; changelog fragment; Tracking/Refs only.",
+      "ImplementationPlan": "1. Implement #7347 after github.issue.6609698619 and github.issue.6609698953 on deposit/doctor surfaces in file_scope.\n2. Add a changelog fragment, keep Tracking/Refs only, and halt activation when the observe verdict is fail or absent.",
       "Acceptance": "- Implement named-object agent hooks deposit repair and uninstall keyed by Directive name plus command marker\n- Gate deposit-doctor activation behind deterministic contract test reading committed observe verdict\n- On fail or absent verdict halt activation with pains unmet and route leftover issue"
     },
     "items": [
@@ -123,6 +123,6 @@
       }
     },
     "id": "github.issue.6609699326",
-    "updated": "2026-11-25T18:30:01.052Z"
+    "updated": "2026-11-25T18:35:09.557Z"
   }
 }

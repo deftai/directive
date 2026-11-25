@@ -2,18 +2,18 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #7346",
-    "updated": "2026-11-25T18:27:10.175Z"
+    "updated": "2026-11-25T18:35:09.557Z"
   },
   "plan": {
     "title": "feat(harness): agy host classify-identity slice (#7332)",
     "status": "running",
     "narratives": {
-      "Description": "Activate Prefer-A Bound #7346 so Antigravity host identity and policy wiring can ship after #7345: classify host identity, hook-host registration, and policy defaults for agy.",
+      "Description": "Activate Prefer-A Bound #7346 so Antigravity host identity and policy wiring can ship after #7345. This slice covers classify host identity, hook-host registration, and policy defaults for agy.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/7346",
       "Overview": "feat(harness): agy host classify-identity slice (#7332)",
       "Labels": "enhancement, design-critique:ingest-ready",
       "UserStory": "As an operator, I want agy-host-classify-identity-wiring, so Prefer-A Bound #7332 slice lands.",
-      "ImplementationPlan": "Implement #7346 after github.issue.6609698619; extend hook-hosts, agent-hooks, host-session-owner, and host-hooks within file_scope; changelog fragment; Tracking/Refs only.",
+      "ImplementationPlan": "1. Implement #7346 after github.issue.6609698619 and extend hook-hosts, agent-hooks, host-session-owner, and host-hooks within file_scope.\n2. Add a changelog fragment, keep Tracking/Refs only, and run the scoped vitest verify commands.",
       "Acceptance": "- Register agy in HOOK_HOSTS, AGENT_HOOK_PATH_BY_HOST, HOST_IDENTITY_PROVIDERS with sessionEndSupport unsupported\n- Add plan.policy.hostHooks.agy with DEFAULT_HOST_HOOKS_POLICY.agy false (no deposit yet)\n- Land host-keyed payload normalization, narrow overwrite.CommandLine rewrites, spend-resolve alignment, SessionStart notices, fail-closed deny of unsupported native spawn tools"
     },
     "items": [
@@ -129,6 +129,6 @@
       }
     },
     "id": "github.issue.6609698953",
-    "updated": "2026-11-25T18:27:10.175Z"
+    "updated": "2026-11-25T18:35:09.557Z"
   }
 }
