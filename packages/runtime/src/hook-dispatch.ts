@@ -13,13 +13,13 @@ import {
 } from "@deftai/directive-core/dist/install-health/constants.js";
 import { renderPinMismatchRecoveryGuidance } from "@deftai/directive-core/dist/install-health/pin-mismatch-guidance.js";
 import {
-  admitPinMismatchRecovery,
-  admitRootMismatchRecovery,
-} from "@deftai/directive-core/dist/install-health/recovery-admit.js";
-import {
   readInstalledRuntimeVersion,
   readRuntimePin,
 } from "@deftai/directive-core/dist/install-health/readers.js";
+import {
+  admitPinMismatchRecovery,
+  admitRootMismatchRecovery,
+} from "@deftai/directive-core/dist/install-health/recovery-admit.js";
 import {
   classifyRootMismatch,
   FOREIGN_RUNTIME_LINK,
@@ -604,9 +604,10 @@ export function run(argv: string[], seams: HookDispatchCliSeams = {}): number {
     }
     // #7351: when roots differ, the running launch install must match the payload pin
     // so version A cannot serve a worktree pinned/installed at B.
-    const pinMatch = (
-      seams.launchInstalledMatchesPayloadPin ?? launchInstalledMatchesPayloadPin
-    )(launchRoot, projectRoot);
+    const pinMatch = (seams.launchInstalledMatchesPayloadPin ?? launchInstalledMatchesPayloadPin)(
+      launchRoot,
+      projectRoot,
+    );
     if (pinMatch === false) {
       const payloadPin = readRuntimePin(projectRoot).pinVersion ?? "?";
       const launchInstalled = readInstalledRuntimeVersion(launchRoot) ?? "?";

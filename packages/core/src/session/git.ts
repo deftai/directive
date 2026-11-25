@@ -407,8 +407,7 @@ export function sameRepoGitCommonDir(
 ): boolean {
   const effective: GitRunner =
     runGit === defaultGitRunner
-      ? (root, args) =>
-          execGit(root, args, { envReplace: envWithoutGitLocationOverrides() })
+      ? (root, args) => execGit(root, args, { envReplace: envWithoutGitLocationOverrides() })
       : runGit;
   const launchCommon = gitCommonDir(launchRoot, effective);
   const payloadCommon = gitCommonDir(payloadRoot, effective);
