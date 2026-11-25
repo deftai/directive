@@ -1,0 +1,196 @@
+{
+  "schemaVersion": 1,
+  "algo": "intent-extract-v1",
+  "plan": {
+    "title": "leftover(#7272): harness-attended human-presence mint for approved-scope and authz",
+    "narratives": {
+      "Description": "leftover(#7272): harness-attended human-presence mint for approved-scope and authz",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/7279",
+      "Overview": "Keep #7031 declared writers for obs/intent and #6945 signed keep-out. For approved-scope and inventoried authz mutators only, let the harness request mint and open an operator-controlled confirmation surface; bare chat-yes never stamps. Confirmation is controlling-TTY phrase or a host-authenticated user-event bound to a frozen single-use request; markers stay set (no forge-by-unset). Write only that unchanged request through existing writers after a fresh admission recheck. Cite Prefer-A Bound comment 7139661247.",
+      "Labels": "agent-experience, process, harness, design-critique:ingest-ready, framework-gap, promise:gates",
+      "UserStory": "As an operator in an attended harness, I need approved-scope and authz human-presence mints to complete via an operator-controlled confirm bound to the frozen request and checkout, without unsetting agent-shell markers or treating bare chat-yes as the stamp.",
+      "ImplementationPlan": "Prefer-A Bound 7139661247 limbs; human-presence-mint + approved-scope/authz writers; human-origin-authz inventory; tests; changelog.d."
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "relieves: P1 — Route only scope:record-approved-scope and inventoried authz kept-mint mutators from the harness into an operator-controlled confirmation surface (controlling-TTY phrase or host-authenticated user-event) that lands the stamp while agent-shell markers stay set and without forge-by-unset."
+      },
+      {
+        "id": "clause.2",
+        "title": "relieves: P1 — Treat bare chat-yes as request-open only so it never authorizes the write itself and never substitutes for that confirmation surface."
+      },
+      {
+        "id": "clause.3",
+        "title": "relieves: P2 — Freeze verb, authority payload, canonical checkout, and resolved destination set under a single-use request id before confirmation, and refuse changed, cancelled, expired, or already-completed requests."
+      },
+      {
+        "id": "clause.4",
+        "title": "relieves: P2 — Complete only through existing writers after a fresh command-specific admission recheck at confirm time, including active-UAT restrictions and the suspend exception."
+      },
+      {
+        "id": "clause.5",
+        "title": "relieves: P3 — Keep obs/intent on #7031 declared writers plus merge control, refuse restoring --minted-via in-harness-ask for those verbs, keep #6945 signed-approval keep-out, and preserve ordinary human CLI mint outside the harness path."
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/7279",
+        "type": "x-xbrief/github-issue"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/comments/7139661247",
+        "type": "x-xbrief/github-comment",
+        "title": "Prefer-A Bound 7139661247 harness-attended-human-presence-approved-scope-authz"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/7272",
+        "type": "x-xbrief/github-issue",
+        "title": "Parent leftover source #7272"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/7031",
+        "type": "x-xbrief/github-issue",
+        "title": "Obs/intent declared writers keep-out"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6945",
+        "type": "x-xbrief/github-issue",
+        "title": "Signed-approval keep-out"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per harvested lean item (5), in list order (#6333)",
+      "sentences": [
+        "relieves: P1 — Route only scope:record-approved-scope and inventoried authz kept-mint mutators from the harness into an operator-controlled confirmation surface (controlling-TTY phrase or host-authenticated user-event) that lands the stamp while agent-shell markers stay set and without forge-by-unset.",
+        "relieves: P1 — Treat bare chat-yes as request-open only so it never authorizes the write itself and never substitutes for that confirmation surface.",
+        "relieves: P2 — Freeze verb, authority payload, canonical checkout, and resolved destination set under a single-use request id before confirmation, and refuse changed, cancelled, expired, or already-completed requests.",
+        "relieves: P2 — Complete only through existing writers after a fresh command-specific admission recheck at confirm time, including active-UAT restrictions and the suspend exception.",
+        "relieves: P3 — Keep obs/intent on #7031 declared writers plus merge control, refuse restoring --minted-via in-harness-ask for those verbs, keep #6945 signed-approval keep-out, and preserve ordinary human CLI mint outside the harness path."
+      ],
+      "admitted_source_sentences": [
+        "relieves: P1 — Route only scope:record-approved-scope and inventoried authz kept-mint mutators from the harness into an operator-controlled confirmation surface (controlling-TTY phrase or host-authenticated user-event) that lands the stamp while agent-shell markers stay set and without forge-by-unset.",
+        "relieves: P1 — Treat bare chat-yes as request-open only so it never authorizes the write itself and never substitutes for that confirmation surface.",
+        "relieves: P2 — Freeze verb, authority payload, canonical checkout, and resolved destination set under a single-use request id before confirmation, and refuse changed, cancelled, expired, or already-completed requests.",
+        "relieves: P2 — Complete only through existing writers after a fresh command-specific admission recheck at confirm time, including active-UAT restrictions and the suspend exception.",
+        "relieves: P3 — Keep obs/intent on #7031 declared writers plus merge control, refuse restoring --minted-via in-harness-ask for those verbs, keep #6945 signed-approval keep-out, and preserve ordinary human CLI mint outside the harness path."
+      ],
+      "admitted_source_digest": "26c4143449a3b6778f840851af1c2bf0d42ca660bf2d36a63eb7da96a1011b37",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "relieves: P1 — Route only scope:record-approved-scope and inventoried authz kept-mint mutators from the harness into an operator-controlled confirmation surface (controlling-TTY phrase or host-authenticated user-event) that lands the stamp while agent-shell markers stay set and without forge-by-unset.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "relieves: P1 — Treat bare chat-yes as request-open only so it never authorizes the write itself and never substitutes for that confirmation surface.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "relieves: P2 — Freeze verb, authority payload, canonical checkout, and resolved destination set under a single-use request id before confirmation, and refuse changed, cancelled, expired, or already-completed requests.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "relieves: P2 — Complete only through existing writers after a fresh command-specific admission recheck at confirm time, including active-UAT restrictions and the suspend exception.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "relieves: P3 — Keep obs/intent on #7031 declared writers plus merge control, refuse restoring --minted-via in-harness-ask for those verbs, keep #6945 signed-approval keep-out, and preserve ordinary human CLI mint outside the harness path.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          ".deft/approved-scope/github.issue.6583313038.json",
+          ".deft/approved-scope/github.issue.6583313038.intent.json",
+          "packages/runtime/src/human-presence-mint.ts",
+          "packages/runtime/src/scope-record-approved-scope.ts",
+          "packages/runtime/src/scope-record-approved-scope-cohort.ts",
+          "packages/runtime/src/authz.ts",
+          "packages/runtime/src/human-presence-mint.test.ts",
+          "packages/runtime/src/human-presence-mint.open-flag.test.ts",
+          "packages/runtime/src/scope-record-approved-scope.test.ts",
+          "packages/runtime/src/scope-record-approved-scope-cohort.test.ts",
+          "packages/runtime/src/authz.test.ts",
+          "content/contracts/human-origin-authz.md",
+          "changelog.d/7279-harness-attended-human-presence.md",
+          "CHANGELOG.md"
+        ],
+        "module_boundary": "packages/runtime/src",
+        "cohesion_exemption": "Bound-localized harness-attended human-presence for approved-scope/authz (#7279)"
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6583313038,
+        "origin": "deftai/directive#7279",
+        "id": "github.issue.6583313038"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "55082943c66398aa3d28c5d7196f20c1545127aec7a661c2e5156cc1ea459c58"
+      },
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 7279,
+        "leanCommentId": 7139661247,
+        "harvestDigest": "26c4143449a3b6778f840851af1c2bf0d42ca660bf2d36a63eb7da96a1011b37",
+        "slice": null
+      },
+      "swarm": {
+        "file_scope": [
+          ".deft/approved-scope/github.issue.6583313038.json",
+          ".deft/approved-scope/github.issue.6583313038.intent.json",
+          "packages/runtime/src/human-presence-mint.ts",
+          "packages/runtime/src/scope-record-approved-scope.ts",
+          "packages/runtime/src/scope-record-approved-scope-cohort.ts",
+          "packages/runtime/src/authz.ts",
+          "packages/runtime/src/human-presence-mint.test.ts",
+          "packages/runtime/src/human-presence-mint.open-flag.test.ts",
+          "packages/runtime/src/scope-record-approved-scope.test.ts",
+          "packages/runtime/src/scope-record-approved-scope-cohort.test.ts",
+          "packages/runtime/src/authz.test.ts",
+          "content/contracts/human-origin-authz.md",
+          "changelog.d/7279-harness-attended-human-presence.md",
+          "CHANGELOG.md"
+        ],
+        "missing_traces_justification": "Prefer-A Bound limbs are the acceptance surface; traces deferred to product PR evidence.",
+        "Traces": []
+      }
+    },
+    "id": "github.issue.6583313038"
+  },
+  "approvedRepos": [
+    "deftai/directive"
+  ],
+  "unknownPaths": [
+    "metadata.intended_placement",
+    "metadata.swarm.Traces",
+    "metadata.x-directive/admitted-target-digest",
+    "metadata.x-directive/plan-id",
+    "metadata.x-directive/spec-path-source"
+  ]
+}

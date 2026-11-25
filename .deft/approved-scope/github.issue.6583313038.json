@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "xbriefRelPath": "xbrief/active/2026-11-24-7279-leftover7272-harness-attended-human-presence-mint-for-approv.xbrief.json",
+  "planId": "github.issue.6583313038",
+  "approvedAt": "2026-11-24T23:09:58Z",
+  "fileScope": [
+    ".deft/approved-scope/github.issue.6583313038.intent.json",
+    ".deft/approved-scope/github.issue.6583313038.json",
+    "changelog.d/7279-harness-attended-human-presence.md",
+    "CHANGELOG.md",
+    "content/contracts/human-origin-authz.md",
+    "packages/runtime/src/authz.test.ts",
+    "packages/runtime/src/authz.ts",
+    "packages/runtime/src/human-presence-mint.open-flag.test.ts",
+    "packages/runtime/src/human-presence-mint.test.ts",
+    "packages/runtime/src/human-presence-mint.ts",
+    "packages/runtime/src/scope-record-approved-scope-cohort.test.ts",
+    "packages/runtime/src/scope-record-approved-scope-cohort.ts",
+    "packages/runtime/src/scope-record-approved-scope.test.ts",
+    "packages/runtime/src/scope-record-approved-scope.ts"
+  ],
+  "fileScopeDigest": "a08fcdc3bb94a1b3fe5eff2a498a7dd29bbffcf50a96722f939c8d53cc6da695",
+  "humanApproval": {
+    "kind": "operator",
+    "actor": "Scott",
+    "mintedAt": "2026-11-24T23:09:57Z",
+    "mintedVia": "scope:record-approved-scope"
+  },
+  "intentDigest": "8adff1604b6600b765f96dd554704b2b9363ea8feb7d765f50c51fe2aee0a077",
+  "digestAlgo": "intent-extract-v1",
+  "authHashV1": "sha256:7ac70d9b457197014bcadd9f401f9988ed58a96d1cfda57a64a5de05b65345fb"
+}

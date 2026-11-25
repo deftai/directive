@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Record approved file permissions for harness-attended human-presence mint for approved-scope and authz. This records approval only; it does not change product behavior (#7279).
 - Record reminted approved file permissions for admitting the Antigravity (agy) design-critique critic seat. This records approval only; it does not change product behavior (#7245).
 - Record reminted approved file permissions for merge-gate temp-fixture isolation (with cohesion exemption). This records approval only; it does not change product behavior (#7292).
 
