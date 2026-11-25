@@ -27,11 +27,14 @@
  * phrase `mint`; it is not a remint.
  *
  * **Outside UAT:** mutating verbs require multi-factor human presence: interactive
- * TTY + controlling terminal + `--confirm` + typed phrase `mint`; agent/CI env
- * markers refuse fail-closed. Argv `--confirm` alone is never enough.
+ * TTY + controlling terminal + `--confirm` + typed phrase `mint`. Under agent/CI
+ * markers, inventoried kept-mint verbs open a harness-attended freeze and
+ * complete only via controlling-TTY phrase or host-authenticated user-event
+ * bound to that request (markers may stay set; bare chat-yes is request-open
+ * only) (#7279). Argv `--confirm` alone is never enough.
  */
 import { existsSync } from "node:fs";
-import { isAbsolute, resolve } from "node:path";
+import { isAbsolute, join, resolve } from "node:path";
 import { onePrUnit } from "@deftai/directive-core";
 import {
   AFK_TEMPLATE_NAMES,
@@ -125,6 +128,8 @@ interface Parsed {
   format: "text" | "json";
   /** Explicit operator confirm for non-TTY / agent shells (#3110). */
   confirm: boolean;
+  /** Complete a previously opened harness-attended request (#7279). */
+  requestId: string | null;
   /** acceptance-disposition target issue (#6318). */
   deferredTo: string | null;
   /** acceptance-disposition reason (#6318). */
@@ -189,6 +194,7 @@ function parseArgv(argv: string[]): Parsed {
     evaluatorId: null,
     format: "text",
     confirm: false,
+    requestId: null,
     deferredTo: null,
     reason: null,
     disposition: null,
@@ -345,6 +351,18 @@ function parseArgv(argv: string[]): Parsed {
       base.confirm = true;
       continue;
     }
+    if (a === "--request-id" || a === "--requestId") {
+      base.requestId = args[++i] ?? null;
+      continue;
+    }
+    if (a.startsWith("--request-id=")) {
+      base.requestId = a.slice("--request-id=".length) || null;
+      continue;
+    }
+    if (a.startsWith("--requestId=")) {
+      base.requestId = a.slice("--requestId=".length) || null;
+      continue;
+    }
     if (a === "--deferred-to" || a === "--deferredTo") {
       base.deferredTo = args[++i] ?? null;
       continue;
@@ -471,20 +489,37 @@ export function main(
       const uatBlocked = refuseMintWhileUatActive(`authz:${args.cmd}`, args.projectRoot);
       if (uatBlocked !== null) return uatBlocked;
     }
+    const projectRoot = resolve(args.projectRoot);
     const operatorStop: MintOperatorStopContext = {
-      projectRoot: resolve(args.projectRoot),
+      projectRoot,
       args: mintArgsAfterVerb(argv, args.cmd),
       record: resolved.recordOperatorStop,
     };
-    return refuseNonInteractiveMint({
+    // Inventoried authz kept-mint mutators: harness-attended freeze+confirm (#7279).
+    // Destination is the local authz store root (one-pr-unit still binds checkout).
+    const mintBlocked = refuseNonInteractiveMint({
       verb: `authz:${args.cmd}`,
       confirm: args.confirm,
       isTty: resolved.isTty,
       environ: resolved.environ,
       hasControllingTerminal: resolved.hasControllingTerminal,
       readInteractiveConfirm: resolved.readInteractiveConfirm,
+      readHostAuthenticatedConfirm: resolved.readHostAuthenticatedConfirm,
       operatorStop,
+      harnessAttended: {
+        destinations: [join(projectRoot, ".deft", "authz")],
+        ...(args.requestId !== null && args.requestId.trim().length > 0
+          ? { requestId: args.requestId.trim() }
+          : {}),
+      },
     });
+    if (mintBlocked !== null) return mintBlocked;
+    // Fresh admission recheck at confirm time; suspend keeps its exception (#7279).
+    if (args.cmd !== "uat-suspend") {
+      const uatRecheck = refuseMintWhileUatActive(`authz:${args.cmd}`, args.projectRoot);
+      if (uatRecheck !== null) return uatRecheck;
+    }
+    return null;
   };
 
   try {

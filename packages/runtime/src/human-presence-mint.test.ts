@@ -9,11 +9,15 @@ import {
   AUTHZ_AGENT_SHELL_ENV_MARKERS,
   AUTHZ_INTERACTIVE_CONFIRM_PHRASE,
   absoluteProjectRootArgs,
+  admitHarnessAttendedMint,
   controllingTerminalOpenFlag,
   controllingTerminalPath,
   detectedAgentShellMarkers,
+  digestHarnessAttendedAuthorityPayload,
+  loadHarnessAttendedMintRequest,
   looksLikeAgentShell,
   mintArgsAfterVerb,
+  openHarnessAttendedMintRequest,
   recordMintOperatorStop,
   refuseMintWhileUatActive,
   refuseNonInteractiveMint,
@@ -183,7 +187,11 @@ describe("agent-marker mint refusal records an operator stop (#6275 limb 2)", ()
     expect(verbs).toEqual(["authz:grant", "scope:record-approved-scope"]);
     expect(recorded[0]?.commands[0]).toContain("--operations edit --surfaces src/a.ts");
     expect(recorded[0]?.projectRoot).toBe(resolve(root));
-    for (const r of recorded) expect(r.commands[0]).toMatch(/--confirm$/);
+    // Harness-attended request-open recovery ends with --confirm [--request-id=…] (#7279).
+    for (const r of recorded) {
+      expect(r.commands[0]).toMatch(/--confirm(?: --request-id=[0-9a-f]+)?$/);
+      expect(r.commands[0]).toContain("--confirm");
+    }
   });
 });
 
@@ -335,7 +343,7 @@ describe("shared #3110 human-presence mint (#3384)", () => {
     expect(err.join("")).toMatch(/agent|CI|TTY|--confirm|controlling terminal|phrase|mint/i);
   });
 
-  it("T3 refuse names matched keys with unset hint and never prints values (#5983)", () => {
+  it("T3 refuse names matched keys and never prints values (#5983 / #7279)", () => {
     const err: string[] = [];
     vi.spyOn(process.stderr, "write").mockImplementation((c) => {
       err.push(String(c));
@@ -354,9 +362,28 @@ describe("shared #3110 human-presence mint (#3384)", () => {
     const msg = err.join("");
     expect(msg).toContain("GROK_AGENT");
     expect(msg).toContain("GROK_SESSION_ID");
-    expect(msg).toMatch(/Unset GROK_AGENT, GROK_SESSION_ID/);
+    // Kept-mint verbs must not recommend forge-by-unset (#7279).
+    expect(msg).toMatch(/Do not unset markers|harness-attended/i);
+    expect(msg).not.toMatch(/Unset GROK_AGENT/);
     expect(msg).not.toContain(secretAgent);
     expect(msg).not.toContain(secretSession);
+  });
+
+  it("non-inventoried verbs still recommend unset on marker refuse (#7279 keep-out)", () => {
+    const err: string[] = [];
+    vi.spyOn(process.stderr, "write").mockImplementation((c) => {
+      err.push(String(c));
+      return true;
+    });
+    expect(
+      refuseNonInteractiveMint({
+        verb: "kill-switch:on",
+        confirm: true,
+        ...operatorSeams(),
+        environ: { GROK_AGENT: "1" },
+      }),
+    ).toBe(2);
+    expect(err.join("")).toMatch(/Unset GROK_AGENT/);
   });
 
   it("allows mint when all multi-factor seams pass", () => {
@@ -401,5 +428,242 @@ describe("shared #3110 human-presence mint (#3384)", () => {
     expect(controllingTerminalOpenFlag("linux")).toBe("r");
     expect(controllingTerminalPath("darwin")).toBe("/dev/tty");
     expect(controllingTerminalOpenFlag("darwin")).toBe("r");
+  });
+});
+
+describe("harness-attended human-presence mint (#7279)", () => {
+  const roots: string[] = [];
+  afterEach(() => {
+    vi.restoreAllMocks();
+    for (const root of roots.splice(0)) {
+      try {
+        rmSync(root, { recursive: true, force: true });
+      } catch {
+        /* ignore */
+      }
+    }
+  });
+
+  function silence(): void {
+    vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+  }
+
+  it("request-open freezes verb+payload+checkout+destinations and never stamps", () => {
+    silence();
+    const root = mkdtempSync(join(tmpdir(), "hpm-ham-open-"));
+    roots.push(root);
+    const destinations = [join(root, ".deft", "approved-scope", "p.json")];
+    const args = ["story.xbrief.json", "--actor", "Scott"];
+    const opened = openHarnessAttendedMintRequest({
+      verb: "scope:record-approved-scope",
+      projectRoot: root,
+      destinations,
+      args,
+      newRequestId: () => "req-open-1",
+    });
+    expect(opened.ok).toBe(true);
+    if (!opened.ok) return;
+    expect(opened.request.status).toBe("open");
+    expect(opened.request.authorityPayloadDigest).toBe(
+      digestHarnessAttendedAuthorityPayload({
+        verb: "scope:record-approved-scope",
+        projectRoot: root,
+        destinations,
+        args,
+      }),
+    );
+    const loaded = loadHarnessAttendedMintRequest(root, "req-open-1");
+    expect(loaded?.requestId).toBe("req-open-1");
+
+    const err: string[] = [];
+    vi.spyOn(process.stderr, "write").mockImplementation((c) => {
+      err.push(String(c));
+      return true;
+    });
+    expect(
+      refuseNonInteractiveMint({
+        verb: "scope:record-approved-scope",
+        confirm: false,
+        isTty: () => true,
+        hasControllingTerminal: () => true,
+        readInteractiveConfirm: () => "mint",
+        environ: { GROK_AGENT: "1" },
+        operatorStop: { projectRoot: root, args },
+        harnessAttended: { destinations, newRequestId: () => "req-open-2" },
+      }),
+    ).toBe(2);
+    expect(err.join("")).toMatch(/request-open only|bare chat-yes never stamps/i);
+    expect(loadHarnessAttendedMintRequest(root, "req-open-2")?.status).toBe("open");
+  });
+
+  it("controlling-TTY phrase completes under markers without unset", () => {
+    silence();
+    const root = mkdtempSync(join(tmpdir(), "hpm-ham-tty-"));
+    roots.push(root);
+    const destinations = [join(root, ".deft", "authz")];
+    const args = ["--operations", "edit", "--confirm"];
+    expect(
+      refuseNonInteractiveMint({
+        verb: "authz:grant",
+        confirm: true,
+        isTty: () => true,
+        hasControllingTerminal: () => true,
+        readInteractiveConfirm: () => "mint",
+        environ: { GROK_AGENT: "1", GROK_SESSION_ID: "s1" },
+        operatorStop: { projectRoot: root, args },
+        harnessAttended: { destinations, newRequestId: () => "req-tty-1" },
+      }),
+    ).toBeNull();
+    expect(loadHarnessAttendedMintRequest(root, "req-tty-1")?.status).toBe("completed");
+    expect(loadHarnessAttendedMintRequest(root, "req-tty-1")?.completedVia).toBe(
+      "controlling-tty-phrase",
+    );
+  });
+
+  it("host-authenticated user-event completes under markers", () => {
+    silence();
+    const root = mkdtempSync(join(tmpdir(), "hpm-ham-host-"));
+    roots.push(root);
+    const destinations = [join(root, ".deft", "authz")];
+    const args = ["--template", "finish-loop", "--confirm"];
+    const digest = digestHarnessAttendedAuthorityPayload({
+      verb: "authz:grant",
+      projectRoot: root,
+      destinations,
+      args,
+    });
+    const clock = new Date("2026-11-24T12:00:00Z");
+    expect(
+      refuseNonInteractiveMint({
+        verb: "authz:grant",
+        confirm: true,
+        isTty: () => false,
+        hasControllingTerminal: () => false,
+        readInteractiveConfirm: () => null,
+        readHostAuthenticatedConfirm: (requestId) => ({
+          requestId,
+          authorityPayloadDigest: digest,
+          hostSessionId: "host:test:1",
+          authenticatedAt: "2026-11-24T12:00:00Z",
+          provenance: "host-user-event",
+        }),
+        environ: { CURSOR_AGENT: "1" },
+        operatorStop: { projectRoot: root, args },
+        harnessAttended: {
+          destinations,
+          newRequestId: () => "req-host-1",
+          now: () => clock,
+          ttlMs: 60_000,
+        },
+      }),
+    ).toBeNull();
+    expect(loadHarnessAttendedMintRequest(root, "req-host-1")?.completedVia).toBe(
+      "host-user-event",
+    );
+  });
+
+  it("refuses changed, expired, and already-completed requests", () => {
+    silence();
+    const root = mkdtempSync(join(tmpdir(), "hpm-ham-refuse-"));
+    roots.push(root);
+    const destinations = [join(root, "a.json")];
+    const args = ["--actor", "Scott"];
+    const opened = openHarnessAttendedMintRequest({
+      verb: "scope:record-approved-scope",
+      projectRoot: root,
+      destinations,
+      args,
+      newRequestId: () => "req-chg-1",
+      now: () => new Date("2026-11-24T10:00:00Z"),
+      ttlMs: 1_000,
+    });
+    expect(opened.ok).toBe(true);
+
+    expect(
+      admitHarnessAttendedMint({
+        verb: "scope:record-approved-scope",
+        confirm: true,
+        projectRoot: root,
+        args,
+        destinations: [join(root, "other.json")],
+        requestId: "req-chg-1",
+        isTty: () => true,
+        hasControllingTerminal: () => true,
+        readInteractiveConfirm: () => "mint",
+        readHostAuthenticatedConfirm: () => null,
+        environ: { GROK_AGENT: "1" },
+      }),
+    ).toBe(2);
+
+    expect(
+      admitHarnessAttendedMint({
+        verb: "scope:record-approved-scope",
+        confirm: true,
+        projectRoot: root,
+        args,
+        destinations,
+        requestId: "req-chg-1",
+        now: () => new Date("2026-11-24T11:00:00Z"),
+        isTty: () => true,
+        hasControllingTerminal: () => true,
+        readInteractiveConfirm: () => "mint",
+        readHostAuthenticatedConfirm: () => null,
+        environ: { GROK_AGENT: "1" },
+      }),
+    ).toBe(2);
+
+    const fresh = openHarnessAttendedMintRequest({
+      verb: "authz:revoke",
+      projectRoot: root,
+      destinations,
+      args: ["grant-1"],
+      newRequestId: () => "req-done-1",
+    });
+    expect(fresh.ok).toBe(true);
+    expect(
+      admitHarnessAttendedMint({
+        verb: "authz:revoke",
+        confirm: true,
+        projectRoot: root,
+        args: ["grant-1"],
+        destinations,
+        requestId: "req-done-1",
+        isTty: () => true,
+        hasControllingTerminal: () => true,
+        readInteractiveConfirm: () => "mint",
+        readHostAuthenticatedConfirm: () => null,
+        environ: { GROK_AGENT: "1" },
+      }),
+    ).toBeNull();
+    expect(
+      admitHarnessAttendedMint({
+        verb: "authz:revoke",
+        confirm: true,
+        projectRoot: root,
+        args: ["grant-1"],
+        destinations,
+        requestId: "req-done-1",
+        isTty: () => true,
+        hasControllingTerminal: () => true,
+        readInteractiveConfirm: () => "mint",
+        readHostAuthenticatedConfirm: () => null,
+        environ: { GROK_AGENT: "1" },
+      }),
+    ).toBe(2);
+  });
+
+  it("ordinary human CLI mint still works without harness options", () => {
+    silence();
+    expect(
+      refuseNonInteractiveMint({
+        verb: "authz:grant",
+        confirm: true,
+        isTty: () => true,
+        hasControllingTerminal: () => true,
+        readInteractiveConfirm: () => "mint",
+        environ: {},
+      }),
+    ).toBeNull();
   });
 });

@@ -492,7 +492,7 @@ describe("authz CLI dual TTY+--confirm gate (#3110)", () => {
     expect(main(["show", "--project-root", root], { isTty: () => false })).toBe(0);
   });
 
-  it("refuses grant on TTY+confirm when agent-shell env marker is set", () => {
+  it("refuses grant under agent markers without a harness confirm surface (#7279)", () => {
     const root = tempRoot();
     const err: string[] = [];
     vi.spyOn(process.stderr, "write").mockImplementation((c) => {
@@ -504,14 +504,16 @@ describe("authz CLI dual TTY+--confirm gate (#3110)", () => {
         ["grant", "--project-root", root, "--operations", "edit", "--cohort", "x", "--confirm"],
         {
           isTty: () => true,
+          hasControllingTerminal: () => false,
+          readInteractiveConfirm: () => "mint",
           environ: { CLAUDECODE: "1" },
         },
       ),
     ).toBe(2);
-    expect(err.join("")).toMatch(/agent/i);
+    expect(err.join("")).toMatch(/agent|harness-attended|controlling terminal/i);
   });
 
-  it("refuses grant when CI marker is present even with TTY+confirm", () => {
+  it("refuses grant when CI marker is present without controlling-TTY/host confirm (#7279)", () => {
     const root = tempRoot();
     const err: string[] = [];
     vi.spyOn(process.stderr, "write").mockImplementation((c) => {
@@ -523,11 +525,24 @@ describe("authz CLI dual TTY+--confirm gate (#3110)", () => {
         ["grant", "--project-root", root, "--operations", "edit", "--cohort", "x", "--confirm"],
         cleanOperatorSeams({
           isTty: () => true,
+          hasControllingTerminal: () => false,
           environ: { CI: "true", GITHUB_ACTIONS: "true" },
         }),
       ),
     ).toBe(2);
-    expect(err.join("")).toMatch(/agent|CI/i);
+    expect(err.join("")).toMatch(/agent|CI|harness-attended|controlling terminal/i);
+  });
+
+  it("grants under agent markers when controlling-TTY phrase confirms (#7279)", () => {
+    const root = tempRoot();
+    vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    expect(
+      main(
+        ["grant", "--project-root", root, "--operations", "edit", "--cohort", "x", "--confirm"],
+        cleanOperatorSeams({ environ: { GROK_AGENT: "1" } }),
+      ),
+    ).toBe(0);
   });
 
   it("refuses grant when interactive confirm phrase is wrong", () => {
@@ -677,7 +692,10 @@ describe("authz CLI UAT-active mint refuse (#3110 / #4632)", () => {
     expect(
       main(
         ["uat-suspend", "--project-root", root, "--confirm"],
-        cleanOperatorSeams({ environ: { CI: "1" } }),
+        cleanOperatorSeams({
+          environ: { CI: "1" },
+          hasControllingTerminal: () => false,
+        }),
       ),
     ).toBe(2);
     expect(
@@ -900,14 +918,17 @@ describe("authz CLI structural decompose mint (#3291)", () => {
       ),
     ).toBe(2);
     expect(err.join("")).toMatch(/non-interactive|TTY|--confirm/i);
-    // Agent marker refuse
+    // Agent marker refuse without harness confirm surface (#7279)
     expect(
       main(
         ["grant", "--project-root", root, "--parent", parent, "--draft", draft, "--confirm"],
-        cleanOperatorSeams({ environ: { CI: "1" } }),
+        cleanOperatorSeams({
+          environ: { CI: "1" },
+          hasControllingTerminal: () => false,
+        }),
       ),
     ).toBe(2);
-    expect(err.join("")).toMatch(/agent|CI/i);
+    expect(err.join("")).toMatch(/agent|CI|harness-attended|controlling terminal/i);
   });
 
   it("refuses structural mint under active UAT", () => {
@@ -1556,13 +1577,13 @@ describe("authz CLI plan-sequence-approval template (#6205)", () => {
     expect(err.join("")).toContain("insert requires --position");
   });
 
-  it("refuses an agent shell through the human-presence gate", () => {
+  it("refuses an agent shell without harness confirm surface (#7279)", () => {
     const root = gitRepo();
     const { out } = capture();
     expect(
       main([...insertArgv(root), "--confirm"], {
         isTty: () => true,
-        hasControllingTerminal: () => true,
+        hasControllingTerminal: () => false,
         readInteractiveConfirm: () => "mint",
         environ: { CLAUDECODE: "1" },
       }),
