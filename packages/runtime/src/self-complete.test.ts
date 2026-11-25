@@ -85,7 +85,13 @@ describe("isEligibleSelfCompleteCommand", () => {
   it("rejects space-form release run (raw argv before router) (#7327)", () => {
     expect(isEligibleSelfCompleteCommand(["release", "run"])).toBe(false);
     expect(
-      isEligibleSelfCompleteCommand(["release", "run", "1.2.0", "--expires", "2099-01-01T00:00:00Z"]),
+      isEligibleSelfCompleteCommand([
+        "release",
+        "run",
+        "1.2.0",
+        "--expires",
+        "2099-01-01T00:00:00Z",
+      ]),
     ).toBe(false);
     // Other release space-forms stay eligible unless stamped skip-env.
     expect(isEligibleSelfCompleteCommand(["release", "finish"])).toBe(true);
