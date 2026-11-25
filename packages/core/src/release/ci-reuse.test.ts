@@ -402,11 +402,7 @@ describe("classifyReleaseInputCleanliness (#7328)", () => {
   });
 
   it("refuses when worktree .gitignore diff command fails", () => {
-    const porcelain = [
-      " M .gitignore",
-      `?? ${RELEASE_SESSION_SCRATCH_GENERATION}`,
-      "",
-    ].join("\n");
+    const porcelain = [" M .gitignore", `?? ${RELEASE_SESSION_SCRATCH_GENERATION}`, ""].join("\n");
     const decision = classifyReleaseInputCleanliness(
       "/repo",
       {
