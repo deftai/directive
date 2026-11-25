@@ -390,17 +390,27 @@ export function runReleaseReadiness(
   const dry = seams.dryRun(input);
   add("Phase 2 dry run", dry === 0, dry === 0 ? "dry run passed" : `dry run exited ${String(dry)}`);
 
-  // #7327 Prefer-A defense in depth: re-check porcelain after the dry-run seam.
-  const [postClean, postDirty] = checkGitClean(input.projectRoot, release);
-  add(
-    "Phase 2: clean working tree after dry run",
-    postClean,
-    postClean
-      ? "tree clean after dry run"
-      : postDirty.startsWith("git status failed:")
-        ? `working-tree cleanliness could not be verified after the dry-run:\n${postDirty}`
-        : `working tree is dirty after the dry-run:\n${postDirty}`,
-  );
+  // #7327 Prefer-A defense in depth + #7328 shared classifier after the dry-run seam.
+  const postCleanliness = classifyReleaseInputCleanliness(input.projectRoot, release);
+  if (postCleanliness.kind === "clean") {
+    add("Phase 2: clean working tree after dry run", true, "tree clean after dry run");
+  } else if (postCleanliness.kind === "session-scratch-only") {
+    add(
+      "Phase 2: clean working tree after dry run",
+      true,
+      `session-scratch-only after dry run (admitted without --allow-dirty):\n${postCleanliness.detail}`,
+    );
+  } else {
+    // #7338: empty porcelain after probe failure must keep "git status failed:" for footer match
+    const unverifiable = postCleanliness.porcelain.trim().length === 0;
+    add(
+      "Phase 2: clean working tree after dry run",
+      false,
+      unverifiable
+        ? `working-tree cleanliness could not be verified after the dry-run:\ngit status failed: ${postCleanliness.reason}`
+        : `working tree is dirty after the dry-run:\n${postCleanliness.reason}\n${postCleanliness.porcelain}`,
+    );
+  }
 
   const ci = ciReuseAtTip(input, runGh, release, seams.evaluateNightly);
   checks.push({
