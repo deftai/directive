@@ -168,11 +168,14 @@ The release pipeline's Step 9/10/11 git mutations carry the bypass in subprocess
 
 ⊗ Foreground-block the operator chat on reconcile / `release:e2e` when background dispatch is available (#1880 Gap D / #2692).
 
-### Orientation-dirty / check-class stale-by-drift (#4399)
+### Orientation-dirty / check-class stale-by-drift (#4399 / #7326)
 
-! Treat `[deft orientation] cache_fresh: dirty` or check-class `verify:cache-fresh` stale-by-drift as a hard Phase 1 preflight, distinct from ritual-stale (gated ritual age / compact stale). The parallel-prep ritual-stale cache refresh does not cover this class. Run `deft cache fetch-all --source github-issue --repo <owner>/<repo>` before `task release`. Skip-drift gated-verify green is not cache-ready.
+! When orientation prints `[deft orientation] cache_fresh: dirty` because the github-issue triage cache is in **bootstrap-missing** state (missing `.deft-cache/github-issue/` source dir or missing candidates log), treat that as **advisory** for Phase 1 — warn and point at `deft triage:bootstrap` / triage-queue recovery. Do **not** hard-require `deft cache fetch-all --source github-issue` before `task release` for that missing-bootstrap class alone. No release step owns the github-issue triage cache for issue-state truth (live REST). Distinct from ritual-stale (gated ritual age / compact stale); the parallel-prep ritual-stale cache refresh does not cover this class.
 
-⊗ Proceed to `task release` when session:start printed `cache_fresh: dirty` or check-class `verify:cache-fresh` (no `--skip-drift-probe`) reports stale-by-drift.
+! When a **present** github-issue cache reports check-class `verify:cache-fresh` stale-by-drift, that remains a **hard** Phase 1 preflight. Run `deft cache fetch-all --source github-issue --repo <owner>/<repo>` before `task release`. Skip-drift gated-verify green is not cache-ready for that present-cache class.
+
+⊗ Proceed to `task release` when check-class `verify:cache-fresh` (no `--skip-drift-probe`) reports stale-by-drift on a present cache.
+⊗ Silence orientation missing-bootstrap `cache_fresh: dirty` without the advisory triage:bootstrap / triage-queue pointer.
 
 
 ### Fixable check failure — file-and-merge before resume (#2859)
@@ -273,7 +276,7 @@ See [`docs/RELEASING.md`](../../../docs/RELEASING.md) § Routine vs hard cut for
 9. ! **Disclose npm irrevocability before any tag push (#1972, #2002, #3527).** A `v<version>` tag push is the **real npm publish gate** -- NOT Phase 5 or `task release:publish`. Tag push fires `.github/workflows/npm-publish.yml` in a separate workflow that is NOT draft-gated; npm packages ship immediately and **cannot be retracted** (`npm unpublish` is forbidden). Recovery is forward-only: deprecate, dist-tag, or ship a patch. The last human gates before npm goes live are: (a) Phase 2 dry-run `yes`, (b) a human-origin closed-verb grant (`deft authz:grant -- --template release-publish --target <version> --confirm` or `DEFT_ALLOW_RELEASE_PUBLISH=1`). `task release -- --finish <version>` fails closed before the tag push without that grant (Step 10–11 on a break-glass run). Phase 5 only controls GitHub release visibility (draft → public); it does NOT gate npm. The draft-flip `release:publish` closed-verb check remains (#1095).
 10. ~ Ask the operator for an optional one-line release **summary** (recommended 80-160 chars; can be skipped). The summary is the canonical narrative for THIS release across three audiences: (a) injected as a Markdown blockquote at the top of the promoted `CHANGELOG.md [<version>]` section, (b) auto-flowed into the GitHub release body via the existing `_section_for_version` pickup, and (c) populated VERBATIM into the Phase 8 Slack `*Summary*:` slot. Capture the wording once here; do NOT regenerate per-audience downstream
 
-11. ! **Treat orientation-dirty `cache_fresh` or check-class stale-by-drift as a hard preflight (#4399).** Distinct from ritual-stale. If `session:start` printed `[deft orientation] cache_fresh: dirty`, or `deft verify:cache-fresh` (no `--skip-drift-probe`) reports stale-by-drift, run `deft cache fetch-all --source github-issue --repo <owner>/<repo>` before invoking `task release`. Do not treat skip-drift `verify:session-ritual` green as cache-ready.
+11. ! **Separate missing-bootstrap advisory from present-cache stale-by-drift (#4399 / #7326).** Distinct from ritual-stale. If orientation `cache_fresh: dirty` is only bootstrap-missing github-issue triage cache (missing source dir or candidates log), treat as advisory with `deft triage:bootstrap` / triage-queue pointer — do not hard-require `cache fetch-all` before `task release`. If a present cache reports `deft verify:cache-fresh` (no `--skip-drift-probe`) stale-by-drift, that stays a hard preflight: run `deft cache fetch-all --source github-issue --repo <owner>/<repo>` before invoking `task release`. Do not treat skip-drift `verify:session-ritual` green as cache-ready for present-cache drift.
 
 
 
@@ -506,7 +509,8 @@ Where `<one-line guidance>` is one of:
 - ⊗ Soft/warn-only checkout lag; local-update via pin-exclusive `engine:invoke` on the N-1 runtime (#5953)
 - ⊗ Require refreshed hook files on the default branch, or a clean tree after `directive upgrade`, before the release can finish (#5947 / #6613) -- a pin-only bump is complete (AC14.10)
 - ⊗ Foreground-block the operator chat on Phase 1 long prep (`reconcile:issues`, cache refresh) or Phase 3 `release:e2e` when background / subagent dispatch is available (#1880 Gap D / #2692) — the interactive channel must stay free for version confirmation, `--summary`, and the Phase 2 dry-run gate
-- ⊗ Proceed to `task release` on orientation-dirty `cache_fresh` or check-class stale-by-drift, or treat skip-drift ritual green / ritual-stale as that bar (#4399) — fetch-all first
+- ⊗ Soft-pass present-cache check-class stale-by-drift, or treat skip-drift ritual green / ritual-stale as that bar (#4399 / #7326) — fetch-all first for present-cache drift
+- ⊗ Silence orientation missing-bootstrap `cache_fresh: dirty` without an advisory triage:bootstrap / triage-queue pointer (#7326)
 
 - ⊗ Wrap long release-prep task output in PowerShell `Select-Object -Last` — it buffers until exit and makes the session look hung (#2692)
 - ⊗ Run `task release` without a Phase 2 dry-run preview -- the dry-run is the only safe place to catch a bad version, malformed CHANGELOG, or wrong base branch
