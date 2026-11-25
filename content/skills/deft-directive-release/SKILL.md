@@ -97,7 +97,7 @@ A stable cut is one command, one approval and the post-run pin steps (#6845). De
 6. [run] Publish watch: waits on the tag-triggered `npm-publish.yml` run at M. npm is done only when it and its post-publish fixture concluded `success` and both packages carry the version on `maintainer`. A failed run stops; the run never dispatches the manual republish workflow. Until #6966 lands, a fixture that deferred Pass 2 still reads `success`: read the fixture log before promoting.
 7. [run] Draft flip: a published release is done; a draft is flipped with the run's grant.
 8. [run] Promote, only with the up-front grant: an existing promote-latest run is waited on or judged (`success` with both packages on `latest`: done; failed or partial: stop); with none it dispatches once. Without the grant `latest` stays.
-9. [operator] Post-run pin steps (the run prints them): pin PR on a branch from `origin/master` with the four #6673 changes: the `package.json` pin, the `minimumReleaseAgeExclude` row, the lockfile regenerated with `pnpm update -w @deftai/directive-runtime@<version>` (then `pnpm install --frozen-lockfile` must pass before the PR opens), and one changelog line. The agent commit gate refuses a dogfood pin commit, so the operator commits the pin from their own terminal until #5771 lands; the pin PR carries the host-file deposit the new version writes. Merge it through the queue. Then switch the primary to the default branch, `task release:local-update -- <version> --checkout <primary>`, then `npm i -g @deftai/directive@<version>`.
+9. [operator] Post-run pin + local-update paths (the run prints them; #7331): run `task release:pin-pr -- <version>` (tip worktree + `chore/pin-directive-<version>`; bumps pin + `minimumReleaseAgeExclude`; **ensures `changelog.d/` exists** before the fragment write; lockfile regenerated with `pnpm update -w @deftai/directive-runtime@<version>` then `pnpm install --frozen-lockfile` must pass; opens the PR with Documentation impact `change_class: none`). The agent commit gate refuses a dogfood pin commit, so the operator commits the pin from their own terminal until #5771 lands; the pin PR carries the host-file deposit the new version writes. Merge it through the queue. Then switch the primary to the default branch, `task release:local-update -- <version> --checkout <primary>` (remediates untracked tip-tracked `.deft/approved-scope/**` twins per-path: tip-identical → remove; divergent → OS temp move-aside; never `git clean -fd` the whole tree), then `npm i -g @deftai/directive@<version>`.
 10. [agent] Phase 7 closeout: issue auto-close checks, roadmap render, umbrella reopen sweep.
 
 **Stops and `--resume`.** A stop names the phase and the run record (`.deft-scratch/release-run/<version>.json`). Fix the cause, then `deft release:run <version> --resume`. Each phase decides from what GitHub and npm show: a done step is never redone, anything it cannot place stops, and nothing is overwritten. An expired or spent grant that a phase still needs stops the run and names the mint command; a newer grant minted for the same target is used on resume. A PR that lands ahead stops the run before the tag (break-glass recovery until #6485). Recovery by state: [`docs/RELEASING.md`](../../../docs/RELEASING.md) § Release run recovery.
@@ -440,19 +440,26 @@ Race-condition mitigation: `download_count` is double-read with a 5s sleep betwe
 
 
 
-8. ! **Update the maintainer's local checkout (#5953 / #6613).** Required for every release; **required especially for maintainer (non-`latest`) cuts** where npm `latest` will not advance the checkout by accident.
+8. ! **Update the maintainer's local checkout (#5953 / #6613 / #7331).** Required for every release; **required especially for maintainer (non-`latest`) cuts** where npm `latest` will not advance the checkout by accident.
 
-First open and merge the pin-bump PR: the `package.json` pin, the `minimumReleaseAgeExclude` row in `pnpm-workspace.yaml`, the lockfile, and one CHANGELOG line (#6358). Then run:
+First open and merge the pin-bump PR via the runnable setup:
+
+```
+task release:pin-pr -- <version>
+```
+
+That creates a tip worktree + `chore/pin-directive-<version>`, bumps the `package.json` pin and the `minimumReleaseAgeExclude` row, **ensures `changelog.d/` exists** (tip after release fold often lacks it), writes the pin fragment, runs `pnpm update -w @deftai/directive-runtime@<version>` + frozen-lockfile verify, and prints the operator commit / `gh pr create` lines (Documentation impact `change_class: none`). Operator commits the pin until #5771. Then run:
 
 ```
 task release:local-update -- <version> --checkout <maintainer-primary-occupancy-root>
 ```
 
-The task never resets, force-pushes, commits, or runs `npm i -g`. It does four things:
+The task never resets, force-pushes, commits, or runs `npm i -g`. It does five things:
 1. Checkout checks: `--checkout <path>` must name the maintainer primary occupancy root (not the release worktree alone), and the checkout must not hold a live foreign occupancy lease.
-2. Pull: on the default branch, `git pull --ff-only` (never reset).
-3. Install: `pnpm install --frozen-lockfile`.
-4. Confirm installed = pin: the installed `node_modules/@deftai/directive-runtime` version equals `<version>` and the `package.json` pin.
+2. Clash remediation (#7331): before ff-only, for untracked tip-tracked `.deft/approved-scope/**` (same-class mint paths): tip-byte-identical → remove untracked; else → move aside to OS temp; print one-step remediation; never `git clean -fd` the whole tree.
+3. Pull: on the default branch, `git pull --ff-only` (never reset).
+4. Install: `pnpm install --frozen-lockfile`.
+5. Confirm installed = pin: the installed `node_modules/@deftai/directive-runtime` version equals `<version>` and the `package.json` pin.
 
 It does not check hook files. Hook files refresh on the next hook run (AC8.6). A post-release `directive upgrade` that changes hook files is normal. Commit it in an ordinary PR when you choose. It is not part of the release.
 
@@ -500,11 +507,15 @@ Where `<one-line guidance>` is one of:
 
 ! On the Publish/live path, Skill Completion MUST also print the Phase 7 local-update result beside the global CLI drift report: checkout path and installed runtime version. When the global launcher is behind `<version>`, print the exact command `npm i -g @deftai/directive@<version>` for the operator to run (#6358); the pipeline never runs it. ⊗ Claim Phase 7 local update complete while `release:local-update` exited non-zero or was skipped on a maintainer non-latest cut (#5953).
 
+! After finish+promote, the exit / post-run card MUST name both runnable paths (#7331): `task release:pin-pr -- <version>` (ensures `changelog.d/`) and `task release:local-update -- <version> --checkout <primary>` (approved-scope clash remediation before ff-only).
+
 ⊗ Exit silently without confirming completion or providing next-step guidance.
 
 ## Anti-Patterns
 
 - ⊗ End the release with the maintainer's checkout still on the previous pin (#5953) — run `task release:local-update -- <version> --checkout <primary>` after tip-pin-equals-released
+- ⊗ Leave pin PR as prose-only final-lines without `task release:pin-pr` / ensure-`changelog.d/` (#7331)
+- ⊗ Silently `git clean -fd` the whole `.deft/approved-scope/` tree on local-update clash (#7331)
 - ⊗ Run `release:local-update` without `--checkout` naming the maintainer primary occupancy root, or claim success from the release worktree alone while primary stays stale (#5953)
 - ⊗ Soft/warn-only checkout lag; local-update via pin-exclusive `engine:invoke` on the N-1 runtime (#5953)
 - ⊗ Require refreshed hook files on the default branch, or a clean tree after `directive upgrade`, before the release can finish (#5947 / #6613) -- a pin-only bump is complete (AC14.10)

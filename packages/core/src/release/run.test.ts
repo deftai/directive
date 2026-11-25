@@ -8,11 +8,14 @@ import { releaseCommitSubject } from "./git.js";
 import {
   cmdReleaseRun,
   DEFT_SKIP_SELF_COMPLETE,
+  decideApprovedScopeClash,
   findRunGrants,
+  formatApprovedScopeClashRemediation,
   parseReleaseRunFlags,
   RELEASE_RUN_HELP,
   type ReleaseRunOptions,
   type ReleaseRunSeams,
+  releasePinPrCommand,
   releaseRunChildEnv,
   releaseRunFinalLines,
   releaseRunMintArgv,
@@ -448,6 +451,63 @@ describe("deft release:run (#6876)", () => {
     expect(runReleaseRun(options(dir, { resume: true }), h.seams)).toBe(EXIT_CONFIG_ERROR);
     expect(h.printed()).toContain("is invalid");
     expect(readFileSync(releaseRunRecordPath(dir, V), "utf8")).toContain('"bad"');
+  });
+});
+
+describe("approved-scope clash + pin-PR final lines (#7331)", () => {
+  it("removes tip-identical untracked twins and moves divergent ones aside", () => {
+    const identical = Buffer.from('{"a":1}\n');
+    const divergent = Buffer.from('{"a":2}\n');
+    expect(
+      decideApprovedScopeClash({
+        relPath: ".deft/approved-scope/x.json",
+        untrackedBytes: identical,
+        tipBytes: Buffer.from(identical),
+      }),
+    ).toEqual({ kind: "remove-identical", relPath: ".deft/approved-scope/x.json" });
+    expect(
+      decideApprovedScopeClash({
+        relPath: ".deft\\approved-scope\\y.json",
+        untrackedBytes: divergent,
+        tipBytes: identical,
+      }),
+    ).toEqual({ kind: "move-aside", relPath: ".deft/approved-scope/y.json" });
+    expect(
+      decideApprovedScopeClash({
+        relPath: ".deft/approved-scope/z.json",
+        untrackedBytes: identical,
+        tipBytes: null,
+      }),
+    ).toEqual({ kind: "ignore-not-on-tip", relPath: ".deft/approved-scope/z.json" });
+  });
+
+  it("formats one-step remediation and never names git clean -fd of the whole tree", () => {
+    const lines = formatApprovedScopeClashRemediation(
+      [
+        { kind: "remove-identical", relPath: ".deft/approved-scope/a.json" },
+        { kind: "move-aside", relPath: ".deft/approved-scope/b.json" },
+        { kind: "ignore-not-on-tip", relPath: ".deft/approved-scope/c.json" },
+      ],
+      "/tmp/backup",
+    );
+    expect(lines.join("\n")).toContain("removed tip-identical");
+    expect(lines.join("\n")).toContain("/tmp/backup");
+    expect(lines.join("\n")).toContain("Never git clean -fd .deft/approved-scope/");
+  });
+
+  it("releaseRunFinalLines names release:pin-pr and local-update clash remediation", () => {
+    const lines = releaseRunFinalLines(V, "master", "/p").join("\n");
+    expect(lines).toContain(releasePinPrCommand(V));
+    expect(lines).toContain("ensures changelog.d/ exists");
+    expect(lines).toContain(`pnpm update -w @deftai/directive-runtime@${V}`);
+    expect(lines).toContain("pnpm install --frozen-lockfile");
+    expect(lines).toContain("approved-scope");
+    expect(lines).toContain("move-aside");
+    expect(lines).toContain("never git clean -fd");
+    expect(lines).toContain(`task release:local-update -- ${V} --checkout /p`);
+    expect(lines.indexOf("pnpm update -w")).toBeLessThan(
+      lines.indexOf("pnpm install --frozen-lockfile"),
+    );
   });
 });
 

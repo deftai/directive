@@ -211,7 +211,71 @@ export function releaseRunMintArgv(
   ];
 }
 
-/** The post-run commands (clause 31) plus the #6878 lockfile step. */
+/** Approved-scope clash paths considered by release:local-update (#7331). */
+export const APPROVED_SCOPE_CLASH_PREFIX = ".deft/approved-scope/";
+
+export type ApprovedScopeClashDecision =
+  | { readonly kind: "ignore-not-on-tip"; readonly relPath: string }
+  | { readonly kind: "remove-identical"; readonly relPath: string }
+  | { readonly kind: "move-aside"; readonly relPath: string };
+
+/**
+ * Per-path decision for an untracked tip-tracked approved-scope twin (#7331).
+ * Compare untracked bytes to the tip blob ff-only would materialize.
+ */
+export function decideApprovedScopeClash(input: {
+  readonly relPath: string;
+  readonly untrackedBytes: Buffer;
+  readonly tipBytes: Buffer | null;
+}): ApprovedScopeClashDecision {
+  const relPath = input.relPath.replace(/\\/g, "/");
+  if (input.tipBytes === null) {
+    return { kind: "ignore-not-on-tip", relPath };
+  }
+  if (Buffer.compare(input.untrackedBytes, input.tipBytes) === 0) {
+    return { kind: "remove-identical", relPath };
+  }
+  return { kind: "move-aside", relPath };
+}
+
+/** One-step remediation lines after clash handling (#7331 P2). */
+export function formatApprovedScopeClashRemediation(
+  decisions: readonly ApprovedScopeClashDecision[],
+  backupRoot: string,
+): string[] {
+  const removed = decisions.filter((d) => d.kind === "remove-identical").map((d) => d.relPath);
+  const moved = decisions.filter((d) => d.kind === "move-aside").map((d) => d.relPath);
+  const lines: string[] = [];
+  if (removed.length === 0 && moved.length === 0) return lines;
+  lines.push(
+    "release:local-update: remediated untracked tip-tracked approved-scope twins before ff-only (#7331).",
+  );
+  if (removed.length > 0) {
+    lines.push(
+      `  removed tip-identical untracked (${removed.length}): ${removed.slice(0, 5).join(", ")}${
+        removed.length > 5 ? ", …" : ""
+      }`,
+    );
+  }
+  if (moved.length > 0) {
+    lines.push(
+      `  moved divergent untracked aside to ${backupRoot} (${moved.length}): ${moved
+        .slice(0, 5)
+        .join(", ")}${moved.length > 5 ? ", …" : ""}`,
+    );
+  }
+  lines.push(
+    "  re-run is not needed for these paths; ff-only proceeds. Never git clean -fd .deft/approved-scope/.",
+  );
+  return lines;
+}
+
+/** Runnable pin-PR setup carrier named after finish+promote (#7331 P1/P3). */
+export function releasePinPrCommand(version: string): string {
+  return `task release:pin-pr -- ${version}`;
+}
+
+/** The post-run commands (clause 31) plus pin-PR setup + local-update clash path (#7331). */
 export function releaseRunFinalLines(
   version: string,
   baseBranch: string,
@@ -219,12 +283,17 @@ export function releaseRunFinalLines(
 ): string[] {
   return [
     `Release v${version} run complete. Remaining steps for the operator, after the run:`,
-    `  1. Pin PR: on a branch from origin/${baseBranch}, set the @deftai/directive-runtime pin to ${version}` +
-      " in package.json and its minimumReleaseAgeExclude row, run" +
-      ` \`pnpm update -w @deftai/directive-runtime@${version}\` to regenerate the lockfile, check that` +
-      " `pnpm install --frozen-lockfile` passes, add one changelog line, then open the pin PR and merge it" +
-      " through the queue (commit the pin from your own terminal until #5771 lands).",
-    `  2. task release:local-update -- ${version} --checkout ${projectRoot}`,
+    `  1. Pin PR setup (runnable): ${releasePinPrCommand(version)}` +
+      ` — tip worktree + chore/pin-directive-${version}; bumps package.json pin +` +
+      " minimumReleaseAgeExclude; ensures changelog.d/ exists; writes the pin fragment;" +
+      ` runs \`pnpm update -w @deftai/directive-runtime@${version}\` and` +
+      " `pnpm install --frozen-lockfile`; opens the PR with Documentation impact" +
+      " change_class: none (commit the pin from your own terminal until #5771 lands;" +
+      ` base origin/${baseBranch}).`,
+    `  2. task release:local-update -- ${version} --checkout ${projectRoot}` +
+      " — remediates untracked tip-tracked .deft/approved-scope/** twins per-path" +
+      " (identical → remove; divergent → OS temp move-aside) before ff-only; never" +
+      " git clean -fd the whole approved-scope tree.",
     `  3. npm i -g @deftai/directive@${version}`,
   ];
 }
