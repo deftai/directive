@@ -1,0 +1,453 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #7331",
+    "updated": "2026-11-25T17:04:56.743Z"
+  },
+  "plan": {
+    "title": "release: ship pin-PR setup in skill; local-update must survive untracked approved-scope twins",
+    "status": "running",
+    "narratives": {
+      "Description": "release: ship pin-PR setup in skill; local-update must survive untracked approved-scope twins",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/7331",
+      "Overview": "\n- Ship durable pin-PR setup (release:pin-pr and/or release-skill post-run Phase): tip worktree + chore/pin-directive-<version>; bump package.json pin + replace minimumReleaseAgeExclude; ensure changelog.d/ exists; write pin fragment; pnpm update -w @deftai/directive-runtime@<version> + frozen-lockfile verify; open PR with Documentation impact change_class: none — relieves: P1\n- On the release:local-update path that owns git pull --ff-only, for untracked tip-tracked .deft/approved-scope/** (same-class mint paths): tip-byte-identical → remove untracked; else → move aside to OS temp; retry ff-only; print one-step remediation; never git clean -fd the whole tree — relieves: P2\n- releaseRunFinalLines and skill exit / post-run card after finish+promote name both runnable paths (pin-PR setup + local-update clash remediation) — relieves: P3\n\n\n",
+      "Constraint": "- Silent git clean -fd of .deft/approved-scope/\n- Requiring operators to empty approved-scope before every local-update\n- Leaving pin PR as prose-only releaseRunFinalLines without ensure-changelog.d/",
+      "Labels": "bug, area:release, docs, design-critique:ingest-ready",
+      "UserStory": "As an operator, I want release-post-run-pin-pr-and-local-update-approved-scope-clash shipped, so that the Prefer-A Bound remedy is durable.",
+      "ImplementationPlan": "Implement Prefer-A Bound for release-post-run-pin-pr-and-local-update-approved-scope-clash; keep Tracking/Refs only on the product PR."
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "status": "pending",
+        "title": "Ship durable pin-PR setup that ensures the changelog fragment directory exists before write"
+      },
+      {
+        "id": "clause.2",
+        "status": "pending",
+        "title": "On local-update ff-only, remediate untracked approved-scope twins per path (identical remove / divergent move-aside)"
+      },
+      {
+        "id": "clause.3",
+        "status": "pending",
+        "title": "Final lines and skill exit card name both runnable post-run paths"
+      }
+    ],
+    "tags": [
+      "bug",
+      "area:release",
+      "docs",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/7331",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #7331: release: ship pin-PR setup in skill; local-update must survive untracked approved-scope twins"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per harvested lean item (3), in list order (#6333)",
+      "sentences": [
+        "Ship durable pin-PR setup (release:pin-pr and/or release-skill post-run Phase): tip worktree + chore/pin-directive-<version>; bump package.json pin + replace minimumReleaseAgeExclude; ensure changelog.d/ exists; write pin fragment; pnpm update -w @deftai/directive-runtime@<version> + frozen-lockfile verify; open PR with Documentation impact change_class: none — relieves: P1",
+        "On the release:local-update path that owns git pull --ff-only, for untracked tip-tracked .deft/approved-scope/** (same-class mint paths): tip-byte-identical → remove untracked; else → move aside to OS temp; retry ff-only; print one-step remediation; never git clean -fd the whole tree — relieves: P2",
+        "releaseRunFinalLines and skill exit / post-run card after finish+promote name both runnable paths (pin-PR setup + local-update clash remediation) — relieves: P3"
+      ],
+      "admitted_source_sentences": [
+        "Ship durable pin-PR setup (release:pin-pr and/or release-skill post-run Phase): tip worktree + chore/pin-directive-<version>; bump package.json pin + replace minimumReleaseAgeExclude; ensure changelog.d/ exists; write pin fragment; pnpm update -w @deftai/directive-runtime@<version> + frozen-lockfile verify; open PR with Documentation impact change_class: none — relieves: P1",
+        "On the release:local-update path that owns git pull --ff-only, for untracked tip-tracked .deft/approved-scope/** (same-class mint paths): tip-byte-identical → remove untracked; else → move aside to OS temp; retry ff-only; print one-step remediation; never git clean -fd the whole tree — relieves: P2",
+        "releaseRunFinalLines and skill exit / post-run card after finish+promote name both runnable paths (pin-PR setup + local-update clash remediation) — relieves: P3"
+      ],
+      "admitted_source_digest": "d1a08d2f1ed3f22094549183f37f4615e59c2016382a96c84d32797df7c276d8",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Ship durable pin-PR setup (release:pin-pr and/or release-skill post-run Phase): tip worktree + chore/pin-directive-<version>; bump package.json pin + replace minimumReleaseAgeExclude; ensure changelog.d/ exists; write pin fragment; pnpm update -w @deftai/directive-runtime@<version> + frozen-lockfile verify; open PR with Documentation impact change_class: none — relieves: P1",
+          "artifact_path": "packages/core/src/release/run.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "title": "Ship durable pin-PR setup (release:pin-pr and/or release-skill post-run Phase): tip worktree + chore/pin-directive-<version>; bump root package manifest pin + replace minimumReleaseAgeExclude; ensure changelog.d/ exists; write pin fragment; pnpm update -w @deftai/directive-runtime@<version> + frozen-lockfile verify; open PR with Documentation impact change_class: none — relieves: P1"
+        },
+        {
+          "id": 2,
+          "text": "On the release:local-update path that owns git pull --ff-only, for untracked tip-tracked .deft/approved-scope/** (same-class mint paths): tip-byte-identical → remove untracked; else → move aside to OS temp; retry ff-only; print one-step remediation; never git clean -fd the whole tree — relieves: P2",
+          "artifact_path": "packages/core/src/release/run.test.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "title": "On the release:local-update path that owns git pull --ff-only, for untracked tip-tracked approved-scope store** (same-class mint paths): tip-byte-identical → remove untracked; else → move aside to OS temp; retry ff-only; print one-step remediation; never git clean -fd the whole tree — relieves: P2"
+        },
+        {
+          "id": 3,
+          "text": "releaseRunFinalLines and skill exit / post-run card after finish+promote name both runnable paths (pin-PR setup + local-update clash remediation) — relieves: P3",
+          "artifact_path": "content/skills/deft-directive-release/SKILL.md",
+          "ambiguous": false,
+          "provenance": "statement",
+          "title": "releaseRunFinalLines and skill exit / post-run card after finish+promote name both runnable paths (pin-PR setup + local-update clash remediation) — relieves: P3"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "Taskfile.yml",
+          "content/packs/skills/skills-pack-0.1.json",
+          "content/skills/deft-directive-release/SKILL.md",
+          "docs/RULE-MAP.md",
+          "package.json",
+          "packages/core/src/release/run.test.ts",
+          "packages/core/src/release/run.ts"
+        ],
+        "module_boundary": "packages/core/src/release",
+        "cohesion_exemption": "changelog fragment and skill/docs co-travel with Bound remedy"
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\nLean: Prefer-A draft (not Bound)\n\n## In plain English\nAfter a Directive release finish+promote, two post-run steps still hurt operators: (1) the dogfood pin PR is hand-rolled and tip often has no changelog.d/ after the release fold, so a naive fragment write fails; (2) release:local-update ff-only aborts when primary still has untracked .deft/approved-scope mint twins that tip already tracks. Prefer-A ships a durable pin-PR setup (skill Phase and/or release:pin-pr) that recreates changelog.d when missing, and teaches local-update a per-path clash remediation that removes tip-identical untracked twins or moves divergent ones aside — never a silent git clean of the whole approved-scope tree.\n\nTarget-digest: sha256:60845681b8b6110d14e46dd83cc9751042d223960c3728334f651d32d52f72b7\nconflict_group: release-post-run-pin-pr-and-local-update-approved-scope-clash\n\n## Proposed Prefer-A (draft)\n- A. Durable pin-PR path in deft-directive-release (verb release:pin-pr and/or post-run Phase): tip worktree + branch chore/pin-directive-<version>; bump package.json pin + replace minimumReleaseAgeExclude row; ensure changelog.d/ exists; write pin fragment; pnpm update -w @deftai/directive-runtime@<version> + frozen-lockfile verify; open PR with Documentation impact change_class: none; document operator commits the pin until #5771.\n- B. release:local-update: before or on ff-only overwrite abort for untracked .deft/approved-scope/** (and same-class tip-tracked mint paths), per-path: untracked byte-identical to incoming tip blob → remove untracked; else → move to OS temp backup; retry ff-only; print one-step remediation; never git clean -fd the whole tree.\n- C. Skill exit / post-run card points at both paths after finish+promote.\n\n## Reject (draft)\n- Silent git clean -fd of .deft/approved-scope/\n- Requiring operators to empty approved-scope before every local-update\n- Leaving pin PR as prose-only releaseRunFinalLines without a runnable setup that survives missing changelog.d/\n\nFiled for @MScottAdams",
+          "id": 7153162292,
+          "html_url": "https://github.com/deftai/directive/issues/7331#issuecomment-7153162292",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-25T04:47:10Z",
+          "updated_at": "2026-11-25T04:47:10Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because v0.131.5 post-cut closeout still forces hand-rolled pin PR setup (and fails when tip lacks changelog.d/ after fold) and release:local-update aborts on untracked tip-matched .deft/approved-scope twins, so finish+promote leave durable operator friction that belongs in the release skill/verbs.\n\nrefutation-target: Post-run dogfood pin PR and release:local-update may stay prose-only / bare ff-only even when tip lacks changelog.d/ after fold and primary holds untracked tip-tracked approved-scope mint twins.\n\npain: P1, P2, P3\n- P1: Dogfood pin PR after finish+promote is hand-rolled; tip after release fold often has no changelog.d/, so fragment write fails unless the directory is recreated (observed pin-directive-0.131.5.ps1 / prior #7219).\n- P2: release:local-update git pull --ff-only aborts when untracked .deft/approved-scope/** twins would be overwritten by tip-tracked paths; no detect/remediate path that preserves un-landed mints.\n- P3: Skill exit / post-run card does not point operators at both a runnable pin-PR setup and a safe approved-scope clash remediation after finish+promote.\n\narc-mode: no-ingest\nspend-recommend: N≥3\nspend: N≥3\nspend-ask: resolved\ndual-stop-reserved: pain-audit-1\nmateriality-bar: open\nverification-path: pin-read git show 7b592c7f1d28eec29e7b249ece7020568dbb64d5:\ndispatch-sha: 7b592c7f1d28eec29e7b249ece7020568dbb64d5\nclosed-findings: none\ncharter: refutation\n\nFiled for @MScottAdams",
+          "id": 7153163705,
+          "html_url": "https://github.com/deftai/directive/issues/7331#issuecomment-7153163705",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-25T04:47:15Z",
+          "updated_at": "2026-11-25T04:47:15Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 3\ninput-ceiling: 7153199358\nseat-families: claude, codex, grok\nspend: N≥3\ndispatch-sha: 7b592c7f1d28eec29e7b249ece7020568dbb64d5\nverification-path: pin-read git show 7b592c7f1d28eec29e7b249ece7020568dbb64d5:\narc-mode: no-ingest\nPrefer-A draft: 7153162292\nStop 1: 7153163705\n\nFiled for @MScottAdams",
+          "id": 7153199358,
+          "html_url": "https://github.com/deftai/directive/issues/7331#issuecomment-7153199358",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-25T04:49:37Z",
+          "updated_at": "2026-11-25T04:49:56Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\naudit-targets: none\n\nCharter: refutation against Stop 1 refutation-target (7153163705).\nPrefer-A draft under review: 7153162292.\nVerification: pin-read `git show 7b592c7f1d28eec29e7b249ece7020568dbb64d5:` on `content/skills/deft-directive-release/SKILL.md` (Phase 7 / post-run / Skill Completion), `packages/core/src/release/run.ts` (`releaseRunFinalLines`), `Taskfile.yml` (`release:local-update`). Inventory at that SHA found no `release:pin-pr`, no `changelog.d/` ensure before pin fragment write, and no approved-scope overwrite remediation on the ff-only path.\n\n## Verdict on the refutation-target\n\nCannot refute. At dispatch SHA the presumption holds:\n\n- `releaseRunFinalLines` prints a prose-only pin step (“add one changelog line… open the pin PR”) with no runnable ensure-`changelog.d/` and no `release:pin-pr` (or equivalent) call site.\n- `release:local-update` runs bare `git pull --ff-only` after occupancy/branch gates; it has no detect/remediate for untracked tip-tracked `.deft/approved-scope/**` twins.\n- Skill post-run / Skill Completion point operators at those same prose + bare-task steps; they do not name a missing-`changelog.d/` recreate or a safe approved-scope clash remediation.\n\nSo post-run dogfood pin PR and `release:local-update` may stay prose-only / bare ff-only even when tip lacks `changelog.d/` after fold and primary holds untracked tip-tracked approved-scope mint twins. Prefer-A is warranted.\n\n## Prefer-A draft 7153162292\n\n**Accept**, with Thin Fail-Closed / KISS sharpening of mechanism limbs (not a reject). Draft A/B/C already bind P1/P2/P3 and correctly Reject silent `git clean -fd` of `.deft/approved-scope/`, requiring operators to empty approved-scope before every local-update, and leaving pin as prose-only final-lines without a runnable setup that survives missing `changelog.d/`.\n\n### Concrete Bound remedy limbs (short; #3265 / #5783)\n\nWhen parent binds, keep `## Bound remedy` to these mechanism limbs (one sentence each; singular `relieves:`):\n\n1. `relieves: P1` — Ship a durable pin-PR setup (`release:pin-pr` and/or release-skill post-run Phase) that creates tip worktree + `chore/pin-directive-<version>`, bumps pin + `minimumReleaseAgeExclude`, **ensures `changelog.d/` exists**, writes the pin fragment, runs `pnpm update -w` + frozen-lockfile verify, and opens the PR with `change_class: none` (operator commits pin until #5771).\n2. `relieves: P2` — In the same `release:local-update` path that owns `git pull --ff-only`, on untracked tip-tracked `.deft/approved-scope/**` (same-class mint paths): tip-byte-identical → remove untracked; else → move aside to OS temp; retry ff-only; print one-step remediation; never `git clean -fd` the whole tree.\n3. `relieves: P3` — `releaseRunFinalLines` and skill exit / post-run card after finish+promote name both runnable paths (pin-PR setup + local-update clash remediation).\n\n### Classification\n\n- **sharpens-framing** — Sit the P2 clash helper in the existing Taskfile/`release:local-update` fail-closed path (one check + one remediation, #3265), not as docs-only prose beside bare ff-only. Evidence: Taskfile already owns the aborting `git pull --ff-only`; a separate skill note without that call site leaves the observed abort. Failure mode: operators still hit overwrite abort after reading recovery prose. Disposition: bind Prefer-A with limb 2 as code on that path; keep Reject silent whole-tree clean.\n- **sharpens-framing** — Treat “ensure `changelog.d/` exists before fragment write” as a mandatory limb of the pin-PR setup, not optional docs color. Evidence: `releaseRunFinalLines` today says only “add one changelog line”; issue body records Set-Content failing when tip has no `changelog.d/` after fold (#7219 / 0.131.5 script). Failure mode: runnable-looking pin steps still die on missing directory. Disposition: Prefer-A limb 1 must include directory ensure; prose-only final-lines without that ensure do not relieve P1.\n- **footnote** — Operator-commits-pin until #5771 stays an implementation note on limb 1 (already in Prefer-A draft); it does not change fail-closed association.\n- **footnote** — Byte-identical compare is against the incoming tip blob for that path (the object ff-only would materialize), not against an ambient worktree copy; implementation detail, not a new limb.\n\nNo `blocks-the-design` findings. Draft Reject list stays.\n\n## Road-not-taken\n\nExpand only `releaseRunFinalLines` / skill prose (no ensure-dir, no clash helper on the pull path). Rejected: v0.131.5 already showed tribal/temp-script + bare ff-only failing under exactly those tip states; more prose does not refute the target.\n\n## Steelmans\n\nStrongest case against Prefer-A: maintainers already know #7219 and can stash approved-scope by hand, so skill/verb work is ceremony. What would flip: a pin-read showing a shipped ensure-`changelog.d/` + clash remediate call site on this SHA. Inventory found none; the dogfood abort remains.\n\nFiled for @MScottAdams\n\n",
+          "id": 7153252070,
+          "html_url": "https://github.com/deftai/directive/issues/7331#issuecomment-7153252070",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-25T04:53:06Z",
+          "updated_at": "2026-11-25T04:53:06Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\nspend-amend: N≥3 → N=1\nseat-families: grok\nreason: After recorded native spawn_subagent deny (multi-active xBRIEF), host sticky critic-recovery admits only dest-rooted grok --cwd --prompt-file. Claude CLI and Codex CLI (retry) were refused with that recovery card. Codex first attempt exited argv-split before sticky lock. Round-1 sibling posted: Grok 7153252070. Panel-deposit 7153199358 claimed claude,codex,grok; this amend collapses to N=1 / grok only for this arc.\n\nFiled for @MScottAdams",
+          "id": 7153269181,
+          "html_url": "https://github.com/deftai/directive/issues/7331#issuecomment-7153269181",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-25T04:54:17Z",
+          "updated_at": "2026-11-25T04:54:17Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\nLean: Prefer-A Bound\nSpec-path: harvest Bound remedy\nTarget-digest: sha256:60845681b8b6110d14e46dd83cc9751042d223960c3728334f651d32d52f72b7\nconflict_group: release-post-run-pin-pr-and-local-update-approved-scope-clash\n\n## In plain English\nAfter finish+promote, ship a runnable pin-PR setup that recreates changelog.d when missing, teach release:local-update a per-path approved-scope clash remediation (identical twin remove / divergent move-aside), and point the skill exit card at both. Do not silent-clean the whole approved-scope tree.\n\n## Bound remedy\n- Ship durable pin-PR setup (release:pin-pr and/or release-skill post-run Phase): tip worktree + chore/pin-directive-<version>; bump package.json pin + replace minimumReleaseAgeExclude; ensure changelog.d/ exists; write pin fragment; pnpm update -w @deftai/directive-runtime@<version> + frozen-lockfile verify; open PR with Documentation impact change_class: none — relieves: P1\n- On the release:local-update path that owns git pull --ff-only, for untracked tip-tracked .deft/approved-scope/** (same-class mint paths): tip-byte-identical → remove untracked; else → move aside to OS temp; retry ff-only; print one-step remediation; never git clean -fd the whole tree — relieves: P2\n- releaseRunFinalLines and skill exit / post-run card after finish+promote name both runnable paths (pin-PR setup + local-update clash remediation) — relieves: P3\n\n## Reject\n- Silent git clean -fd of .deft/approved-scope/\n- Requiring operators to empty approved-scope before every local-update\n- Leaving pin PR as prose-only releaseRunFinalLines without ensure-changelog.d/\n\n## Footnotes\n- Operator commits the dogfood pin until #5771 (agent commit gate refuses pin).\n- Byte-identical compare is against the incoming tip blob ff-only would materialize.\n- Reference shape: pin PR #7219 / pin-directive-0.131.5.ps1; Related #7326 #7327 #7328.\n\n## Takes (Round-1)\n- Grok 7153252070: accept-into-contract (sharpens-framing absorbed into Bound limbs; footnotes kept off mechanism list)\n\nRound-1 ceiling: 7153199358\nPrefer-A draft: 7153162292\nStop 1: 7153163705\ndispatch-sha: 7b592c7f1d28eec29e7b249ece7020568dbb64d5\n\nFiled for @MScottAdams",
+          "id": 7153269182,
+          "html_url": "https://github.com/deftai/directive/issues/7331#issuecomment-7153269182",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-25T04:54:17Z",
+          "updated_at": "2026-11-25T04:54:17Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3\n\nPain-audit of Prefer-A Bound 7153269182 (conflict_group: release-post-run-pin-pr-and-local-update-approved-scope-clash) against Stop 1 pains P1-P3 (7153163705). Round-1 Grok 7153252070 absorbed into Bound limbs. Pin-read at 7b592c7f1d28eec29e7b249ece7020568dbb64d5; Id ceiling inclusive -- Bound and earlier only.\n\nAt pin SHA: no release:pin-pr; releaseRunFinalLines is prose-only pin steps without ensure changelog.d/; Taskfile release:local-update runs bare git pull --ff-only after occupancy/default-branch gates; skill/docs Post-run + Skill Completion point at those same prose/bare steps.\n\npain-P1: Relieved. After Prefer-A ships, live call site = the durable pin-PR setup carrier (task release:pin-pr and/or release-skill post-run Phase) that creates tip worktree + chore/pin-directive-<version>, bumps package.json pin + replaces minimumReleaseAgeExclude, ensures changelog.d/ exists before fragment write, runs pnpm update -w @deftai/directive-runtime@<version> + frozen-lockfile verify, and opens the PR with Documentation impact change_class: none. Observed fail path at pin: tip after release fold lacks changelog.d/, so fragment Set-Content dies (0.131.5 / #7219). Not false relief: ensure is mandatory in the Bound limb sentence; Reject already forbids prose-only releaseRunFinalLines without that ensure. Operator-commits-pin until #5771 stays footnote.\n\npain-P2: Relieved. After Prefer-A ships, live call site = Taskfile.yml release:local-update on the same path that owns git pull --ff-only: for untracked tip-tracked .deft/approved-scope/** (same-class mint paths), tip-byte-identical -> remove untracked; else -> move aside to OS temp; retry ff-only; print one-step remediation; never git clean -fd the whole tree. Observed fail path at pin: bare ff-only abort listing untracked approved-scope mint twins. Not false relief: clash helper sits on the aborting Taskfile path (Round-1 Thin Fail-Closed sharpen), not recovery prose beside bare pull.\n\npain-P3: Relieved. After Prefer-A ships, live call sites = releaseRunFinalLines (packages/core/src/release/run.ts) and skill exit / post-run card (content/skills/deft-directive-release/SKILL.md) naming both runnable paths (pin-PR setup + local-update clash remediation) after finish+promote. Not false relief: P3 is the naming obligation once P1/P2 exist as runnable paths; current FinalLines/Skill Completion name only prose pin + bare local-update.\n\nNo false-relief / unreachability on P1-P3. KISS/#5783/#3368: no mechanism or fail-closed association change required.\n\nfinding-classes: none\nharvest-changed: false\n\nFiled for @MScottAdams\n\nharvest-digest: sha256:d1a08d2f1ed3f22094549183f37f4615e59c2016382a96c84d32797df7c276d8\n\n",
+          "id": 7153333672,
+          "html_url": "https://github.com/deftai/directive/issues/7331#issuecomment-7153333672",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-25T04:58:34Z",
+          "updated_at": "2026-11-25T04:59:13Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Evidence |\n|---|---|\n| P1 pin-PR setup must ensure changelog.d/ and be runnable from release skill/verb | Prefer-A Bound 7153269182 limb 1; Round-1 7153252070; PA 7153333672 |\n| P2 local-update clash remediation sits on the ff-only Taskfile path (identical remove / divergent move-aside) | Bound 7153269182 limb 2; R1 7153252070; PA 7153333672 |\n| P3 exit card / releaseRunFinalLines name both runnable paths | Bound 7153269182 limb 3; PA 7153333672 |\n| Reject silent git clean -fd of approved-scope tree | Bound Reject; R1 7153252070 |\n\nbound-contract-digest: Prefer-A Bound 7153269182\n\nFiled for @MScottAdams",
+          "id": 7153347800,
+          "html_url": "https://github.com/deftai/directive/issues/7331#issuecomment-7153347800",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-25T04:59:31Z",
+          "updated_at": "2026-11-25T04:59:31Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\ntakes:\n- 7153252070: accept-into-contract\n- 7153333672: accept-into-contract (finding-classes: none; harvest-changed: false)\n\nFiled for @MScottAdams",
+          "id": 7153347807,
+          "html_url": "https://github.com/deftai/directive/issues/7331#issuecomment-7153347807",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-25T04:59:31Z",
+          "updated_at": "2026-11-25T04:59:31Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\nsuccessor lean: 7153269182\nverified-claims table: 7153347800\n\n## In plain English\nAfter finish+promote, ship a runnable pin-PR setup that recreates changelog.d when missing, teach release:local-update a per-path approved-scope clash remediation, and point the skill exit card at both. Prefer-A Bound 7153269182 is the next-build contract. Ingest remains a separate operator verb.\n\nRound-1: 7153252070\nPA-1: 7153333672\ntakes: 7153347807\nspend-amend: 7153269181\nStop 1: 7153163705\npanel-deposit: 7153199358\n\nFiled for @MScottAdams",
+          "id": 7153351667,
+          "html_url": "https://github.com/deftai/directive/issues/7331#issuecomment-7153351667",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-25T04:59:46Z",
+          "updated_at": "2026-11-25T04:59:46Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n\nTwo post-cut operator frictions from the **v0.131.5** release should land in `deft-directive-release` (and the verbs it documents):\n\n1. **Pin PR setup is hand-rolled** — operators need a durable skill step / shipped script for the dogfood pin PR (`package.json` pin, `pnpm-workspace.yaml` `minimumReleaseAgeExclude`, `pnpm update` + frozen-lockfile, `changelog.d/*-pin-directive-*.md`, commit/push/PR). Tip often has **no** `changelog.d/` after the release fold, so a naive write fails unless the directory is recreated.\n2. **`release:local-update` aborts** when primary has **untracked** `.deft/approved-scope/*.json` twins that tip already tracks (ff-only pull would overwrite them).\n\n## Observed (v0.131.5)\n\n### Pin script\n\nOperator ran a temp PS1 that:\n\n- worktree from `origin/master`\n- bump `@deftai/directive-runtime` `0.131.4` → `0.131.5` in `package.json`\n- replace `minimumReleaseAgeExclude` row in `pnpm-workspace.yaml`\n- write `changelog.d/7329-pin-directive-0.131.5.md`\n- `pnpm update -w` + `pnpm install --frozen-lockfile`\n- commit / push / `gh pr create`\n\nFirst run failed: tip after release fold had **no** `changelog.d/` directory (`Set-Content` path missing). Fix: `New-Item` the directory before writing the fragment (same pattern as prior pin PR #7219).\n\n### `release:local-update`\n\n```\nrelease:local-update: ff-only pull on master at C:\\Repos\\deft\\directive\nUpdating aef95d7ab..7b592c7f1\nerror: The following untracked working tree files would be overwritten by merge:\n        .deft/approved-scope/7175.intent.json\n        .deft/approved-scope/7175.json\n        ... (many Path B mint twins) ...\n        .deft/approved-scope/github.issue.6587893970.json\nPlease move or remove them before you merge.\nAborting\ntask: Failed to run task \"release:local-update\": exit status 1\n```\n\nThose twins were minted locally during the cohort; tip later landed the same paths via mint PRs. Primary still has them as **untracked**, so ff-only pull refuses.\n\n## Ask\n\n### A. Skill / tooling — pin PR\n\nAdd a Phase / post-run step to `deft-directive-release` (and optionally a verb such as `deft release:pin-pr -- <version>`) that:\n\n1. Creates a clean tip worktree + branch `chore/pin-directive-<version>`\n2. Bumps pin + `minimumReleaseAgeExclude` (replace previous version row)\n3. Ensures `changelog.d/` exists, writes the pin fragment\n4. Runs `pnpm update -w @deftai/directive-runtime@<version>` and frozen-lockfile verify\n5. Opens the PR with Documentation impact `change_class: none` (operator commits pin — agent commit gate refuses dogfood pin)\n6. Documents that `changelog.d/` may be absent after fold and must be recreated\n\nReference shape: pin PR #7219 / temp script used for 0.131.5 (`pin-directive-0.131.5.ps1`).\n\n### B. `release:local-update` — approved-scope clash\n\nWhen ff-only would overwrite untracked `.deft/approved-scope/**` (or other tip-tracked mint paths):\n\n1. Detect the clash before aborting\n2. Offer a safe remediation: move untracked twins aside (or delete only when byte-identical to the incoming tip blob), then retry ff-only\n3. Document in the release skill post-run: if local-update fails on approved-scope overwrite, twins are usually already on tip — stash/move aside and re-run\n\nDo **not** silently `git clean -fd` the whole `.deft/approved-scope/` tree (would destroy un-landed mints). Prefer: per-path “untracked equals tip → remove untracked; else → move to OS temp backup”.\n\n## Acceptance\n\n- [ ] Release skill post-run includes pin-PR setup (script or `release:pin-pr`) that survives missing `changelog.d/` after fold\n- [ ] `release:local-update` either succeeds past untracked tip-matched approved-scope twins or prints a one-step remediation that preserves un-landed mints\n- [ ] Docs / skill exit card point operators at both paths after `finish` + promote\n\n## Refs\n\n- Release: https://github.com/deftai/directive/releases/tag/v0.131.5\n- Release PR #7329; prior pin pattern #7219\n- Related friction already filed: #7326 (triage cache preflight), #7327 (release:run dirty-tree), #7328 (Step 5 tip-green / skip-ci)\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6597371485,
+        "origin": "deftai/directive#7331",
+        "id": "github.issue.6597371485"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "60845681b8b6110d14e46dd83cc9751042d223960c3728334f651d32d52f72b7"
+      },
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 7331,
+        "leanCommentId": 7153269182,
+        "harvestDigest": "d1a08d2f1ed3f22094549183f37f4615e59c2016382a96c84d32797df7c276d8",
+        "slice": null
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": false,
+        "conflict_group": "release-post-run-pin-pr-and-local-update-approved-scope-clash",
+        "size": "M",
+        "file_scope": [
+          "xbrief/active/2026-11-25-7331-release-ship-pin-pr-setup-in-skill-local-update-must-survive.xbrief.json",
+          "Taskfile.yml",
+          "changelog.d/7331-release-pin-pr-local-update.md",
+          "content/packs/skills/skills-pack-0.1.json",
+          "content/skills/deft-directive-release/SKILL.md",
+          "docs/RULE-MAP.md",
+          "package.json",
+          "packages/core/src/release/run.test.ts",
+          "packages/core/src/release/run.ts"
+        ],
+        "file_scope_confidence": "high",
+        "depends_on": [],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/release/run.test.ts --reporter=dot"
+        ],
+        "expected_outputs": [
+          "pin-PR setup ensures changelog.d before fragment write",
+          "local-update remediates untracked approved-scope twins per-path"
+        ],
+        "model_tier": "standard"
+      }
+    },
+    "id": "github.issue.6597371485",
+    "updated": "2026-11-25T07:11:06Z"
+  }
+}

@@ -1,0 +1,705 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #7326",
+    "updated": "2026-11-25T17:04:14.972Z"
+  },
+  "plan": {
+    "title": "release: drop github-issue triage cache fetch-all as hard Phase 1 preflight (#4399)",
+    "status": "running",
+    "narratives": {
+      "Description": "release: drop github-issue triage cache fetch-all as hard Phase 1 preflight (#4399)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/7326",
+      "Overview": "\n- relieves: P1 — Rewrite the three #4399 release-skill surfaces (Orientation-dirty subsection, Phase 1 checklist item 11, Skill Completion anti-pattern) so Phase 1 treats orientation cache_fresh dirty caused by missing github-issue triage cache (bootstrap state: missing source dir or missing candidates log) as advisory with a triage:bootstrap / triage-queue recovery pointer, not a hard fetch-all gate before release. Add a regression test that locks current Step 5 / framework verify:cache-fresh behavior: under releaseCheckEnv with --allow-missing-bootstrap, a missing .deft-cache/github-issue/ exits 0 and does not call maybeAutoPopulateEmptyCache / fetch-all. Do not widen DEFT_RELEASE_PREFLIGHT (age-only bypass stays as today).\n- relieves: P2 — Keep non-release verify:cache-fresh, session:ready, and triage:bootstrap behavior unchanged. Keep hard release gates: lifecycle-sync check (apply-mode only on mismatch recovery), tag availability, CHANGELOG/version, and Step 5 product/check ownership outside this advisory demotion. Existing-cache stale-by-drift remains hard where the cache exists.\n- relieves: P3 — Affirm no release step owns the github-issue triage cache for issue-state truth (live REST). Update pack SoT and the content-contract lock for the #4399 heading citing #7326 so regenerated skill text matches. Docs/agents-entry mirrors if present. Footnote: Bound \"missing\" means bootstrap state above; a present empty-entry dir is out of this Bound.\n\nReject: DEFT_RELEASE_PREFLIGHT widen for missing/empty (false relief on already-admitted Step 5 path); inventing --skip-cache-fresh; changing session:ready / non-release contracts; deleting reconcile/tag/CHANGELOG gates; soft-passing existing-cache stale-by-drift; silencing orientation without advisory triage pointer.\n\nAccept-into-contract:\n- Claude PA F1 blocking: P1 owner is skill Phase 1 / orientation dirty, not Step 5 widen — absorbed.\n- Claude PA F2 sharpening: P2 holds — kept.\n- Claude PA F3 footnote: define missing vs empty — absorbed in P1/P3.\n- Codex/Grok PA clear on prior Bound: superseded; regression test keeps their Step 5 no-populate intent as a lock of current admission.\n\nFiled for @MScottAdams",
+      "Labels": "bug, docs, design-critique:ingest-ready",
+      "UserStory": "As an operator, I want release-phase1-drop-github-issue-cache-hard-preflight shipped, so that the Prefer-A Bound remedy is durable.",
+      "ImplementationPlan": "Implement Prefer-A Bound for release-phase1-drop-github-issue-cache-hard-preflight; keep Tracking/Refs only on the product PR."
+    },
+    "items": [
+      {
+        "title": "relieves: P1 — Rewrite the three #4399 release-skill surfaces (Orientation-dirty subsection, Phase 1 checklist item 11, Skill Completion anti-pattern) so Phase 1 treats orientation cache_fresh dirty caused by missing github-issue triage cache (bootstrap state: missing source dir or missing candidates log) as advisory with a triage:bootstrap / triage-queue recovery pointer, not a hard fetch-all gate before release. Add a regression test that locks current Step 5 / framework verify:cache-fresh behavior: under releaseCheckEnv with --allow-missing-bootstrap, a missing .deft-cache/github-issue/ exits 0 and does not call maybeAutoPopulateEmptyCache / fetch-all. Do not widen DEFT_RELEASE_PREFLIGHT (age-only bypass stays as today).",
+        "status": "pending",
+        "id": "clause.1"
+      },
+      {
+        "title": "relieves: P2 — Keep non-release verify:cache-fresh, session:ready, and triage:bootstrap behavior unchanged. Keep hard release gates: lifecycle-sync check (apply-mode only on mismatch recovery), tag availability, CHANGELOG/version, and Step 5 product/check ownership outside this advisory demotion. Existing-cache stale-by-drift remains hard where the cache exists.",
+        "status": "pending",
+        "id": "clause.2"
+      },
+      {
+        "title": "relieves: P3 — Affirm no release step owns the github-issue triage cache for issue-state truth (live REST). Update pack SoT and the content-contract lock for the #4399 heading citing #7326 so regenerated skill text matches. Docs/agents-entry mirrors if present. Footnote: Bound \"missing\" means bootstrap state above; a present empty-entry dir is out of this Bound.",
+        "status": "pending",
+        "id": "clause.3"
+      },
+      {
+        "title": "Claude PA F1 blocking: P1 owner is skill Phase 1 / orientation dirty, not Step 5 widen — absorbed.",
+        "status": "pending",
+        "id": "clause.4"
+      },
+      {
+        "title": "Claude PA F2 sharpening: P2 holds — kept.",
+        "status": "pending",
+        "id": "clause.5"
+      },
+      {
+        "title": "Claude PA F3 footnote: define missing vs empty — absorbed in P1/P3.",
+        "status": "pending",
+        "id": "clause.6"
+      },
+      {
+        "title": "Codex/Grok PA clear on prior Bound: superseded; regression test keeps their Step 5 no-populate intent as a lock of current admission.",
+        "status": "pending",
+        "id": "clause.7"
+      }
+    ],
+    "tags": [
+      "bug",
+      "docs",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/7326",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #7326: release: drop github-issue triage cache fetch-all as hard Phase 1 preflight (#4399)"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per harvested lean item (7), in list order (#6333)",
+      "sentences": [
+        "relieves: P1 — Rewrite the three #4399 release-skill surfaces (Orientation-dirty subsection, Phase 1 checklist item 11, Skill Completion anti-pattern) so Phase 1 treats orientation cache_fresh dirty caused by missing github-issue triage cache (bootstrap state: missing source dir or missing candidates log) as advisory with a triage:bootstrap / triage-queue recovery pointer, not a hard fetch-all gate before release. Add a regression test that locks current Step 5 / framework verify:cache-fresh behavior: under releaseCheckEnv with --allow-missing-bootstrap, a missing .deft-cache/github-issue/ exits 0 and does not call maybeAutoPopulateEmptyCache / fetch-all. Do not widen DEFT_RELEASE_PREFLIGHT (age-only bypass stays as today).",
+        "relieves: P2 — Keep non-release verify:cache-fresh, session:ready, and triage:bootstrap behavior unchanged. Keep hard release gates: lifecycle-sync check (apply-mode only on mismatch recovery), tag availability, CHANGELOG/version, and Step 5 product/check ownership outside this advisory demotion. Existing-cache stale-by-drift remains hard where the cache exists.",
+        "relieves: P3 — Affirm no release step owns the github-issue triage cache for issue-state truth (live REST). Update pack SoT and the content-contract lock for the #4399 heading citing #7326 so regenerated skill text matches. Docs/agents-entry mirrors if present. Footnote: Bound \"missing\" means bootstrap state above; a present empty-entry dir is out of this Bound.",
+        "Claude PA F1 blocking: P1 owner is skill Phase 1 / orientation dirty, not Step 5 widen — absorbed.",
+        "Claude PA F2 sharpening: P2 holds — kept.",
+        "Claude PA F3 footnote: define missing vs empty — absorbed in P1/P3.",
+        "Codex/Grok PA clear on prior Bound: superseded; regression test keeps their Step 5 no-populate intent as a lock of current admission."
+      ],
+      "admitted_source_sentences": [
+        "relieves: P1 — Rewrite the three #4399 release-skill surfaces (Orientation-dirty subsection, Phase 1 checklist item 11, Skill Completion anti-pattern) so Phase 1 treats orientation cache_fresh dirty caused by missing github-issue triage cache (bootstrap state: missing source dir or missing candidates log) as advisory with a triage:bootstrap / triage-queue recovery pointer, not a hard fetch-all gate before release. Add a regression test that locks current Step 5 / framework verify:cache-fresh behavior: under releaseCheckEnv with --allow-missing-bootstrap, a missing .deft-cache/github-issue/ exits 0 and does not call maybeAutoPopulateEmptyCache / fetch-all. Do not widen DEFT_RELEASE_PREFLIGHT (age-only bypass stays as today).",
+        "relieves: P2 — Keep non-release verify:cache-fresh, session:ready, and triage:bootstrap behavior unchanged. Keep hard release gates: lifecycle-sync check (apply-mode only on mismatch recovery), tag availability, CHANGELOG/version, and Step 5 product/check ownership outside this advisory demotion. Existing-cache stale-by-drift remains hard where the cache exists.",
+        "relieves: P3 — Affirm no release step owns the github-issue triage cache for issue-state truth (live REST). Update pack SoT and the content-contract lock for the #4399 heading citing #7326 so regenerated skill text matches. Docs/agents-entry mirrors if present. Footnote: Bound \"missing\" means bootstrap state above; a present empty-entry dir is out of this Bound.",
+        "Claude PA F1 blocking: P1 owner is skill Phase 1 / orientation dirty, not Step 5 widen — absorbed.",
+        "Claude PA F2 sharpening: P2 holds — kept.",
+        "Claude PA F3 footnote: define missing vs empty — absorbed in P1/P3.",
+        "Codex/Grok PA clear on prior Bound: superseded; regression test keeps their Step 5 no-populate intent as a lock of current admission."
+      ],
+      "admitted_source_digest": "153677564c2e88f98c9e5ddff8c3f22c3931a5e8bab07019dcc1b8bb5f0fbddc",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "relieves: P1 — Rewrite the three #4399 release-skill surfaces (Orientation-dirty subsection, Phase 1 checklist item 11, Skill Completion anti-pattern) so Phase 1 treats orientation cache_fresh dirty caused by missing github-issue triage cache (bootstrap state: missing source dir or missing candidates log) as advisory with a triage:bootstrap / triage-queue recovery pointer, not a hard fetch-all gate before release. Add a regression test that locks current Step 5 / framework verify:cache-fresh behavior: under releaseCheckEnv with --allow-missing-bootstrap, a missing .deft-cache/github-issue/ exits 0 and does not call maybeAutoPopulateEmptyCache / fetch-all. Do not widen DEFT_RELEASE_PREFLIGHT (age-only bypass stays as today).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "relieves: P2 — Keep non-release verify:cache-fresh, session:ready, and triage:bootstrap behavior unchanged. Keep hard release gates: lifecycle-sync check (apply-mode only on mismatch recovery), tag availability, CHANGELOG/version, and Step 5 product/check ownership outside this advisory demotion. Existing-cache stale-by-drift remains hard where the cache exists.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "relieves: P3 — Affirm no release step owns the github-issue triage cache for issue-state truth (live REST). Update pack SoT and the content-contract lock for the #4399 heading citing #7326 so regenerated skill text matches. Docs/agents-entry mirrors if present. Footnote: Bound \"missing\" means bootstrap state above; a present empty-entry dir is out of this Bound.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Claude PA F1 blocking: P1 owner is skill Phase 1 / orientation dirty, not Step 5 widen — absorbed.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Claude PA F2 sharpening: P2 holds — kept.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Claude PA F3 footnote: define missing vs empty — absorbed in P1/P3.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Codex/Grok PA clear on prior Bound: superseded; regression test keeps their Step 5 no-populate intent as a lock of current admission.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "content/skills/deft-directive-release/SKILL.md",
+          "packages/core/src/content-contracts/skills/skills.test.ts",
+          "packages/core/src/preflight-cache/evaluate.ts",
+          "docs/RULE-MAP.md",
+          "content/packs/skills/skills-pack-0.1.json",
+          "packages/core/src/preflight-cache/evaluate.test.ts"
+        ],
+        "module_boundary": "content/skills/deft-directive-release",
+        "cohesion_exemption": "changelog fragment and skill/docs co-travel with Bound remedy"
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\nLean: Prefer-A draft (not Bound)\n\n## In plain English\nRelease Phase 1 (#4399) currently hard-blocks a tip cut when orientation prints cache_fresh: dirty for a missing .deft-cache/github-issue/ tree, and points operators at deft cache fetch-all --source github-issue. That recovery is triage/queue work. The release pipeline gates (reconcile:issues, tag availability, CHANGELOG, Step 5 check) do not clearly need the github-issue triage cache. Soften that hard preflight so a clean tip cut is not sent into a long triage seed mid-cut, while keeping real release gates hard and naming any step that truly needs the cache.\n\nTarget-digest: sha256:434b6ee4e9862cc8d29f4664e5de9b0dfe732c6a3054247c98e3f72933822f23\nSpec-path: Bound remedy on this lean\nconflict_group: release-phase1-drop-github-issue-cache-hard-preflight\nSupersedes: (none)\n\n## Bound remedy\n- relieves: P1 — Demote missing github-issue triage cache / orientation cache_fresh dirty from that source alone from a hard Phase 1 release preflight to advisory (warn + triage recovery pointer), so tip deft release:run / Phase 1 does not require cache fetch-all --source github-issue solely for that orientation line.\n- relieves: P2 — Keep real release gates hard (reconcile:issues --apply-lifecycle-fixes, tag availability, CHANGELOG / version gates, Step 5 product check). Do not treat triage:bootstrap as a release-cut recovery.\n- relieves: P3 — If any release step truly needs the github-issue triage cache, fail closed naming that step; update release skill, docs, and agents-entry mirrors so operators are not sent into a long triage cache seed mid-cut.\n\nReject: deleting reconcile/tag/CHANGELOG gates; treating skip-drift ritual green as a substitute for named release gates; absorbing triage queue freshness into release readiness; inventing a blanket --skip-cache-fresh release flag without a named step owner.\n\nFiled for @MScottAdams",
+          "id": 7152541254,
+          "html_url": "https://github.com/deftai/directive/issues/7326#issuecomment-7152541254",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-25T04:06:52Z",
+          "updated_at": "2026-11-25T04:06:52Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because Release Phase 1 (#4399) hard-requires github-issue triage cache freshness (orientation cache_fresh: dirty / missing .deft-cache/github-issue/) before a tip cut, and names cache fetch-all --source github-issue as recovery even when the release pipeline gates do not need that triage cache.\n\nrefutation-target: Release Phase 1 must treat orientation cache_fresh: dirty or missing .deft-cache/github-issue/ as a hard preflight recovered only by deft cache fetch-all --source github-issue (#4399).\n\npain: P1, P2, P3\n- P1: Tip release cuts hard-block on missing github-issue triage cache / orientation dirty and are sent into long cache fetch-all --source github-issue before Phase 1 proceeds.\n- P2: The named recovery is triage/queue bootstrap, which is not clearly required by release pipeline gates (reconcile:issues, tag availability, CHANGELOG / version, Step 5).\n- P3: Softening without naming owners could hide a real release step that needs the cache, or leave skill/docs/agents-entry still pointing operators at triage seed mid-cut.\n\narc-mode: no-ingest\nspend-recommend: N≥3\nspend: N≥3\nspend-ask: resolved\ndual-stop-reserved: pain-audit-1\nmateriality-bar: open\nverification-path: pin-read git show 30fa5344c29653f0935703dd28ffdad95e761e27:\ndispatch-sha: 30fa5344c29653f0935703dd28ffdad95e761e27\nclosed-findings: none\ncharter: refutation\n\nFiled for @MScottAdams",
+          "id": 7152544157,
+          "html_url": "https://github.com/deftai/directive/issues/7326#issuecomment-7152544157",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-25T04:07:03Z",
+          "updated_at": "2026-11-25T04:07:03Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 3\ninput-ceiling: 7152547303\nseat-families: claude, codex, grok\nspend: N≥3\ndispatch-sha: 30fa5344c29653f0935703dd28ffdad95e761e27\nverification-path: pin-read git show 30fa5344c29653f0935703dd28ffdad95e761e27:\narc-mode: no-ingest\nPrefer-A draft: 7152541254\nStop 1: 7152544157\n\nFiled for @MScottAdams",
+          "id": 7152547303,
+          "html_url": "https://github.com/deftai/directive/issues/7326#issuecomment-7152547303",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-25T04:07:15Z",
+          "updated_at": "2026-11-25T04:07:17Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nAccept Prefer-A for the reported missing-cache cut, with the scope clarification below. The blanket refutation-target does not survive: absence of the github-issue triage cache is not sufficient evidence that a release prerequisite failed.\n\n### F1 — sharpens-framing — Separate missing bootstrap from an existing stale cache\n\nEvidence at dispatch SHA `30fa5344c29653f0935703dd28ffdad95e761e27`: `tasks/verify.yml:361-377` already invokes `preflight-cache --allow-missing-bootstrap` for this framework; `Taskfile.yml:492,542` retains `verify:cache-fresh` in check aggregates. `packages/core/src/preflight-cache/evaluate.test.ts:87-106` covers permitted missing bootstrap, while lines 244-283 cover stale-by-drift even with `allowMissingBootstrap: true`.\n\nFailure mode: demoting the orientation message can clear Phase 1 yet leave an existing stale cache failing the retained Step 5 check. Thus “release does not need triage freshness” is broader than the mechanism established here. A later failure is not proof that release artifacts consume that cache; it may be an inherited aggregate gate.\n\nConsequence/remedy: Prefer-A can bind for missing bootstrap. State explicitly that this slice removes the missing-cache Phase 1 prerequisite and leaves existing-cache stale-by-drift behavior unchanged. If relief for that second state is intended, first name Step 5 / verify:cache-fresh as the current owner and decide that dependency explicitly. Do not introduce a blanket skip flag. Verify absent-cache admission and preservation of the existing stale-cache result separately.\n\n### F2 — sharpens-framing — Name Step 3 accurately; reuse its existing failure path\n\nEvidence: `packages/core/src/release/pipeline.ts:309-339` runs a lifecycle-sync check and names `task reconcile:issues -- --apply-lifecycle-fixes` as recovery on mismatches; it does not unconditionally run that apply command. `packages/core/src/intake/reconcile-issues.ts` obtains issue states through the SCM REST helpers (`fetchIssueStates` / `fetchIssueStatesForApply`), with the call sites at lines 1589-1607.\n\nFailure mode: describing Step 3 itself as apply-mode reconciliation can turn a required validity check into unnecessary lifecycle mutations on every clean cut, retaining preparation work that this change is meant to remove.\n\nConsequence/remedy: keep the lifecycle-sync check hard; run apply-mode reconciliation only as its named mismatch recovery. Keep tag, CHANGELOG/version and product checks intact. The inspected paths provide no basis for adding a new cache-owner registry or another preflight gate.\n\n### F3 — footnote — Update the source and all repeated release instructions\n\nThe release skill declares `packs/skills/skills-pack-0.1.json` as its source. The hard fetch-all rule appears in the Orientation-dirty subsection, Phase 1 item 11, and Anti-Patterns. Change the source and regenerate these surfaces; update actual mirrors if present. A warning should say the cache is not required for this missing-bootstrap release case and reserve the bootstrap pointer for subsequent triage/queue work. This is propagation work, not another mechanism limb.\n\nStrongest case for retaining the old rule: one conservative preflight catches stale selection state before expensive release work. It would change my verdict if a named release step consumed missing cached issue data without obtaining an authoritative replacement. The inspected lifecycle-check/recovery path and explicit missing-bootstrap allowance instead support the narrower removal. Preserve existing release authority and worktree/branch checks; do not make cache absence grant permission to skip them.\n\nVerification was static, SHA-pinned source inspection; no release execution or sibling Round-1 posts were read. Inputs: issue body, Stop 1 `7152544157`, Prefer-A `7152541254`, and panel deposit/ceiling `7152547303`.",
+          "id": 7152597344,
+          "html_url": "https://github.com/deftai/directive/issues/7326#issuecomment-7152597344",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-25T04:10:26Z",
+          "updated_at": "2026-11-25T04:10:26Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\naudit-targets: none\ncharter: refutation\nround: 1\nrefutation-target: Release Phase 1 must treat orientation cache_fresh: dirty or missing .deft-cache/github-issue/ as a hard preflight recovered only by deft cache fetch-all --source github-issue (#4399).\n\n## Verdict\nAccept Prefer-A (7152541254) with sharpens. The refutation-target does not survive pin-read: the hard bar is skill prose (#4399), not a release pipeline owner of the triage cache.\n\n## Findings\n\n### F1 — sharpens-framing — three #4399 surfaces vs P1 \"that source alone\"\nEvidence: pin-read `git show 30fa5344c29653f0935703dd28ffdad95e761e27:content/skills/deft-directive-release/SKILL.md` hard-requires fetch-all in Orientation-dirty / check-class stale-by-drift, checklist item 11, and Skill Completion anti-pattern ⊗; each conjuncts orientation `cache_fresh: dirty` with `verify:cache-fresh` stale-by-drift and names `cache fetch-all --source github-issue` as recovery.\nFailure mode: Prefer-A P1 demotes only \"missing github-issue … / orientation dirty from that source alone\". An implementer can leave checklist #11 / anti-pattern / stale-by-drift still hard, so tip cuts still enter the long triage seed and P1 relief fails.\nDisposition: Remint Prefer-A so P1 (or an affirmative P3) rewrites those three skill surfaces for the demoted class, and states whether other `verify:cache-fresh` stale-by-drift classes stay hard or share the advisory demotion when their only named recovery is github-issue fetch-all.\n\n### F2 — sharpens-framing — P3 conditional \"if any step needs\" is open relief\nEvidence: pin-read release Step 3 path (`packages/core/src/release/issue-state-fetch.ts`) and reconcile use live `scmCall(\"github-issue\", \"api\", …)` REST; no `packages/core/src/release` gate on `.deft-cache/github-issue/` or orientation `cache_fresh` found at dispatch SHA. Prefer-A P3 still opens with \"If any release step truly needs…\".\nFailure mode: Conditional limb leaves P3 unclosed; pain-audit can treat unmet \"if\" as residual / false relief while docs still point at fetch-all.\nDisposition: Make P3 affirmative and thin: no release step owns the github-issue triage cache at this SHA; rewrite the three #4399 skill surfaces (plus docs/agents-entry mirrors if present) so Phase 1 no longer names fetch-all as release recovery; keep triage:bootstrap / fetch-all for triage/queue only. Keep P2 hard gates unchanged.\n\n### F3 — footnote — code vs skill enforcement\nThe observed tip-cut block is agent/skill compliance with #4399, not a `task release` / `release:run` binary refuse on missing triage cache. Prefer-A correctly targets skill/docs demotion; do not invent a new release CLI flag (Reject list already covers blanket `--skip-cache-fresh`).\n\n## Pain map\n- P1: Prefer-A direction holds; F1 requires the three-surface rewrite so demotion is reachability-true.\n- P2: Holds; live release gates stay hard and do not need the triage tree.\n- P3: Holds only after F2 makes the skill/docs rewrite affirmative rather than conditional.\n\n## Roads not taken\n- Approach B — keep hard preflight, swap recovery to a release-owned check: rejected; pin-read shows no triage-cache owner in the release path.\n- Approach C — silence orientation / cache_fresh mid-cut: wider than needed; Prefer-A advisory warn + triage pointer is enough.\n\nSteelman of the refutation-target: stale issue inventory mid-cut could mis-close or mis-reconcile. Flip condition would be a named release step that reads `.deft-cache/github-issue/` and fails closed without it. Pin-read did not find that owner; reconcile/release inventory is live REST.\n\nFiled for @MScottAdams\r\n\n",
+          "id": 7152606829,
+          "html_url": "https://github.com/deftai/directive/issues/7326#issuecomment-7152606829",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-25T04:11:01Z",
+          "updated_at": "2026-11-25T04:11:01Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: critic\n```\n\naudit-targets: none\n\nVerdict: **Approach B** (Prefer-A as drafted does not meet the issue's acceptance). Pin-read at `30fa5344c29653f0935703dd28ffdad95e761e27`.\n\n## Finding 1 — blocks-the-design (P1, P3)\n\nPrefer-A assumes the cache need exists only in the skill text. That is wrong. Release Step 5 runs native `task check` (`packages/core/src/release/preflight.ts` `runReleaseCheck`). `FRAMEWORK_CHECK_GATES` includes `verify:cache-fresh` (`packages/core/src/check/gate-lists.ts:112`). Under `DEFT_RELEASE_PREFLIGHT=1` (`releaseCheckEnv`, preflight.ts:44-50), `evaluate.ts` bypasses **age only** (`releasePreflightStaleBypass`, `packages/core/src/preflight-cache/evaluate.ts:551`, comment \"release Step-5 age bypass only, #2386\"). The release env does **not** cover:\n\n- **Missing / empty cache**: `isTriageCacheEmpty` triggers `maybeAutoPopulateEmptyCache` (evaluate.ts:414-423; `cache/empty-populate.ts:48` \"mirror triage:bootstrap populate steps: fetch-all\"). If that fails, the result is `code: 2` \"`.deft-cache/github-issue/ not found`\" (evaluate.ts:446-460).\n- **Stale-by-drift**: the drift probe runs whenever `!allowStale && !skipDrift` (evaluate.ts:586). The release env sets neither.\n\nEffect: if only the skill hard-preflight (SKILL.md:171-175, 276, 509) is demoted, the clean-tip cut runs the same long fetch-all inside Step 5. Or it fails Step 5 after reconcile, which is later and worse than today. The #4399 skill rule moved a real Step 5 failure to the front. It was not an invented need. This is the \"real release step that needs the cache\" P3 asks for, and Step 5 is the owner.\n\nRemedy (one mechanism limb, extend an existing seam): in `evaluate.ts`, extend the existing `DEFT_RELEASE_PREFLIGHT` bypass from age-only to also cover (a) missing/empty source dir and candidates log: no auto-populate, `code: 0` with a named warning, and (b) the drift probe: skip with a warning. Reason: release truth for issue state comes from live calls (`run-reconcile` / `intake/reconcile-issues.ts` and `release/issue-state-fetch.ts` use `scmCall(\"github-issue\", \"api\", …)`, not `.deft-cache`). Then demote the skill preflight to advisory. Outside the release env, triage/`session:ready` behaviour does not change (P2).\n\n## Finding 2 — sharpens-framing (P2)\n\nThe Prefer-A Reject line \"inventing a blanket --skip-cache-fresh release flag\" is correct, but it should name the replacement. No new flag or env is needed. `DEFT_RELEASE_PREFLIGHT` already exists, is set only by `releaseCheckEnv`, and already scrubs `DEFT_ALLOW_*`. Widen its meaning in one place. Do not add a second escape.\n\n## Finding 3 — sharpens-framing (gate integrity #3156)\n\n`packages/core/src/content-contracts/skills/skills.test.ts:880` locks the `Orientation-dirty / check-class stale-by-drift (#4399)` heading. `session-ready.test.ts:526-641` and `verify-session-ritual.test.ts:799-814` lock check-class `cache_fresh` for `session:ready`. The B change keeps those `session:ready` contracts and edits only the release-skill contract test, as a deliberate change cited to this issue. Add evaluate.ts tests: release env + missing dir gives code 0 with a warning and no populate call; release env + drift gives code 0 with a warning; no release env keeps today's results.\n\n## Finding 4 — footnote\n\n`named-cause.ts:44` remediation (\"task cache:fetch-all or task triage:bootstrap\") is reached from Step 5 failures. After B, this path should not fire under release env. No text change needed unless a release-env failure path remains.\n\nSummary: Accept the Prefer-A intent. Reject Prefer-A's scope (skill-text only). Approach B = Prefer-A plus a widened `DEFT_RELEASE_PREFLIGHT` bypass in `preflight-cache/evaluate.ts` (missing/empty + drift), with tests.\n\n",
+          "id": 7152606876,
+          "html_url": "https://github.com/deftai/directive/issues/7326#issuecomment-7152606876",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-25T04:11:02Z",
+          "updated_at": "2026-11-25T04:11:02Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\nLean: Prefer-A Bound\n\n## In plain English\nA tip release cut must not hard-require github-issue triage cache seed. Widen the existing DEFT_RELEASE_PREFLIGHT seam so a missing/empty .deft-cache/github-issue/ does not auto fetch-all or fail Step 5, demote the three #4399 skill surfaces to advisory for that missing class, and leave triage/session:ready plus existing-cache stale-by-drift Step 5 behavior unchanged.\n\nTarget-digest: sha256:434b6ee4e9862cc8d29f4664e5de9b0dfe732c6a3054247c98e3f72933822f23\nSpec-path: Bound remedy on this lean\nRecut: (none — first Bound)\nconflict_group: release-phase1-drop-github-issue-cache-hard-preflight\nSupersedes: Prefer-A draft 7152541254\nRound-1: Codex 7152597344; Grok 7152606829; Claude 7152606876\n\n## Bound remedy\n- relieves: P1 — Under DEFT_RELEASE_PREFLIGHT (release Step 5 / releaseCheckEnv only), treat missing or empty github-issue triage cache as admitted: no maybeAutoPopulateEmptyCache / fetch-all, exit code 0 with a named warning that triage bootstrap remains the triage/queue recovery.\n- relieves: P2 — Keep non-release verify:cache-fresh, session:ready, and triage:bootstrap behavior unchanged. Keep hard release gates: lifecycle-sync check (apply-mode only on mismatch recovery), tag availability, CHANGELOG/version, and Step 5 product/check ownership outside this missing-cache admission.\n- relieves: P3 — Rewrite the three #4399 release-skill surfaces (Orientation-dirty subsection, Phase 1 checklist item 11, Skill Completion anti-pattern) plus pack SoT / content-contract lock citing #7326 so Phase 1 no longer hard-requires cache fetch-all --source github-issue for missing github-issue orientation dirty; point operators at triage bootstrap only for triage/queue work. Affirm: no release step owns the triage cache for issue-state truth (live REST); Step 5 is the former hard owner of missing-cache fail/populate and is relieved only via the P1 DEFT_RELEASE_PREFLIGHT widen.\n\nReject: inventing a new blanket --skip-cache-fresh flag; changing session:ready / non-release cache-fresh contracts; deleting reconcile/tag/CHANGELOG gates; absorbing existing-cache stale-by-drift soft-pass into this Bound (Codex F1 / leave Step 5 drift hard); Approach B full drift+missing widen beyond missing/empty; silencing orientation mid-cut without advisory pointer.\n\nAccept-into-contract from Round-1:\n- Codex F1 (sharpen): missing bootstrap vs existing stale-cache — Bound admits missing/empty only; stale-by-drift stays hard in Step 5.\n- Codex F2 (sharpen): Step 3 is lifecycle-sync check; apply-mode is mismatch recovery only — kept in P2.\n- Codex F3 (footnote): pack SoT + regenerate skill surfaces — in P3.\n- Grok F1 (sharpen): rewrite all three #4399 surfaces — in P3.\n- Grok F2 (sharpen): affirmative P3 (no open if-any) — in P3.\n- Claude F1 (blocks Prefer-A draft scope): Step 5 verify:cache-fresh missing/empty auto-populate — absorbed as P1 mechanism on DEFT_RELEASE_PREFLIGHT.\n- Claude F2 (sharpen): widen existing DEFT_RELEASE_PREFLIGHT; no second escape — in P1.\n- Claude F3 (sharpen): deliberate skills.test.ts / evaluate.ts tests citing #7326 — in P3 / verify path.\n- Claude full Approach B drift soft-pass: deferred out of Bound (Reject / residual); missing/empty only.\n\nFiled for @MScottAdams",
+          "id": 7152624793,
+          "html_url": "https://github.com/deftai/directive/issues/7326#issuecomment-7152624793",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-25T04:12:10Z",
+          "updated_at": "2026-11-25T04:12:10Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1, pain-P2, pain-P3\nfinding-classes: none\nharvest-changed: false\n\n## Pain-audit 1: Prefer-A Bound\n\nAudited [Bound 7152624793](https://github.com/deftai/directive/issues/7326#issuecomment-7152624793) against [Stop 1 7152544157](https://github.com/deftai/directive/issues/7326#issuecomment-7152544157). Read no later siblings. Source verification is pinned to 30fa5344c29653f0935703dd28ffdad95e761e27. Verdict: no false-relief or reachability finding for the stated missing/empty-cache remedy; no harvest change required. This is design coverage, not a claim that the change has shipped.\n\nP1: Relief is reachable. At the pin, `packages/core/src/preflight-cache/evaluate.ts` calls `maybeAutoPopulateEmptyCache` before checking the release bypass, and can then refuse a missing source directory or candidates log. `packages/core/src/release/preflight.ts` already supplies `DEFT_RELEASE_PREFLIGHT=1` through `releaseCheckEnv` to the Step 5 check dispatcher. The Bound explicitly requires both no population and exit 0 for missing/empty triage cache, so its admission must precede those operations. Merely suppressing fetch would not satisfy this existing Bound: an empty directory with no candidates log must also pass with the named warning.\n\nP2: Relief is appropriately scoped. The release-only admission removes triage bootstrap as a prerequisite for the missing/empty case, while retaining lifecycle-sync, tag, version/CHANGELOG and other Step 5 checks. Non-release cache verification and triage/session recovery retain their own requirements. Existing-cache drift is explicitly excluded, so this is not a promise that every orientation-dirty release will proceed. Preserve the actual pinned behavior: the existing age-stale release branch returns before the drift probe, while drift detected on the later path still fails. Do not interpret \"drift stays hard\" as an instruction to add a new probe to that existing age-bypass branch.\n\nP3: The proposed repair names the runtime owner and all three conflicting #4399 skill surfaces: Orientation-dirty, checklist item 11, and the completion anti-pattern. Updating the pack source and contract lock makes the guidance repair durable. Naming Step 5 as the former missing-cache fail/populate owner avoids a prose-only fix; retaining its other checks avoids turning the owner statement into a blanket cache bypass. The missing/empty qualification must remain visible in those surfaces, as already required by the Bound.\n\nAcceptance evidence should demonstrate release admission for both an absent directory and an empty directory with no candidates log, zero calls to auto-population, the warning, unchanged non-release behavior, and unchanged existing-cache drift behavior. These verify the current remedy; they do not enlarge it.",
+          "id": 7152647316,
+          "html_url": "https://github.com/deftai/directive/issues/7326#issuecomment-7152647316",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-25T04:13:36Z",
+          "updated_at": "2026-11-25T04:13:36Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1, pain-P2, pain-P3\nfinding-classes: blocking, sharpening, footnote\nharvest-changed: true\n\nPain-audit 1 of Prefer-A Bound 7152624793. Ceiling 7152624793. Pin `30fa5344c`.\n\n## F1 (blocking): the P1 mechanism is not on the failing path\n\nThe Bound relieves P1 by widening `DEFT_RELEASE_PREFLIGHT` so Step 5 admits a missing or empty cache. At the pin, Step 5 already admits it:\n\n- `packages/core/src/render/framework-commands.ts:107-108`: `verify:cache-fresh` has `defaultArgs: [\"--allow-missing-bootstrap\"]`. `tasks/verify.yml:377` does the same.\n- `packages/core/src/preflight-cache/evaluate.ts:414-418`: auto-populate runs only when `!allowMissingBootstrap`. At `:447-452`, a missing source dir returns 0 when the flag is set.\n- `packages/core/src/session/ritual-entrypoint.ts:127-130`: the gated ritual `cache_fresh` also passes `--allow-missing-bootstrap`.\n\nThe observed `❌ ... .deft-cache/github-issue/ not found` line comes from orientation. `packages/core/src/session/orientation-compression.ts:538-541` calls `evaluate` with `allowMissingBootstrap: false, autoPopulateEmpty: false`. On the framework root, it prints the raw message and the triage-bootstrap remediation as `dirty` (`:544-549`). The hard stop is the #4399 skill text that treats that orientation dirty state as a blocker.\n\nAs written, the P1 limb changes a branch the release cut does not reach. P1 is relieved only through the P3 skill rewrite, so this is false relief. It also adds code and env surface for no gain (KISS / fewer gates).\n\nRemedy: re-pin P1 to the real owner. That owner is the release skill Phase 1 handling of orientation `cache_fresh: dirty` with a missing-cache cause, which the P3 surfaces already cover. Drop the `DEFT_RELEASE_PREFLIGHT` widen. Instead, add one regression test that pins the current behavior: under `releaseCheckEnv` with `--allow-missing-bootstrap`, a missing `.deft-cache/github-issue/` gives exit 0 and no fetch-all. If the parent keeps any code change, put it in the orientation message, not in Step 5. For example, on the framework root, label missing-cache dirty as triage/queue-only. That still meets \"no silencing without an advisory pointer\".\n\n## F2 (sharpening): P2 holds\n\nNothing in the release pipeline reads the github-issue triage cache for gating. Stale-by-drift stays hard because it applies only when the cache exists, and the `--allow-missing-bootstrap` admission does not change that. Keep the Reject on the drift soft-pass. No change to the fail-closed association.\n\n## F3 (footnote): \"empty\" needs one definition\n\n\"Missing or empty\" is wider than what `--allow-missing-bootstrap` admits today: a missing source dir or a missing candidates log. A dir that exists with zero entries goes to the age/staleness logic (`evaluate.ts:544-546`). The Bound should name which state it means, or limit the claim to \"missing (bootstrap state)\". Docs only; no mechanism change.\n\n## Verdict\n\nP2 and P3 limbs are reachable and honest. The P1 limb is not, because its relief comes from the P3 skill rewrite and not from the stated mechanism. Recut P1 as described in F1.\n\n",
+          "id": 7152657392,
+          "html_url": "https://github.com/deftai/directive/issues/7326#issuecomment-7152657392",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-25T04:14:14Z",
+          "updated_at": "2026-11-25T04:14:14Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1, pain-P2, pain-P3\nfinding-classes: none\nharvest-changed: false\n\nPain-audit of Prefer-A Bound 7152624793 vs Stop 1 7152544157 (ceiling 7152624793). Pin-read `git show 30fa5344c29653f0935703dd28ffdad95e761e27:`.\n\n## Verdict\nBound remedy limbs honestly relieve P1–P3. No false-relief. No Bound remint.\n\n## Coverage\n- **pain-P1:** Joint limbs. P1 widens existing `DEFT_RELEASE_PREFLIGHT` / `releaseCheckEnv` so missing/empty `.deft-cache/github-issue/` skips `maybeAutoPopulateEmptyCache` and exits 0 with a named triage-bootstrap warning (pin today: age-only bypass in `preflight-cache/evaluate.ts`; empty-populate still runs first; missing source dir is exit 2). P3 demotes the three #4399 skill hard-preflights for that missing class. Either limb alone would leave a hard path (skill Phase 1 or Step 5 fetch-all/exit-2); together they close Stop 1 P1 for the Bound-scoped missing/empty class (Codex F1 / Reject leave existing-cache stale-by-drift hard).\n- **pain-P2:** Keep-scope limb is honest: non-release `verify:cache-fresh` / `session:ready` / `triage:bootstrap` unchanged; lifecycle-sync (apply-mode recovery only), tag availability, CHANGELOG/version, and Step 5 product/check ownership outside this missing-cache admission stay hard. No blanket `--skip-cache-fresh`.\n- **pain-P3:** Affirmative ownership (no release step owns the triage cache for issue-state truth; live REST) plus rewrite of Orientation-dirty, checklist item 11, and Skill Completion anti-pattern, with pack SoT / content-contract lock citing #7326. Matches pin-read of those three surfaces and Round-1 Grok F1/F2.\n\n## Reachability\nOne existing seam (`ENV_RELEASE_PREFLIGHT` / `releasePreflightBypassActive`) plus the named skill/contract edits. Reject parks Approach B drift soft-pass and session:ready changes. Claude F1 missing/empty absorbed; drift residual is deliberate, not silent false-relief of Stop 1 P1 as Bound-scoped.\n\nFiled for @MScottAdams",
+          "id": 7152668735,
+          "html_url": "https://github.com/deftai/directive/issues/7326#issuecomment-7152668735",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-25T04:14:58Z",
+          "updated_at": "2026-11-25T04:14:58Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\nLean: Prefer-A Recut-1\n\n## In plain English\nThe tip-cut block is the #4399 release-skill hard-preflight on orientation cache_fresh dirty for a missing github-issue triage cache, not Step 5. Framework verify:cache-fresh already passes --allow-missing-bootstrap, so Step 5 already admits a missing cache. Recut drops the DEFT_RELEASE_PREFLIGHT widen (false relief), demotes the three #4399 skill surfaces to advisory for that missing class, and locks the existing Step 5 admission with a regression test.\n\nTarget-digest: sha256:434b6ee4e9862cc8d29f4664e5de9b0dfe732c6a3054247c98e3f72933822f23\nSpec-path: Bound remedy on this lean\nRecut: 1\ndual-stop-raise: +1\nconflict_group: release-phase1-drop-github-issue-cache-hard-preflight\nSupersedes: Prefer-A Bound 7152624793\nPA-1: Codex 7152647316 (none); Claude 7152657392 (blocking harvest-changed:true); Grok 7152668735 (none)\n\n## Bound remedy\n- relieves: P1 — Rewrite the three #4399 release-skill surfaces (Orientation-dirty subsection, Phase 1 checklist item 11, Skill Completion anti-pattern) so Phase 1 treats orientation cache_fresh dirty caused by missing github-issue triage cache (bootstrap state: missing source dir or missing candidates log) as advisory with a triage:bootstrap / triage-queue recovery pointer, not a hard fetch-all gate before release. Add a regression test that locks current Step 5 / framework verify:cache-fresh behavior: under releaseCheckEnv with --allow-missing-bootstrap, a missing .deft-cache/github-issue/ exits 0 and does not call maybeAutoPopulateEmptyCache / fetch-all. Do not widen DEFT_RELEASE_PREFLIGHT (age-only bypass stays as today).\n- relieves: P2 — Keep non-release verify:cache-fresh, session:ready, and triage:bootstrap behavior unchanged. Keep hard release gates: lifecycle-sync check (apply-mode only on mismatch recovery), tag availability, CHANGELOG/version, and Step 5 product/check ownership outside this advisory demotion. Existing-cache stale-by-drift remains hard where the cache exists.\n- relieves: P3 — Affirm no release step owns the github-issue triage cache for issue-state truth (live REST). Update pack SoT and the content-contract lock for the #4399 heading citing #7326 so regenerated skill text matches. Docs/agents-entry mirrors if present. Footnote: Bound \"missing\" means bootstrap state above; a present empty-entry dir is out of this Bound.\n\nReject: DEFT_RELEASE_PREFLIGHT widen for missing/empty (false relief on already-admitted Step 5 path); inventing --skip-cache-fresh; changing session:ready / non-release contracts; deleting reconcile/tag/CHANGELOG gates; soft-passing existing-cache stale-by-drift; silencing orientation without advisory triage pointer.\n\nAccept-into-contract:\n- Claude PA F1 blocking: P1 owner is skill Phase 1 / orientation dirty, not Step 5 widen — absorbed.\n- Claude PA F2 sharpening: P2 holds — kept.\n- Claude PA F3 footnote: define missing vs empty — absorbed in P1/P3.\n- Codex/Grok PA clear on prior Bound: superseded; regression test keeps their Step 5 no-populate intent as a lock of current admission.\n\nFiled for @MScottAdams",
+          "id": 7152684342,
+          "html_url": "https://github.com/deftai/directive/issues/7326#issuecomment-7152684342",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-25T04:15:57Z",
+          "updated_at": "2026-11-25T04:15:57Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1, pain-P2, pain-P3\nfinding-classes: none\nharvest-changed: false\n\nPain-audit 2: [Prefer-A Recut-1 7152684342](https://github.com/deftai/directive/issues/7326#issuecomment-7152684342) against [Stop 1 7152544157](https://github.com/deftai/directive/issues/7326#issuecomment-7152544157). Ceiling: 7152684342. Source pin: `30fa5344c29653f0935703dd28ffdad95e761e27`. No later comments used.\n\nVerdict: the recut removes the false-relief mechanism and honestly covers P1-P3 within its declared bootstrap-state scope. No further harvest change required. This audits the design, not a shipped implementation.\n\nP1: The reachable blocker is the release skill's interpretation of orientation dirty. At the pin, `session/orientation-compression.ts` evaluates with `allowMissingBootstrap: false, autoPopulateEmpty: false` and reports missing-cache state as dirty. The three #4399 skill surfaces then require fetch-all before release. Rewriting all three to make this specific bootstrap cause advisory removes that stop while preserving the triage/queue recovery pointer. Conversely, `render/framework-commands.ts` already supplies `--allow-missing-bootstrap` to `verify:cache-fresh`, and `tasks/verify.yml` supplies the same flag. In `preflight-cache/evaluate.ts`, that flag prevents entry into auto-population and returns code 0 for either an absent source directory or an absent candidates log. The recut correctly treats Step 5 admission as existing behavior to regression-lock, not new relief from widening `DEFT_RELEASE_PREFLIGHT`. This corrects my prior audit 7152647316, which considered evaluator defaults without tracing the framework command's actual default arguments.\n\nP2: No runtime bypass expansion is needed. Keeping lifecycle-sync check, mismatch-only apply recovery, tag, version/CHANGELOG, and other Step 5 checks preserves release ownership. Non-release verification, session:ready, and triage bootstrap are unchanged. Read the drift preservation together with the explicit instruction to retain today's age-only release bypass: at the pin, the age-bypass branch returns before the later drift probe; a drift failure reached on that later path remains hard. The recut must not be read as adding a new drift probe or guaranteeing that every present cache is probed.\n\nP3: Ownership is explicit and the repair reaches the durable guidance surfaces: the Orientation-dirty subsection, checklist item 11, completion anti-pattern, skills pack source, and content-contract lock. `release/issue-state-fetch.ts` obtains issue state through `scmCall(\"github-issue\", \"api\", ...)`, rather than the triage inventory. Step 5 retains cache verification as a check with existing bootstrap admission; this is compatible with saying the cache is not release issue-state truth. The missing-source/missing-candidates definition and exclusion of a present empty inventory prevent an unbounded promise to relieve all orientation-dirty cases.\n\nVerification should exercise both bootstrap cases, assert zero auto-population calls, and retain the framework command's actual default-argument wiring in the regression coverage; a test that manually supplies the flag alone would not lock that wiring. These are checks of the recut's stated existing-admission contract, not additional remedy limbs. Preserve the advisory pointer and confirm regeneration does not restore any of the three blanket hard stops for the missing-bootstrap class.",
+          "id": 7152718375,
+          "html_url": "https://github.com/deftai/directive/issues/7326#issuecomment-7152718375",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-25T04:18:09Z",
+          "updated_at": "2026-11-25T04:18:09Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1, pain-P2, pain-P3\nfinding-classes: sharpening, footnote\nharvest-changed: false\ntarget: Prefer-A Recut-1 7152684342\nstop-1: 7152544157\nid-ceiling: 7152684342\nverification-path: pin-read git show 30fa5344c29653f0935703dd28ffdad95e761e27:\n\n## In plain English\nThe Recut puts the fix in the right place. The tip-cut block comes from the #4399 release-skill text, not from the Step 5 gate. Step 5 already admits a missing github-issue cache. No blocking finding. One sharpening: the regression lock must cover the real Step 5 dispatch path, not only `evaluate()` with an option set.\n\n## False-relief check\n- Pin: `packages/core/src/render/framework-commands.ts:107-109` — `verify:cache-fresh` has `defaultArgs: [\"--allow-missing-bootstrap\"]`. `tasks/verify.yml:361+` documents the same flag for the framework's own `task check`.\n- Pin: `packages/core/src/preflight-cache/evaluate.ts` — with `allowMissingBootstrap`, a missing source dir or absent candidates log returns code 0 (\"bootstrap state\"), and the `maybeAutoPopulateEmptyCache` branch is skipped.\n- Pin: `packages/core/src/release/*.ts` (non-test) has no cache-fresh call. Release Step 5 reaches the gate only through `task check` with `releaseCheckEnv` (`release/preflight.ts:218`).\n- Pin: `content/skills/deft-directive-release/SKILL.md:171-175`, `:276` (item 11), `:509` (anti-pattern) — the hard \"fetch-all before task release\" text. The SoT is `content/packs/skills/skills-pack-0.1.json` (the SKILL.md is AUTO-GENERATED). The content lock is `skills.test.ts:880-882`.\n- Verdict: dropping the DEFT_RELEASE_PREFLIGHT widen is correct. That widen would relieve a path that already passes. P1's owner is the skill demotion. The Step 5 test is a lock on existing behavior, not a fix. No false relief remains.\n\n## Findings\n- F1 sharpening (P1): The regression lock must exercise the dispatch path Step 5 really uses. That is `verify:cache-fresh` via the framework-commands spec or `task check` gate-list resolution, which injects `--allow-missing-bootstrap`. A unit test that calls `evaluate(root, { allowMissingBootstrap: true })` only proves what `evaluate.ts` already proves. It would not catch a later removal of `defaultArgs` (`framework-commands.ts:108`), and that removal is the real regression risk. Assert on the resolved argv or the end-to-end exit code under `releaseCheckEnv`. Also assert that `maybeAutoPopulateEmptyCache` / fetch-all is not called.\n- F2 footnote (P2): Existing-cache stale-by-drift stays hard, and its recovery is still `fetch-all`. This matches the issue's scope (the issue is about a missing cache only). The rewritten item 11 must keep the two classes on separate lines, so an operator with a present but drifted cache is not told the issue is advisory.\n- F3 footnote (P3): `named-cause.ts:44` (`verify:cache-fresh` → \"task cache:fetch-all or task triage:bootstrap\") is a Step-5 named cause. It does not conflict with the Recut, because Step 5 does not fail on missing. Do not touch it in this scope.\n\n## Per-pain\n- pain-P1: relieved. Correct owner (skill Phase 1 / orientation dirty). The widen is rightly rejected. F1 sharpens the lock.\n- pain-P2: relieved. Non-release contracts are unchanged. Reconcile, tag, CHANGELOG and Step 5 gates are kept.\n- pain-P3: relieved. \"No release step owns the github-issue cache\" holds at the pin (no release-module cache-fresh call). Pack SoT plus the content-lock update is named.\n\nFiled for @MScottAdams\n\n",
+          "id": 7152725605,
+          "html_url": "https://github.com/deftai/directive/issues/7326#issuecomment-7152725605",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-25T04:18:37Z",
+          "updated_at": "2026-11-25T04:18:37Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1, pain-P2, pain-P3\nfinding-classes: none\nharvest-changed: false\n\nPain-audit 2 of Prefer-A Recut-1 7152684342 vs Stop 1 7152544157. Ceiling 7152684342. Pin-read `git show 30fa5344c29653f0935703dd28ffdad95e761e27:`.\n\n## Verdict\nRecut-1 honestly relieves P1–P3. No false-relief. No Bound remint.\n\n## False-relief check\nPrior Bound 7152624793 relieved P1 by widening `DEFT_RELEASE_PREFLIGHT` so Step 5 would admit a missing/empty github-issue cache. At the pin that widen is false relief:\n\n- `packages/core/src/render/framework-commands.ts`: `verify:cache-fresh` already has `defaultArgs: [\"--allow-missing-bootstrap\"]`.\n- `tasks/verify.yml` `cache-fresh`: same flag on the engine invoke.\n- `packages/core/src/preflight-cache/evaluate.ts`: with `allowMissingBootstrap`, missing source dir / missing candidates log returns code 0 and skips `maybeAutoPopulateEmptyCache`.\n- `DEFT_RELEASE_PREFLIGHT` at pin is age-only (#2386 / evaluate.test \"allows stale cache when DEFT_RELEASE_PREFLIGHT is set\"); it is not the missing-bootstrap owner.\n- Orientation hard path: `orientation-compression.ts` calls evaluate with `allowMissingBootstrap: false`, so missing cache prints dirty; the tip-cut hard stop is skill #4399 (`Orientation-dirty`, Phase 1 checklist item 11, Anti-Patterns fetch-all first).\n\nRecut-1 drops the widen (Reject + P1 \"Do not widen DEFT_RELEASE_PREFLIGHT\") and re-pins P1 to skill demotion of that missing-bootstrap orientation class plus a regression lock of the existing Step 5 `--allow-missing-bootstrap` admission. Reachable and honest.\n\n## Coverage\n- **pain-P1:** Relieved. Three #4399 surfaces demote missing github-issue triage cache (bootstrap: missing source dir or missing candidates log) from hard fetch-all gate to advisory with triage:bootstrap / triage-queue pointer. Regression test locks current Step 5 / framework `verify:cache-fresh` under `releaseCheckEnv` + `--allow-missing-bootstrap`: missing `.deft-cache/github-issue/` exits 0 and does not fetch-all. Matches Stop 1 P1 tip-cut block owner.\n- **pain-P2:** Relieved. Non-release `verify:cache-fresh`, `session:ready`, `triage:bootstrap` unchanged. Hard release gates kept (lifecycle-sync apply-mode-on-mismatch, tag, CHANGELOG/version, Step 5 product/check outside this demotion). Existing-cache stale-by-drift stays hard. Matches Stop 1 P2 (triage recovery not required by release gates).\n- **pain-P3:** Relieved. Affirms no release step owns github-issue triage cache for issue-state truth (live REST). Pack SoT + content-contract lock for #4399 heading citing #7326; docs/agents-entry mirrors if present. Footnote scopes Bound \"missing\" to bootstrap state; present empty-entry dir out of Bound (absorbs Claude PA-1 F3). Matches Stop 1 P3 ownership/docs concern.\n\n## Accept prior PA disposition\nClaude PA-1 7152657392 F1 blocking (false-relief widen) absorbed into Recut P1/Reject. F2 sharpening held in P2. F3 footnote absorbed in P1/P3. Codex 7152647316 / Grok 7152668735 clear on superseded Bound; regression lock keeps their Step 5 no-populate intent without inventing a new admission path.\n\nFiled for @MScottAdams",
+          "id": 7152727266,
+          "html_url": "https://github.com/deftai/directive/issues/7326#issuecomment-7152727266",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-25T04:18:44Z",
+          "updated_at": "2026-11-25T04:18:44Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\ntakes:\n- Claude PA-2 7152725605 F1 sharpening: accept-into-contract — regression lock must exercise framework-commands / task check dispatch that injects --allow-missing-bootstrap (not evaluate()-only with the flag hand-set).\n- Claude PA-2 7152725605 F2 footnote: accept-into-contract — rewritten item 11 keeps missing-bootstrap advisory separate from present-cache stale-by-drift hard recovery.\n- Claude PA-2 7152725605 F3 footnote: accept-into-contract — leave named-cause.ts Step 5 recovery text out of this Bound.\n- Codex PA-2 7152718375: accept-into-contract — none; coverage clear.\n- Grok PA-2 7152727266: accept-into-contract — none; coverage clear.\n\nlean: Prefer-A Recut-1 7152684342\nyolo-standing: on\n\nFiled for @MScottAdams",
+          "id": 7152739546,
+          "html_url": "https://github.com/deftai/directive/issues/7326#issuecomment-7152739546",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-25T04:19:31Z",
+          "updated_at": "2026-11-25T04:19:31Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Status | Evidence |\n|---|---|---|\n| Tip-cut hard stop for missing github-issue cache is #4399 skill Phase 1 / orientation dirty, not Step 5 missing-admission | verified | orientation-compression allowMissingBootstrap:false; framework-commands / verify.yml default --allow-missing-bootstrap; Recut-1 7152684342; Claude PA-1 7152657392; PA-2 clear |\n| Prefer-A Recut-1 relieves P1–P3 without DEFT_RELEASE_PREFLIGHT widen | verified | Recut-1 Bound remedy; PA-2 Codex 7152718375 / Claude 7152725605 / Grok 7152727266 harvest-changed:false |\n| Existing-cache stale-by-drift stays hard; missing-bootstrap advisory only | verified | Recut-1 P2/Reject; Claude PA-2 F2; Codex/Grok PA-2 |\n| No release step owns triage cache for issue-state truth (live REST) | verified | release/issue-state-fetch scmCall; PA-2 coverage |\n\nbound-contract-digest: Prefer-A Recut-1 7152684342\n\nFiled for @MScottAdams",
+          "id": 7152739862,
+          "html_url": "https://github.com/deftai/directive/issues/7326#issuecomment-7152739862",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-25T04:19:32Z",
+          "updated_at": "2026-11-25T04:19:32Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\ndesign-critique: synthesis accepted, because Prefer-A Recut-1 7152684342 relieves Stop 1 P1–P3 with PA-2 harvest-changed:false across Codex/Claude/Grok, and parent takes accept Claude sharpening/footnotes into contract without Bound remint.\n\n## In plain English\nShip the Recut-1 Bound: demote the three #4399 release-skill hard-preflights for missing github-issue triage cache to advisory, lock the existing Step 5 --allow-missing-bootstrap admission with a dispatch-path regression test, and leave triage/session:ready plus present-cache stale-by-drift unchanged. Ingest remains a later operator verb.\n\nsuccessor lean: Prefer-A Recut-1 #issuecomment-7152684342\nverified-claims table: 7152739862\nStop 1: 7152544157\nRound-1: Codex 7152597344; Grok 7152606829; Claude 7152606876\nPA-1: Codex 7152647316; Claude 7152657392; Grok 7152668735\nPA-2: Codex 7152718375; Claude 7152725605; Grok 7152727266\nparent takes: 7152739546\nconflict_group: release-phase1-drop-github-issue-cache-hard-preflight\narc-mode: no-ingest\n\nFiled for @MScottAdams",
+          "id": 7152742761,
+          "html_url": "https://github.com/deftai/directive/issues/7326#issuecomment-7152742761",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-25T04:19:44Z",
+          "updated_at": "2026-11-25T04:19:44Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n\nRelease Phase 1 (#4399) treats orientation `cache_fresh: dirty` / missing `.deft-cache/github-issue/` as a **hard** preflight and names `deft cache fetch-all --source github-issue` as the recovery before `task release` / `deft release:run`.\n\nThat recovery is triage/queue-oriented. On a clean tip release cut it adds long wall-clock and is not clearly required by the release pipeline itself (Step 3 is `reconcile:issues --apply-lifecycle-fixes`; version/tag/CHANGELOG gates do not need the github-issue triage cache).\n\n## Observed\n\nCutting v0.131.5 from a clean tip worktree at `origin/master`:\n\n```\n[deft orientation] cache_fresh: dirty\n❌ deft cache-fresh: .deft-cache/github-issue/ not found at <release-cut-worktree>\n  Recovery: run `deft triage:bootstrap` to seed the cache.\n```\n\nSkill text then points at `cache fetch-all --source github-issue` before invoking release.\n\n## Ask\n\n1. Soften or remove the release hard-preflight that requires github-issue triage cache for a tip cut.\n2. Keep real release gates (`reconcile:issues --apply-lifecycle-fixes`, tag availability, changelog, etc.).\n3. If any release step truly needs that cache, document **which** step and fail closed with that step's name — not a blanket orientation dirty → triage bootstrap.\n\n## Acceptance\n\n- A clean tip `deft release:run` / Phase 1 does not require `cache fetch-all --source github-issue` solely because orientation printed `cache_fresh: dirty` for a missing github-issue cache.\n- Triage bootstrap remains the recovery for triage/queue work selection.\n- Docs / release skill / agents-entry (if mirrored) updated so operators are not sent into a long triage cache seed mid-cut.\n\n## Refs\n\n- Release skill Phase 1 Orientation-dirty / check-class stale-by-drift (#4399)\n- Operator decision during v0.131.5 cut: proceed without fetch-all; file this gap\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6596760412,
+        "origin": "deftai/directive#7326",
+        "id": "github.issue.6596760412"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "434b6ee4e9862cc8d29f4664e5de9b0dfe732c6a3054247c98e3f72933822f23"
+      },
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 7326,
+        "leanCommentId": 7152684342,
+        "harvestDigest": "153677564c2e88f98c9e5ddff8c3f22c3931a5e8bab07019dcc1b8bb5f0fbddc",
+        "slice": null
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": false,
+        "conflict_group": "release-phase1-drop-github-issue-cache-hard-preflight",
+        "size": "S",
+        "file_scope": [
+          "xbrief/active/2026-11-25-7326-release-drop-github-issue-triage-cache-fetch-all-as-hard-pha.xbrief.json",
+          "content/skills/deft-directive-release/SKILL.md",
+          "packages/core/src/content-contracts/skills/skills.test.ts",
+          "packages/core/src/preflight-cache/evaluate.ts",
+          "changelog.d/7326-release-cache-fresh-advisory.md",
+          "docs/RULE-MAP.md",
+          "content/packs/skills/skills-pack-0.1.json",
+          "packages/core/src/preflight-cache/evaluate.test.ts"
+        ],
+        "file_scope_confidence": "high",
+        "depends_on": [],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/content-contracts/skills/skills.test.ts packages/core/src/preflight-cache --reporter=dot"
+        ],
+        "expected_outputs": [
+          "Phase 1 treats missing github-issue triage cache as advisory",
+          "regression locks --allow-missing-bootstrap admission"
+        ],
+        "model_tier": "standard"
+      }
+    },
+    "id": "github.issue.6596760412",
+    "updated": "2026-11-25T05:18:20Z"
+  }
+}
