@@ -14,7 +14,8 @@
 - **#6647** -- enhancement(cli): flag and path friction across verify, occupancy, xbrief:preflight, session:start and finalize on Windows -- `[running]`
 - **#6613** -- P3-U1a: revert release checks that contradict the #5947 decision (U1a: code removal, release finish step, release skill) -- `[running]`
 - **#6740** -- security(kill-switch): honor the kill switch only when a human mints it -- `[running]`
-- **#7200** -- fix(windows): path identity compares 8.3 short and long spellings in the shared git path helpers (#7199 A) -- `[running]`
+- **#7127** -- feat(scope): operator-authorized correction of a clause's required axis after activation that keeps its test evidence -- `[running]`
+- **#7253** -- Tell the operator the mint and off tradeoff before a batch -- `[running]`
 
 ## Proposed
 
@@ -48,31 +49,31 @@ _Scopes not yet promoted to pending. Orientation only — not a substitute for `
 
 ## Completed
 
-_Showing 25 of 2090 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
+_Showing 25 of 2109 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
 
+- **#7279** -- leftover(#7272): harness-attended human-presence mint for approved-scope and authz -- `[completed]`
+- **#7292** -- fix(test): isolate vb-cov-cli fixture + finalize pathspecs when vbrief absent -- `[completed]`
+- **#7274** -- Pre-dispatch binding lock repair -- `[completed]`
+- **#7273** -- Exact-word commit gate -- `[completed]`
+- **#7271** -- [framework-gap] Spawn ignores a destination story-binding and still fails on the session root's active briefs -- `[completed]`
+- **#7245** -- Admit Antigravity CLI as a design-critique critic seat -- `[completed]`
+- **#7270** -- Foreign linked-worktree spawn admit with begun-from checkout root -- `[completed]`
+- **#7272** -- Observable-scope rediscovery scrub -- `[completed]`
+- **#7254** -- [framework-gap] acceptance-disposition deferral is never applied when the clause walk fails (scope:complete refuses before reading the grant) -- `[completed]`
+- **#7275** -- [framework-gap] A checkout with no runtime cannot run the install that would create it -- `[completed]`
+- **#7256** -- Fix bulk mint spawn admission (#7256 / #7257) -- `[completed]`
+- **#6945** -- feat(scope): zero-terminal-step approval of observable-scope and intent-constraint records that an agent cannot forge -- `[completed]`
+- **#7175** -- Admit npm and pnpm verification commands at scope complete -- `[completed]`
+- **#7234** -- bug(agents-entry): managed AGENTS.md cites templates/agent-prompt-preamble.md, which does not exist in a consumer project (regression from #7152) -- `[completed]`
+- **#7233** -- bug(scope-cover): a directive upgrade run in a worktree is refused because npm rewrites the lockfile's top-level name -- `[completed]`
+- **#6298** -- test(session): session-start tests read Claude host env vars, so task check fails under Claude Code -- `[completed]`
+- **#7223** -- fix(literal-acceptance): refuse acceptance cwd and npm --prefix inside node_modules -- `[completed]`
+- **#7025** -- bug(scope): scope:complete's delivery-identity-join rejects the real, GitHub-confirmed merge commit, citing a SHA that doesn't exist -- `[completed]`
+- **#7200** -- fix(windows): path identity compares 8.3 short and long spellings in the shared git path helpers (#7199 A) -- `[completed]`
 - **#7099** -- [framework-gap] scope:complete reads 'deployment' in a test-level criterion as a required deploy axis -- `[completed]`
 - **#7203** -- test(windows): coverage-report symlink-swap test assumes O_NOFOLLOW (#7199 D) -- `[completed]`
 - **#7181** -- test(flaky): #6904 tree-kill tests in ci-reuse.test.ts and the occupancy suite fail intermittently in the queue -- `[completed]`
 - **#7170** -- [framework-gap] scope:complete clause walk requires a quoted token that the clause says must never appear ('never apikey:…') -- `[completed]`
 - **#7172** -- Nightly lane red: Nightly full suite (Windows) -- `[completed]`
 - **#7147** -- bug(class-checks): merge_group runs judge a multi-PR diff, so a mint PR queued behind product fails class 4 -- `[completed]`
-- **#4905** -- bug(xbrief): drift gate rejects a canonical brief that only quotes the legacy x-vbrief prefix -- `[completed]`
-- **#6679** -- enhancement(occupancy): trusted caller identity for a bare occupancy:release outside the hook path -- `[completed]`
-- **#7138** -- [framework-gap] xbrief:preflight hard-refuses active briefs after any comment on the origin issue (slice origin-content-compare) -- `[completed]`
-- **#6668** -- bug(class-checks): test-under-source-root rejects co-located tests with no waiver; pre-PR cannot pass -- `[completed]`
-- **#6849** -- ci: nightly coverage and Windows full-suite runs that release readiness reuses -- `[completed]`
-- **#6893** -- pre-pr: leaf ergonomics for finishing a controller run (#6888 items 2-4) -- `[completed]`
-- **#4949** -- leftover(#4923): unfunded always-on Personal-wins and #480 trigger -- `[completed]`
-- **#7083** -- feat(scope): cohort activation, approved-scope mint and per-story launch (slice of #7062) -- `[completed]`
-- **#6904** -- release: a timed-out Step 5 smoke check leaves its build and vitest processes running -- `[completed]`
-- **#4923** -- leftover(#4916): stop mandating main.md on rapid / identity-only / read-only -- `[completed]`
-- **#6869** -- bug(release): pr:wait-mergeable-and-merge needs --repo, and the pin bump leaves a lockfile pnpm refuses -- `[completed]`
-- **#6914** -- [framework-gap] deft-checkpoint cannot write xbrief/continue.xbrief.json while a story is active: the host write hook refuses it as outside file_scope -- `[completed]`
-- **#6897** -- test(cli): guard every documented deft <verb> -- form with a real-parser test -- `[completed]`
-- **#6902** -- pre-pr:run ignores --project-root and always uses the cwd store -- `[completed]`
-- **#6899** -- orphan-active: bound the pending lifecycle-PR scan by the run deadline (#6896 follow-up) -- `[completed]`
-- **#7085** -- docs+ingest: document sliced leans and the deft-slice child-issue route; name it in the refusal -- `[completed]`
-- **#7082** -- feat(swarm): cohort lifecycle - in-PR completion first, one cohort lifecycle PR (slice of #7062) -- `[completed]`
-- **#7077** -- class-checks class 2 fails any edit to a file that already names a test root (compare against base) -- `[completed]`
-- **#6981** -- security(hooks): Claude Code's PowerShell tool is not a shell tool, so shell-class guards never inspect it -- `[completed]`
 

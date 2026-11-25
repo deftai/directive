@@ -1,2 +1,0 @@
-section: Changed
-- The temporary kill-switch is now a kill record (#6740). A bare root disable flag file no longer turns Directive off; hooks, `doctor` and `session:start` warn about it. To turn enforcement off, a person runs `deft kill-switch:on --confirm` at a terminal; `deft kill-switch:off --confirm` turns it back on. Then start a new agent session. Run `directive upgrade` or `directive install --repair` so existing hooks read the record.
