@@ -1181,5 +1181,6 @@ describe("#7351 same-repo Claude WT and Directive dest admit", () => {
     });
     expect(result.code).toBe(0);
     expect(result.text).toContain("launching checkout runtime does not match payload pin");
+    expect(result.text).toMatch(/launching checkout|relaunch the host session/i);
   });
 });

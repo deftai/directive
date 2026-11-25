@@ -611,11 +611,58 @@ export function run(argv: string[], seams: HookDispatchCliSeams = {}): number {
     if (pinMatch === false) {
       const payloadPin = readRuntimePin(projectRoot).pinVersion ?? "?";
       const launchInstalled = readInstalledRuntimeVersion(launchRoot) ?? "?";
+      // Recovery must clear the launching runtime (or rebind launch→payload). Payload-only
+      // install leaves launch at A and cannot clear this refuse; admit install at launchRoot.
+      const launchInstall = projectInstallCommand(launchRoot);
+      const cheapLaunch: CheapInSyncResult = {
+        ok: false,
+        pinVersion: payloadPin === "?" ? null : payloadPin,
+        installedVersion: launchInstalled === "?" ? null : launchInstalled,
+        identityMatch: false,
+        readinessValid: false,
+        failClosed: true,
+        pinMismatchOnly: true,
+        allowSetup: false,
+        recoveryGuidance: launchInstall,
+      };
+      if (args.event === "tool.before") {
+        const toolName = hookToolName(payload, args.host);
+        const runDirectories = shellRunDirectories(args.host, payload);
+        const atLaunchRoot =
+          runDirectories.length > 0 &&
+          runDirectories.every((dir) => rootsMatch(normalizeHookProjectRoot(dir), launchRoot));
+        const admitted = admitPinMismatchRecovery({
+          cheap: cheapLaunch,
+          shellTool: toolName !== null && isShellTool(toolName),
+          command: hookShellCommand(payload),
+          atProjectRoot: atLaunchRoot,
+        });
+        if (admitted !== null) {
+          const decision: HookDecision = {
+            verdict: "allow",
+            code: "shell-op-ready",
+            event: args.event,
+            host: args.host,
+            toolName,
+            projectRoot: payloadRootText,
+            message:
+              `Directive hook admitted the launch-runtime recovery \`${admitted}\` ` +
+              `(payloadPin=${payloadPin} launchInstalled=${launchInstalled}). ` +
+              "Other commands stay refused until the launching checkout matches the payload pin " +
+              "or the host session is relaunched from the payload worktree.",
+            scopePath: null,
+          };
+          const renderedAdmit = renderHostDecision(args.host, decision);
+          if (renderedAdmit.length > 0) writeOut(`${renderedAdmit}\n`);
+          return 0;
+        }
+      }
       const message =
         `Directive hook refuse: launching checkout runtime does not match payload pin ` +
         `(payloadRoot=${payloadRootText} launchRoot=${launchRootText} ` +
         `payloadPin=${payloadPin} launchInstalled=${launchInstalled}). ` +
-        `Recovery: ${projectInstallCommand(projectRoot)}`;
+        `Recovery: in the launching checkout run \`${launchInstall}\`, or relaunch the host ` +
+        `session from the payload worktree so launchRoot matches payloadRoot.`;
       const decision = installationIdentityDeny(args.host, args.event, projectRoot, message);
       const rendered = renderHostDecision(args.host, decision);
       if (rendered.length > 0) writeOut(`${rendered}\n`);
