@@ -290,7 +290,18 @@
         "shepherd the PR",
         "watch the PR",
         "keep merge-ready",
-        "PR shepherd"
+        "PR shepherd",
+        "pursue residual",
+        "follow-up hard-stop",
+        "same as conf-hold",
+        "continue dual-stopped PR",
+        "re-babysit residual",
+        "until floor or loop",
+        "until greptile meets policy",
+        "pursue residuals until told otherwise",
+        "policy-anchored review-response",
+        "review-response",
+        "classify against policy anchor"
       ],
       "path": "skills/deft-directive-review-cycle/SKILL.md",
       "version": "0.1",
@@ -334,7 +345,15 @@
       "triggers": [
         "swarm",
         "parallel agents",
-        "run agents"
+        "run agents",
+        "pursue residual",
+        "follow-up hard-stop",
+        "same as conf-hold",
+        "continue dual-stopped PR",
+        "re-babysit residual",
+        "until floor or loop",
+        "until greptile meets policy",
+        "pursue residuals until told otherwise"
       ],
       "path": "skills/deft-directive-swarm/SKILL.md",
       "version": "0.1",
