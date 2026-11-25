@@ -2,7 +2,7 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #7331",
-    "updated": "2026-11-25T17:04:56.743Z"
+    "updated": "2026-11-25T18:26:49.732Z"
   },
   "plan": {
     "title": "release: ship pin-PR setup in skill; local-update must survive untracked approved-scope twins",
@@ -15,31 +15,31 @@
       "Labels": "bug, area:release, docs, design-critique:ingest-ready",
       "UserStory": "As an operator, I want release-post-run-pin-pr-and-local-update-approved-scope-clash shipped, so that the Prefer-A Bound remedy is durable.",
       "ImplementationPlan": "Implement Prefer-A Bound for release-post-run-pin-pr-and-local-update-approved-scope-clash; keep Tracking/Refs only on the product PR.",
-      "Acceptance": "- Ship durable pin-PR setup that ensures the changelog fragment directory exists before write\n- On local-update ff-only, remediate untracked approved-scope twins per path (identical remove / divergent move-aside)\n- Final lines and skill exit card name both runnable post-run paths"
+      "Acceptance": "- Ship durable pin-PR setup (release:pin-pr and/or release-skill post-run Phase): tip worktree + chore/pin-directive-<version>; bump package.json pin + replace minimumReleaseAgeExclude; ensure changelog.d/ exists; write pin fragment; pnpm update -w @deftai/directive-runtime@<version> + frozen-lockfile verify; open PR with Documentation impact change_class: none — relieves: P1\n- On the release:local-update path that owns git pull --ff-only, for untracked tip-tracked .deft/approved-scope/** (same-class mint paths): tip-byte-identical → remove untracked; else → move aside to OS temp; retry ff-only; print one-step remediation; never git clean -fd the whole tree — relieves: P2\n- releaseRunFinalLines and skill exit / post-run card after finish+promote name both runnable paths (pin-PR setup + local-update clash remediation) — relieves: P3"
     },
     "items": [
       {
-        "id": "clause.1",
+        "id": "1",
         "status": "pending",
-        "title": "Ship durable pin-PR setup that ensures the changelog fragment directory exists before write",
+        "title": "Ship durable pin-PR setup (release:pin-pr and/or release-skill post-run Phase): tip worktree + chore/pin-directive-<version>; bump package.json pin + replace minimumReleaseAgeExclude; ensure changelog.d/ exists; write pin fragment; pnpm update -w @deftai/directive-runtime@<version> + frozen-lockfile verify; open PR with Documentation impact change_class: none — relieves: P1",
         "narrative": {
-          "Acceptance": "Ship durable pin-PR setup that ensures the changelog fragment directory exists before write"
+          "Acceptance": "Ship durable pin-PR setup (release:pin-pr and/or release-skill post-run Phase): tip worktree + chore/pin-directive-<version>; bump package.json pin + replace minimumReleaseAgeExclude; ensure changelog.d/ exists; write pin fragment; pnpm update -w @deftai/directive-runtime@<version> + frozen-lockfile verify; open PR with Documentation impact change_class: none — relieves: P1"
         }
       },
       {
-        "id": "clause.2",
+        "id": "2",
         "status": "pending",
-        "title": "On local-update ff-only, remediate untracked approved-scope twins per path (identical remove / divergent move-aside)",
+        "title": "On the release:local-update path that owns git pull --ff-only, for untracked tip-tracked .deft/approved-scope/** (same-class mint paths): tip-byte-identical → remove untracked; else → move aside to OS temp; retry ff-only; print one-step remediation; never git clean -fd the whole tree — relieves: P2",
         "narrative": {
-          "Acceptance": "On local-update ff-only, remediate untracked approved-scope twins per path (identical remove / divergent move-aside)"
+          "Acceptance": "On the release:local-update path that owns git pull --ff-only, for untracked tip-tracked .deft/approved-scope/** (same-class mint paths): tip-byte-identical → remove untracked; else → move aside to OS temp; retry ff-only; print one-step remediation; never git clean -fd the whole tree — relieves: P2"
         }
       },
       {
-        "id": "clause.3",
+        "id": "3",
         "status": "pending",
-        "title": "Final lines and skill exit card name both runnable post-run paths",
+        "title": "releaseRunFinalLines and skill exit / post-run card after finish+promote name both runnable paths (pin-PR setup + local-update clash remediation) — relieves: P3",
         "narrative": {
-          "Acceptance": "Final lines and skill exit card name both runnable post-run paths"
+          "Acceptance": "releaseRunFinalLines and skill exit / post-run card after finish+promote name both runnable paths (pin-PR setup + local-update clash remediation) — relieves: P3"
         }
       }
     ],
@@ -61,18 +61,36 @@
       "none_stated": true,
       "clauses": [
         {
-          "id": "clause.1",
-          "text": "Ship durable pin-PR setup that ensures the changelog fragment directory exists before write"
+          "id": 1,
+          "text": "Ship durable pin-PR setup (release:pin-pr and/or release-skill post-run Phase): tip worktree + chore/pin-directive-<version>; bump package.json pin + replace minimumReleaseAgeExclude; ensure changelog.d/ exists; write pin fragment; pnpm update -w @deftai/directive-runtime@<version> + frozen-lockfile verify; open PR with Documentation impact change_class: none — relieves: P1",
+          "artifact_path": "packages/core/src/release/run.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "title": "Ship durable pin-PR setup (release:pin-pr and/or release-skill post-run Phase): tip worktree + chore/pin-directive-<version>; bump root package manifest pin + replace minimumReleaseAgeExclude; ensure changelog.d/ exists; write pin fragment; pnpm update -w @deftai/directive-runtime@<version> + frozen-lockfile verify; open PR with Documentation impact change_class: none — relieves: P1"
         },
         {
-          "id": "clause.2",
-          "text": "On local-update ff-only, remediate untracked approved-scope twins per path (identical remove / divergent move-aside)"
+          "id": 2,
+          "text": "On the release:local-update path that owns git pull --ff-only, for untracked tip-tracked .deft/approved-scope/** (same-class mint paths): tip-byte-identical → remove untracked; else → move aside to OS temp; retry ff-only; print one-step remediation; never git clean -fd the whole tree — relieves: P2",
+          "artifact_path": "packages/core/src/release/run.test.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "title": "On the release:local-update path that owns git pull --ff-only, for untracked tip-tracked approved-scope store** (same-class mint paths): tip-byte-identical → remove untracked; else → move aside to OS temp; retry ff-only; print one-step remediation; never git clean -fd the whole tree — relieves: P2"
         },
         {
-          "id": "clause.3",
-          "text": "Final lines and skill exit card name both runnable post-run paths"
+          "id": 3,
+          "text": "releaseRunFinalLines and skill exit / post-run card after finish+promote name both runnable paths (pin-PR setup + local-update clash remediation) — relieves: P3",
+          "artifact_path": "content/skills/deft-directive-release/SKILL.md",
+          "ambiguous": false,
+          "provenance": "statement",
+          "title": "releaseRunFinalLines and skill exit / post-run card after finish+promote name both runnable paths (pin-PR setup + local-update clash remediation) — relieves: P3"
         }
-      ]
+      ],
+      "admitted_source_sentences": [
+        "Ship durable pin-PR setup (release:pin-pr and/or release-skill post-run Phase): tip worktree + chore/pin-directive-<version>; bump package.json pin + replace minimumReleaseAgeExclude; ensure changelog.d/ exists; write pin fragment; pnpm update -w @deftai/directive-runtime@<version> + frozen-lockfile verify; open PR with Documentation impact change_class: none — relieves: P1",
+        "On the release:local-update path that owns git pull --ff-only, for untracked tip-tracked .deft/approved-scope/** (same-class mint paths): tip-byte-identical → remove untracked; else → move aside to OS temp; retry ff-only; print one-step remediation; never git clean -fd the whole tree — relieves: P2",
+        "releaseRunFinalLines and skill exit / post-run card after finish+promote name both runnable paths (pin-PR setup + local-update clash remediation) — relieves: P3"
+      ],
+      "admitted_source_digest": "d1a08d2f1ed3f22094549183f37f4615e59c2016382a96c84d32797df7c276d8"
     },
     "metadata": {
       "intended_placement": {
@@ -432,6 +450,6 @@
       }
     },
     "id": "github.issue.6597371485",
-    "updated": "2026-11-25T07:11:06Z"
+    "updated": "2026-11-25T18:26:49.732Z"
   }
 }

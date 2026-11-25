@@ -2,18 +2,18 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #7345",
-    "updated": "2026-11-25T17:14:02Z"
+    "updated": "2026-11-25T18:27:10.171Z"
   },
   "plan": {
     "title": "feat(harness): agy host observe slice (#7332)",
     "status": "running",
     "narratives": {
-      "Description": "feat(harness): agy host observe slice (#7332)",
+      "Description": "Activate Prefer-A Bound #7345 so the Antigravity host observe slice can ship: register agy in CLASSIFY_HOOK_HOSTS, land observation fixtures with unobservedReason, and record a machine-readable admission verdict.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/7345",
       "Overview": "feat(harness): agy host observe slice (#7332)",
       "Labels": "enhancement, design-critique:ingest-ready",
       "UserStory": "As an operator, I want agy-host-observe-admission-verdict, so Prefer-A Bound #7332 slice lands.",
-      "ImplementationPlan": "Implement Prefer-A Bound slice for #7332 / #7345; Tracking/Refs only.",
+      "ImplementationPlan": "Implement #7345 within file_scope under packages/core/src/hooks/classify; add changelog.d fragment; keep Tracking/Refs only; verify with pnpm exec vitest run on classify unit tests.",
       "Acceptance": "- Register agy in CLASSIFY_HOOK_HOSTS so HOST_TOOL_SURFACE_AUDIT.agy compiles\n- Commit version-stamped Antigravity observation + PreToolUse fixtures with unobservedReason for any unobserved surface\n- Commit machine-readable pass/fail admission verdict on non-weakenable denial, final executed argument integrity, and selected runtime-failure boundary"
     },
     "items": [
@@ -117,6 +117,6 @@
       }
     },
     "id": "github.issue.6609698619",
-    "updated": "2026-11-25T17:14:02Z"
+    "updated": "2026-11-25T18:27:10.171Z"
   }
 }

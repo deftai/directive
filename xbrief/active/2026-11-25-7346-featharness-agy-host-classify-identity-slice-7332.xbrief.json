@@ -2,18 +2,18 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #7346",
-    "updated": "2026-11-25T17:14:08Z"
+    "updated": "2026-11-25T18:27:10.175Z"
   },
   "plan": {
     "title": "feat(harness): agy host classify-identity slice (#7332)",
     "status": "running",
     "narratives": {
-      "Description": "feat(harness): agy host classify-identity slice (#7332)",
+      "Description": "Activate Prefer-A Bound #7346 so Antigravity host identity and policy wiring can ship after #7345: classify host identity, hook-host registration, and policy defaults for agy.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/7346",
       "Overview": "feat(harness): agy host classify-identity slice (#7332)",
       "Labels": "enhancement, design-critique:ingest-ready",
       "UserStory": "As an operator, I want agy-host-classify-identity-wiring, so Prefer-A Bound #7332 slice lands.",
-      "ImplementationPlan": "Implement Prefer-A Bound slice for #7332 / #7346; Tracking/Refs only.",
+      "ImplementationPlan": "Implement #7346 after github.issue.6609698619; extend hook-hosts, agent-hooks, host-session-owner, and host-hooks within file_scope; changelog fragment; Tracking/Refs only.",
       "Acceptance": "- Register agy in HOOK_HOSTS, AGENT_HOOK_PATH_BY_HOST, HOST_IDENTITY_PROVIDERS with sessionEndSupport unsupported\n- Add plan.policy.hostHooks.agy with DEFAULT_HOST_HOOKS_POLICY.agy false (no deposit yet)\n- Land host-keyed payload normalization, narrow overwrite.CommandLine rewrites, spend-resolve alignment, SessionStart notices, fail-closed deny of unsupported native spawn tools"
     },
     "items": [
@@ -80,7 +80,11 @@
           "packages/core/src/hooks/classify/host-session-identity.test.ts",
           "packages/core/src/hooks/classify/paths.ts",
           "packages/core/src/policy/one-pr-scope-proof.ts",
-          "xbrief/PROJECT-DEFINITION.xbrief.json"
+          "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "packages/core/src/hooks/hook-hosts.ts",
+          "packages/core/src/init-deposit/agent-hooks.ts",
+          "packages/core/src/session/host-session-owner.ts",
+          "packages/core/src/policy/host-hooks.ts"
         ],
         "module_boundary": "packages/core/src/hooks",
         "cohesion_exemption": "Bound slice co-travels docs/changelog with harness wiring"
@@ -105,7 +109,11 @@
           "packages/core/src/hooks/classify/paths.ts",
           "packages/core/src/policy/one-pr-scope-proof.ts",
           "xbrief/PROJECT-DEFINITION.xbrief.json",
-          "changelog.d/7346-agy-host-classify-identity.md"
+          "changelog.d/7346-agy-host-classify-identity.md",
+          "packages/core/src/hooks/hook-hosts.ts",
+          "packages/core/src/init-deposit/agent-hooks.ts",
+          "packages/core/src/session/host-session-owner.ts",
+          "packages/core/src/policy/host-hooks.ts"
         ],
         "file_scope_confidence": "medium",
         "depends_on": [
@@ -121,6 +129,6 @@
       }
     },
     "id": "github.issue.6609698953",
-    "updated": "2026-11-25T17:14:08Z"
+    "updated": "2026-11-25T18:27:10.175Z"
   }
 }

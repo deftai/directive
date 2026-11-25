@@ -2,18 +2,18 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #7347",
-    "updated": "2026-11-25T17:14:32Z"
+    "updated": "2026-11-25T18:30:01.052Z"
   },
   "plan": {
     "title": "feat(harness): agy host deposit-doctor slice (#7332)",
     "status": "running",
     "narratives": {
-      "Description": "feat(harness): agy host deposit-doctor slice (#7332)",
+      "Description": "Activate Prefer-A Bound #7347 so gated Antigravity hook deposit and doctor repair can ship after observe and classify-identity slices.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/7347",
       "Overview": "feat(harness): agy host deposit-doctor slice (#7332)",
       "Labels": "enhancement, design-critique:ingest-ready",
       "UserStory": "As an operator, I want agy-host-deposit-doctor-activation-gate, so Prefer-A Bound #7332 slice lands.",
-      "ImplementationPlan": "Implement Prefer-A Bound slice for #7332 / #7347; Tracking/Refs only.",
+      "ImplementationPlan": "Implement #7347 after github.issue.6609698619 and github.issue.6609698953; deposit/doctor surfaces in file_scope; changelog fragment; Tracking/Refs only.",
       "Acceptance": "- Implement named-object agent hooks deposit repair and uninstall keyed by Directive name plus command marker\n- Gate deposit-doctor activation behind deterministic contract test reading committed observe verdict\n- On fail or absent verdict halt activation with pains unmet and route leftover issue"
     },
     "items": [
@@ -21,7 +21,6 @@
         "id": "clause.1",
         "status": "pending",
         "title": "Implement named-object agent hooks deposit repair and uninstall keyed by Directive name plus command marker",
-        "artifact_path": "packages/core/src/init-deposit/host-hook-outer.ts",
         "narrative": {
           "Acceptance": "Implement named-object agent hooks deposit repair and uninstall keyed by Directive name plus command marker"
         }
@@ -30,7 +29,6 @@
         "id": "clause.2",
         "status": "pending",
         "title": "Gate deposit-doctor activation behind deterministic contract test reading committed observe verdict",
-        "artifact_path": "packages/core/src/init-deposit/hygiene.ts",
         "narrative": {
           "Acceptance": "Gate deposit-doctor activation behind deterministic contract test reading committed observe verdict"
         }
@@ -39,7 +37,6 @@
         "id": "clause.3",
         "status": "pending",
         "title": "On fail or absent verdict halt activation with pains unmet and route leftover issue",
-        "artifact_path": "packages/core/src/doctor/checks.ts",
         "narrative": {
           "Acceptance": "On fail or absent verdict halt activation with pains unmet and route leftover issue"
         }
@@ -126,6 +123,6 @@
       }
     },
     "id": "github.issue.6609699326",
-    "updated": "2026-11-25T17:14:32Z"
+    "updated": "2026-11-25T18:30:01.052Z"
   }
 }
