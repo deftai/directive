@@ -1,0 +1,128 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #7345",
+    "updated": "2026-11-25T17:14:02Z"
+  },
+  "plan": {
+    "title": "feat(harness): agy host observe slice (#7332)",
+    "status": "running",
+    "narratives": {
+      "Description": "feat(harness): agy host observe slice (#7332)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/7345",
+      "Overview": "feat(harness): agy host observe slice (#7332)",
+      "Labels": "enhancement, design-critique:ingest-ready",
+      "UserStory": "As an operator, I want agy-host-observe-admission-verdict, so Prefer-A Bound #7332 slice lands.",
+      "ImplementationPlan": "Implement Prefer-A Bound slice for #7332 / #7345; Tracking/Refs only."
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "status": "pending",
+        "title": "Register agy in CLASSIFY_HOOK_HOSTS so HOST_TOOL_SURFACE_AUDIT.agy compiles"
+      },
+      {
+        "id": "clause.2",
+        "status": "pending",
+        "title": "Commit version-stamped Antigravity observation + PreToolUse fixtures with unobservedReason for any unobserved surface"
+      },
+      {
+        "id": "clause.3",
+        "status": "pending",
+        "title": "Commit machine-readable pass/fail admission verdict on non-weakenable denial, final executed argument integrity, and selected runtime-failure boundary"
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/7345",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #7345: feat(harness): agy host observe slice (#7332)"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per sentence-list entry (2), in order (#6333)",
+      "sentences": [
+        "Parent: #7332 def-slice PLACEHOLDER Prefer-A Bound Spec-path from comments 7168371043 / 7168462854 (Target-digest sha256:d895e12f1ecc4e6e082d5a1626825cb2409194a11b19b77f0454b252e472489f).",
+        "Slice observe: register agy in CLASSIFY_HOOK_HOSTS; version-stamped host observation + PreToolUse fixtures for HOST_TOOL_SURFACE_AUDIT.agy; commit machine-readable pass/fail admission verdict on non-weakenable denial, final executed argument integrity, and selected runtime-failure boundary."
+      ],
+      "admitted_source_sentences": [
+        "Parent: #7332 def-slice PLACEHOLDER Prefer-A Bound Spec-path from comments 7168371043 / 7168462854 (Target-digest sha256:d895e12f1ecc4e6e082d5a1626825cb2409194a11b19b77f0454b252e472489f).",
+        "Slice observe: register agy in CLASSIFY_HOOK_HOSTS; version-stamped host observation + PreToolUse fixtures for HOST_TOOL_SURFACE_AUDIT.agy; commit machine-readable pass/fail admission verdict on non-weakenable denial, final executed argument integrity, and selected runtime-failure boundary."
+      ],
+      "admitted_source_digest": "97a56140e0a3ff27c93e959237ebbc8b333226bb5542038ac70bbc06dce04e55",
+      "admitted_source_extractor": 2,
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Parent: #7332 def-slice PLACEHOLDER Prefer-A Bound Spec-path from comments 7168371043 / 7168462854 (Target-digest sha256:d895e12f1ecc4e6e082d5a1626825cb2409194a11b19b77f0454b252e472489f).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Slice observe: register agy in CLASSIFY_HOOK_HOSTS; version-stamped host observation + PreToolUse fixtures for HOST_TOOL_SURFACE_AUDIT.agy; commit machine-readable pass/fail admission verdict on non-weakenable denial, final executed argument integrity, and selected runtime-failure boundary.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "quality_notice": "plan.items is empty after body harvest (checkbox list, Acceptance Criteria heading, or whole-line Requirements: colon-label). Add structured list items on the issue body before promote/activate; bare prose stays under #4374. Example harvestable shape: a `## Acceptance Criteria` heading with a list item such as `- [ ] ship the fix` (fenced command blocks alone are not harvested)."
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/hooks/classify/classify.ts",
+          "packages/core/src/hooks/classify/classify.test.ts",
+          "packages/core/src/hooks/classify/types.ts",
+          "packages/core/src/hooks/classify/payload.ts",
+          "packages/core/src/hooks/classify/payload.test.ts"
+        ],
+        "module_boundary": "packages/core/src/hooks",
+        "cohesion_exemption": "Bound slice co-travels docs/changelog with harness wiring"
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6609698619,
+        "origin": "deftai/directive#7345",
+        "id": "github.issue.6609698619"
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": false,
+        "conflict_group": "agy-host-observe-admission-verdict",
+        "size": "M",
+        "file_scope": [
+          "packages/core/src/hooks/classify/classify.ts",
+          "packages/core/src/hooks/classify/classify.test.ts",
+          "packages/core/src/hooks/classify/types.ts",
+          "packages/core/src/hooks/classify/payload.ts",
+          "packages/core/src/hooks/classify/payload.test.ts",
+          "changelog.d/7345-agy-host-observe.md"
+        ],
+        "file_scope_confidence": "medium",
+        "depends_on": [],
+        "verify_commands": [
+          "pnpm exec vitest run --reporter=dot"
+        ],
+        "expected_outputs": [
+          "Prefer-A Bound slice #7345 shipped"
+        ],
+        "model_tier": "standard"
+      }
+    },
+    "id": "github.issue.6609698619",
+    "updated": "2026-11-25T17:14:02Z"
+  }
+}

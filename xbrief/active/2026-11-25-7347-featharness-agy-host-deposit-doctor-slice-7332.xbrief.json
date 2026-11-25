@@ -1,0 +1,146 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #7347",
+    "updated": "2026-11-25T17:14:32Z"
+  },
+  "plan": {
+    "title": "feat(harness): agy host deposit-doctor slice (#7332)",
+    "status": "running",
+    "narratives": {
+      "Description": "feat(harness): agy host deposit-doctor slice (#7332)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/7347",
+      "Overview": "feat(harness): agy host deposit-doctor slice (#7332)",
+      "Labels": "enhancement, design-critique:ingest-ready",
+      "UserStory": "As an operator, I want agy-host-deposit-doctor-activation-gate, so Prefer-A Bound #7332 slice lands.",
+      "ImplementationPlan": "Implement Prefer-A Bound slice for #7332 / #7347; Tracking/Refs only."
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "status": "pending",
+        "title": "Implement named-object agent hooks deposit repair and uninstall keyed by Directive name plus command marker",
+        "artifact_path": "packages/core/src/init-deposit/host-hook-outer.ts"
+      },
+      {
+        "id": "clause.2",
+        "status": "pending",
+        "title": "Gate deposit-doctor activation behind deterministic contract test reading committed observe verdict",
+        "artifact_path": "packages/core/src/init-deposit/hygiene.ts"
+      },
+      {
+        "id": "clause.3",
+        "status": "pending",
+        "title": "On fail or absent verdict halt activation with pains unmet and route leftover issue",
+        "artifact_path": "packages/core/src/doctor/checks.ts"
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/7347",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #7347: feat(harness): agy host deposit-doctor slice (#7332)"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per sentence-list entry (3), in order (#6333)",
+      "sentences": [
+        "Parent: #7332 def-slice PLACEHOLDER Prefer-A Bound Spec-path from comments 7168371043 / 7168462854.",
+        "Slice deposit-doctor: named-object .agents/hooks.json deposit/repair/uninstall; gate activation behind deterministic contract test reading committed observe verdict; on fail/absent verdict halt and route leftover issue.",
+        "Depends on observe + classify-identity."
+      ],
+      "admitted_source_sentences": [
+        "Parent: #7332 def-slice PLACEHOLDER Prefer-A Bound Spec-path from comments 7168371043 / 7168462854.",
+        "Slice deposit-doctor: named-object .agents/hooks.json deposit/repair/uninstall; gate activation behind deterministic contract test reading committed observe verdict; on fail/absent verdict halt and route leftover issue.",
+        "Depends on observe + classify-identity."
+      ],
+      "admitted_source_digest": "bb1e02fd3e57d38c6cf7176201d5d9d9e2d6a197bf69eb549c4f8c1e7ec21b6d",
+      "admitted_source_extractor": 2,
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Parent: #7332 def-slice PLACEHOLDER Prefer-A Bound Spec-path from comments 7168371043 / 7168462854.",
+          "artifact_path": "packages/core/src/init-deposit/host-hook-outer.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "title": "[object Object]"
+        },
+        {
+          "id": 2,
+          "text": "Slice deposit-doctor: named-object .agents/hooks.json deposit/repair/uninstall; gate activation behind deterministic contract test reading committed observe verdict; on fail/absent verdict halt and route leftover issue.",
+          "artifact_path": "packages/core/src/init-deposit/hygiene.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "title": "[object Object]"
+        },
+        {
+          "id": 3,
+          "text": "Depends on observe + classify-identity.",
+          "artifact_path": "packages/core/src/doctor/checks.ts",
+          "ambiguous": false,
+          "provenance": "statement",
+          "title": "[object Object]"
+        }
+      ],
+      "ambiguity_attestation": "none_found",
+      "quality_notice": "plan.items is empty after body harvest (checkbox list, Acceptance Criteria heading, or whole-line Requirements: colon-label). Add structured list items on the issue body before promote/activate; bare prose stays under #4374. Example harvestable shape: a `## Acceptance Criteria` heading with a list item such as `- [ ] ship the fix` (fenced command blocks alone are not harvested)."
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/init-deposit/host-hook-outer.ts",
+          "packages/core/src/init-deposit/hygiene.ts",
+          "packages/core/src/hooks/classify/classify.ts",
+          "packages/core/src/doctor/checks.ts",
+          "xbrief/PROJECT-DEFINITION.xbrief.json"
+        ],
+        "module_boundary": "packages/core/src/init-deposit",
+        "cohesion_exemption": "Bound slice co-travels docs/changelog with harness wiring"
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6609699326,
+        "origin": "deftai/directive#7347",
+        "id": "github.issue.6609699326"
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": false,
+        "conflict_group": "agy-host-deposit-doctor-activation-gate",
+        "size": "L",
+        "file_scope": [
+          "packages/core/src/init-deposit/host-hook-outer.ts",
+          "packages/core/src/init-deposit/hygiene.ts",
+          "packages/core/src/hooks/classify/classify.ts",
+          "packages/core/src/doctor/checks.ts",
+          "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "changelog.d/7347-agy-host-deposit-doctor.md"
+        ],
+        "file_scope_confidence": "medium",
+        "depends_on": [
+          "7345",
+          "7346"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run --reporter=dot"
+        ],
+        "expected_outputs": [
+          "Prefer-A Bound slice #7347 shipped"
+        ],
+        "model_tier": "standard"
+      }
+    },
+    "id": "github.issue.6609699326",
+    "updated": "2026-11-25T17:14:32Z"
+  }
+}
