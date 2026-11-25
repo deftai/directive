@@ -1,0 +1,826 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #7327",
+    "updated": "2026-11-25T17:05:33.068Z"
+  },
+  "plan": {
+    "title": "release:run: dry-run dirties tree then clean-tree readiness fails",
+    "status": "running",
+    "narratives": {
+      "Description": "release:run: dry-run dirties tree then clean-tree readiness fails",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/7327",
+      "Overview": "## Summary\n\n`deft release:run` readiness runs the Phase 2 dry-run **before** the Phase 1 clean working-tree check. On this host the dry-run (or something it invokes) leaves:\n\n- `M .gitignore` (un-ignore rules for `.deft/approved-scope/**`, `.deft/directive/**`, `GENERATION.json`, etc.)\n- `?? .deft/GENERATION.json`\n- `?? .deft/directive/`\n\nThe clean-tree check then refuses even when the tree was clean at entry. Result: readiness always fails after a successful dry-run on a tip cut worktree.\n\n## Observed (v0.131.5 cut)\n\nFresh worktree at `origin/master` (`30fa5344c`), `git status --porcelain` empty before `release:run`. Dry-run OK (35 fragments folded). Then:\n\n```\n[readiness] Phase 1: clean working tree... FAIL (working tree is dirty:)\n    M .gitignore\n    ?? .deft/GENERATION.json\n    ?? .deft/directive/\n[readiness] refused: a readiness check failed; nothing was written\n```\n\n## Ask\n\n1. Run clean-tree check **before** dry-run, or ignore dry-run-local dirtiness that the cut will not commit.\n2. Stop dry-run / readiness from mutating `.gitignore` / writing untracked `.deft/` scratch that fails the same readiness gate.\n3. Or accept `--allow-dirty` on `release:run` with an explicit disclosure when the only dirt is that scratch class.\n\n## Workaround used\n\nManual cut path with `task release -- <version> --allow-dirty` (or clean + re-enter) after operator confirm.\n\n## Refs\n\n- Operator cut attempt for v0.131.5\n- Related: #7326 (github-issue triage cache as hard release preflight)\n\n",
+      "Labels": "bug, design-critique:ingest-ready",
+      "UserStory": "As an operator, I want release-run-readiness-dry-run-tree-neutral shipped, so that the Prefer-A Bound remedy is durable.",
+      "ImplementationPlan": "Implement Prefer-A Bound for release-run-readiness-dry-run-tree-neutral; keep Tracking/Refs only on the product PR.",
+      "Acceptance": "- Keep the readiness entry clean check before the Phase 2 dry-run seam\n- Keep the dry-run path project working-tree neutral on every returned status\n- After dry-run, run a second clean check and fail readiness when the tree is dirty\n- Refuse copy must not claim write-nothing when post-dry-run dirt or a Git error is observed\n- Entry clean-check refuse must not claim the whole release run invocation wrote nothing\n- Measure and fix the live writer of the observed readiness dirt class\n- Add a fresh-worktree regression through the real release run entry path including self-complete"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "status": "pending",
+        "title": "Keep the readiness entry clean check before the Phase 2 dry-run seam",
+        "x-directive/artifact_path": "packages/core/src/release/run-readiness.ts",
+        "narrative": {
+          "Acceptance": "Keep the readiness entry clean check before the Phase 2 dry-run seam"
+        }
+      },
+      {
+        "id": "clause.2",
+        "status": "pending",
+        "title": "Keep the dry-run path project working-tree neutral on every returned status",
+        "x-directive/artifact_path": "packages/core/src/release/run-readiness.ts",
+        "narrative": {
+          "Acceptance": "Keep the dry-run path project working-tree neutral on every returned status"
+        }
+      },
+      {
+        "id": "clause.3",
+        "status": "pending",
+        "title": "After dry-run, run a second clean check and fail readiness when the tree is dirty",
+        "x-directive/artifact_path": "packages/core/src/release/run-readiness.ts",
+        "narrative": {
+          "Acceptance": "After dry-run, run a second clean check and fail readiness when the tree is dirty"
+        }
+      },
+      {
+        "id": "clause.4",
+        "status": "pending",
+        "title": "Refuse copy must not claim write-nothing when post-dry-run dirt or a Git error is observed",
+        "x-directive/artifact_path": "packages/core/src/release/run-readiness.ts",
+        "narrative": {
+          "Acceptance": "Refuse copy must not claim write-nothing when post-dry-run dirt or a Git error is observed"
+        }
+      },
+      {
+        "id": "clause.5",
+        "status": "pending",
+        "title": "Entry clean-check refuse must not claim the whole release run invocation wrote nothing",
+        "x-directive/artifact_path": "packages/core/src/release/run-readiness.ts",
+        "narrative": {
+          "Acceptance": "Entry clean-check refuse must not claim the whole release run invocation wrote nothing"
+        }
+      },
+      {
+        "id": "clause.6",
+        "status": "pending",
+        "title": "Measure and fix the live writer of the observed readiness dirt class",
+        "x-directive/artifact_path": "packages/core/src/release/run.ts",
+        "narrative": {
+          "Acceptance": "Measure and fix the live writer of the observed readiness dirt class"
+        }
+      },
+      {
+        "id": "clause.7",
+        "status": "pending",
+        "title": "Add a fresh-worktree regression through the real release run entry path including self-complete",
+        "x-directive/artifact_path": "packages/core/src/release/run.test.ts",
+        "narrative": {
+          "Acceptance": "Add a fresh-worktree regression through the real release run entry path including self-complete"
+        }
+      }
+    ],
+    "tags": [
+      "bug",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/7327",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #7327: release:run: dry-run dirties tree then clean-tree readiness fails"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "M .gitignore",
+          "reason": "first token \"m\" is not in the literal-AC allowlist (accepted: bun, deft, directive, node, npm, npx, pnpm, py, python, python3, task, vitest, yarn)",
+          "sourceSpan": "fence@L17"
+        },
+        {
+          "command": "?? .deft/GENERATION.json",
+          "reason": "first token \"??\" is not in the literal-AC allowlist (accepted: bun, deft, directive, node, npm, npx, pnpm, py, python, python3, task, vitest, yarn)",
+          "sourceSpan": "fence@L17"
+        },
+        {
+          "command": "?? .deft/directive/",
+          "reason": "first token \"??\" is not in the literal-AC allowlist (accepted: bun, deft, directive, node, npm, npx, pnpm, py, python, python3, task, vitest, yarn)",
+          "sourceSpan": "fence@L17"
+        },
+        {
+          "command": "deft release:run",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L5"
+        },
+        {
+          "command": "git status --porcelain",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L15"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": false,
+        "conflict_group": "release-run-readiness-dry-run-tree-neutral",
+        "size": "M",
+        "file_scope": [
+          "xbrief/active/2026-11-25-7327-releaserun-dry-run-dirties-tree-then-clean-tree-readiness-fa.xbrief.json",
+          "packages/core/src/release/run-readiness.ts",
+          "packages/core/src/release/run-readiness.test.ts",
+          "packages/core/src/release/run.ts",
+          "packages/core/src/release/run.test.ts",
+          "packages/runtime/src/self-complete.ts",
+          "packages/runtime/src/self-complete.test.ts",
+          "changelog.d/7327-release-run-tree-neutral.md"
+        ],
+        "file_scope_confidence": "high",
+        "depends_on": [],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/release/run-readiness.test.ts packages/core/src/release/run.test.ts packages/runtime/src/self-complete.test.ts --reporter=dot"
+        ],
+        "expected_outputs": [
+          "release:run readiness stays tree-neutral",
+          "entry and post-dry-run clean checks with honest refuse copy",
+          "release:run skips launcher self-complete on tip pin+wiring trees"
+        ],
+        "model_tier": "standard"
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/release/run-readiness.ts",
+          "packages/core/src/release/run-readiness.test.ts",
+          "packages/core/src/release/run.ts",
+          "packages/core/src/release/run.test.ts",
+          "packages/runtime/src/self-complete.ts",
+          "packages/runtime/src/self-complete.test.ts"
+        ],
+        "module_boundary": "packages/core/src/release",
+        "cohesion_exemption": "launcher self-complete suppress + changelog fragment co-travel with Bound remedy"
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because release:run readiness dry-run leaves working-tree dirt that the clean-tree gate then refuses, blocking tip cuts while advertising write-nothing.\nmechanism-shaped: true\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nspend-recommend: N≥3\nspend: N≥3\nspend-ask: resolved\ncharter: open critique\nTarget-kind: issue\ndispatch-sha: 30fa5344c29653f0935703dd28ffdad95e761e27\nverification-path: pin-read git show 30fa5344c29653f0935703dd28ffdad95e761e27: (dest cwd-without-occupy `.deft-scratch/worktrees/arc-7327`)\ndual-stop-reserved: 1\npain: P1, P2, P3\nrefutation-target: readiness dry-run is side-effect-free with respect to the clean-tree gate (write-nothing before the cut)\n\n## Pain list\n\n- P1: After a successful readiness Phase 2 dry-run on a tip cut worktree, the working tree shows `M .gitignore` and `?? .deft/GENERATION.json` / `?? .deft/directive/`, so the clean-tree gate refuses on re-entry (and the following cut inherits dirt). Observed on tip `30fa5344c` during the v0.131.5 cut attempt.\n- P2: Readiness prints \"nothing was written\" / \"Runs before any write\" while a path it invokes mutates tracked or newly visible untracked files in the project root.\n- P3: Operator recovery falls to `task release -- <version> --allow-dirty` (different verb) because `release:run` has no tree-neutral dry-run and no disclosed scratch-class exception.\n\n## Stop 2\n\n- Charter: open critique (issue offers three remedy asks; no single locked presumption).\n- Spend: N≥3 (genuinely open remedy space among tree-neutral dry-run vs reorder vs allow-dirty; high blast — blocks every `release:run` tip cut).\n- Note: tip `run-readiness.ts` already runs `checkGitClean` before `seams.dryRun`; Prefer-A must not treat reorder-alone as sufficient.\n\n## Anchors (parent pin-read)\n\n- `packages/core/src/release/run-readiness.ts` — clean check then dry-run; formatReadiness refuse line\n- `packages/core/src/release/run.ts` `defaultReadiness` — dry-run seam calls `runPipeline({ dryRun: true, allowDirty: false, ... })`\n- Issue body Ask 1–3; workaround `task release --allow-dirty`\n\n",
+          "id": 7152583302,
+          "html_url": "https://github.com/deftai/directive/issues/7327#issuecomment-7152583302",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-25T04:09:33Z",
+          "updated_at": "2026-11-25T04:09:33Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\nLean: Prefer-A draft (not Bound)\nTarget-digest: sha256:19a60b70d0c4aedca05a1c8106f92c5dcf3b4ca074196a2db2c7ede80591135a\nconflict_group: release-run-readiness-dry-run-tree-neutral\narc-mode: no-ingest\nspend: N≥3\ncharter: open critique\n\n## In plain English\n\n`deft release:run` readiness is supposed to refuse a dirty tree and write nothing before the cut. On a tip cut worktree the readiness dry-run path still leaves `.gitignore` modified and untracked `.deft/GENERATION.json` / `.deft/directive/`, so the clean-tree gate fails on re-entry (and the cut inherits dirt). Tip source already checks clean before dry-run; reordering alone does not close the hole. Prefer stopping the dry-run path from mutating the tree, and prove the clean gate still sees a clean tree after that path returns.\n\n## Bound remedy (draft)\n\n1. Make the readiness Phase 2 dry-run path (and every seam it invokes) tree-neutral: no tracked mutation and no newly visible untracked paths under the project root when it exits 0.\n2. Keep the entry clean-tree check; after dry-run returns, re-check clean (or equivalent dirt inventory) and fail readiness with the post-dry-run porcelain when the dry-run path left dirt.\n3. Name the writer of the observed class (`M .gitignore`, `?? .deft/GENERATION.json`, `?? .deft/directive/`) in the fail detail or a single regression fixture so the side effect cannot return as silent dirt.\n4. Add a regression that starts from a clean fixture tree, runs the readiness dry-run seam, asserts porcelain empty and readiness ok.\n5. Reject broad `--allow-dirty` on `release:run` as the primary fix; keep operator `--allow-dirty` on `task release` as the existing break-glass path only.\n\n## Reject\n\n- Reorder-only (clean already precedes dry-run on tip `30fa5344c` / pin 0.131.4).\n- Silent scratch-class ignore without naming the writer and without a post-dry-run proof.\n- Shipping `--allow-dirty` on `release:run` as the default recovery.\n- Weakening the clean-tree gate for arbitrary dirt.\n\n## Pain cites (honest)\n\n- relieves: P1 — dry-run path leaves dirt the clean gate refuses\n- relieves: P2 — readiness claims write-nothing while mutating the tree\n- relieves: P3 — operator forced onto `task release --allow-dirty` workaround\n\n## Dispatch context\n\n- Issue: https://github.com/deftai/directive/issues/7327\n- Dest: `.deft-scratch/worktrees/arc-7327` @ `30fa5344c29653f0935703dd28ffdad95e761e27`\n- verification-path: pin-read `git show 30fa5344c29653f0935703dd28ffdad95e761e27:`\n\n",
+          "id": 7152583577,
+          "html_url": "https://github.com/deftai/directive/issues/7327#issuecomment-7152583577",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-25T04:09:34Z",
+          "updated_at": "2026-11-25T04:09:34Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 3\nseat-families: claude, codex, grok\ninput-ceiling: 7152605378\nspend: N≥3\ncharter: open critique\narc-mode: no-ingest\nverification-path: pin-read git show 30fa5344c29653f0935703dd28ffdad95e761e27:\ndispatch-sha: 30fa5344c29653f0935703dd28ffdad95e761e27\ndest: .deft-scratch/worktrees/arc-7327\n\nRound-1 input ceiling is this deposit id (inclusive) after PATCH. Shared inputs: Stop 1 7152583302; Prefer-A draft 7152583577; issue #7327 body. Sibling posts after this ceiling are out of envelope.\n\n",
+          "id": 7152605378,
+          "html_url": "https://github.com/deftai/directive/issues/7327#issuecomment-7152605378",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-25T04:10:56Z",
+          "updated_at": "2026-11-25T04:11:16Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\n\n## In plain English\n\nPrefer-A chooses the right repair: keep the initial clean-tree check, stop the dry-run from dirtying the project, and check cleanliness again before proceeding. It needs two changes before binding: cover failed dry-runs and their messages, and require a regression through the actual writer rather than a replacement dry-run function. A post-check alone detects the problem but still leaves the operator blocked.\n\n## Verified mechanisms\n\nPin-read at `30fa5344c29653f0935703dd28ffdad95e761e27`: `run-readiness.ts/runReleaseReadiness` checks clean before `seams.dryRun`, with no subsequent clean check. `run.ts/defaultReadiness` calls `runPipeline` directly with `dryRun: true` and `allowDirty: false`. In `pipeline.ts`, dry-run skips its own actual clean check, lifecycle scan, CI execution, build and artifact writes; `release-artifacts.ts/prepareReleaseArtifacts` already has a separate read-only dry-run branch. `git.ts/checkGitClean` supplies the reusable porcelain check and fails closed on Git errors. Existing readiness tests stub `dryRun: () => 0` and assert the unconditional no-write message.\n\nThese reads verify the ordering and missing post-check, not the reported host-specific writer. I did not execute a release or reproduce the observed files. Inputs were the issue body and comments 7152583302, 7152583577 and 7152605378 only.\n\n## F1 — blocks-the-design: failure exits still violate the promise\n\nDraft item 1 requires neutrality only “when it exits 0.” Yet `formatReadiness` prints “nothing was written” on every failed result, and readiness invokes the dry-run even when an earlier check failed. A dry-run that writes and then returns nonzero can therefore leave P1/P3 intact and repeat P2. Even the proposed post-check's intended dirty result would be followed by that false footer.\n\nRequire tree neutrality on successful and failed dry-run exits; run the post-check after any returned dry-run status, preserving both failure details. Remove or qualify the unconditional no-write footer when neutrality is not established. Add the negative regression: a seam introduces dirt and returns nonzero; readiness refuses, reports the dirt and does not claim nothing was written. This is a small extension of the proposed check, not another gate system.\n\n## F2 — blocks-the-design: the regression must exercise the writer\n\nDraft item 4's “runs the readiness dry-run seam” can be satisfied by today's no-op seam. The production pipeline already suppresses several likely writers, so blaming CI/build or merely naming a path would not establish causality. A green stub test plus a post-check could ship while every real tip cut still refuses.\n\nRequire the regression to exercise the production dry-run path and the identified writer's triggering condition, stubbing network boundaries as needed, with real filesystem/Git observations. If the writer is in launcher/setup before readiness, include that boundary in the fix and regression. Keep the injected-dirt test separately to prove the guard refuses. Name the actual writer once identified; do not treat the incident report as proof of its call site. Without this, the draft has detection evidence but no demonstrated repair of P1/P3.\n\n## F3 — sharpens-framing: clean porcelain is a narrower guarantee than zero writes\n\nThe draft defines neutrality as no tracked changes or newly visible untracked paths. That is a useful release invariant, but `ciReuseAtTip` also performs `git fetch`, and porcelain does not observe ignored-file writes. Absolute “Runs before any write” language overstates what this check proves.\n\nState the guarantee as project working-tree neutrality and keep diagnostic wording within that scope. Under the shared-worktree lens, report dirt observed after dry-run without automatically attributing it to that function, and never erase it with automatic restore/clean: concurrent user changes must survive. This sharpens P2 without requiring a filesystem-wide write monitor.\n\n## Road not taken — footnote\n\nReorder-only cannot fix the pinned ordering. A narrowly disclosed scratch exception could be justified if the files were proven disposable and outside release inputs, but that proof is absent; `.gitignore` is itself tracked. Broad `--allow-dirty` therefore trades away the relevant protection. Reuse `checkGitClean` plus the existing dry-run branches, fix the actual writer, and retain the post-check.\n\n",
+          "id": 7152644414,
+          "html_url": "https://github.com/deftai/directive/issues/7327#issuecomment-7152644414",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-25T04:13:25Z",
+          "updated_at": "2026-11-25T04:13:25Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: critic\n```\n\n**Seat status: PARTIAL.** This seat could not read the issue body, Stop 1 (7152583302), the Prefer-A draft (7152583577) or the panel deposit (7152605378). The Directive hook blocked every shell, gh, sub-agent, web and Write call (\"@deftai/directive-runtime is not installed\"). The findings below come from the code at 30fa5344c only (read from the clean worktree at that commit). They are not checked against P1–P3 or the draft.\n\n## In plain English\n\n`release:run` checks that the tree is clean, then runs the dry run, and never checks again. If the dry run leaves files behind, readiness still says \"all checks passed\". The real cut then refuses at Step 1 (dirty tree). The fix: make the dry run leave the tree as it found it, and prove it with one more clean-tree check after the dry run. Moving the checks around, or using `--allow-dirty`, only hides the problem.\n\n## Inventory (at 30fa5344c)\n\n- `runReleaseReadiness` (`packages/core/src/release/run-readiness.ts:342`) runs `checkGitClean` first; the dry run is at `:368`. No clean check after the dry run.\n- `defaultReadiness` (`packages/core/src/release/run.ts:766`) runs `runPipeline` in-process with `dryRun: true, allowDirty: false`. In dry-run mode, Step 1 prints DRYRUN and does not run `git status` (`pipeline.ts:250`).\n- The cut (`run.ts:~430`, `stopBeforePush: true`) runs the real Step 1 `checkGitClean` with `allowDirty: false` (`run.ts:295`). This is the first place leftover dirt is refused, after readiness passed and the run record was written.\n- `releaseRestoreGuidance` (`pipeline.ts:210`) already says \"--allow-dirty is not a recovery path\". The suite stamp (`suite-stamp.ts:164`) already treats a dirty tree as a miss.\n- The run record goes to `.deft-scratch/release-run/<version>.json` (`run-record.ts:18`). Confirm git ignores it, so the record write is not itself the dirt.\n- In the code read, the dry-run branches of Steps 5–9 do not write. The path that leaves files behind was not found from reading the code alone. The issue body should name it.\n\n## Findings\n\n1. **blocks-the-design** — Readiness has no clean check after the dry run. Moving `checkGitClean` before or after the dry run without adding a second check does not close the gap: a check only before misses dirt the dry run makes, and a check only after hides dirt that was there before. Keep the check before, and add one fail-closed `checkGitClean` after (\"Phase 2 dry run left the tree clean\") that lists the dirty paths. One check, using the existing function (#3265).\n2. **blocks-the-design** — Make the dry run tree-neutral at the source. Put the path that writes during `dryRun: true` behind the existing `config.dryRun` branch, as Steps 6–9 do. With finding 1 in place, a regression then refuses at readiness, before any write.\n3. **sharpens-framing** — Do not make `--allow-dirty` broader, and do not set it on the readiness dry run. `pipeline.ts:216` already rejects it as recovery. If an override is needed, use the refusal text (dirty paths plus the `git restore` command), not a new flag.\n4. **sharpens-framing** — Refuse before the record is written. `run.ts:843` returns before `writeReleaseRunRecord`, so a readiness failure leaves no record and no `--resume` confusion. Keep this order.\n5. **footnote** — Add a test: a `readinessSeams.dryRun` that writes a file; assert readiness FAILs and names that path (`run-readiness.test.ts:129` already injects `dryRun`).\n6. **footnote** — Release blast radius: only readiness changes. Cut, finish and break-glass are unchanged. One CHANGELOG `[Unreleased]` line.\n\nClosed findings: none.\n```\n\n**Main finding:** readiness checks the tree before the Phase 2 dry run (`run-readiness.ts:342` vs `:368`) and never after. A dry run that leaves files behind therefore passes readiness, and the cut refuses later at Step 1. The fix is a tree-neutral dry run plus one clean-tree check after it, not a reorder or `--allow-dirty`.\n\nSeat exited without posting.\n\n\n\n",
+          "id": 7152661552,
+          "html_url": "https://github.com/deftai/directive/issues/7327#issuecomment-7152661552",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-25T04:14:30Z",
+          "updated_at": "2026-11-25T04:15:10Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "run the Round-1 critic for #7327: read the design-critique contract and fixed inputs, pin-read the readiness files at the dispatch SHA, then post one comment.\n\nShell is hook-blocked, so I'll gather the fixed inputs and pin-read targets through file/API reads, then write the paste-ready critic body.\n\nNext I'll inventory the readiness order and what the dry-run path mutates, then draft the critic findings.\n\nPin-read confirms clean-before-dry-run and no post-dry-run proof. Shell is hook-blocked, so I'll write the paste-ready critic body for the parent to post.\n\nWrite and Shell are both hook-blocked (missing `@deftai/directive-runtime`). Full paste-ready critic body below for parent POST to `deftai/directive#7327`. Intended path: `.deft-scratch/arc-7327-envelopes/grok-round1-body.md`.\n\n---\n\n```text\nmodel: grok-4.5\nrole: critic\n\n## In plain English\n\nPrefer-A is the right shape: stop the readiness dry-run path from dirtying the tree, keep the entry clean check, and prove clean again after dry-run returns. Reorder-only and broad `--allow-dirty` on `release:run` stay correctly rejected. Two sharpenings before bind: (1) when the post-dry-run clean proof fails, readiness copy must stop claiming “nothing was written”; (2) Bound remedy must name the live writer of the observed dirt class (deposit/gitignore heal + GENERATION / `.deft/directive/`), because pin-read shows the pipeline dry-run itself mostly emits DRYRUN and prepares artifacts in memory.\n\n## Findings\n\n### F1 — readiness refuse copy still claims write-nothing when dry-run left dirt\nclassification: sharpens-framing\n\n- Evidence: pin-read `packages/core/src/release/run-readiness.ts` `formatReadiness` (lines 400–404) prints `nothing written yet` on pass and `nothing was written` on any refuse. Prefer-A item 2 adds post-dry-run porcelain fail but does not amend that copy. Stop 1 P2 is the honesty gap.\n- Failure mode: Bound Prefer-A ships tree-neutral intent + post-check, then a still-dirty dry-run path fails readiness while the refuse line keeps advertising write-nothing — P2 stays open on the proof path.\n- Disposition consequence: add to Bound remedy: when post-dry-run clean fails, refuse detail/copy must report dry-run-left dirt (porcelain) and must not claim write-nothing for that refuse.\n\n### F2 — name the observed-class writer before claiming “every seam” closed\nclassification: sharpens-framing\n\n- Evidence: pin-read `runReleaseReadiness` already runs `checkGitClean` then `seams.dryRun` (342–369); no post-dry-run re-check. `defaultReadiness` in `run.ts` (766–797) calls `runPipeline({ dryRun: true, allowDirty: false, … })`. Pipeline dry-run branches emit DRYRUN for Steps 1–5/7–9; Step 6 `prepareReleaseArtifacts({ dryRun: true })` is in-memory (pipeline ~694–713; release-artifacts dry path). Observed dirt (`M .gitignore`, `?? .deft/GENERATION.json`, `?? .deft/directive/`) matches deposit/gitignore heal + generation/wiring writers outside those DRYRUN stubs (e.g. init-deposit gitignore reconcile, freshness GENERATION). Prefer-A items 1 and 3 already want tree-neutral + named writer; without forcing that name into Bound remedy, implementers can chase Step 6/7 stubs and miss the live call.\n- Failure mode: Bound “make every seam tree-neutral” closes against the wrong graph; tip cuts keep failing on the same porcelain class.\n- Disposition consequence: Bound remedy item 3 must require a measured writer identity (module/function or call path from the readiness dry-run) for the observed class before tree-neutral is claimed closed; regression fixture must assert that class stays absent.\n\n### F3 — reuse `checkGitClean` for the post-dry-run proof\nclassification: sharpens-framing\n\n- Evidence: Prefer-A item 2 allows “re-check clean (or equivalent dirt inventory)”. Existing mechanism is `checkGitClean` (`git.ts` / already used at readiness entry). Thin Fail-Closed prefers one gate.\n- Failure mode: a second dirt classifier drifts from porcelain the operator already sees and from Phase 1 wording.\n- Disposition consequence: Bound remedy states post-dry-run proof = second `checkGitClean` (same seam) after dry-run returns 0; fail with that porcelain.\n\n### F4 — reorder-only remains correctly rejected\nclassification: footnote\n\n- Evidence: tip already clean-then-dry-run; issue observation is post-dry-run / re-entry dirt. Prefer-A Reject list matches Stop 1 note.\n- Failure mode: none for this lean.\n- Disposition consequence: keep Reject reorder-only; do not widen Bound remedy to Ask 1 reorder.\n\n### F5 — keep `task release --allow-dirty` break-glass only\nclassification: footnote\n\n- Evidence: Prefer-A item 5 + Reject; pipeline already honors `allowDirty` on the non-`release:run` verb. Envelope preference matches.\n- Failure mode: shipping `--allow-dirty` on `release:run` as primary recovery re-opens P3 as productized dirt.\n- Disposition consequence: leave as Reject; no Bound change.\n\n## Mechanism inventory (before new machinery)\n\n- `checkGitClean` — porcelain gate; used at readiness entry; unused after dry-run today.\n- `runReleaseReadiness` / `formatReadiness` — check order + refuse/pass copy claiming write-nothing.\n- `defaultReadiness` → `runPipeline({ dryRun: true, allowDirty: false })` — readiness dry-run seam.\n- Pipeline dry-run emit paths + `prepareReleaseArtifacts` dry in-memory path — mostly non-writing for Steps 1–9.\n- `task release` / `runPipeline` `--allow-dirty` — existing break-glass (Prefer-A keeps it off `release:run` primary).\n- Deposit/gitignore heal + GENERATION / `.deft/directive` writers — likely observed dirt class; Prefer-A must name which fires under readiness dry-run.\n\n## Injection / swarm lens\n\nTarget mutates shared working-tree state on the cut worktree. Tree-neutral dry-run + post-dry-run `checkGitClean` is the deterministic control so a readiness probe cannot leave tracked/untracked dirt for a later cut, sibling agent, or re-entry. No prompt/envelope authority change.\n\n## Road not taken\n\n- Reorder-only: tip already clean-before-dry-run; does not close P1/P2.\n- Silent scratch-class ignore: hides writer; Prefer-A correctly rejects.\n- Broad `--allow-dirty` on `release:run`: papers over dirt; Prefer-A correctly rejects as primary.\n- Full temp-dir sandbox for dry-run: heavier than stopping the named writer + post-proof; flip if measured writer cannot be made tree-neutral without breaking deposit semantics.\n\n## Steelmans (rejected)\n\nStrongest reject of Prefer-A: accept disclosed scratch-class dirt after dry-run so deposit heal can keep running. Flip only if a measured writer is required for dry-run correctness and cannot run without porcelain changes — then Prefer-A must still name that writer and keep post-dry-run fail closed, not silent ignore.\n\n## Census\n\n- blocks-the-design: 0\n- sharpens-framing: F1, F2, F3\n- footnote: F4, F5\n- clean-result: no\n\n## Pin-read attestation\n\n- Dest HEAD `30fa5344c29653f0935703dd28ffdad95e761e27` (worktree gitdir).\n- Read `packages/core/src/release/run-readiness.ts` and `packages/core/src/release/run.ts` `defaultReadiness` on that dest (shell `git show` denied by missing `@deftai/directive-runtime` hook; paste-ready fallback).\n- Ceiling honored: issue body; 7152583302; 7152583577; 7152605378 only.\n```\n\n---\n\n**Seat exit:** Shell and Write denied (`@deftai/directive-runtime` not installed). Comment not posted. Parent should write the body above to `.deft-scratch/arc-7327-envelopes/grok-round1-body.md` and `gh issue comment 7327 --body-file …`.\n\n\n",
+          "id": 7152661859,
+          "html_url": "https://github.com/deftai/directive/issues/7327#issuecomment-7152661859",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-25T04:14:31Z",
+          "updated_at": "2026-11-25T04:15:12Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\nLean: Prefer-A Bound\nTarget-digest: sha256:19a60b70d0c4aedca05a1c8106f92c5dcf3b4ca074196a2db2c7ede80591135a\nconflict_group: release-run-readiness-dry-run-tree-neutral\narc-mode: no-ingest\nspend: N≥3\ncharter: open critique\nsuccessor-of: 7152583577\nabsorbs: Round-1 Codex 7152644414; Claude 7152661552; Grok 7152661859\n\n## In plain English\n\nKeep the entry clean-tree check. Make the readiness dry-run path leave the project working tree as it found it on every exit. After that path returns, run the same clean check again and refuse with the porcelain when dirt remains. When that post-check fails, stop saying nothing was written. Name the live writer of the observed dirt class and prove the fix through that writer, not only a stub seam. Do not reorder-only, do not broaden --allow-dirty on release:run, and do not auto-restore concurrent dirt.\n\n## Bound remedy\n\n- Keep the readiness entry checkGitClean before the Phase 2 dry-run seam.\n- Make the readiness dry-run path (and every seam it invokes) project working-tree neutral on every returned status (exit 0 and nonzero): no tracked mutation and no newly visible untracked paths under the project root.\n- After the dry-run seam returns any status, run a second checkGitClean (same seam as entry) and fail readiness with that porcelain when dirty.\n- When the post-dry-run clean check fails, or neutrality is otherwise not established, readiness refuse detail/copy must report dry-run-left dirt and must not claim nothing was written / write-nothing for that refuse.\n- Measure and name the live writer (module/function or call path from the readiness dry-run) of the observed class M .gitignore, ?? .deft/GENERATION.json, ?? .deft/directive/ before claiming tree-neutral closed.\n- Add a regression that exercises the production readiness dry-run path and that named writer condition (network boundaries stubbed as needed) from a clean fixture tree; assert porcelain empty and readiness ok.\n- Keep a separate injected-dirt negative regression: a dry-run seam that introduces dirt (including nonzero exit) makes readiness refuse, reports the dirt, and does not claim nothing was written.\n- Keep refuse-before-writeReleaseRunRecord order so a readiness failure leaves no resume record.\n- State the shipped guarantee as project working-tree porcelain neutrality; do not claim filesystem-wide zero writes; do not auto-restore or erase observed dirt.\n- Reject reorder-only, silent scratch-class ignore, and broad --allow-dirty on release:run as the primary fix; leave task release --allow-dirty as existing break-glass only.\n\n## Reject\n\n- Reorder-only (tip already cleans before dry-run).\n- Silent scratch-class ignore without naming the writer and without post-dry-run proof.\n- Shipping --allow-dirty on release:run as default recovery.\n- Auto-restore/clean of post-dry-run dirt (concurrent user changes must survive).\n- Stub-only regression that never exercises the production writer.\n\n## Pain cites\n\n- relieves: P1\n- relieves: P2\n- relieves: P3\n\n## Round-1 disposition map\n\n- Codex F1 blocks (neutrality on failed exits + footer honesty) -> absorbed into Bound remedy limbs 2-4 and 7.\n- Codex F2 blocks (regression must exercise writer) -> absorbed into limbs 5-6; stub-only rejected.\n- Codex F3 sharpens (porcelain != zero writes) -> absorbed into limb 9.\n- Claude F1/F2 blocks (post-check + tree-neutral source) -> absorbed into limbs 2-3; seat was PARTIAL on inputs but code inventory matches tip.\n- Claude F3/F4 sharpens -> absorbed into Reject / limb 8.\n- Grok F1-F3 sharpens (refuse copy; name writer; reuse checkGitClean) -> absorbed into limbs 3-5.\n- Grok/Codex/Claude footnotes on reorder and allow-dirty -> kept in Reject.\n\n",
+          "id": 7152686782,
+          "html_url": "https://github.com/deftai/directive/issues/7327#issuecomment-7152686782",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-25T04:16:06Z",
+          "updated_at": "2026-11-25T04:16:06Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1,pain-P2,pain-P3\n\n## In plain English\n\nThe bound remedy can remove the need for the dirty-tree workaround: fix the actual writer, prove the production path stays clean, and refuse before creating a run record if cleanliness cannot be verified. A second clean check alone would only detect the original failure. The Bound correctly requires the repair too. One wording residual remains: observing dirt after a dry-run does not establish that the dry-run wrote it, and a Git error does not establish that dirt exists.\n\n## Pain audit\n\n**pain-P1 — relieved by the contract; production proof remains required.** Bound limbs 2, 5 and 6 require neutrality on both zero and nonzero returns, identification of the observed-class writer, and a clean fixture regression through that production writer condition. Limb 3 catches residual dirt with the existing check. Together these address both re-entry and the following cut; a post-check-only implementation would be false relief and would not satisfy this Bound. Pin-read does not identify the host-specific writer, so this is a design assessment, not a claim that the incident is reproduced or fixed.\n\n**pain-P2 — substantially relieved; sharpens-framing residual below.** Limbs 4 and 9 replace absolute write-nothing claims with project working-tree porcelain neutrality. That is the right scope: clean porcelain does not prove filesystem-wide zero writes. Apply that scope to pass copy as well as refusal copy; the pinned formatter contains both claims. The prescribed causal phrase still overstates what the post-check can know.\n\n**pain-P3 — relieved for the reported cause, conditional on P1's production proof.** Once the real dry-run path leaves a clean tree, the normal release:run path can proceed without switching verbs or adding --allow-dirty. Retaining refusal before writeReleaseRunRecord also avoids a false resumable run. No new override is needed. Existing dirt from an earlier affected run still needs operator reconciliation; this is a residual recovery task, not a reason to auto-restore files or broaden the design.\n\n## F1 — sharpens-framing: report observation, not unproved causation\n\nBound limb 4 requires reporting \"dry-run-left dirt\" even when neutrality is \"otherwise not established.\" At the pinned SHA, checkGitClean returns false for either nonempty porcelain or a failed git status. Also, the Bound explicitly preserves concurrent user edits. Those cases cannot honestly all be described as dirt left by the dry-run.\n\nUse \"working tree is dirty after the dry-run\" with the porcelain for observed dirt, and \"working-tree cleanliness could not be verified after the dry-run\" with the Git error for an unreadable status. Preserve the dry-run exit detail independently. Neither case should claim nothing was written or erase files. This changes diagnostic wording within the existing check, not the remedy architecture.\n\n## Mechanism thinness and reachability\n\nThe Bound remains mechanism-thin under #3265: one additional invocation of checkGitClean, repair of the measured writer through the existing dry-run path, and focused positive/negative regressions. Writer identification and regression evidence are completion criteria, not extra runtime machinery. Reorder-only cannot help: the pinned code already checks clean before dryRun. No second dirt classifier, scratch exception, cleanup engine, or new flag is required.\n\nThe P1 and P3 relief cites are reachable only when the named writer condition is actually exercised and fixed; a green no-op dryRun seam plus a refusing post-check cannot discharge them. If measurement places the writer in launcher/setup rather than beneath runPipeline, include that real triggering boundary in the repair and regression before claiming relief. Do not force an unverified call-path attribution to fit limb 5. P2's relief is reachable with the scoped copy and F1 wording correction.\n\n## Verification and classification\n\nPin-read via git show at 30fa5344c29653f0935703dd28ffdad95e761e27: run-readiness.ts (entry ordering, formatter, CI fetch), run.ts (production dry-run configuration and refusal before record), git.ts (porcelain/error behavior), pipeline.ts and release-artifacts.ts (existing dry-run branches). No release executed; writer not reproduced. Fixed issue inputs only: body #7327 and comments 7152583302, 7152686782, 7152644414, 7152661552, 7152661859. No comment above the ceiling read.\n\nblocks-the-design: none\nsharpens-framing: F1\nfootnote: existing dirty-tree recovery remains operator-owned\n\nharvest-changed: true\nclean-result: no",
+          "id": 7152715097,
+          "html_url": "https://github.com/deftai/directive/issues/7327#issuecomment-7152715097",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-25T04:17:57Z",
+          "updated_at": "2026-11-25T04:17:57Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1,pain-P2,pain-P3\nfinding-classes: none\nharvest-changed: false\nclean-result: yes\n\n## In plain English\n\nPrefer-A Bound 7152686782 honestly relieves Stop 1 P1–P3. It keeps the entry clean check, forces the readiness dry-run path to leave project porcelain unchanged on every exit, proves that with a second `checkGitClean`, stops the refuse footer from saying “nothing was written” when that proof fails, and requires naming the live writer of the observed dirt class plus a production-path regression. Reorder-only and broad `--allow-dirty` on `release:run` stay rejected. No false-relief; no Bound-remedy harvest change.\n\n## Pain-audit\n\n### pain-P1 — relieved (honest)\n\nStop 1 P1: after Phase 2 dry-run, porcelain shows `M .gitignore` / `?? .deft/GENERATION.json` / `?? .deft/directive/`, so the clean gate refuses and the cut inherits dirt.\n\nBound limbs that close it: tree-neutral dry-run on every returned status; post-dry-run `checkGitClean` with porcelain fail; measure/name the live writer of that class before claiming closed; production readiness dry-run regression from a clean fixture asserting empty porcelain.\n\nReachability after Prefer-A ships: pin-read `runReleaseReadiness` already has entry `checkGitClean` then `seams.dryRun` with no post-check (`run-readiness.ts` ~342–369); `checkGitClean` in `git.ts` is the reusable gate; `defaultReadiness` calls `runPipeline({ dryRun: true, allowDirty: false })`. Post-check + writer fix + regression are on that same graph. Limb 5 is a ship gate, not a prose-only borrow.\n\nResidual (non-blocking): writer identity is still implement-time; Bound already refuses “tree-neutral closed” until that name exists. Not false-relief of the cite.\n\nclassification: none\n\n### pain-P2 — relieved (honest)\n\nStop 1 P2: readiness prints “nothing was written” / write-nothing while a path it invokes mutates the tree.\n\nBound limbs that close it: when post-dry-run clean fails or neutrality is otherwise not established, refuse detail/copy must report dry-run-left dirt and must not claim write-nothing; shipped guarantee is project working-tree porcelain neutrality (not filesystem-wide zero writes).\n\nReachability: pin-read `formatReadiness` (~400–404) still emits the unconditional refuse footer “nothing was written”; Bound limb 4 amends that path. Round-1 Codex/Grok honesty sharpens are absorbed.\n\nclassification: none\n\n### pain-P3 — relieved (honest)\n\nStop 1 P3: operator recovery falls to `task release -- <version> --allow-dirty` because `release:run` lacks a tree-neutral dry-run.\n\nBound closes it by making the readiness dry-run succeed without leaving dirt (so the break-glass path is unnecessary for this class) and by Reject of broad `--allow-dirty` on `release:run` as primary; existing `task release --allow-dirty` stays break-glass only.\n\nReachability: same as P1 limb 2 + Reject list. Post-check alone would still leave the operator blocked; Bound requires source neutrality, so the cite is not detection-only false-relief.\n\nclassification: none\n\n## Mechanism-thin (#3265)\n\nBound reuses one porcelain gate (`checkGitClean`), amends existing `formatReadiness` copy, names/fixes the live writer on the readiness dry-run call path, and adds positive + injected-dirt regressions. No second dirt classifier, no silent scratch ignore, no auto-restore, no new allow-dirty product path. Limbs stay mechanism sentences; Reject/keep-order limbs do not widen fail-closed association.\n\n## Pin-read attestation\n\n- Fixed inputs only: issue #7327 body; Stop 1 7152583302; Prefer-A Bound 7152686782; Round-1 7152644414 / 7152661552 / 7152661859.\n- Ceiling honored: no comments id > 7152686782.\n- Dest file read at dispatch SHA targets: `packages/core/src/release/run-readiness.ts`, `run.ts` `defaultReadiness` (shell `git show` hook-denied; worktree file read).\n- Closed findings: none.\n\n## Census\n\n- blocks-the-design: 0\n- sharpens-framing: 0\n- footnote: 0\n- harvest-changed: false\n- clean-result: yes\n```\n\n\n",
+          "id": 7152731882,
+          "html_url": "https://github.com/deftai/directive/issues/7327#issuecomment-7152731882",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-25T04:19:02Z",
+          "updated_at": "2026-11-25T04:19:02Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\nLean: Prefer-A Recut-1\nTarget-digest: sha256:19a60b70d0c4aedca05a1c8106f92c5dcf3b4ca074196a2db2c7ede80591135a\nconflict_group: release-run-readiness-dry-run-tree-neutral\narc-mode: no-ingest\nspend: N≥3\ncharter: open critique\nsuccessor-of: 7152686782\nabsorbs: PA Codex 7152715097 F1; Grok PA 7152731882 clear footnote-only census\ndual-stop: reserved-slot-1 spent on this Recut\n\n## In plain English\n\nSame Prefer-A Bound as 7152686782, with one honesty fix from PA: when the post-dry-run clean check fails, say the working tree is dirty after the dry-run (with porcelain), or that cleanliness could not be verified (with the Git error). Do not claim the dry-run left the dirt unless that causation is proved. Still never claim nothing was written on that refuse path.\n\n## Bound remedy\n\n- Keep the readiness entry checkGitClean before the Phase 2 dry-run seam.\n- Make the readiness dry-run path (and every seam it invokes) project working-tree neutral on every returned status (exit 0 and nonzero): no tracked mutation and no newly visible untracked paths under the project root.\n- After the dry-run seam returns any status, run a second checkGitClean (same seam as entry) and fail readiness with that porcelain when dirty.\n- When the post-dry-run clean check fails, or neutrality is otherwise not established, readiness refuse detail/copy must not claim nothing was written / write-nothing. For nonempty porcelain, report that the working tree is dirty after the dry-run and print the porcelain. For a failed git status, report that working-tree cleanliness could not be verified after the dry-run and print the Git error. Preserve the dry-run exit detail independently. Do not assert dry-run-left causation unless measured; do not auto-restore or erase observed dirt.\n- Measure and name the live writer (module/function or call path from the readiness dry-run) of the observed class M .gitignore, ?? .deft/GENERATION.json, ?? .deft/directive/ before claiming tree-neutral closed.\n- Add a regression that exercises the production readiness dry-run path and that named writer condition (network boundaries stubbed as needed) from a clean fixture tree; assert porcelain empty and readiness ok.\n- Keep a separate injected-dirt negative regression: a dry-run seam that introduces dirt (including nonzero exit) makes readiness refuse, reports the dirt using the Recut-1 refuse wording, and does not claim nothing was written.\n- Keep refuse-before-writeReleaseRunRecord order so a readiness failure leaves no resume record.\n- State the shipped guarantee as project working-tree porcelain neutrality; do not claim filesystem-wide zero writes; apply that scoped wording to pass copy as well as refuse copy; do not auto-restore or erase observed dirt.\n- Reject reorder-only, silent scratch-class ignore, and broad --allow-dirty on release:run as the primary fix; leave task release --allow-dirty as existing break-glass only.\n\n## Reject\n\n- Reorder-only (tip already cleans before dry-run).\n- Silent scratch-class ignore without naming the writer and without post-dry-run proof.\n- Shipping --allow-dirty on release:run as default recovery.\n- Auto-restore/clean of post-dry-run dirt (concurrent user changes must survive).\n- Stub-only regression that never exercises the production writer.\n- Unproved dry-run-left causation in refuse copy when only post-check dirt or Git error is observed.\n\n## Pain cites\n\n- relieves: P1\n- relieves: P2\n- relieves: P3\n\n## PA disposition\n\n- Codex PA F1 sharpens (observation vs unproved causation) -> reminted Bound remedy limb 4 + Reject + limb 9 pass-copy scope.\n- Codex PA harvest-changed true / clean-result no -> this Recut.\n- Grok PA 7152731882 harvest-changed false / clean-result yes -> no further remint from that seat.\n- Claude PA unavailable (dest missing @deftai/directive-runtime; refused to invent verdicts) -> re-seat on Recut-1 with cached inputs.\n\n",
+          "id": 7152739096,
+          "html_url": "https://github.com/deftai/directive/issues/7327#issuecomment-7152739096",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-25T04:19:30Z",
+          "updated_at": "2026-11-25T04:19:30Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1,pain-P2,pain-P3\n\n## In plain English\n\nRecut-1 resolves Codex PA F1: it distinguishes dirt observed after the dry-run from an inability to check cleanliness, without blaming the dry-run for concurrent changes. The remedy can relieve all three pains if its production-writer requirements are met. Adding only the second clean check would still leave releases blocked and would not satisfy this contract. No further harvest change is needed.\n\n## Pain audit\n\n**pain-P1 — relief is reachable; implementation proof remains required.** Recut-1 requires neutrality on zero and nonzero returned statuses, measurement and naming of the live writer of the observed .gitignore / .deft/GENERATION.json / .deft/directive/ class, and a clean-fixture regression through the production path and that writer condition. The second checkGitClean detects residual failure; the source repair supplies the relief. A no-op seam test or a post-check that merely refuses the same incident cannot discharge these requirements. Writer identity is still unproved in this audit, so this is acceptance of the remedy contract, not a declaration that the incident is fixed. If measurement locates the writer at a launcher/setup boundary, the actual triggering boundary must be covered before claiming closure; an assumed runPipeline attribution is not evidence.\n\n**pain-P2 — relief is reachable and F1 is absorbed honestly.** Limb 4 now prescribes separate outcomes: nonempty porcelain means the working tree is dirty after the dry-run; failed git status means cleanliness could not be verified, with the Git error. Neither observation proves who wrote files. Preserving the dry-run exit detail separately also avoids hiding a nonzero dry-run behind a later cleanliness failure. Limb 9 explicitly scopes both pass and refusal copy to project working-tree porcelain neutrality, so ignored-file or Git-metadata writes are not falsely ruled out. The no-auto-restore requirement preserves concurrent user changes. This directly closes the prior PA wording finding without adding a second classifier or cleanup system.\n\n**pain-P3 — relief is reachable for the reported cause, conditional on P1's production proof.** A genuinely tree-neutral production dry-run removes the reason to switch to task release --allow-dirty. Refusing before writeReleaseRunRecord prevents a failed readiness probe from creating a misleading resume record. Existing dirt from an earlier affected attempt still requires operator reconciliation; neither the repair nor clean porcelain claims to undo that history. This residual does not require a new override or automatic cleanup.\n\n## False-relief and reachability checks\n\nThe pinned implementation already calls checkGitClean before dryRun, so reorder-only remains correctly rejected. The production defaultReadiness calls runPipeline with dryRun: true and allowDirty: false; the proposed repair and production regression must follow the measured execution path, not substitute a harmless seam. The pinned checkGitClean distinguishes status-command failure from nonempty porcelain in its returned detail, making the revised wording reachable with the existing gate. The pinned runReleaseRun returns on failed readiness before writing the run record. These are concrete integration points for the contract.\n\nThe remedy stays thin: repair the measured writer, reuse checkGitClean once after every returned dry-run status, adjust existing output, and prove the positive and injected-dirt cases. There is no new scratch exception, broad dirty-tree bypass, or promise of filesystem-wide zero writes. No additional design blocker or framing residual found.\n\n## Verification and classification\n\nRead all eight cached fixed inputs named in the PA-2 envelope, including Recut-1 7152739096 and both prior PA comments. Independently pin-read run-readiness.ts, git.ts, and run.ts/defaultReadiness plus refusal-before-record ordering with git show at 30fa5344c29653f0935703dd28ffdad95e761e27. No release executed and no host-specific writer reproduced. No existing comment above ceiling 7152739096 read.\n\nPrior Codex PA F1: resolved by Recut-1.\nblocks-the-design: none\nsharpens-framing: none\nfootnote: existing dirty-tree recovery remains operator-owned; already acknowledged, no remedy change\n\nharvest-changed: false\nclean-result: yes\r\n\n",
+          "id": 7152766837,
+          "html_url": "https://github.com/deftai/directive/issues/7327#issuecomment-7152766837",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-25T04:21:20Z",
+          "updated_at": "2026-11-25T04:21:20Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1,pain-P2,pain-P3\n\n## In plain English\n\nRecut-1 fixes the wording problem Codex raised (F1), and that fix is honest. But Recut-1 still assumes the readiness dry run is what makes the tree dirty. The issue's own output says otherwise. The check that FAILs is `Phase 1: clean working tree`. That check runs **before** the dry run (`run-readiness.ts:342` runs before `:368`), and `formatReadiness` prints every check after all of them have run. So the dirt was already there when readiness started. The likely writer is the launcher's self-complete setup. It runs before any eligible product command (`release:run` is eligible) and writes `.deft/GENERATION.json` plus wiring. That matches the observed files exactly. If that is right, a tree-neutral dry run and a second clean check fix nothing for the reported incident. The writer limb has to cover every call path in the `release:run` invocation, not only the dry-run path.\n\n## Pain audit\n\n**pain-P1: not relieved yet (reachability gap; false-relief risk).** Limbs 2, 3 and 6 only act on the dry-run seam. Pinned facts:\n- `run-readiness.ts:342` runs entry `checkGitClean`, then `:368` runs `seams.dryRun`. The issue's FAIL line is the entry check's name and wording (`:344–346`). A dry run in the same invocation cannot produce that FAIL.\n- `packages/runtime/src/self-complete.ts:4–9, 53–97`: on any eligible ordinary command (not install/doctor/etc.), when the readiness marker is missing or stale, or when GENERATION is missing on a configured project, it runs `runSetup` (repair-equivalent). `setup.ts:3, :105` writes `.deft/GENERATION.json` and the wiring. A fresh tip worktree (the issue's setup) is the case where the marker and GENERATION are missing.\n- The observed set (`M .gitignore` with un-ignore rules for `.deft/directive/**` / `.deft/approved-scope/**` / GENERATION.json, `?? .deft/GENERATION.json`, `?? .deft/directive/`) is installer-output-shaped (`installer-output-inventory.ts`). It is not release-pipeline-shaped. Round-1 Claude already found that the dry-run branches of Steps 5–9 do not write.\nNot executed, so causation is not proven. But limb 5's restriction (\"call path from the readiness dry-run\") pre-commits the answer. If the measured writer is self-complete, a correct implementation either cannot satisfy limb 5 or \"satisfies\" it by fixing nothing. Codex PA said this in its reachability section (\"If measurement places the writer in launcher/setup … include that real triggering boundary\"), but Recut-1 did not absorb it.\n\n**pain-P2: partly relieved.** The new limb 4 wording is honest for the post-dry-run check (see below). But if the writer runs before readiness, the refuse that fires is the **entry** check, and its footer still reads \"nothing was written\" (`:403`). That is true of readiness itself, but false for the `deft release:run` invocation the operator ran, which is the P2 complaint. Limb 9's porcelain-neutrality scope covers the readiness pass and refuse copy only. It does not say what happens when the same invocation wrote before readiness.\n\n**pain-P3: not relieved until P1 is.** If self-complete writes on every fresh-worktree invocation, every tip-cut `release:run` still refuses at entry. The operator still falls back to `task release --allow-dirty`. The cite is reachable only after limb 5 is widened.\n\n## F1 remint check (Codex PA F1)\n\nHonest. Limb 4 now says \"dirty after the dry-run\" plus porcelain, or \"cleanliness could not be verified\" plus the Git error. This matches `checkGitClean`'s two false returns (`git.ts:33–39`: `git status failed: …` vs nonempty porcelain). It keeps the dry-run exit detail separate and forbids unproved causation. Reject row 6 matches. No new false relief from the remint itself.\n\n## Findings\n\n**F1 (blocks-the-design): writer limb scoped to the wrong boundary.** Change limb 5 to: measure and name the live writer of the observed class anywhere in the `deft release:run` invocation: launcher/self-complete (`maybeSelfCompleteSetup` → `runSetup`), hooks, readiness entry, or the dry-run seam. Fix it at that boundary. Change limb 6 so the regression starts from a fresh, unconfigured-marker worktree fixture and runs the real `release:run` entry path, including self-complete. A readiness-only fixture with a pre-seeded marker would hide the writer. Limbs 2–3 stay as the defense in depth for the dry run. One sentence each, no new mechanism (#3265).\n\n**F2 (sharpens-framing): refuse footer also covers pre-readiness writes.** When the entry check fails, do not print \"nothing was written\" without qualification. Use the same scope as limb 9: \"readiness wrote nothing; working tree was dirty at readiness entry\" plus porcelain. Copy change only.\n\n**F3 (footnote): self-complete fix options belong to the implementer.** For example: release verbs suppress self-complete the way `DEFT_DOCTOR_HOOK_DIAGNOSTIC` does, or setup's GENERATION/.gitignore outputs are made ignored by default. Both stay inside the Reject list (no silent scratch-ignore without naming the writer, no `--allow-dirty`). The Bound should not pick one before measurement.\n\n## Verification\n\nPin-read from the worktree at 30fa5344c (shell/gh hook-blocked, so file reads only): `packages/core/src/release/run-readiness.ts:330–406`, `git.ts:31–41`, `run.ts:766–858`, `packages/runtime/src/self-complete.ts:1–130`, `setup.ts` (grep :3, :105). Cached inputs: issue body, Stop 1 7152583302, Recut-1 7152739096, Round-1 Codex/Claude/Grok, PA Codex 7152715097, PA Grok 7152731882. No comment above 7152739096 was read. No release was executed and the writer was not reproduced, so F1 is a reachability finding, not a proven root cause.\n\nblocks-the-design: F1\nsharpens-framing: F2\nfootnote: F3\n\nharvest-changed: true\nclean-result: no\n\n",
+          "id": 7152780038,
+          "html_url": "https://github.com/deftai/directive/issues/7327#issuecomment-7152780038",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-25T04:22:13Z",
+          "updated_at": "2026-11-25T04:22:13Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1,pain-P2,pain-P3\nfinding-classes: none\nharvest-changed: false\nclean-result: yes\n\n## In plain English\n\nPrefer-A Recut-1 7152739096 honestly relieves Stop 1 P1–P3. The Codex PA F1 remint is honest: refuse (and pass) copy now reports dirty-after-dry-run porcelain or unverifiable cleanliness with the Git error, and it no longer claims write-nothing or unproved dry-run-left causation. Source neutrality, post-`checkGitClean`, named live writer, and production-path regression still close the real cut block; detection-only would be false relief and this Bound still refuses that. No Bound-remedy harvest change from this seat.\n\n## Pain-audit\n\n### pain-P1 — relieved (honest)\n\nStop 1 P1: after Phase 2 dry-run, porcelain shows `M .gitignore` / `?? .deft/GENERATION.json` / `?? .deft/directive/`, so the clean gate refuses and the cut inherits dirt.\n\nRecut-1 limbs that close it: keep entry `checkGitClean`; tree-neutral readiness dry-run on every returned status; post-dry-run `checkGitClean` with porcelain fail; measure/name the live writer of that observed class before claiming closed; production readiness dry-run regression from a clean fixture asserting empty porcelain; separate injected-dirt negative.\n\nReachability (pin-read / dest files at dispatch SHA targets): `runReleaseReadiness` still does entry `checkGitClean` then `seams.dryRun` with no post-check (`run-readiness.ts` ~342–369); `defaultReadiness` calls `runPipeline({ dryRun: true, allowDirty: false })` (`run.ts` ~766–783). Post-check + writer fix + regression sit on that same graph. Writer identity remains implement-time; Bound already refuses “tree-neutral closed” until that name exists — not false-relief of the cite.\n\nclassification: none\n\n### pain-P2 — relieved (honest); Codex PA F1 remint confirmed\n\nStop 1 P2: readiness prints “nothing was written” / write-nothing while a path it invokes mutates the tree.\n\nPrior Bound limb 4 used “dry-run-left dirt” even when neutrality was “otherwise not established,” which over-claims when porcelain is nonempty from concurrent edits or when `checkGitClean` fails on a Git error. Codex PA 7152715097 F1 required observation-scoped refuse wording; Recut-1 remints limb 4 + Reject + limb 9 pass-copy scope to match.\n\nHonesty check of the remint: nonempty porcelain → “working tree is dirty after the dry-run” + porcelain; failed git status → “working-tree cleanliness could not be verified after the dry-run” + Git error; preserve dry-run exit detail; do not claim nothing was written; do not assert dry-run-left causation unless measured; no auto-restore. That matches F1 and is reachable at `formatReadiness` (~400–404), which still emits the unconditional write-nothing footer today.\n\nclassification: none\n\n### pain-P3 — relieved (honest)\n\nStop 1 P3: operator recovery falls to `task release -- <version> --allow-dirty` because `release:run` lacks a tree-neutral dry-run.\n\nRecut-1 closes it by requiring the readiness dry-run to succeed without leaving project porcelain dirt (so the break-glass path is unnecessary for this class) and by Reject of broad `--allow-dirty` on `release:run` as primary; existing `task release --allow-dirty` stays break-glass only. Refuse-before-`writeReleaseRunRecord` order is kept.\n\nReachability: same as P1 source-neutrality limbs + Reject. Post-check alone would still leave the operator blocked; Bound requires source neutrality + production writer proof, so the cite is not detection-only false-relief.\n\nclassification: none\n\n## Mechanism-thin (#3265)\n\nRecut-1 reuses one porcelain gate (`checkGitClean`), amends `formatReadiness` copy for observation vs causation, names/fixes the live writer on the readiness dry-run call path, and keeps positive + injected-dirt regressions. No second dirt classifier, silent scratch ignore, auto-restore, or new allow-dirty product path. F1 remint changes diagnostic honesty only; fail-closed association for P1–P3 is unchanged from the Prefer-A shape Grok PA 7152731882 already cleared.\n\n## Pin-read attestation\n\n- Fixed inputs only: issue #7327 body; Stop 1 7152583302; Prefer-A Recut-1 7152739096; Round-1 7152644414 / 7152661552 / 7152661859; PA-1 Codex 7152715097; PA-1 Grok 7152731882.\n- Ceiling honored: no comments id > 7152739096.\n- Dest file read at dispatch SHA targets: `packages/core/src/release/run-readiness.ts`, `run.ts` `defaultReadiness` (shell/`gh` hook-denied; worktree file read).\n- Closed findings: none.\n\n## Census\n\n- blocks-the-design: 0\n- sharpens-framing: 0\n- footnote: 0\n- harvest-changed: false\n- clean-result: yes\n\n",
+          "id": 7152780471,
+          "html_url": "https://github.com/deftai/directive/issues/7327#issuecomment-7152780471",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-25T04:22:14Z",
+          "updated_at": "2026-11-25T04:22:14Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n<!-- deft:dual-stop fix_batches=1 fix_batch_cap=2 fingerprint=arc-7327-pa2-writer-boundary -->\ndual-stop-raise: reserved slot spent on Recut-1; raise cap to 2 for Recut-2 after Claude PA-2 7152780038 blocks (writer boundary / false-relief).\nyolo-standing: on\narc-mode: no-ingest\n\n",
+          "id": 7152789438,
+          "html_url": "https://github.com/deftai/directive/issues/7327#issuecomment-7152789438",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-25T04:22:49Z",
+          "updated_at": "2026-11-25T04:22:49Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\nLean: Prefer-A Recut-2\nTarget-digest: sha256:19a60b70d0c4aedca05a1c8106f92c5dcf3b4ca074196a2db2c7ede80591135a\nconflict_group: release-run-readiness-dry-run-tree-neutral\narc-mode: no-ingest\nspend: N≥3\ncharter: open critique\nsuccessor-of: 7152739096\nabsorbs: Claude PA-2 7152780038 F1/F2; Codex PA-2 7152766837 clear; Grok PA-2 7152780471 clear\n\n## In plain English\n\nThe reported FAIL is the readiness entry clean check. Tip already runs that check before dry-run, so dirt that fails entry was present when readiness started. Prefer-A therefore measures and fixes the live writer anywhere in the deft release:run invocation (launcher self-complete/setup, hooks, readiness, or the dry-run seam), not only under the dry-run seam. Keep dry-run tree-neutrality and the post-dry-run clean check as defense in depth. Keep Recut-1 honest refuse wording. Qualify the entry-check refuse footer so it does not claim the whole invocation wrote nothing when the tree was already dirty at readiness entry.\n\n## Bound remedy\n\n- Keep the readiness entry checkGitClean before the Phase 2 dry-run seam.\n- Make the readiness dry-run path (and every seam it invokes) project working-tree neutral on every returned status (exit 0 and nonzero): no tracked mutation and no newly visible untracked paths under the project root (defense in depth).\n- After the dry-run seam returns any status, run a second checkGitClean (same seam as entry) and fail readiness with that porcelain when dirty (defense in depth).\n- When the post-dry-run clean check fails, or neutrality is otherwise not established, readiness refuse detail/copy must not claim nothing was written / write-nothing. For nonempty porcelain, report that the working tree is dirty after the dry-run and print the porcelain. For a failed git status, report that working-tree cleanliness could not be verified after the dry-run and print the Git error. Preserve the dry-run exit detail independently. Do not assert dry-run-left causation unless measured; do not auto-restore or erase observed dirt.\n- When the entry clean check fails, refuse detail/copy must not claim the deft release:run invocation wrote nothing; report that readiness wrote nothing and the working tree was dirty at readiness entry (plus porcelain), or that cleanliness could not be verified at readiness entry (plus Git error).\n- Measure and name the live writer (module/function or call path) of the observed class M .gitignore, ?? .deft/GENERATION.json, ?? .deft/directive/ anywhere in the deft release:run invocation: launcher/self-complete (maybeSelfCompleteSetup -> runSetup), hooks, readiness entry, or the dry-run seam; fix it at that measured boundary before claiming the incident class closed.\n- Add a regression that starts from a fresh unconfigured-marker worktree fixture and exercises the real release:run entry path including self-complete (network boundaries stubbed as needed); assert the observed dirt class stays absent and readiness can pass the entry clean check.\n- Keep a separate injected-dirt negative regression on the dry-run seam (including nonzero exit) that makes readiness refuse with Recut-1/Recut-2 refuse wording and does not claim nothing was written.\n- Keep refuse-before-writeReleaseRunRecord order so a readiness failure leaves no resume record.\n- State the shipped guarantee as project working-tree porcelain neutrality for the release:run invocation under test; do not claim filesystem-wide zero writes; do not auto-restore or erase observed dirt.\n- Reject reorder-only, silent scratch-class ignore, and broad --allow-dirty on release:run as the primary fix; leave task release --allow-dirty as existing break-glass only; leave self-complete suppress-vs-ignore implementer choice inside measurement + Reject constraints.\n\n## Reject\n\n- Reorder-only (tip already cleans before dry-run).\n- Silent scratch-class ignore without naming the writer and without proof.\n- Shipping --allow-dirty on release:run as default recovery.\n- Auto-restore/clean of observed dirt (concurrent user changes must survive).\n- Stub-only / readiness-only regression that pre-seeds the readiness marker and hides launcher self-complete.\n- Unproved dry-run-left causation in refuse copy when only post-check dirt or Git error is observed.\n- Pre-committing the writer to the dry-run seam before measurement.\n\n## Pain cites\n\n- relieves: P1\n- relieves: P2\n- relieves: P3\n\n## PA disposition\n\n- Claude PA-2 F1 blocks (writer boundary) -> reminted limbs 6-7; dry-run limbs kept as defense in depth.\n- Claude PA-2 F2 sharpens (entry refuse footer) -> new limb 5.\n- Claude PA-2 F3 footnote (implementer choice) -> Reject / limb 11 keep-out.\n- Codex PA-2 clear / Grok PA-2 clear on Recut-1 -> superseded by this Recut for writer-boundary honesty.\n\n",
+          "id": 7152789853,
+          "html_url": "https://github.com/deftai/directive/issues/7327#issuecomment-7152789853",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-25T04:22:50Z",
+          "updated_at": "2026-11-25T04:22:50Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1,pain-P2,pain-P3\n\n## In plain English\n\nRecut-2 closes Claude PA-2 F1 and F2 at the design-contract level. It now requires finding and fixing the writer anywhere in the release:run invocation, including setup before readiness, and stops the entry-refusal footer from claiming the whole invocation wrote nothing. This corrects my PA-2 clearance: its launcher-boundary caveat needed to be an explicit requirement, which Recut-2 now supplies. Implementation and reproduction evidence remain required before calling the incident fixed. No further harvest change is needed.\n\n## Pain audit\n\n**pain-P1: relief is reachable; Claude PA-2 F1 resolved.** At the pinned SHA, runReleaseReadiness calls checkGitClean before seams.dryRun and formats the accumulated results afterward. The reported entry FAIL therefore cannot establish that this invocation's later dry-run caused the dirt. Recut-2 limbs 6-7 explicitly widen measurement and repair to launcher/self-complete, hooks, readiness entry, or dry-run, and require the real release:run entry path with the missing-marker condition. The Reject list rules out a readiness-only or pre-seeded-marker test that hides self-complete. Detection alone no longer masquerades as relief: the measured writer must be fixed and the fresh-worktree case must pass the entry gate.\n\nThe pinned self-complete implementation makes this boundary material: release:run is eligible; missing GENERATION with pin plus wiring can reach runSetup, which writes ownership/readiness and wiring outputs. A never-configured project instead returns not-configured. The required fixture must therefore retain the real project's configuration evidence while omitting the readiness marker, and exercise the measured triggering condition. This follows the existing real-entry and measured-writer requirements, not a new remedy limb. Source inspection establishes reachability, not the host-specific root cause.\n\n**pain-P2: relief is reachable; Claude PA-2 F2 resolved.** Limb 5 now distinguishes invocation scope from readiness scope at entry refusal and separates dirty porcelain from inability to verify cleanliness. Limb 4 preserves the same observation-versus-causation distinction after dry-run, retains its exit detail, and forbids write-nothing claims when neutrality is not established. These requirements must be applied together: entry failure does not short-circuit the pinned readiness function, so an entry failure plus an injected post-entry write must use the no-write-nothing outcome from limb 4, not an unconditional readiness-wrote-nothing footer. The specified injected-dirt negative regression already demands that outcome, including on nonzero dry-run exit. No contradictory unconditional footer is authorized by the complete Bound.\n\n**pain-P3: relief is reachable, conditional on P1's production proof.** Repair at the measured pre-readiness or dry-run writer removes this incident's reason to switch to task release --allow-dirty. Recut-2 keeps the normal clean-tree gate and rejects broad dirty-tree bypass, silent scratch ignores, and auto-cleanup. Previously created dirt still requires operator reconciliation; the contract does not promise to erase it. The pinned runReleaseRun returns on failed readiness before writeReleaseRunRecord, matching the retained no-resume-record requirement.\n\n## Verification and classification\n\nRead the cached issue body, Stop 1, Recut-2, and all three PA-2 comments specified by the envelope. Confirmed target comment 7152789853 directly through GitHub REST. Independently pin-read run-readiness.ts, git.ts, run.ts, self-complete.ts, and setup.ts at 30fa5344c29653f0935703dd28ffdad95e761e27. No release executed, no writer reproduced, and no existing comment above ceiling 7152789853 read. This audits the remedy contract, not a shipped fix.\n\nClaude PA-2 F1: resolved by Recut-2 writer-boundary and real-entry regression limbs.\nClaude PA-2 F2: resolved by Recut-2 entry-refusal limb, read with its post-dry-run honesty requirement.\nblocks-the-design: none\nsharpens-framing: none\nfootnote: none\n\nfinding-classes: none\nharvest-changed: false\nclean-result: yes\r\n\n\n",
+          "id": 7152813736,
+          "html_url": "https://github.com/deftai/directive/issues/7327#issuecomment-7152813736",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-25T04:24:25Z",
+          "updated_at": "2026-11-25T04:26:22Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1,pain-P2,pain-P3\n\n## In plain English\n\nRecut-2 fixes both problems from my PA-2 review. The writer limb now covers the whole `deft release:run` invocation, including launcher self-complete, so it can find the writer the issue output points to. The entry refuse footer no longer claims that the invocation wrote nothing. Setup is the most likely writer: it writes all three observed paths (`setup.ts:3`, `:105`, `:201–219`, `:547`). If measurement confirms that, Recut-2 lets the fix go where the writer is. I have one wording point: \"unconfigured-marker\" in the regression limb could be read as \"never-configured\". A fixture like that would skip self-complete and hide the writer. Neither point blocks the design.\n\n## Pain audit\n\n**pain-P1: relieved (reachable).** Limb 6 now names every boundary in the invocation: `maybeSelfCompleteSetup` → `runSetup`, hooks, readiness entry, and the dry-run seam. It says to fix at the measured boundary, and limb 11 forbids choosing the seam before measurement. Pinned facts at 30fa5344c:\n- The issue's FAIL line is the entry check (`run-readiness.ts:342–347`). It runs before `seams.dryRun` (`:368`).\n- `release:run` is an eligible head (`self-complete.ts:53–68`, `:92–97`). A fresh tip worktree has committed pin and wiring but no `.deft/GENERATION.json`. That counts as configured, so `runSetup` repair runs (`:140–170`).\n- `runSetup` writes `.deft/GENERATION.json` (`setup.ts:105`), wiring, and `.gitignore` entries (`:201–219`, tracked at `:547`). Together these are the observed class `M .gitignore`, `?? .deft/GENERATION.json`, `?? .deft/directive/`.\nLimbs 2–3 (dry-run neutrality and the post-dry-run clean check) stay as defense in depth. They do not claim to relieve the reported incident.\n\n**pain-P2: relieved.** Limb 4 keeps the honest Recut-1 post-dry-run copy. The new limb 5 covers the entry refuse that fired in the issue. Readiness reports that it wrote nothing, then reports either that the tree was dirty at readiness entry (plus porcelain) or that cleanliness could not be verified (plus the Git error). These match the two false returns of `checkGitClean`. Limb 9 limits the guarantee to working-tree porcelain for the invocation under test. Together, these fix the single unqualified footer at `run-readiness.ts:403`.\n\n**pain-P3: relieved (once P1 lands).** When the writer is fixed at the measured boundary, a fresh tip-cut `release:run` passes the entry check, so the operator no longer needs `task release --allow-dirty`. Limb 11 and the Reject list keep `--allow-dirty` out of `release:run` and leave the current task path as break-glass only.\n\n## PA-2 closure check\n\n- **Claude PA-2 F1 (writer boundary): closed.** Limb 6 is widened to the whole invocation. Limb 7 runs the real entry path including self-complete. Reject row 5 forbids a regression that pre-seeds the readiness marker, and Reject row 7 forbids choosing the dry-run seam before measurement. No false relief remains.\n- **Claude PA-2 F2 (entry refuse footer): closed.** Limb 5 says what I asked for and uses the same two-branch wording as limb 4.\n- **Claude PA-2 F3 (implementer choice): kept out correctly** (limb 11: suppress or ignore, chosen inside the measurement and Reject constraints).\n\n## Findings\n\n**F1 (sharpens-framing): define the limb-7 fixture by self-complete's real trigger.** Self-complete runs setup only when the project is configured: pin and wiring evidence are present (`self-complete.ts:143–149`) and GENERATION or the readiness marker is missing or stale. If \"unconfigured-marker\" is read as \"never-configured\", the fixture returns `not-configured` and setup never runs, so the writer is hidden. Suggested limb-7 wording: \"a fresh worktree with committed pin and wiring, no `.deft/GENERATION.json`, and no readiness marker (the state of a new tip-cut worktree).\" Wording change only.\n\n**F2 (footnote): both checks can fail in one run.** If the entry and post-dry-run checks both fail, the copy should report both states and not pick one. Limbs 4 and 5 already allow this. This note is only for the implementer.\n\n## Verification\n\nRead pinned files in the worktree at 30fa5344c (shell and `gh` blocked by a hook, so I only read files): `packages/core/src/release/run-readiness.ts:325–406`, `packages/runtime/src/self-complete.ts:1–180`, `packages/runtime/src/setup.ts` (grep: `:3`, `:105`, `:201–219`, `:547`). Cached inputs: issue body, Stop 1 7152583302, Recut-2 7152789853, Claude PA-2 7152780038. I did not read any comment above ceiling 7152789853. I did not run a release or reproduce the writer, so \"self-complete is the writer\" is a reachability finding, not a proven cause. Recut-2 correctly leaves that to measurement.\n\nsharpens-framing: F1\nfootnote: F2\n\nfinding-classes: sharpening\nharvest-changed: false\nclean-result: yes\n\n\n",
+          "id": 7152825432,
+          "html_url": "https://github.com/deftai/directive/issues/7327#issuecomment-7152825432",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-25T04:25:12Z",
+          "updated_at": "2026-11-25T04:26:23Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1,pain-P2,pain-P3\nfinding-classes: none\nharvest-changed: false\nclean-result: yes\n\n## In plain English\n\nPrefer-A Recut-2 7152789853 honestly closes Claude PA-2 F1 and F2. The writer limb now measures anywhere in the `deft release:run` invocation (launcher/self-complete, hooks, readiness entry, or dry-run), and the fresh unconfigured-marker regression must include self-complete, so a dry-run-only fix can no longer pretend to close the reported entry FAIL. New limb 5 qualifies the entry refuse footer so it does not claim the whole invocation wrote nothing when dirt was already present at readiness entry. Dry-run neutrality and the post-check stay as defense in depth. Stop 1 P1–P3 remain reachable under this Bound; no further harvest change from this seat.\n\n## Pain-audit\n\n### pain-P1 — relieved (honest); Claude PA-2 F1 false-relief closed\n\nStop 1 P1: tip cut shows `M .gitignore` / `?? .deft/GENERATION.json` / `?? .deft/directive/` and the clean gate refuses.\n\nPin-read facts that made Recut-1 false-relief: `runReleaseReadiness` runs entry `checkGitClean` at `run-readiness.ts:342` before `seams.dryRun` at `:368`; the observed FAIL line is that entry check’s name/detail (`:344–346`). `formatReadiness` prints every check after all have run, so the FAIL does not prove dry-run causation. `maybeSelfCompleteSetup` → `runSetup` is eligible for ordinary product argv and can write GENERATION/wiring before readiness.\n\nRecut-2 closes the gap: limbs 6–7 widen measurement and the positive regression to the whole invocation, including self-complete from a fresh unconfigured-marker fixture. Limbs 2–3 stay defense in depth for the dry-run seam. Writer identity remains implement-time; Bound still refuses “incident closed” until that name exists.\n\nclassification: none\n\n### pain-P2 — relieved (honest); Claude PA-2 F2 closed\n\nStop 1 P2: refuse copy says “nothing was written” while the invocation can mutate the tree.\n\nRecut-1 limb 4 already fixed post-dry-run refuse honesty. Recut-2 adds limb 5 for the entry path that actually fires in the reported transcript: when entry `checkGitClean` fails, refuse must not claim the `deft release:run` invocation wrote nothing; report that readiness wrote nothing and the tree was dirty at readiness entry (plus porcelain), or that cleanliness could not be verified at entry (plus Git error). Reachable at today’s unconditional footer `run-readiness.ts:400–404` and `checkGitClean`’s two false returns (`git.ts:33–39`).\n\nclassification: none\n\n### pain-P3 — relieved (honest)\n\nStop 1 P3: operator recovery falls to `task release --allow-dirty`.\n\nOnce the measured invocation writer is fixed and the production entry regression passes, the class no longer forces that break-glass path. Reject keeps broad `--allow-dirty` on `release:run` out as primary; existing `task release --allow-dirty` stays break-glass only. Refuse-before-`writeReleaseRunRecord` order remains (`run.ts:834–858`).\n\nclassification: none\n\n## Absorb check (Claude PA-2 7152780038)\n\n- F1 blocking (writer boundary): absorbed by reminted limbs 6–7. Closed.\n- F2 sharpening (entry refuse footer): absorbed by new limb 5. Closed.\n- F3 footnote (suppress-vs-ignore implementer choice): already parked in Reject / limb 11; not reopened.\n\n## Mechanism-thin (#3265)\n\nRecut-2 reuses one porcelain gate, widens the measurement boundary, adds one entry-footer copy limb, and keeps positive + injected-dirt regressions. No second dirt classifier, silent scratch ignore, auto-restore, or new allow-dirty product path.\n\n## Pin-read attestation\n\n- Fixed inputs: issue #7327 body; Stop 1 7152583302; Prefer-A Recut-2 7152789853; Recut-1 7152739096; PA-2 Claude 7152780038 / Codex 7152766837 / Grok 7152780471; Round-1 and PA-1 cached files for context.\n- Ceiling honored: no comments id > 7152789853.\n- Dest file read at dispatch SHA targets: `packages/core/src/release/run-readiness.ts`, `git.ts`, `run.ts` `defaultReadiness` / refuse-before-record; `packages/runtime/src/self-complete.ts` (shell/`gh` hook-denied; worktree file read).\n- Closed findings: none.\n\n## Census\n\n- blocks-the-design: 0\n- sharpens-framing: 0\n- footnote: 0\n- harvest-changed: false\n- clean-result: yes\n\n\n",
+          "id": 7152825838,
+          "html_url": "https://github.com/deftai/directive/issues/7327#issuecomment-7152825838",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-25T04:25:14Z",
+          "updated_at": "2026-11-25T04:26:25Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Evidence | Status |\n|---|---|---|\n| Entry clean check precedes dry-run on tip/pin | pin-read run-readiness.ts checkGitClean then seams.dryRun; pin 0.131.4 same order | verified |\n| Reported FAIL line is entry clean check wording | issue body + formatReadiness Phase 1: clean working tree | verified |\n| Observed dirt class matches installer/setup outputs | M .gitignore un-ignores; ?? .deft/GENERATION.json; ?? .deft/directive/; self-complete/setup inventory | verified (class match; live writer measured at implement) |\n| Prefer-A Recut-2 widens writer measurement to whole release:run invocation | Recut-2 limbs 6-7; Claude PA-2 F1 absorbed; PA-3 clear 3/3 | verified |\n| Dry-run tree-neutral + post-check kept as defense in depth | Recut-2 limbs 2-4 | verified |\n| Entry/post refuse copy must not claim write-nothing dishonestly | Recut-2 limbs 4-5; Recut-1 wording retained | verified |\n| Pains P1-P3 relieved by Recut-2 when measured writer fixed + regressions land | PA-3 Claude/Codex/Grok harvest-changed false clean-result yes | verified (design); product proof at implement |\n| Reorder-only and broad --allow-dirty on release:run rejected | Reject list; tip already clean-before-dry-run | verified |\n\nsuccessor lean: 7152789853\n\n",
+          "id": 7152833085,
+          "html_url": "https://github.com/deftai/directive/issues/7327#issuecomment-7152833085",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-25T04:25:43Z",
+          "updated_at": "2026-11-25T04:25:43Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\ndesign-critique: synthesis accepted, because Prefer-A Recut-2 closes the false-relief gap by measuring the live writer across the whole deft release:run invocation (including launcher self-complete), keeps dry-run neutrality as defense in depth, and keeps honest refuse copy; PA-3 clear 3/3 with harvest-changed false.\n\nsuccessor lean: 7152789853\nverified-claims table: 7152833085\narc-mode: no-ingest\nyolo-standing: on\nspend: N≥3\n\n## In plain English\n\nTip already checks clean before dry-run, so the reported entry FAIL means dirt was present when readiness started. The Bound is: find and fix the writer anywhere in the release:run invocation (self-complete/setup is the leading candidate), keep dry-run tree-neutral plus a post-dry-run clean check as backup, and stop advertising write-nothing when the tree is dirty or unverifiable. Ingest stays a later separate operator verb.\n\n## Trail\n\n- Stop 1 7152583302; Prefer-A draft 7152583577; panel 7152605378\n- Round-1 Codex 7152644414; Claude 7152661552; Grok 7152661859\n- Prefer-A Bound 7152686782; PA-1 Codex 7152715097; Grok 7152731882\n- Recut-1 7152739096; PA-2 Codex 7152766837; Claude 7152780038; Grok 7152780471\n- Dual-stop raise 7152789438; Recut-2 7152789853\n- PA-3 Codex 7152813736; Claude 7152825432; Grok 7152825838\n- VCT 7152833085\n\n",
+          "id": 7152833503,
+          "html_url": "https://github.com/deftai/directive/issues/7327#issuecomment-7152833503",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-25T04:25:44Z",
+          "updated_at": "2026-11-25T04:25:44Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\nparent-takes: PA-3 Claude 7152825432 non-harvest sharpening F1\nfinding-classes: sharpening\nharvest-changed: false\naudit-targets: pain-P1,pain-P2,pain-P3\n\nTake on Claude PA-3 F1 (fixture wording for limb 7): accepted as implementation note, not a Bound remint.\nImplementer MUST define the limb-7 fixture as a fresh worktree with committed pin and wiring, no .deft/GENERATION.json, and no readiness marker (new tip-cut worktree state), so self-complete can reach runSetup. Do not read unconfigured-marker as never-configured.\nClaude PA-3 F2 footnote (both checks can fail): accepted as implementer note; report both states when both fire.\nNo Prefer-A remint. successor lean remains Prefer-A Recut-2 7152789853.\n\n",
+          "id": 7152847506,
+          "html_url": "https://github.com/deftai/directive/issues/7327#issuecomment-7152847506",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-25T04:26:38Z",
+          "updated_at": "2026-11-25T04:26:38Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6596789058,
+        "origin": "deftai/directive#7327",
+        "id": "github.issue.6596789058"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "19a60b70d0c4aedca05a1c8106f92c5dcf3b4ca074196a2db2c7ede80591135a"
+      },
+      "kind": "story"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "clauses": [
+        {
+          "id": "clause.1",
+          "text": "Keep the readiness entry clean check before the Phase 2 dry-run seam"
+        },
+        {
+          "id": "clause.2",
+          "text": "Keep the dry-run path project working-tree neutral on every returned status"
+        },
+        {
+          "id": "clause.3",
+          "text": "After dry-run, run a second clean check and fail readiness when the tree is dirty"
+        },
+        {
+          "id": "clause.4",
+          "text": "Refuse copy must not claim write-nothing when post-dry-run dirt or a Git error is observed"
+        },
+        {
+          "id": "clause.5",
+          "text": "Entry clean-check refuse must not claim the whole release run invocation wrote nothing"
+        },
+        {
+          "id": "clause.6",
+          "text": "Measure and fix the live writer of the observed readiness dirt class"
+        },
+        {
+          "id": "clause.7",
+          "text": "Add a fresh-worktree regression through the real release run entry path including self-complete"
+        }
+      ]
+    },
+    "id": "github.issue.6596789058",
+    "updated": "2026-11-25T05:18:26Z"
+  }
+}

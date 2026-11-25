@@ -1,0 +1,122 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #7345",
+    "updated": "2026-11-25T18:35:09.553Z"
+  },
+  "plan": {
+    "title": "feat(harness): agy host observe slice (#7332)",
+    "status": "running",
+    "narratives": {
+      "Description": "Activate Prefer-A Bound #7345 so the Antigravity host observe slice can ship. Register agy in CLASSIFY_HOOK_HOSTS, land observation fixtures with unobservedReason, and record a machine-readable admission verdict for later slices.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/7345",
+      "Overview": "feat(harness): agy host observe slice (#7332)",
+      "Labels": "enhancement, design-critique:ingest-ready",
+      "UserStory": "As an operator, I want agy-host-observe-admission-verdict, so Prefer-A Bound #7332 slice lands.",
+      "ImplementationPlan": "1. Implement #7345 within file_scope under packages/core/src/hooks/classify and add a changelog.d fragment.\n2. Keep Tracking/Refs only on the product PR and verify with pnpm exec vitest run on classify unit tests.",
+      "Acceptance": "- Register agy in CLASSIFY_HOOK_HOSTS so HOST_TOOL_SURFACE_AUDIT.agy compiles\n- Commit version-stamped Antigravity observation + PreToolUse fixtures with unobservedReason for any unobserved surface\n- Commit machine-readable pass/fail admission verdict on non-weakenable denial, final executed argument integrity, and selected runtime-failure boundary"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "status": "pending",
+        "title": "Register agy in CLASSIFY_HOOK_HOSTS so HOST_TOOL_SURFACE_AUDIT.agy compiles",
+        "narrative": {
+          "Acceptance": "Register agy in CLASSIFY_HOOK_HOSTS so HOST_TOOL_SURFACE_AUDIT.agy compiles"
+        }
+      },
+      {
+        "id": "clause.2",
+        "status": "pending",
+        "title": "Commit version-stamped Antigravity observation + PreToolUse fixtures with unobservedReason for any unobserved surface",
+        "narrative": {
+          "Acceptance": "Commit version-stamped Antigravity observation + PreToolUse fixtures with unobservedReason for any unobserved surface"
+        }
+      },
+      {
+        "id": "clause.3",
+        "status": "pending",
+        "title": "Commit machine-readable pass/fail admission verdict on non-weakenable denial, final executed argument integrity, and selected runtime-failure boundary",
+        "narrative": {
+          "Acceptance": "Commit machine-readable pass/fail admission verdict on non-weakenable denial, final executed argument integrity, and selected runtime-failure boundary"
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/7345",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #7345: feat(harness): agy host observe slice (#7332)"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "clauses": [
+        {
+          "id": "clause.1",
+          "text": "Register agy in CLASSIFY_HOOK_HOSTS so HOST_TOOL_SURFACE_AUDIT.agy compiles"
+        },
+        {
+          "id": "clause.2",
+          "text": "Commit version-stamped Antigravity observation + PreToolUse fixtures with unobservedReason for any unobserved surface"
+        },
+        {
+          "id": "clause.3",
+          "text": "Commit machine-readable pass/fail admission verdict on non-weakenable denial, final executed argument integrity, and selected runtime-failure boundary"
+        }
+      ]
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/hooks/classify/classify.ts",
+          "packages/core/src/hooks/classify/classify.test.ts",
+          "packages/core/src/hooks/classify/types.ts",
+          "packages/core/src/hooks/classify/payload.ts",
+          "packages/core/src/hooks/classify/payload.test.ts"
+        ],
+        "module_boundary": "packages/core/src/hooks",
+        "cohesion_exemption": "Bound slice co-travels docs/changelog with harness wiring"
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6609698619,
+        "origin": "deftai/directive#7345",
+        "id": "github.issue.6609698619"
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": false,
+        "conflict_group": "agy-host-observe-admission-verdict",
+        "size": "M",
+        "file_scope": [
+          "packages/core/src/hooks/classify/classify.ts",
+          "packages/core/src/hooks/classify/classify.test.ts",
+          "packages/core/src/hooks/classify/types.ts",
+          "packages/core/src/hooks/classify/payload.ts",
+          "packages/core/src/hooks/classify/payload.test.ts",
+          "changelog.d/7345-agy-host-observe.md"
+        ],
+        "file_scope_confidence": "medium",
+        "depends_on": [],
+        "verify_commands": [
+          "pnpm exec vitest run --reporter=dot"
+        ],
+        "expected_outputs": [
+          "Prefer-A Bound slice #7345 shipped"
+        ],
+        "model_tier": "standard"
+      }
+    },
+    "id": "github.issue.6609698619",
+    "updated": "2026-11-25T18:35:09.553Z"
+  }
+}

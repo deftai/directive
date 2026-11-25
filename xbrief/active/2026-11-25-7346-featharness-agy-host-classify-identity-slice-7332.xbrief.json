@@ -1,0 +1,134 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #7346",
+    "updated": "2026-11-25T18:35:09.557Z"
+  },
+  "plan": {
+    "title": "feat(harness): agy host classify-identity slice (#7332)",
+    "status": "running",
+    "narratives": {
+      "Description": "Activate Prefer-A Bound #7346 so Antigravity host identity and policy wiring can ship after #7345. This slice covers classify host identity, hook-host registration, and policy defaults for agy.",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/7346",
+      "Overview": "feat(harness): agy host classify-identity slice (#7332)",
+      "Labels": "enhancement, design-critique:ingest-ready",
+      "UserStory": "As an operator, I want agy-host-classify-identity-wiring, so Prefer-A Bound #7332 slice lands.",
+      "ImplementationPlan": "1. Implement #7346 after github.issue.6609698619 and extend hook-hosts, agent-hooks, host-session-owner, and host-hooks within file_scope.\n2. Add a changelog fragment, keep Tracking/Refs only, and run the scoped vitest verify commands.",
+      "Acceptance": "- Register agy in HOOK_HOSTS, AGENT_HOOK_PATH_BY_HOST, HOST_IDENTITY_PROVIDERS with sessionEndSupport unsupported\n- Add plan.policy.hostHooks.agy with DEFAULT_HOST_HOOKS_POLICY.agy false (no deposit yet)\n- Land host-keyed payload normalization, narrow overwrite.CommandLine rewrites, spend-resolve alignment, SessionStart notices, fail-closed deny of unsupported native spawn tools"
+    },
+    "items": [
+      {
+        "id": "clause.1",
+        "status": "pending",
+        "title": "Register agy in HOOK_HOSTS, AGENT_HOOK_PATH_BY_HOST, HOST_IDENTITY_PROVIDERS with sessionEndSupport unsupported",
+        "narrative": {
+          "Acceptance": "Register agy in HOOK_HOSTS, AGENT_HOOK_PATH_BY_HOST, HOST_IDENTITY_PROVIDERS with sessionEndSupport unsupported"
+        }
+      },
+      {
+        "id": "clause.2",
+        "status": "pending",
+        "title": "Add plan.policy.hostHooks.agy with DEFAULT_HOST_HOOKS_POLICY.agy false (no deposit yet)",
+        "narrative": {
+          "Acceptance": "Add plan.policy.hostHooks.agy with DEFAULT_HOST_HOOKS_POLICY.agy false (no deposit yet)"
+        }
+      },
+      {
+        "id": "clause.3",
+        "status": "pending",
+        "title": "Land host-keyed payload normalization, narrow overwrite.CommandLine rewrites, spend-resolve alignment, SessionStart notices, fail-closed deny of unsupported native spawn tools",
+        "narrative": {
+          "Acceptance": "Land host-keyed payload normalization, narrow overwrite.CommandLine rewrites, spend-resolve alignment, SessionStart notices, fail-closed deny of unsupported native spawn tools"
+        }
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/7346",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #7346: feat(harness): agy host classify-identity slice (#7332)"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "clauses": [
+        {
+          "id": "clause.1",
+          "text": "Register agy in HOOK_HOSTS, AGENT_HOOK_PATH_BY_HOST, HOST_IDENTITY_PROVIDERS with sessionEndSupport unsupported"
+        },
+        {
+          "id": "clause.2",
+          "text": "Add plan.policy.hostHooks.agy with DEFAULT_HOST_HOOKS_POLICY.agy false (no deposit yet)"
+        },
+        {
+          "id": "clause.3",
+          "text": "Land host-keyed payload normalization, narrow overwrite.CommandLine rewrites, spend-resolve alignment, SessionStart notices, fail-closed deny of unsupported native spawn tools"
+        }
+      ]
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/hooks/classify/classify.ts",
+          "packages/core/src/hooks/classify/host-session-identity.ts",
+          "packages/core/src/hooks/classify/host-session-identity.test.ts",
+          "packages/core/src/hooks/classify/paths.ts",
+          "packages/core/src/policy/one-pr-scope-proof.ts",
+          "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "packages/core/src/hooks/hook-hosts.ts",
+          "packages/core/src/init-deposit/agent-hooks.ts",
+          "packages/core/src/session/host-session-owner.ts",
+          "packages/core/src/policy/host-hooks.ts"
+        ],
+        "module_boundary": "packages/core/src/hooks",
+        "cohesion_exemption": "Bound slice co-travels docs/changelog with harness wiring"
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6609698953,
+        "origin": "deftai/directive#7346",
+        "id": "github.issue.6609698953"
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": false,
+        "conflict_group": "agy-host-classify-identity-wiring",
+        "size": "L",
+        "file_scope": [
+          "packages/core/src/hooks/classify/classify.ts",
+          "packages/core/src/hooks/classify/host-session-identity.ts",
+          "packages/core/src/hooks/classify/host-session-identity.test.ts",
+          "packages/core/src/hooks/classify/paths.ts",
+          "packages/core/src/policy/one-pr-scope-proof.ts",
+          "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "changelog.d/7346-agy-host-classify-identity.md",
+          "packages/core/src/hooks/hook-hosts.ts",
+          "packages/core/src/init-deposit/agent-hooks.ts",
+          "packages/core/src/session/host-session-owner.ts",
+          "packages/core/src/policy/host-hooks.ts"
+        ],
+        "file_scope_confidence": "medium",
+        "depends_on": [
+          "github.issue.6609698619"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run --reporter=dot"
+        ],
+        "expected_outputs": [
+          "Prefer-A Bound slice #7346 shipped"
+        ],
+        "model_tier": "standard"
+      }
+    },
+    "id": "github.issue.6609698953",
+    "updated": "2026-11-25T18:35:09.557Z"
+  }
+}
