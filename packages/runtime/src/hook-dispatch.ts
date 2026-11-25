@@ -49,6 +49,7 @@ import {
   type SessionEndHookSeams,
   toolInputRecord,
 } from "@deftai/directive-core/hooks";
+import { sameRepoGitCommonDir } from "@deftai/directive-core/session";
 import { readProjectDataStatus } from "./data-status.js";
 import { maybeSelfCompleteSetup } from "./self-complete.js";
 
@@ -96,6 +97,11 @@ export interface HookDispatchCliSeams {
    * runs (no installed package path) — mismatch guard is skipped when null.
    */
   readonly launchingCheckoutRoot?: () => string | null;
+  /**
+   * #7351 test seam for same-repo common-dir admit. Defaults to
+   * {@link sameRepoGitCommonDir}. Both roots must resolve; null never admits.
+   */
+  readonly sameRepoGitCommonDir?: (launchRoot: string, payloadRoot: string) => boolean;
   /**
    * The launcher's own (link-side) script path, `process.argv[1]` by default
    * (#6185). Used only to choose the wording of a root-mismatch refusal; never
@@ -521,14 +527,27 @@ export function run(argv: string[], seams: HookDispatchCliSeams = {}): number {
   if (launchRoot !== null && !rootsMatch(launchRoot, projectRoot)) {
     const payloadRootText = normalizeHookProjectRoot(projectRoot);
     const launchRootText = normalizeHookProjectRoot(launchRoot);
-    // #6185: wording only. The link-side path never admits anything.
+    // #6185: wording only. The link-side path never admits anything — including
+    // when launch and payload share a git common dir (#7351 keep foreign deny).
     const foreign =
       classifyRootMismatch(
         launchRoot,
         seams.launcherPath ? seams.launcherPath() : process.argv[1],
         projectRoot,
       ) === FOREIGN_RUNTIME_LINK;
-    if (!foreign) {
+    if (foreign) {
+      const message =
+        `Directive hook refuse (${FOREIGN_RUNTIME_LINK}): this checkout's Directive runtime is linked in from another checkout ` +
+        `(payloadRoot=${payloadRootText} launchRoot=${launchRootText}). ` +
+        `Recovery: ${FOREIGN_RUNTIME_LINK_RECOVERY_GUIDANCE.replaceAll("<payloadRoot>", payloadRootText)}`;
+      const decision = installationIdentityDeny(args.host, args.event, projectRoot, message);
+      const rendered = renderHostDecision(args.host, decision);
+      if (rendered.length > 0) writeOut(`${rendered}\n`);
+      return 0;
+    }
+    // #7351: same-repo linked worktree admit — matching gitCommonDir before path refuse
+    const sameRepo = (seams.sameRepoGitCommonDir ?? sameRepoGitCommonDir)(launchRoot, projectRoot);
+    if (!sameRepo) {
       // #6599: admit the refusal's own named recovery; the foreign branch never does.
       const admit = rootMismatchRecoveryAdmit(args.host, args.event, projectRoot, payload);
       if (admit !== null) {
@@ -536,18 +555,15 @@ export function run(argv: string[], seams: HookDispatchCliSeams = {}): number {
         if (renderedAdmit.length > 0) writeOut(`${renderedAdmit}\n`);
         return 0;
       }
-    }
-    const message = foreign
-      ? `Directive hook refuse (${FOREIGN_RUNTIME_LINK}): this checkout's Directive runtime is linked in from another checkout ` +
-        `(payloadRoot=${payloadRootText} launchRoot=${launchRootText}). ` +
-        `Recovery: ${FOREIGN_RUNTIME_LINK_RECOVERY_GUIDANCE.replaceAll("<payloadRoot>", payloadRootText)}`
-      : `Directive hook refuse: payload project root does not match the launching checkout ` +
+      const message =
+        `Directive hook refuse: payload project root does not match the launching checkout ` +
         `(payloadRoot=${payloadRootText} ` +
         `launchRoot=${launchRootText}). Recovery: ${HOOK_ROOT_MISMATCH_RECOVERY_GUIDANCE}`;
-    const decision = installationIdentityDeny(args.host, args.event, projectRoot, message);
-    const rendered = renderHostDecision(args.host, decision);
-    if (rendered.length > 0) writeOut(`${rendered}\n`);
-    return 0;
+      const decision = installationIdentityDeny(args.host, args.event, projectRoot, message);
+      const rendered = renderHostDecision(args.host, decision);
+      if (rendered.length > 0) writeOut(`${rendered}\n`);
+      return 0;
+    }
   }
 
   // Wave 2k / AC9.4+AC14.8: pin≠installed → fail closed before policy.

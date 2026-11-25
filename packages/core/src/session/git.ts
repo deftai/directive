@@ -365,6 +365,20 @@ export function gitCommonDir(
   return win32CanonicalOr(isAbsolute(trimmed) ? resolve(trimmed) : resolve(projectRoot, trimmed));
 }
 
+/**
+ * True when both roots resolve a git common dir and those dirs match (#7351).
+ * Null/unresolved on either side is never same-repo.
+ */
+export function sameRepoGitCommonDir(
+  launchRoot: string,
+  payloadRoot: string,
+  runGit: GitRunner = defaultGitRunner,
+): boolean {
+  const launchCommon = gitCommonDir(launchRoot, runGit);
+  const payloadCommon = gitCommonDir(payloadRoot, runGit);
+  return launchCommon !== null && payloadCommon !== null && launchCommon === payloadCommon;
+}
+
 /** True when `ancestor` is reachable from `descendant` (same commit counts). */
 export function gitIsAncestor(
   projectRoot: string,

@@ -15,6 +15,7 @@ import {
   gitIsAncestor,
   memoizeGitRunner,
   parseGitCatFileBatch,
+  sameRepoGitCommonDir,
   showBlobsBatch,
   timedGitRunner,
   worktreePath,
@@ -79,6 +80,28 @@ describe("session git helpers", () => {
       gitCommonDir("/tmp/project", () => ({ code: 0, stdout: "/tmp/project/.git", stderr: "" })),
     ).toBe(resolve("/tmp/project/.git"));
     expect(gitCommonDir("/tmp/project", () => ({ code: 1, stdout: "", stderr: "" }))).toBeNull();
+  });
+
+  it("sameRepoGitCommonDir admits matching dirs and refuses null/mismatch (#7351)", () => {
+    const shared = (_root: string) => ({ code: 0, stdout: "/repo/.git", stderr: "" });
+    expect(sameRepoGitCommonDir("/primary", "/primary/.claude/worktrees/wt", shared)).toBe(true);
+    expect(
+      sameRepoGitCommonDir("/primary", "/primary/.deft-scratch/worktrees/pr-7351", shared),
+    ).toBe(true);
+    expect(
+      sameRepoGitCommonDir("/a", "/b", (root) => ({
+        code: 0,
+        stdout: root === "/a" ? "/a/.git" : "/b/.git",
+        stderr: "",
+      })),
+    ).toBe(false);
+    expect(
+      sameRepoGitCommonDir("/a", "/b", (root) =>
+        root === "/a"
+          ? { code: 0, stdout: "/a/.git", stderr: "" }
+          : { code: 1, stdout: "", stderr: "" },
+      ),
+    ).toBe(false);
   });
 
   it("fuzzes existingAncestorDir over nested missing paths (#3794)", () => {

@@ -1066,3 +1066,80 @@ describe("hook-bin: kill record before root and pin checks (#6620 / #6740)", () 
     expect(result.text).toContain("payload project root does not match");
   });
 });
+
+describe("#7351 same-repo Claude WT and Directive dest admit", () => {
+  const OK_CHEAP: CheapInSyncResult = {
+    ok: true,
+    pinVersion: "0.129.9",
+    installedVersion: "0.129.9",
+    identityMatch: true,
+    readinessValid: true,
+    failClosed: false,
+    pinMismatchOnly: false,
+    allowSetup: true,
+    recoveryGuidance: null,
+  };
+
+  function runAt(
+    projectRoot: string,
+    opts: {
+      sameRepo: boolean;
+      launcherPath?: string;
+    },
+  ): { code: number; text: string } {
+    const out: string[] = [];
+    const code = run(["--host=claude", "--event=tool.before", `--project-root=${projectRoot}`], {
+      readStdin: () =>
+        JSON.stringify({
+          tool_name: "Bash",
+          tool_input: { command: "git status" },
+          cwd: projectRoot,
+        }),
+      writeOut: (t) => out.push(t),
+      writeErr: () => undefined,
+      cwd: () => projectRoot,
+      stdinEmptyRetryMs: 0,
+      launchingCheckoutRoot: () => "/repo",
+      launcherPath: () => opts.launcherPath,
+      cheapInSync: () => OK_CHEAP,
+      sameRepoGitCommonDir: () => opts.sameRepo,
+    });
+    return { code, text: out.join("") };
+  }
+
+  it("admits a Claude .claude/worktrees payload when common dirs match", () => {
+    const result = runAt("/repo/.claude/worktrees/agent-wt", { sameRepo: true });
+    expect(result.code).toBe(0);
+    expect(result.text).not.toContain("payload project root does not match");
+    expect(result.text).not.toContain("foreign-runtime-link");
+  });
+
+  it("admits a Directive linked dest payload when common dirs match", () => {
+    const result = runAt("/repo/.deft-scratch/worktrees/pr-7351", { sameRepo: true });
+    expect(result.code).toBe(0);
+    expect(result.text).not.toContain("payload project root does not match");
+    expect(result.text).not.toContain("foreign-runtime-link");
+  });
+
+  it("refuses other-repo when common dirs do not match", () => {
+    const result = runAt("/other-repo/.claude/worktrees/wt", { sameRepo: false });
+    expect(result.code).toBe(0);
+    expect(result.text).toContain("payload project root does not match");
+  });
+
+  it("refuses unresolved common-dir (sameRepo false) without claiming same-repo", () => {
+    const result = runAt("/repo/.claude/worktrees/wt", { sameRepo: false });
+    expect(result.text).toContain("payload project root does not match");
+    expect(result.text).not.toContain("same-repo");
+  });
+
+  it("keeps foreign-runtime-link deny ahead of same-repo admit", () => {
+    const dest = "/repo/.deft-scratch/worktrees/pr-7351";
+    const result = runAt(dest, {
+      sameRepo: true,
+      launcherPath: `${dest}/node_modules/@deftai/directive-runtime/dist/hook-bin.js`,
+    });
+    expect(result.text).toContain("foreign-runtime-link");
+    expect(result.text).not.toContain("payload project root does not match the launching checkout");
+  });
+});
