@@ -2,35 +2,53 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #7352",
-    "updated": "2026-11-25T20:48:41Z"
+    "updated": "2026-11-25T22:20:26Z"
   },
   "plan": {
     "title": "[framework-gap] Claude host-hook matcher gates host MCP/UI tools (split from #7349)",
     "status": "running",
     "narratives": {
-      "Description": "[framework-gap] Claude host-hook matcher gates host MCP/UI tools (split from #7349)",
+      "Description": "Claude hard-refuse sessions currently gate host status and UI MCP tools together with Bash, Edit, and Write. This activation records Prefer-A Bound so a later product PR can admit non-gated host MCP under hard-refuse while write-shaped and forge-sensitive MCP stay refused.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/7352",
       "Overview": "\n\n- relieves: P1 — Add pure admitHardRefuseNonGatedMcp({toolName, mcpArgsText}) that ANDs isMcpTool, not isMcpProxyWrapper, classifyMcpTool === null, classifyHookAuthzOps empty, and not isMcpWriteShaped(toolName).\n- relieves: P2 — On Claude tool.before only, call that admit before each installationIdentityDeny on local root-mismatch and pin/overlay hard-refuse arms; on admit emit host allow with an explicit not-gated message and skip setup/policy.\n- relieves: P3 — Keep MCP_HOOK_MATCHER broad for #2711; fixtures must admit sanitized observed host UI names (mcp__ccd_turn__* / attested Claude UI spellings) under those arms and must still deny Bash/Edit/Write, CallMcpTool/use_tool, classifiable push/merge MCP, isMcpWriteShaped MCP (including path-bearing edit/create without local markers), and authz-classified MCP.\n\n\n",
       "Constraint": "- expectsLocalMutationDest as the sole write conjunct (false relief vs healthy inspectMutationGates) — disposed by Recut limb 1 per 7173777333 F1 / 7173790514 F1.\n- Approach B matcher prefix exclusion as sole Prefer-A.\n- Approach C exempt-all-MCP or wait-on-#7351/docs-only.\n- Foreign-runtime-link admit in this Bound.\n- Changing #7351, #7349, or #7029.",
       "Labels": "bug, design-critique:ingest-ready, framework-gap",
-      "UserStory": "As an operator in a Claude hard-lock session, host status/UI MCP tools still work while Bash/Edit/Write and forge-sensitive MCP stay refused.",
-      "ImplementationPlan": "Add admitHardRefuseNonGatedMcp with isMcpWriteShaped conjunct; call before hard-refuse arms on Claude tool.before only; keep MCP_HOOK_MATCHER broad; fixture admit and deny cases."
+      "UserStory": "As an operator, I want Claude hard-refuse sessions to admit host status and UI MCP tools, so that Bash, Edit, and Write stay refused while host UI tools still work.",
+      "ImplementationPlan": "1. Add admitHardRefuseNonGatedMcp in packages/runtime/src/hook-dispatch.ts (with packages/core/src/hooks/tools.ts / install-health helpers as needed).\n2. Call that admit before hard-refuse arms on Claude tool.before only; cover admit and deny fixtures in packages/runtime/src/hook-dispatch.test.ts and packages/runtime/src/hook-dispatch-root-mismatch-recovery.test.ts.\n3. Verify with pnpm exec vitest on those files; keep product changelog fragments with the product PR, not this activation.",
+      "Traces": "#7352",
+      "Acceptance": "Bound remedy limbs are the acceptance set; product PR must satisfy each limb under declared file_scope.",
+      "AcceptanceJustification": "Prefer-A Bound ships one acceptance item per locked limb; clause count follows the Bound comment."
     },
     "items": [
       {
         "title": "relieves: P1 — Add pure admitHardRefuseNonGatedMcp({toolName, mcpArgsText}) that ANDs isMcpTool, not isMcpProxyWrapper, classifyMcpTool === null, classifyHookAuthzOps empty, and not isMcpWriteShaped(toolName).",
         "status": "proposed",
-        "id": "clause.1"
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P1 — Add pure admitHardRefuseNonGatedMcp({toolName, mcpArgsText}) that ANDs isMcpTool, not isMcpProxyWrapper, classifyMcpTool === null, classifyHookAuthzOps empty, and not isMcpWriteShaped(toolName).",
+          "Traces": "#7352",
+          "Description": "Primary touch: packages/runtime/src/hook-dispatch.ts"
+        }
       },
       {
         "title": "relieves: P2 — On Claude tool.before only, call that admit before each installationIdentityDeny on local root-mismatch and pin/overlay hard-refuse arms; on admit emit host allow with an explicit not-gated message and skip setup/policy.",
         "status": "proposed",
-        "id": "clause.2"
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P2 — On Claude tool.before only, call that admit before each installationIdentityDeny on local root-mismatch and pin/overlay hard-refuse arms; on admit emit host allow with an explicit not-gated message and skip setup/policy.",
+          "Traces": "#7352",
+          "Description": "Primary touch: packages/runtime/src/hook-dispatch.test.ts"
+        }
       },
       {
         "title": "relieves: P3 — Keep MCP_HOOK_MATCHER broad for #2711; fixtures must admit sanitized observed host UI names (mcp__ccd_turn__* / attested Claude UI spellings) under those arms and must still deny Bash/Edit/Write, CallMcpTool/use_tool, classifiable push/merge MCP, isMcpWriteShaped MCP (including path-bearing edit/create without local markers), and authz-classified MCP.",
         "status": "proposed",
-        "id": "clause.3"
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P3 — Keep MCP_HOOK_MATCHER broad for #2711; fixtures must admit sanitized observed host UI names (mcp__ccd_turn__* / attested Claude UI spellings) under those arms and must still deny Bash/Edit/Write, CallMcpTool/use_tool, classifiable push/merge MCP, isMcpWriteShaped MCP (including path-bearing edit/create without local markers), and authz-classified MCP.",
+          "Traces": "#7352",
+          "Description": "Primary touch: packages/runtime/src/hook-dispatch-root-mismatch-recovery.test.ts"
+        }
       }
     ],
     "tags": [
@@ -97,7 +115,6 @@
           "packages/core/src/install-health/recovery-admit.test.ts",
           "packages/core/src/hooks/tools.ts",
           "packages/core/src/hooks/tools.test.ts",
-          "changelog.d/7352-claude-mcp-ui-hard-refuse-admit.md",
           "xbrief/active/2026-11-25-7352-framework-gap-claude-host-hook-matcher-gates-host-mcpui-tool.xbrief.json",
           "changelog.d/7352-activate-mcp-ui-admit.md"
         ],
@@ -692,7 +709,6 @@
           "packages/core/src/install-health/recovery-admit.test.ts",
           "packages/core/src/hooks/tools.ts",
           "packages/core/src/hooks/tools.test.ts",
-          "changelog.d/7352-claude-mcp-ui-hard-refuse-admit.md",
           "xbrief/active/2026-11-25-7352-framework-gap-claude-host-hook-matcher-gates-host-mcpui-tool.xbrief.json",
           "changelog.d/7352-activate-mcp-ui-admit.md"
         ],
@@ -709,6 +725,6 @@
       }
     },
     "id": "github.issue.6611317720",
-    "updated": "2026-11-25T20:48:41Z"
+    "updated": "2026-11-25T22:20:26Z"
   }
 }

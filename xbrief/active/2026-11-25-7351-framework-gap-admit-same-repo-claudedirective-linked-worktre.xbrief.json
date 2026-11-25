@@ -2,35 +2,53 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #7351",
-    "updated": "2026-11-25T20:48:31Z"
+    "updated": "2026-11-25T22:20:26Z"
   },
   "plan": {
     "title": "[framework-gap] Admit same-repo Claude/Directive linked worktrees under host-hook root check (split from #7349)",
     "status": "running",
     "narratives": {
-      "Description": "[framework-gap] Admit same-repo Claude/Directive linked worktrees under host-hook root check (split from #7349)",
+      "Description": "Same-repo Claude linked worktrees and Directive dest worktrees are refused when launchRoot is primary and payloadRoot is the worktree. This activation records Prefer-A Bound so a later product PR can admit matching gitCommonDir before path-only rootsMatch refuse.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/7351",
       "Overview": "\n\n- relieves: P1 — Admit when launch and payload gitCommonDir match before path-only rootsMatch refuse\n- relieves: P2 — Cover primary-launched hook with same-repo worktree payload (Claude WT and Directive dest) in regression\n- relieves: P3 — Keep mismatch recovery for true cross-repo / unresolved-common-dir; do not claim same-repo needs disable\n\n\n",
       "Constraint": "- Rebind-only or prep-every-host-WT as the sole fix\n- Admitting when either gitCommonDir is null/unresolved\n- Admitting foreign-runtime-link\n- #7349 / #7352 / #7029 scope",
       "Labels": "bug, design-critique:ingest-ready, framework-gap",
-      "UserStory": "As an operator using Claude linked worktrees or Directive dests, I can run tools when launch and payload share one Git repo without disabling host hooks.",
-      "ImplementationPlan": "Admit when launchRoot and payloadRoot gitCommonDir match before path-only rootsMatch refuse; keep foreign-runtime and cross-repo deny; add positive/negative regressions."
+      "UserStory": "As an operator, I want same-repo Claude and Directive linked worktrees admitted under the host-hook root check, so that tools work without disabling host hooks.",
+      "ImplementationPlan": "1. Edit packages/runtime/src/hook-dispatch.ts (and packages/core/src/session/git.ts helpers) to admit when launch and payload gitCommonDir match before path-only rootsMatch refuse.\n2. Cover Claude WT and Directive dest positive cases plus cross-repo and foreign-runtime deny in packages/runtime/src/hook-dispatch.test.ts and packages/runtime/src/hook-dispatch-worktree.test.ts.\n3. Verify with pnpm exec vitest on those files; keep product changelog fragments with the product PR, not this activation.",
+      "Traces": "#7351",
+      "Acceptance": "Bound remedy limbs are the acceptance set; product PR must satisfy each limb under declared file_scope.",
+      "AcceptanceJustification": "Prefer-A Bound ships one acceptance item per locked limb; clause count follows the Bound comment."
     },
     "items": [
       {
         "title": "relieves: P1 — Admit when launch and payload gitCommonDir match before path-only rootsMatch refuse",
         "status": "proposed",
-        "id": "clause.1"
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P1 — Admit when launch and payload gitCommonDir match before path-only rootsMatch refuse",
+          "Traces": "#7351",
+          "Description": "Primary touch: packages/runtime/src/hook-dispatch.ts"
+        }
       },
       {
         "title": "relieves: P2 — Cover primary-launched hook with same-repo worktree payload (Claude WT and Directive dest) in regression",
         "status": "proposed",
-        "id": "clause.2"
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P2 — Cover primary-launched hook with same-repo worktree payload (Claude WT and Directive dest) in regression",
+          "Traces": "#7351",
+          "Description": "Primary touch: packages/runtime/src/hook-dispatch.test.ts"
+        }
       },
       {
         "title": "relieves: P3 — Keep mismatch recovery for true cross-repo / unresolved-common-dir; do not claim same-repo needs disable",
         "status": "proposed",
-        "id": "clause.3"
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P3 — Keep mismatch recovery for true cross-repo / unresolved-common-dir; do not claim same-repo needs disable",
+          "Traces": "#7351",
+          "Description": "Primary touch: packages/runtime/src/hook-dispatch-worktree.test.ts"
+        }
       }
     ],
     "tags": [
@@ -95,7 +113,6 @@
           "packages/runtime/src/hook-dispatch-worktree.test.ts",
           "packages/core/src/session/git.ts",
           "packages/core/src/session/git.test.ts",
-          "changelog.d/7351-same-repo-worktree-admit.md",
           "xbrief/active/2026-11-25-7351-framework-gap-admit-same-repo-claudedirective-linked-worktre.xbrief.json",
           "xbrief/active/2026-11-25-7352-framework-gap-claude-host-hook-matcher-gates-host-mcpui-tool.xbrief.json",
           "changelog.d/7351-activate-same-repo-admit.md",
@@ -690,7 +707,6 @@
           "packages/runtime/src/hook-dispatch-worktree.test.ts",
           "packages/core/src/session/git.ts",
           "packages/core/src/session/git.test.ts",
-          "changelog.d/7351-same-repo-worktree-admit.md",
           "xbrief/active/2026-11-25-7351-framework-gap-admit-same-repo-claudedirective-linked-worktre.xbrief.json",
           "xbrief/active/2026-11-25-7352-framework-gap-claude-host-hook-matcher-gates-host-mcpui-tool.xbrief.json",
           "changelog.d/7351-activate-same-repo-admit.md",
@@ -709,6 +725,6 @@
       }
     },
     "id": "github.issue.6611317125",
-    "updated": "2026-11-25T20:48:31Z"
+    "updated": "2026-11-25T22:20:26Z"
   }
 }
