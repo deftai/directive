@@ -355,3 +355,4 @@
 2026-11-17T17:59:17Z actor=deft policy:enforce-branches allowDirectCommitsToMaster=false previous=True changed=true
 2026-11-18T16:52:50Z actor=deft policy:allow-direct-commits allowDirectCommitsToMaster=true previous=False changed=true
 2026-11-18T17:24:53Z actor=deft policy:enforce-branches allowDirectCommitsToMaster=false previous=True changed=true
+2026-11-25T16:05:11Z actor=MScottAdams onePrScopeProof=off previous="mint" note=operator YOLO: mint remint thrash; flip to off changed=true
