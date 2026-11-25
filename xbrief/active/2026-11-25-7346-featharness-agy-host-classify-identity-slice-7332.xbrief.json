@@ -13,7 +13,8 @@
       "Overview": "feat(harness): agy host classify-identity slice (#7332)",
       "Labels": "enhancement, design-critique:ingest-ready",
       "UserStory": "As an operator, I want agy-host-classify-identity-wiring, so Prefer-A Bound #7332 slice lands.",
-      "ImplementationPlan": "Implement Prefer-A Bound slice for #7332 / #7346; Tracking/Refs only."
+      "ImplementationPlan": "Implement Prefer-A Bound slice for #7332 / #7346; Tracking/Refs only.",
+      "Acceptance": "- Register agy in HOOK_HOSTS, AGENT_HOOK_PATH_BY_HOST, HOST_IDENTITY_PROVIDERS with sessionEndSupport unsupported\n- Add plan.policy.hostHooks.agy with DEFAULT_HOST_HOOKS_POLICY.agy false (no deposit yet)\n- Land host-keyed payload normalization, narrow overwrite.CommandLine rewrites, spend-resolve alignment, SessionStart notices, fail-closed deny of unsupported native spawn tools"
     },
     "items": [
       {
@@ -115,7 +116,7 @@
         ],
         "file_scope_confidence": "medium",
         "depends_on": [
-          "7345"
+          "github.issue.6609698619"
         ],
         "verify_commands": [
           "pnpm exec vitest run --reporter=dot"

@@ -13,7 +13,8 @@
       "Overview": "<!-- deft-nightly-lane: coverage -->\nThis issue tracks the **Nightly coverage (Linux)** lane of the nightly workflow (`.github/workflows/nightly.yml`). The workflow reopens it and comments when the lane is red, and comments and closes it when the lane passes. Release readiness reuses a lane only when its latest attempt succeeded on the release tree (docs/RELEASING.md).\n\n",
       "Labels": "design-critique:ingest-ready",
       "UserStory": "As an operator, I want nightly-coverage-quadratic-guard-wallclock-under-instrumentation shipped, so that the Prefer-A Bound remedy is durable.",
-      "ImplementationPlan": "Implement Prefer-A Bound for nightly-coverage-quadratic-guard-wallclock-under-instrumentation; keep Tracking/Refs only on the product PR."
+      "ImplementationPlan": "Implement Prefer-A Bound for nightly-coverage-quadratic-guard-wallclock-under-instrumentation; keep Tracking/Refs only on the product PR.",
+      "Acceptance": "- Keep both twin fixtures at 16k-class shifts with unknown classification asserts\n- Replace absolute one-second asserts with a shared N/2N ratio helper and hang ceilings\n- Reject delete-twin, raise-only budget, skip-under-coverage, shrink-N, or production API for the meter"
     },
     "items": [
       {

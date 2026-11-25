@@ -13,7 +13,8 @@
       "Overview": "feat(harness): agy host deposit-doctor slice (#7332)",
       "Labels": "enhancement, design-critique:ingest-ready",
       "UserStory": "As an operator, I want agy-host-deposit-doctor-activation-gate, so Prefer-A Bound #7332 slice lands.",
-      "ImplementationPlan": "Implement Prefer-A Bound slice for #7332 / #7347; Tracking/Refs only."
+      "ImplementationPlan": "Implement Prefer-A Bound slice for #7332 / #7347; Tracking/Refs only.",
+      "Acceptance": "- Implement named-object agent hooks deposit repair and uninstall keyed by Directive name plus command marker\n- Gate deposit-doctor activation behind deterministic contract test reading committed observe verdict\n- On fail or absent verdict halt activation with pains unmet and route leftover issue"
     },
     "items": [
       {
@@ -128,8 +129,8 @@
         ],
         "file_scope_confidence": "medium",
         "depends_on": [
-          "7345",
-          "7346"
+          "github.issue.6609698619",
+          "github.issue.6609698953"
         ],
         "verify_commands": [
           "pnpm exec vitest run --reporter=dot"

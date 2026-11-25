@@ -14,7 +14,8 @@
       "Constraint": "- Silent git clean -fd of .deft/approved-scope/\n- Requiring operators to empty approved-scope before every local-update\n- Leaving pin PR as prose-only releaseRunFinalLines without ensure-changelog.d/",
       "Labels": "bug, area:release, docs, design-critique:ingest-ready",
       "UserStory": "As an operator, I want release-post-run-pin-pr-and-local-update-approved-scope-clash shipped, so that the Prefer-A Bound remedy is durable.",
-      "ImplementationPlan": "Implement Prefer-A Bound for release-post-run-pin-pr-and-local-update-approved-scope-clash; keep Tracking/Refs only on the product PR."
+      "ImplementationPlan": "Implement Prefer-A Bound for release-post-run-pin-pr-and-local-update-approved-scope-clash; keep Tracking/Refs only on the product PR.",
+      "Acceptance": "- Ship durable pin-PR setup that ensures the changelog fragment directory exists before write\n- On local-update ff-only, remediate untracked approved-scope twins per path (identical remove / divergent move-aside)\n- Final lines and skill exit card name both runnable post-run paths"
     },
     "items": [
       {
