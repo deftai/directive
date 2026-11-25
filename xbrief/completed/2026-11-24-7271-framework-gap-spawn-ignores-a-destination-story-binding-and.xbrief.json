@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #7271",
-    "updated": "2026-11-24T14:14:58Z"
+    "updated": "2026-11-25T01:39:36Z"
   },
   "plan": {
     "title": "[framework-gap] Spawn ignores a destination story-binding and still fails on the session root's active briefs",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "[framework-gap] Spawn ignores a destination story-binding and still fails on the session root's active briefs",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/7271",
@@ -19,32 +19,73 @@
       {
         "id": "clause.1",
         "title": "For spawn tools, resolveWorktreeStoryBinding against occupancy-validated spawnConsult.destPath linked worktree.",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e0bd8b6cb8673c970b8f55f96af4f08d3ead115f",
+          "recorded_at": "2026-11-25T01:33:00.138Z",
+          "recorded_by": "leftover-closer/finalize-7271-b"
+        }
       },
       {
         "id": "clause.2",
         "title": "When binding is kind bound, short-circuit spawn scope selection to that story; do not re-enter session-root multi-active competition.",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e0bd8b6cb8673c970b8f55f96af4f08d3ead115f",
+          "recorded_at": "2026-11-25T01:33:00.138Z",
+          "recorded_by": "leftover-closer/finalize-7271-b"
+        }
       },
       {
         "id": "clause.3",
         "title": "Carry destination story through scope/fence reads for spawn allow; refused dest bindings must not fall back to parent story.",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e0bd8b6cb8673c970b8f55f96af4f08d3ead115f",
+          "recorded_at": "2026-11-25T01:33:00.138Z",
+          "recorded_by": "leftover-closer/finalize-7271-b"
+        }
       },
       {
         "id": "clause.4",
         "title": "When dest story-binding or worker-auth is present, deny recovery must not prescribe PRE_DISPATCH_BEGIN_REPAIR.",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e0bd8b6cb8673c970b8f55f96af4f08d3ead115f",
+          "recorded_at": "2026-11-25T01:33:00.138Z",
+          "recorded_by": "leftover-closer/finalize-7271-b"
+        }
       },
       {
         "id": "clause.5",
         "title": "Regression: parent/session root distinct from dest with >=2 eligible session actives; spawn allow with binding; refuse accurately when both sources removed.",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/dispatcher-spawn-dest.test.ts (merged PR #7317)",
+          "recorded_at": "2026-11-25T01:33:00.138Z",
+          "recorded_by": "leftover-closer/finalize-7271-b"
+        }
       },
       {
         "id": "clause.6",
         "title": "changelog.d fragment. Keep #7256 mint-admission as adjacent keep-out.",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e0bd8b6cb8673c970b8f55f96af4f08d3ead115f",
+          "recorded_at": "2026-11-25T01:33:00.138Z",
+          "recorded_by": "leftover-closer/finalize-7271-b"
+        }
       }
     ],
     "tags": [
@@ -453,7 +494,34 @@
         "algorithm": "sha256",
         "sha256": "7cec3cfe4a0570a398177cf92beb2b29f5c56d401f5ce8fadc00e27b5d554a5a"
       },
-      "kind": "story"
+      "kind": "story",
+      "productPullRequest": 7317,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "c6816f7ca229eeee7a81bc021849b850d5718e16",
+        "prNumber": 7317,
+        "prBase": "master",
+        "mergeCommit": "e0bd8b6cb8673c970b8f55f96af4f08d3ead115f",
+        "deliveryBranch": "master",
+        "deliveryCommit": "e0bd8b6cb8673c970b8f55f96af4f08d3ead115f",
+        "verifiedAt": "2026-11-25T01:39:36Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMjEwNTAtYWM4NC03NTgxLThlOGEtMGIxMjM1NzhjZTNk",
+        "identityBasis": "merge-time-mark"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-25T01:39:36Z",
+      "completedSessionId": "host:grok:v1:MDFhMjEwNTAtYWM4NC03NTgxLThlOGEtMGIxMjM1NzhjZTNk",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-25T01:39:36Z"
+      }
     },
     "acceptance": {
       "commands": [],
@@ -526,6 +594,6 @@
       ]
     },
     "id": "github.issue.6580876982",
-    "updated": "2026-11-24T14:14:58Z"
+    "updated": "2026-11-25T01:39:36Z"
   }
 }
