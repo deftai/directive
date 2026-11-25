@@ -2,42 +2,105 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #7273",
-    "updated": "2026-11-24T15:09:13Z"
+    "updated": "2026-11-25T02:26:46Z"
   },
   "plan": {
     "title": "Exact-word commit gate",
-    "status": "running",
+    "status": "completed",
     "narratives": {
-      "Overview": "",
+      "Overview": "\n\n```quarantined\n1. Narrow `callShowsCommitWord` so needsCommitWord arms only when a decoded shell word's value is exactly `commit` (any case), including #6871 quote/continuation recombinations. Apply that same exact-word check inside executable-string payloads (`sh`/`bash`/`zsh`/`pwsh -c`, `eval`, `env -S`). Do not use substring `/commit/i` on pathspecs, filenames, or data/here-string bodies. Do not implement the detector as `recognizedCommits.length > 0`.\n```\n```quarantined\n2. When `resolveOneCommit` sees one literal absolute `git -C` path, use that named path as the sole chdir authority for that commit and ignore preceding reaching `cd` segments (same absolute or different). Still refuse multiple `-C` on one git invocation, `--git-dir`/`--work-tree`, and location-env prefixes.\n```\n3. Suppress a needsCommitWord signal from an expanding non-git command word only when that signal is a borrowed lifecycle false-positive and the same call also has a recognized `git commit` that resolves to a named absolute target — then return the named target (all such commits must agree). Do not suppress an independently commit-shaped opaque signal: `$GIT commit`, `timeout … $CMD commit`, expanding git subcommands, or expanding executable-string payloads that contain exact-word `commit`. A named visible commit never cancels those.\n```quarantined\n4. Regressions: `$BIN scope:promote --path with-commit-in-name` → null; `cd <abs>; git -C <abs> commit` and `cd <absA>; git -C <absB> commit` → named from `-C`; `$BIN scope:promote; git -C <abs> commit -m x` → named `<abs>`; `$GIT commit -m x`, `timeout 5 $CMD commit -m x`, `bash -c \"$GIT commit -m x\"`, `eval \"$GIT commit -m x\"`, `env -S \"$GIT commit -m x\"` stay unresolvable alone and stay unresolvable alongside `git -C <abs> commit -m x`; relative/`~`/expanding `-C` paths stay unresolvable.\n```\n5. Update `COMMIT_TARGET_ACCEPTED_FORMS` and `content/docs/hook-root-admission.md` (§ Commit targets / The commit word) to that exact boundary: exact-word detection including executable-string payloads; `git -C <absolute>` enough with a prior `cd`; lifecycle `$BIN` plus later named commit admitted; opaque commit-shaped wrappers refused even next to a named commit; hand-expanding every binary path not required for the admitted cases.\n\n\n",
       "Description": "",
       "UserStory": "",
-      "ImplementationPlan": ""
+      "ImplementationPlan": "",
+      "Constraint": "```quarantined\n- Dropping needsCommitWord for every `$var`, including `$GIT commit` and opaque `$CMD` / `-c` / `eval` commit wrappers.\n```\n- Allowing relative, `~`, or expanding paths as named commit targets.\n- Docs-only recovery that tells agents to expand every binary path by hand.\n- Keeping \"more than one `cd` or `-C`\" refuse when a single absolute `-C` already names the commit checkout.\n- Letting a named visible commit cancel an independently opaque commit-shaped signal in the same call."
     },
     "items": [
       {
         "id": "clause.1",
-        "status": "pending",
-        "title": "```quarantined\nNarrow `callShowsCommitWord` so needsCommitWord arms only when a decoded shell word's value is exactly `commit` (any case), including #6871 quote/continuation recombinations. Apply that same exact-word check inside executable-string payloads (`sh`/`bash`/`zsh`/`pwsh -c`, `eval`, `env -S`). Do not use substring `/commit/i` on pathspecs, filenames, or data/here-string bodies. Do not implement the detector as `recognizedCommits.length > 0`.\n```"
+        "status": "completed",
+        "title": "```quarantined\nNarrow `callShowsCommitWord` so needsCommitWord arms only when a decoded shell word's value is exactly `commit` (any case), including #6871 quote/continuation recombinations. Apply that same exact-word check inside executable-string payloads (`sh`/`bash`/`zsh`/`pwsh -c`, `eval`, `env -S`). Do not use substring `/commit/i` on pathspecs, filenames, or data/here-string bodies. Do not implement the detector as `recognizedCommits.length > 0`.\n```",
+        "x-directive/requires": "merge",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Product PR #7305 merged; vitest commit-target.test.ts green; leftover finalize — clause-walk cannot evaluate Bound limbs against .ts/.md",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "operator",
+            "mintedAt": "2026-11-24T22:20:33Z",
+            "mintedVia": "deft authz:grant",
+            "eventRef": "template:acceptance-disposition",
+            "grantId": "grant-20261124222033-71427d"
+          },
+          "recorded_at": "2026-11-25T02:26:46Z"
+        }
       },
       {
         "id": "clause.2",
-        "status": "pending",
-        "title": "```quarantined\nWhen `resolveOneCommit` sees one literal absolute `git -C` path, use that named path as the sole chdir authority for that commit and ignore preceding reaching `cd` segments (same absolute or different). Still refuse multiple `-C` on one git invocation, `--git-dir`/`--work-tree`, and location-env prefixes.\n```"
+        "status": "completed",
+        "title": "```quarantined\nWhen `resolveOneCommit` sees one literal absolute `git -C` path, use that named path as the sole chdir authority for that commit and ignore preceding reaching `cd` segments (same absolute or different). Still refuse multiple `-C` on one git invocation, `--git-dir`/`--work-tree`, and location-env prefixes.\n```",
+        "x-directive/requires": "merge",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Product PR #7305 merged; vitest commit-target.test.ts green; leftover finalize — clause-walk cannot evaluate Bound limbs against .ts/.md",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "operator",
+            "mintedAt": "2026-11-24T22:20:33Z",
+            "mintedVia": "deft authz:grant",
+            "eventRef": "template:acceptance-disposition",
+            "grantId": "grant-20261124222033-71427d"
+          },
+          "recorded_at": "2026-11-25T02:26:46Z"
+        }
       },
       {
         "id": "clause.3",
-        "status": "pending",
-        "title": "Suppress a needsCommitWord signal from an expanding non-git command word only when that signal is a borrowed lifecycle false-positive and the same call also has a recognized `git commit` that resolves to a named absolute target — then return the named target (all such commits must agree). Do not suppress an independently commit-shaped opaque signal: `$GIT commit`, `timeout … $CMD commit`, expanding git subcommands, or expanding executable-string payloads that contain exact-word `commit`. A named visible commit never cancels those."
+        "status": "completed",
+        "title": "Suppress a needsCommitWord signal from an expanding non-git command word only when that signal is a borrowed lifecycle false-positive and the same call also has a recognized `git commit` that resolves to a named absolute target — then return the named target (all such commits must agree). Do not suppress an independently commit-shaped opaque signal: `$GIT commit`, `timeout … $CMD commit`, expanding git subcommands, or expanding executable-string payloads that contain exact-word `commit`. A named visible commit never cancels those.",
+        "x-directive/requires": "merge",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Product PR #7305 merged; vitest commit-target.test.ts green; leftover finalize — clause-walk cannot evaluate Bound limbs against .ts/.md",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "operator",
+            "mintedAt": "2026-11-24T22:20:33Z",
+            "mintedVia": "deft authz:grant",
+            "eventRef": "template:acceptance-disposition",
+            "grantId": "grant-20261124222033-71427d"
+          },
+          "recorded_at": "2026-11-25T02:26:46Z"
+        }
       },
       {
         "id": "clause.4",
-        "status": "pending",
-        "title": "```quarantined\nRegressions: `$BIN scope:promote --path with-commit-in-name` → null; `cd <abs>; git -C <abs> commit` and `cd <absA>; git -C <absB> commit` → named from `-C`; `$BIN scope:promote; git -C <abs> commit -m x` → named `<abs>`; `$GIT commit -m x`, `timeout 5 $CMD commit -m x`, `bash -c \"$GIT commit -m x\"`, `eval \"$GIT commit -m x\"`, `env -S \"$GIT commit -m x\"` stay unresolvable alone and stay unresolvable alongside `git -C <abs> commit -m x`; relative/`~`/expanding `-C` paths stay unresolvable.\n```"
+        "status": "completed",
+        "title": "```quarantined\nRegressions: `$BIN scope:promote --path with-commit-in-name` → null; `cd <abs>; git -C <abs> commit` and `cd <absA>; git -C <absB> commit` → named from `-C`; `$BIN scope:promote; git -C <abs> commit -m x` → named `<abs>`; `$GIT commit -m x`, `timeout 5 $CMD commit -m x`, `bash -c \"$GIT commit -m x\"`, `eval \"$GIT commit -m x\"`, `env -S \"$GIT commit -m x\"` stay unresolvable alone and stay unresolvable alongside `git -C <abs> commit -m x`; relative/`~`/expanding `-C` paths stay unresolvable.\n```",
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/core/src/hooks/commit-target.test.ts",
+          "recorded_at": "2026-11-24T22:11:37.603Z",
+          "recorded_by": "operator@deft.ai"
+        }
       },
       {
         "id": "clause.5",
-        "status": "pending",
-        "title": "Update `COMMIT_TARGET_ACCEPTED_FORMS` and `content/docs/hook-root-admission.md` (§ Commit targets / The commit word) to that exact boundary: exact-word detection including executable-string payloads; `git -C <absolute>` enough with a prior `cd`; lifecycle `$BIN` plus later named commit admitted; opaque commit-shaped wrappers refused even next to a named commit; hand-expanding every binary path not required for the admitted cases."
+        "status": "completed",
+        "title": "Update `COMMIT_TARGET_ACCEPTED_FORMS` and `content/docs/hook-root-admission.md` (§ Commit targets / The commit word) to that exact boundary: exact-word detection including executable-string payloads; `git -C <absolute>` enough with a prior `cd`; lifecycle `$BIN` plus later named commit admitted; opaque commit-shaped wrappers refused even next to a named commit; hand-expanding every binary path not required for the admitted cases.",
+        "x-directive/requires": "merge",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Product PR #7305 merged; vitest commit-target.test.ts green; leftover finalize — clause-walk cannot evaluate Bound limbs against .ts/.md",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "operator",
+            "mintedAt": "2026-11-24T22:20:33Z",
+            "mintedVia": "deft authz:grant",
+            "eventRef": "template:acceptance-disposition",
+            "grantId": "grant-20261124222033-71427d"
+          },
+          "recorded_at": "2026-11-25T02:26:46Z"
+        }
       }
     ],
     "tags": [
@@ -65,7 +128,7 @@
     ],
     "acceptance": {
       "commands": [],
-      "none_stated": false,
+      "none_stated": true,
       "derived_reason": "Prefer-A Recut same-text with quarantine wrappers (#5055)",
       "source_rung": "derived",
       "clauses": [
@@ -105,7 +168,22 @@
           "provenance": "statement"
         }
       ],
-      "ambiguity_attestation": "none_found"
+      "ambiguity_attestation": "none_found",
+      "sentences": [
+        "```quarantined\nNarrow `callShowsCommitWord` so needsCommitWord arms only when a decoded shell word's value is exactly `commit` (any case), including #6871 quote/continuation recombinations. Apply that same exact-word check inside executable-string payloads (`sh`/`bash`/`zsh`/`pwsh -c`, `eval`, `env -S`). Do not use substring `/commit/i` on pathspecs, filenames, or data/here-string bodies. Do not implement the detector as `recognizedCommits.length > 0`.\n```",
+        "```quarantined\nWhen `resolveOneCommit` sees one literal absolute `git -C` path, use that named path as the sole chdir authority for that commit and ignore preceding reaching `cd` segments (same absolute or different). Still refuse multiple `-C` on one git invocation, `--git-dir`/`--work-tree`, and location-env prefixes.\n```",
+        "Suppress a needsCommitWord signal from an expanding non-git command word only when that signal is a borrowed lifecycle false-positive and the same call also has a recognized `git commit` that resolves to a named absolute target — then return the named target (all such commits must agree). Do not suppress an independently commit-shaped opaque signal: `$GIT commit`, `timeout … $CMD commit`, expanding git subcommands, or expanding executable-string payloads that contain exact-word `commit`. A named visible commit never cancels those.",
+        "```quarantined\nRegressions: `$BIN scope:promote --path with-commit-in-name` → null; `cd <abs>; git -C <abs> commit` and `cd <absA>; git -C <absB> commit` → named from `-C`; `$BIN scope:promote; git -C <abs> commit -m x` → named `<abs>`; `$GIT commit -m x`, `timeout 5 $CMD commit -m x`, `bash -c \"$GIT commit -m x\"`, `eval \"$GIT commit -m x\"`, `env -S \"$GIT commit -m x\"` stay unresolvable alone and stay unresolvable alongside `git -C <abs> commit -m x`; relative/`~`/expanding `-C` paths stay unresolvable.\n```",
+        "Update `COMMIT_TARGET_ACCEPTED_FORMS` and `content/docs/hook-root-admission.md` (§ Commit targets / The commit word) to that exact boundary: exact-word detection including executable-string payloads; `git -C <absolute>` enough with a prior `cd`; lifecycle `$BIN` plus later named commit admitted; opaque commit-shaped wrappers refused even next to a named commit; hand-expanding every binary path not required for the admitted cases."
+      ],
+      "admitted_source_sentences": [
+        "```quarantined\nNarrow `callShowsCommitWord` so needsCommitWord arms only when a decoded shell word's value is exactly `commit` (any case), including #6871 quote/continuation recombinations. Apply that same exact-word check inside executable-string payloads (`sh`/`bash`/`zsh`/`pwsh -c`, `eval`, `env -S`). Do not use substring `/commit/i` on pathspecs, filenames, or data/here-string bodies. Do not implement the detector as `recognizedCommits.length > 0`.\n```",
+        "```quarantined\nWhen `resolveOneCommit` sees one literal absolute `git -C` path, use that named path as the sole chdir authority for that commit and ignore preceding reaching `cd` segments (same absolute or different). Still refuse multiple `-C` on one git invocation, `--git-dir`/`--work-tree`, and location-env prefixes.\n```",
+        "Suppress a needsCommitWord signal from an expanding non-git command word only when that signal is a borrowed lifecycle false-positive and the same call also has a recognized `git commit` that resolves to a named absolute target — then return the named target (all such commits must agree). Do not suppress an independently commit-shaped opaque signal: `$GIT commit`, `timeout … $CMD commit`, expanding git subcommands, or expanding executable-string payloads that contain exact-word `commit`. A named visible commit never cancels those.",
+        "```quarantined\nRegressions: `$BIN scope:promote --path with-commit-in-name` → null; `cd <abs>; git -C <abs> commit` and `cd <absA>; git -C <absB> commit` → named from `-C`; `$BIN scope:promote; git -C <abs> commit -m x` → named `<abs>`; `$GIT commit -m x`, `timeout 5 $CMD commit -m x`, `bash -c \"$GIT commit -m x\"`, `eval \"$GIT commit -m x\"`, `env -S \"$GIT commit -m x\"` stay unresolvable alone and stay unresolvable alongside `git -C <abs> commit -m x`; relative/`~`/expanding `-C` paths stay unresolvable.\n```",
+        "Update `COMMIT_TARGET_ACCEPTED_FORMS` and `content/docs/hook-root-admission.md` (§ Commit targets / The commit word) to that exact boundary: exact-word detection including executable-string payloads; `git -C <absolute>` enough with a prior `cd`; lifecycle `$BIN` plus later named commit admitted; opaque commit-shaped wrappers refused even next to a named commit; hand-expanding every binary path not required for the admitted cases."
+      ],
+      "admitted_source_digest": "cf1843d979106b78cefc425e9d803969920b715c12511f017c6588cd7ddecd6f"
     },
     "metadata": {
       "intended_placement": {
@@ -625,9 +703,34 @@
         "missing_traces_justification": "Prefer-A Bound limbs are the acceptance surface; traces deferred to product PR evidence.",
         "depends_on": [],
         "conflict_group": "commit-gate-named-C-wins-and-commit-word-is-git-shaped"
+      },
+      "productPullRequest": 7305,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "1e89f1014264c7932187b3fe65d8f763f5dc4d05",
+        "prNumber": 7305,
+        "prBase": "master",
+        "mergeCommit": "76e6d1c7485dabfeba213264a563079ecdedf76f",
+        "deliveryBranch": "master",
+        "deliveryCommit": "e192746ff6dbb684df0b02742a654d1916104462",
+        "verifiedAt": "2026-11-25T02:26:46Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "identityBasis": "merge-time-mark"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-25T02:26:46Z",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-25T02:26:46Z"
       }
     },
     "id": "github.issue.6580877795",
-    "updated": "2026-11-24T15:09:13Z"
+    "updated": "2026-11-25T02:26:46Z"
   }
 }
