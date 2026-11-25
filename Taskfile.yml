@@ -851,6 +851,108 @@ tasks:
         vars:
           ENGINE_CMD: 'release-wait-npm {{.CLI_ARGS}}'
 
+  # Post-run dogfood pin-PR setup (#7331): tip worktree + chore/pin-directive-<version>,
+  # bump pin + AgeExclude, ensure changelog.d/, write fragment, pnpm update + frozen
+  # verify, open PR (operator commits pin until #5771). Inline cmds — no engine:invoke.
+  release:pin-pr:
+    desc: "Post-run dogfood pin-PR setup that survives missing changelog.d/ (#7331) -- task release:pin-pr -- <version>"
+    dir: '{{.USER_WORKING_DIR}}'
+    env:
+      PYTHONUTF8: "1"
+    cmds:
+      - |
+        set -e
+        VERSION="{{.CLI_ARGS}}"
+        VERSION="$(node -e 'const t=String(process.argv[1]||"").trim(); if(!t){console.error("release:pin-pr: missing <version>"); process.exit(2);} if(t.indexOf(" ")>=0||t.indexOf("--")===0){console.error("release:pin-pr: pass a single <version>"); process.exit(2);} process.stdout.write(t);' "$VERSION")"
+        ORIGIN_HEAD="$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null || true)"
+        DEFAULT_BRANCH="${ORIGIN_HEAD#refs/remotes/origin/}"
+        if [ -z "$DEFAULT_BRANCH" ] || [ "$DEFAULT_BRANCH" = "$ORIGIN_HEAD" ]; then
+          DEFAULT_BRANCH=master
+        fi
+        git fetch origin "$DEFAULT_BRANCH"
+        BRANCH="chore/pin-directive-$VERSION"
+        if git show-ref --verify --quiet "refs/heads/$BRANCH" || git show-ref --verify --quiet "refs/remotes/origin/$BRANCH"; then
+          echo "release:pin-pr: branch $BRANCH already exists; refuse to reset. Resume that branch or delete it before re-running setup." >&2
+          exit 1
+        fi
+        WT="$(node -e 'const fs=require("fs"); const os=require("os"); const path=require("path"); process.stdout.write(fs.mkdtempSync(path.join(os.tmpdir(),"deft-pin-pr-")));')"
+        echo "release:pin-pr: worktree $WT on $BRANCH from origin/$DEFAULT_BRANCH"
+        git worktree add -b "$BRANCH" "$WT" "origin/$DEFAULT_BRANCH"
+        cd "$WT"
+        node -e '
+          const fs = require("fs");
+          const path = require("path");
+          const version = process.argv[1];
+          const pkgPath = "package.json";
+          const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
+          const inDev = pkg.devDependencies && Object.prototype.hasOwnProperty.call(pkg.devDependencies, "@deftai/directive-runtime");
+          const inDeps = pkg.dependencies && Object.prototype.hasOwnProperty.call(pkg.dependencies, "@deftai/directive-runtime");
+          if (!inDev && !inDeps) {
+            console.error("release:pin-pr: package.json has no @deftai/directive-runtime pin");
+            process.exit(1);
+          }
+          (inDev ? pkg.devDependencies : pkg.dependencies)["@deftai/directive-runtime"] = version;
+          fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + "\n");
+          const wsPath = "pnpm-workspace.yaml";
+          const eol = fs.readFileSync(wsPath, "utf8").includes("\r\n") ? "\r\n" : "\n";
+          const lines = fs.readFileSync(wsPath, "utf8").split(/\r?\n/);
+          const want = "@deftai/directive-runtime@" + version;
+          const quoted = String.fromCharCode(34) + want + String.fromCharCode(34);
+          const keyRe = /^(\s*)minimumReleaseAgeExclude:\s*(#.*)?$/;
+          const itemRe = /^(\s*)-\s+(.*)$/;
+          let keyIdx = -1;
+          let keyIndent = 0;
+          for (let i = 0; i < lines.length; i++) {
+            const m = keyRe.exec(lines[i]);
+            if (m) { keyIdx = i; keyIndent = m[1].length; break; }
+          }
+          if (keyIdx < 0) {
+            console.error("release:pin-pr: cannot locate minimumReleaseAgeExclude");
+            process.exit(1);
+          }
+          let replaced = false;
+          for (let i = keyIdx + 1; i < lines.length; i++) {
+            const line = lines[i];
+            const trimmed = line.trim();
+            if (trimmed === "" || trimmed.startsWith("#")) continue;
+            const m = itemRe.exec(line);
+            if (!m || line.length - line.trimStart().length <= keyIndent) break;
+            const raw = m[2].trim();
+            let val = raw;
+            if (val.startsWith(String.fromCharCode(34)) || val.startsWith(String.fromCharCode(39))) {
+              const q = val[0];
+              const end = val.indexOf(q, 1);
+              val = end > 0 ? val.slice(1, end) : val;
+            }
+            if (val.indexOf("@deftai/directive-runtime@") === 0) {
+              lines[i] = m[1] + "- " + quoted;
+              replaced = true;
+              break;
+            }
+          }
+          if (!replaced) {
+            lines.splice(keyIdx + 1, 0, " ".repeat(keyIndent + 2) + "- " + quoted);
+          }
+          fs.writeFileSync(wsPath, lines.join(eol));
+          fs.mkdirSync("changelog.d", { recursive: true });
+          const frag = path.join("changelog.d", "pin-directive-" + version + ".md");
+          fs.writeFileSync(
+            frag,
+            "section: Changed\n- chore(dogfood): pin Directive to " + version + ".\n",
+          );
+          console.log("release:pin-pr: ensured changelog.d/ and wrote " + frag);
+        ' "$VERSION"
+        pnpm update -w "@deftai/directive-runtime@$VERSION"
+        pnpm install --frozen-lockfile
+        BODY="$(node -e 'const v=process.argv[1]; process.stdout.write("Dogfood pin to "+v+".\n\n## Documentation impact\n\nchange_class: none\nsurfaces: none\nrationale: \"Pin-only dogfood bump; no closed user-doc surface added or removed.\"\n");' "$VERSION")"
+        BODY_FILE="$(node -e 'const fs=require("fs"); const os=require("os"); const path=require("path"); const p=path.join(os.tmpdir(),"deft-pin-pr-body-"+process.pid+".md"); fs.writeFileSync(p, process.argv[1]); process.stdout.write(p);' "$BODY")"
+        echo "release:pin-pr: prepared $WT on $BRANCH (pin=$VERSION). Operator commits until #5771:"
+        echo "  git -C \"$WT\" add package.json pnpm-workspace.yaml pnpm-lock.yaml changelog.d/"
+        echo "  git -C \"$WT\" commit -m \"chore: pin Directive to $VERSION\""
+        echo "  git -C \"$WT\" push -u origin HEAD"
+        echo "  gh pr create --repo deftai/directive --base $DEFAULT_BRANCH --head $BRANCH --title \"chore: pin Directive to $VERSION\" --body-file \"$BODY_FILE\""
+        echo "release:pin-pr COMPLETE; worktree=$WT branch=$BRANCH version=$VERSION body=$BODY_FILE"
+
   # Phase 7 maintainer primary checkout update (#5953 / #6613): pull, install,
   # confirm installed = pin. Hook files refresh on the next hook run (AC8.6);
   # a later `directive upgrade` diff is normal and is not part of the release.
@@ -1027,6 +1129,99 @@ tasks:
           exit 1
         fi
         echo "release:local-update: ff-only pull on $DEFAULT_BRANCH at $CHECKOUT"
+        git fetch origin "$DEFAULT_BRANCH"
+        # #7331: per-path remediate untracked tip-tracked .deft/approved-scope/** twins
+        # before ff-only (identical → remove; divergent → OS temp). Never git clean -fd.
+        node -e '
+          const { spawnSync } = require("child_process");
+          const fs = require("fs");
+          const os = require("os");
+          const path = require("path");
+          const tipRef = process.argv[1];
+          const prefix = ".deft/approved-scope/";
+          const ls = spawnSync("git", ["ls-files", "--others", "--exclude-standard", "-z", "--", prefix], {
+            encoding: "buffer",
+            maxBuffer: 32 * 1024 * 1024,
+          });
+          if (ls.status !== 0) {
+            console.error("release:local-update: cannot list untracked approved-scope paths");
+            process.exit(1);
+          }
+          const raw = ls.stdout || Buffer.alloc(0);
+          const paths = [];
+          let start = 0;
+          for (let i = 0; i < raw.length; i++) {
+            if (raw[i] === 0) {
+              if (i > start) paths.push(raw.slice(start, i).toString("utf8"));
+              start = i + 1;
+            }
+          }
+          if (start < raw.length) paths.push(raw.slice(start).toString("utf8"));
+          const decisions = [];
+          let backupRoot = "";
+          for (const rel of paths) {
+            const norm = String(rel).split(String.fromCharCode(92)).join("/");
+            if (!norm.startsWith(prefix) || norm.endsWith("/")) continue;
+            const tip = spawnSync("git", ["show", tipRef + ":" + norm], {
+              encoding: "buffer",
+              maxBuffer: 16 * 1024 * 1024,
+            });
+            if (tip.status !== 0) continue;
+            const tipBytes = tip.stdout || Buffer.alloc(0);
+            let disk;
+            try {
+              disk = fs.readFileSync(norm);
+            } catch {
+              continue;
+            }
+            if (Buffer.compare(disk, tipBytes) === 0) {
+              fs.unlinkSync(norm);
+              decisions.push({ kind: "remove-identical", relPath: norm });
+              continue;
+            }
+            if (!backupRoot) {
+              backupRoot = fs.mkdtempSync(path.join(os.tmpdir(), "deft-approved-scope-clash-"));
+            }
+            const dest = path.join(backupRoot, norm.split("/").join("__"));
+            try {
+              fs.renameSync(norm, dest);
+            } catch (err) {
+              const code = err && err.code;
+              if (code !== "EXDEV" && code !== "EPERM") throw err;
+              fs.copyFileSync(norm, dest);
+              fs.unlinkSync(norm);
+            }
+            decisions.push({ kind: "move-aside", relPath: norm });
+          }
+          const removed = decisions.filter((d) => d.kind === "remove-identical").map((d) => d.relPath);
+          const moved = decisions.filter((d) => d.kind === "move-aside").map((d) => d.relPath);
+          if (removed.length || moved.length) {
+            console.log("release:local-update: remediated untracked tip-tracked approved-scope twins before ff-only (#7331).");
+            if (removed.length) {
+              console.log(
+                "  removed tip-identical untracked (" +
+                  removed.length +
+                  "): " +
+                  removed.slice(0, 5).join(", ") +
+                  (removed.length > 5 ? ", …" : ""),
+              );
+            }
+            if (moved.length) {
+              console.log(
+                "  moved divergent untracked aside to " +
+                  backupRoot +
+                  " (" +
+                  moved.length +
+                  "): " +
+                  moved.slice(0, 5).join(", ") +
+                  (moved.length > 5 ? ", …" : ""),
+              );
+            }
+            console.log(
+              "  re-run is not needed for these paths; ff-only proceeds. Never git clean -fd .deft/approved-scope/.",
+            );
+          }
+        ' "origin/$DEFAULT_BRANCH"
         git pull --ff-only
         echo "release:local-update: pnpm install --frozen-lockfile"
         pnpm install --frozen-lockfile

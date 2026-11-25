@@ -1,14 +1,10 @@
 {
   "schema": "deft.evaluator-surface-disposition.v1",
   "kind": "disclosure",
-  "issue": 7272,
+  "issue": 7331,
   "surfaces": [
     "Taskfile.yml",
-    "packages/core/src/observable-scope/**",
-    "packages/core/src/observable-scope/types.ts",
-    "packages/core/src/intent-constraint/**",
     "xbrief/evaluator-surface-disposition.json"
   ],
-  "note": "Disclosure for #7272 Prefer-A Bound scrub: JSDoc on packages/core/src/observable-scope/types.ts no longer coaches #5010 in-harness ask; OBSERVABLE_SCOPE_REMEDIATION already teaches #7031 declared any-shell writers. Keeps prior #6945 signed-level surfaces listed. No evaluator semantics change. Disclosure only; not #3164 authorization. Refs #7272 #7031 #6945."
+  "note": "Disclosure for #7331 Prefer-A Bound: release:pin-pr + release:local-update approved-scope clash remediation on Taskfile.yml. No evaluator semantics change. Disclosure only; not #3164 authorization. Refs #7331 Prefer-A Bound 7153269182."
 }
-
