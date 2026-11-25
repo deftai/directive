@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #7326",
-    "updated": "2026-11-25T18:26:50.020Z"
+    "updated": "2026-11-25T22:50:59Z"
   },
   "plan": {
     "title": "release: drop github-issue triage cache fetch-all as hard Phase 1 preflight (#4399)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "release: drop github-issue triage cache fetch-all as hard Phase 1 preflight (#4399)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/7326",
@@ -19,58 +19,107 @@
     "items": [
       {
         "title": "relieves: P1 — Rewrite the three #4399 release-skill surfaces (Orientation-dirty subsection, Phase 1 checklist item 11, Skill Completion anti-pattern) so Phase 1 treats orientation cache_fresh dirty caused by missing github-issue triage cache (bootstrap state: missing source dir or missing candidates log) as advisory with a triage:bootstrap / triage-queue recovery pointer, not a hard fetch-all gate before release. Add a regression test that locks current Step 5 / framework verify:cache-fresh behavior: under releaseCheckEnv with --allow-missing-bootstrap, a missing .deft-cache/github-issue/ exits 0 and does not call maybeAutoPopulateEmptyCache / fetch-all. Do not widen DEFT_RELEASE_PREFLIGHT (age-only bypass stays as today).",
-        "status": "pending",
+        "status": "completed",
         "id": "1",
         "narrative": {
           "Acceptance": "relieves: P1 — Rewrite the three #4399 release-skill surfaces (Orientation-dirty subsection, Phase 1 checklist item 11, Skill Completion anti-pattern) so Phase 1 treats orientation cache_fresh dirty caused by missing github-issue triage cache (bootstrap state: missing source dir or missing candidates log) as advisory with a triage:bootstrap / triage-queue recovery pointer, not a hard fetch-all gate before release. Add a regression test that locks current Step 5 / framework verify:cache-fresh behavior: under releaseCheckEnv with --allow-missing-bootstrap, a missing .deft-cache/github-issue/ exits 0 and does not call maybeAutoPopulateEmptyCache / fetch-all. Do not widen DEFT_RELEASE_PREFLIGHT (age-only bypass stays as today)."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "3d5f3a075bade3759763b8700c3db73406e2acd9",
+          "recorded_at": "2026-11-25T22:50:59Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "relieves: P2 — Keep non-release verify:cache-fresh, session:ready, and triage:bootstrap behavior unchanged. Keep hard release gates: lifecycle-sync check (apply-mode only on mismatch recovery), tag availability, CHANGELOG/version, and Step 5 product/check ownership outside this advisory demotion. Existing-cache stale-by-drift remains hard where the cache exists.",
-        "status": "pending",
+        "status": "completed",
         "id": "2",
         "narrative": {
           "Acceptance": "relieves: P2 — Keep non-release verify:cache-fresh, session:ready, and triage:bootstrap behavior unchanged. Keep hard release gates: lifecycle-sync check (apply-mode only on mismatch recovery), tag availability, CHANGELOG/version, and Step 5 product/check ownership outside this advisory demotion. Existing-cache stale-by-drift remains hard where the cache exists."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "3d5f3a075bade3759763b8700c3db73406e2acd9",
+          "recorded_at": "2026-11-25T22:50:59Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "relieves: P3 — Affirm no release step owns the github-issue triage cache for issue-state truth (live REST). Update pack SoT and the content-contract lock for the #4399 heading citing #7326 so regenerated skill text matches. Docs/agents-entry mirrors if present. Footnote: Bound \"missing\" means bootstrap state above; a present empty-entry dir is out of this Bound.",
-        "status": "pending",
+        "status": "completed",
         "id": "3",
         "narrative": {
           "Acceptance": "relieves: P3 — Affirm no release step owns the github-issue triage cache for issue-state truth (live REST). Update pack SoT and the content-contract lock for the #4399 heading citing #7326 so regenerated skill text matches. Docs/agents-entry mirrors if present. Footnote: Bound \"missing\" means bootstrap state above; a present empty-entry dir is out of this Bound."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "3d5f3a075bade3759763b8700c3db73406e2acd9",
+          "recorded_at": "2026-11-25T22:50:59Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Claude PA F1 blocking: P1 owner is skill Phase 1 / orientation dirty, not Step 5 widen — absorbed.",
-        "status": "pending",
+        "status": "completed",
         "id": "4",
         "narrative": {
           "Acceptance": "Claude PA F1 blocking: P1 owner is skill Phase 1 / orientation dirty, not Step 5 widen — absorbed."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "3d5f3a075bade3759763b8700c3db73406e2acd9",
+          "recorded_at": "2026-11-25T22:50:59Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Claude PA F2 sharpening: P2 holds — kept.",
-        "status": "pending",
+        "status": "completed",
         "id": "5",
         "narrative": {
           "Acceptance": "Claude PA F2 sharpening: P2 holds — kept."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "3d5f3a075bade3759763b8700c3db73406e2acd9",
+          "recorded_at": "2026-11-25T22:50:59Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Claude PA F3 footnote: define missing vs empty — absorbed in P1/P3.",
-        "status": "pending",
+        "status": "completed",
         "id": "6",
         "narrative": {
           "Acceptance": "Claude PA F3 footnote: define missing vs empty — absorbed in P1/P3."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "3d5f3a075bade3759763b8700c3db73406e2acd9",
+          "recorded_at": "2026-11-25T22:50:59Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Codex/Grok PA clear on prior Bound: superseded; regression test keeps their Step 5 no-populate intent as a lock of current admission.",
-        "status": "pending",
+        "status": "completed",
         "id": "7",
         "narrative": {
           "Acceptance": "Codex/Grok PA clear on prior Bound: superseded; regression test keeps their Step 5 no-populate intent as a lock of current admission."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "3d5f3a075bade3759763b8700c3db73406e2acd9",
+          "recorded_at": "2026-11-25T22:50:59Z",
+          "recorded_by": "scope:complete"
         }
       }
     ],
@@ -149,7 +198,33 @@
         "Claude PA F3 footnote: define missing vs empty — absorbed in P1/P3.",
         "Codex/Grok PA clear on prior Bound: superseded; regression test keeps their Step 5 no-populate intent as a lock of current admission."
       ],
-      "admitted_source_digest": "153677564c2e88f98c9e5ddff8c3f22c3931a5e8bab07019dcc1b8bb5f0fbddc"
+      "admitted_source_digest": "153677564c2e88f98c9e5ddff8c3f22c3931a5e8bab07019dcc1b8bb5f0fbddc",
+      "ambiguity_attestation": "none_found",
+      "sentences": [
+        "relieves: P1 — Rewrite the three #4399 release-skill surfaces (Orientation-dirty subsection, Phase 1 checklist item 11, Skill Completion anti-pattern) so Phase 1 treats orientation cache_fresh dirty caused by missing github-issue triage cache (bootstrap state: missing source dir or missing candidates log) as advisory with a triage:bootstrap / triage-queue recovery pointer, not a hard fetch-all gate before release. Add a regression test that locks current Step 5 / framework verify:cache-fresh behavior: under releaseCheckEnv with --allow-missing-bootstrap, a missing .deft-cache/github-issue/ exits 0 and does not call maybeAutoPopulateEmptyCache / fetch-all. Do not widen DEFT_RELEASE_PREFLIGHT (age-only bypass stays as today).",
+        "relieves: P2 — Keep non-release verify:cache-fresh, session:ready, and triage:bootstrap behavior unchanged. Keep hard release gates: lifecycle-sync check (apply-mode only on mismatch recovery), tag availability, CHANGELOG/version, and Step 5 product/check ownership outside this advisory demotion. Existing-cache stale-by-drift remains hard where the cache exists.",
+        "relieves: P3 — Affirm no release step owns the github-issue triage cache for issue-state truth (live REST). Update pack SoT and the content-contract lock for the #4399 heading citing #7326 so regenerated skill text matches. Docs/agents-entry mirrors if present. Footnote: Bound \"missing\" means bootstrap state above; a present empty-entry dir is out of this Bound.",
+        "Claude PA F1 blocking: P1 owner is skill Phase 1 / orientation dirty, not Step 5 widen — absorbed.",
+        "Claude PA F2 sharpening: P2 holds — kept.",
+        "Claude PA F3 footnote: define missing vs empty — absorbed in P1/P3.",
+        "Codex/Grok PA clear on prior Bound: superseded; regression test keeps their Step 5 no-populate intent as a lock of current admission."
+      ],
+      "confessions": [
+        "release: drop github-issue triage cache fetch-all as hard Phase 1 preflight (#4399)",
+        "relieves: P1 — Rewrite the three #4399 release-skill surfaces (Orientation-dirty subsection, Phase 1 checklist item 11, Skill Completion anti-pattern) so Phase 1 treats orientation cache_fresh dirty caused by missing github-issue triage cache (bootstrap state: missing source dir or missing candidates log) as advisory with a triage:bootstrap / triage-queue recovery pointer, not a hard fetch-all gate before release.",
+        "Add a regression test that locks current Step 5 / framework verify:cache-fresh behavior: under releaseCheckEnv with --allow-missing-bootstrap, a missing .deft-cache/github-issue/ exits 0 and does not call maybeAutoPopulateEmptyCache / fetch-all.",
+        "Do not widen DEFT_RELEASE_PREFLIGHT (age-only bypass stays as today).",
+        "relieves: P2 — Keep non-release verify:cache-fresh, session:ready, and triage:bootstrap behavior unchanged.",
+        "Keep hard release gates: lifecycle-sync check (apply-mode only on mismatch recovery), tag availability, CHANGELOG/version, and Step 5 product/check ownership outside this advisory demotion.",
+        "Existing-cache stale-by-drift remains hard where the cache exists.",
+        "relieves: P3 — Affirm no release step owns the github-issue triage cache for issue-state truth (live REST).",
+        "Update pack SoT and the content-contract lock for the #4399 heading citing #7326 so regenerated skill text matches.",
+        "Docs/agents-entry mirrors if present.",
+        "Footnote: Bound \"missing\" means bootstrap state above; a present empty-entry dir is out of this Bound.",
+        "Reject: DEFT_RELEASE_PREFLIGHT widen for missing/empty (false relief on already-admitted Step 5 path); inventing --skip-cache-fresh; changing session:ready / non-release contracts; deleting reconcile/tag/CHANGELOG gates; soft-passing existing-cache stale-by-drift; silencing orientation without advisory triage pointer.",
+        "Accept-into-contract: - Claude PA F1 blocking: P1 owner is skill Phase 1 / orientation dirty, not Step 5 widen — absorbed.",
+        "Filed for @MScottAdams"
+      ]
     },
     "metadata": {
       "intended_placement": {
@@ -707,9 +782,33 @@
           "regression locks --allow-missing-bootstrap admission"
         ],
         "model_tier": "standard"
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "ed5b1f20e2c07454d90c8ece87441f359db2aa13",
+        "prNumber": 7334,
+        "prBase": "master",
+        "mergeCommit": "3d5f3a075bade3759763b8700c3db73406e2acd9",
+        "deliveryBranch": "master",
+        "deliveryCommit": "8db11054a6978e9efc1aa6e48bdd404f36ad4feb",
+        "verifiedAt": "2026-11-25T22:50:59Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "identityBasis": "merge-time-mark"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-25T22:50:59Z",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-25T22:50:59Z"
       }
     },
     "id": "github.issue.6596760412",
-    "updated": "2026-11-25T18:26:50.020Z"
+    "updated": "2026-11-25T22:50:59Z"
   }
 }
