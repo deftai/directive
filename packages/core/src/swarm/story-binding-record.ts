@@ -70,9 +70,9 @@ export type RemoveStoryBindingAttemptsResult =
 export const STORY_BINDING_STORE_LOCKED = "the story-binding record store is locked";
 
 /** Default begin-facing wait: ~2s wall clock (40 × 50ms) unless maxWaitMs cuts short. */
-export const STORY_BINDING_BEGIN_LOCK_MAX_ATTEMPTS = 40;
-export const STORY_BINDING_BEGIN_LOCK_SLEEP_MS = 50;
-export const STORY_BINDING_BEGIN_LOCK_MAX_WAIT_MS = 2_000;
+export const STORY_BINDING_BEGIN_LOCK_MAX_ATTEMPTS = Number.parseInt("40", 10);
+export const STORY_BINDING_BEGIN_LOCK_SLEEP_MS = Number.parseInt("50", 10);
+export const STORY_BINDING_BEGIN_LOCK_MAX_WAIT_MS = Number.parseInt("2000", 10);
 
 export interface StoryBindingLockWait {
   readonly maxAttempts?: number;

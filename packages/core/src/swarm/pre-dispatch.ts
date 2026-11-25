@@ -379,11 +379,13 @@ function stampRunningAttemptIdentity(
     readonly externalRunId?: string | null;
     readonly now?: string;
   },
-): { ledger: DeliveryUnitLedger; attempt: DeliveryAttemptRecord } {
+):
+  | { readonly ok: true; readonly ledger: DeliveryUnitLedger; readonly attempt: DeliveryAttemptRecord }
+  | { readonly ok: false; readonly detail: string } {
   const idx = ledger.attempts.findIndex((a) => a.attemptId === attemptId);
   const prev = idx >= 0 ? ledger.attempts[idx] : undefined;
   if (prev === undefined || (prev.status !== "queued" && prev.status !== "running")) {
-    throw new Error(`stampRunningAttemptIdentity: no active attempt ${attemptId}`);
+    return { ok: false, detail: `stampRunningAttemptIdentity: no active attempt ${attemptId}` };
   }
   const nextWorker =
     typeof input.workerId === "string" && input.workerId.trim().length > 0
@@ -394,7 +396,7 @@ function stampRunningAttemptIdentity(
       ? input.externalRunId.trim()
       : prev.externalRunId;
   if (nextWorker === prev.workerId && nextRun === prev.externalRunId) {
-    return { ledger, attempt: prev };
+    return { ok: true, ledger, attempt: prev };
   }
   const updated: DeliveryAttemptRecord = {
     ...prev,
@@ -404,6 +406,7 @@ function stampRunningAttemptIdentity(
   const attempts = ledger.attempts.slice();
   attempts[idx] = updated;
   return {
+    ok: true,
     ledger: {
       ...ledger,
       attempts,
@@ -896,6 +899,17 @@ function runBegin(input: SwarmPreDispatchInput): SwarmPreDispatchResult {
             externalRunId: input.externalRunId,
             now: input.now,
           });
+          if (!stamped.ok) {
+            return baseResult(input, "begin", {
+              exitCode: EXIT_GATE_FAILED,
+              decision: "DENY_DUPLICATE_ACTIVE",
+              reason: "active attempt exists for unit; repair-admit lost the attempt before stamp",
+              attempt: still[0] ?? head,
+              activeAttemptIds: still.map((a) => a.attemptId),
+              storyBinding: binding,
+              duplicateActiveHint: "binding-repair",
+            });
+          }
           saveUnitLedger(input.projectRoot, stamped.ledger);
           return baseResult(input, "begin", {
             exitCode: EXIT_OK,
