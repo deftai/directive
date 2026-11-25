@@ -201,6 +201,9 @@ describe("admitHardRefuseNonGatedMcp (#7352)", () => {
     ["mcp__fs__edit_record", '{"path":"/tmp/x"}'],
     ["mcp__fs__create_note", '{"path":"/tmp/x"}'],
     ["mcp__github__create_issue", '{"title":"x"}'],
+    // Otherwise-admitted host UI MCP whose args carry forge-sensitive shell text.
+    ["mcp__ccd_turn__wrap_up", "git push origin HEAD"],
+    ["mcp__ccd_turn__wrap_up", "gh pr merge 12 --squash"],
   ])("refuses %j", (toolName, mcpArgsText) => {
     expect(admitHardRefuseNonGatedMcp({ toolName, mcpArgsText })).toBe(false);
   });

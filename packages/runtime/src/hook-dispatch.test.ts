@@ -891,7 +891,10 @@ describe("Claude hard-refuse non-gated MCP admit under pin-mismatch (#7352)", ()
     };
   }
 
-  function mcpDispatch(host: string, toolName: string): { raw: string; wire: Record<string, unknown> } {
+  function mcpDispatch(
+    host: string,
+    toolName: string,
+  ): { raw: string; wire: Record<string, unknown> } {
     const out: string[] = [];
     run([`--host=${host}`, "--event=tool.before", "--project-root=/project"], {
       readStdin: () => JSON.stringify({ tool_name: toolName, tool_input: {} }),

@@ -167,6 +167,8 @@ describe("Claude hard-refuse non-gated MCP admit under root-mismatch (#7352)", (
     ["use_tool", { tool_name: "mcp__ccd_turn__wrap_up" }],
     ["mcp__github__merge_pull_request", {}],
     ["mcp__fs__edit_record", { path: "/tmp/x" }],
+    // Host UI MCP name with forge-sensitive args must stay refused (#7352 Greptile).
+    ["mcp__ccd_turn__wrap_up", { command: "git push origin HEAD" }],
   ])("still refuses %s", (toolName, toolInput) => {
     const o = mcpDispatch("claude", toolName, toolInput);
     expect(denied(o)).toBe(true);
