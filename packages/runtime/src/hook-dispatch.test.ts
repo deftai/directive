@@ -1183,4 +1183,38 @@ describe("#7351 same-repo Claude WT and Directive dest admit", () => {
     expect(result.text).toContain("launching checkout runtime does not match payload pin");
     expect(result.text).toMatch(/launching checkout|relaunch the host session/i);
   });
+
+  it("does not admit launch-pin recovery when payload overlay fail-closes", () => {
+    const out: string[] = [];
+    const code = run(
+      ["--host=claude", "--event=tool.before", "--project-root=/repo/.claude/worktrees/agent-wt"],
+      {
+        readStdin: () =>
+          JSON.stringify({
+            tool_name: "Bash",
+            tool_input: { command: "pnpm install --frozen-lockfile" },
+            cwd: "/repo",
+          }),
+        writeOut: (t) => out.push(t),
+        writeErr: () => undefined,
+        cwd: () => "/repo",
+        stdinEmptyRetryMs: 0,
+        launchingCheckoutRoot: () => "/repo",
+        sameRepoGitCommonDir: () => true,
+        launchInstalledMatchesPayloadPin: () => false,
+        cheapInSync: () => ({
+          ...OK_CHEAP,
+          ok: false,
+          failClosed: true,
+          pinMismatchOnly: false,
+          identityMatch: true,
+          recoveryGuidance: "retire overlay",
+        }),
+      },
+    );
+    const text = out.join("");
+    expect(code).toBe(0);
+    expect(text).toMatch(/overlay|materialize-runtime/i);
+    expect(text).not.toContain("admitted the launch-runtime recovery");
+  });
 });
