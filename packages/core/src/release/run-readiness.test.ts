@@ -299,26 +299,25 @@ describe("release:run readiness CI lines (#6876 clause 13)", () => {
     expect(detail).not.toMatch(/gh workflow run/);
   });
 
-  it("names a lane that is not reusable and why, says the full check runs and how long, and prints the dispatch command (#6849 clause 20)", () => {
+  it("names a lane that is not reusable and why under tip-green smoke-only, and prints the dispatch command (#6849 / #7328)", () => {
     const red = runReleaseReadiness(
       INPUT,
       { ...readinessSeams(), platform: "win32" },
       fakeGh({ nightlyWindows: "failure" }),
     );
     expect(red.ok).toBe(true);
-    expect(red.ci.kind).toBe("full");
+    expect(red.ci.kind).toBe("reuse");
     const detail = red.checks.find((c) => c.name.startsWith("CI reuse"))?.detail ?? "";
     expect(detail).toMatch(
-      new RegExp(
-        `Nightly full suite \\(Windows\\) not reusable \\([^)]*concluded failure\\): the full local Step 5 check will run \\(up to ${RELEASE_CHECK_TIMEOUT_MINUTES} minutes\\)`,
-      ),
+      /Nightly full suite \(Windows\) not reusable \([^)]*concluded failure\): tip-green CI reuse continues with host smoke only/,
     );
     expect(detail).not.toMatch(/Nightly coverage \(Linux\) not reusable/);
     expect(detail).toContain("gh workflow run nightly.yml --repo o/r --ref master");
-    expect(detail).not.toMatch(/Windows suite did not run/);
+    expect(detail).toMatch(/Windows suite did not run for this release/);
+    expect(detail).toMatch(/smoke-only tip-green reuse/);
   });
 
-  it("says the Windows suite did not run on a non-Windows host when the Windows lane is not reusable (#6849 clause 21)", () => {
+  it("says the Windows suite did not run on tip-green smoke-only independently of host OS (#7328)", () => {
     const red = runReleaseReadiness(
       INPUT,
       { ...readinessSeams(), platform: "linux" },
@@ -337,7 +336,7 @@ describe("release:run readiness CI lines (#6876 clause 13)", () => {
       reusable: false,
       lanes: [],
     }));
-    expect(seamed.kind).toBe("full");
+    expect(seamed.kind).toBe("reuse");
   });
 
   it("falls back to the full check when the tip or its check runs cannot be read", () => {

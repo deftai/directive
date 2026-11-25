@@ -16,10 +16,12 @@ import {
 import { guardChangelogReadSafety } from "./changelog-read-safety.js";
 import {
   type CiReuseDecision,
+  classifyReleaseInputCleanliness,
   evaluateCiReuse,
   formatCiReuseChange,
   formatCiReuseDecision,
   runHostSmokeCheck,
+  windowsSuiteSkippedLineForSmokeOnly,
 } from "./ci-reuse.js";
 import {
   emitCliDriftReportBestEffort,
@@ -192,12 +194,19 @@ function evaluateStep5CiReuse(config: ReleaseConfig, seams: ReleaseSeams): CiReu
   const change = formatCiReuseChange(config.ciReuseAtReadiness, decision);
   if (change !== null) writeEscapedReleaseLine(change);
   for (const line of formatCiReuseDecision(decision)) writeEscapedReleaseLine(line);
-  // #6849 host boundary: say so when the local fallback does not test Windows.
-  if (decision.kind === "full") {
-    const windows = windowsSuiteSkippedLine(
-      decision.nightly,
-      seams.hostPlatform ?? process.platform,
-    );
+  // #6849 / #7328 host boundary: full fallback on non-Windows, or smoke-only
+  // tip-green reuse when the Windows lane is not reusable (any host OS).
+  const platform = seams.hostPlatform ?? process.platform;
+  if (
+    decision.kind === "reuse" &&
+    decision.nightly !== undefined &&
+    decision.nightly !== null &&
+    !decision.nightly.reusable
+  ) {
+    const windows = windowsSuiteSkippedLineForSmokeOnly(decision.nightly, platform);
+    if (windows !== null) writeEscapedReleaseLine(windows);
+  } else if (decision.kind === "full") {
+    const windows = windowsSuiteSkippedLine(decision.nightly, platform);
     if (windows !== null) writeEscapedReleaseLine(windows);
   }
   return decision;
@@ -245,19 +254,29 @@ export function runPipeline(config: ReleaseConfig, seams: ReleaseSeams = {}): nu
   const runBuildFn =
     seams.runBuild ?? ((root: string, v: string | null) => runBuildNative(root, v, seams));
 
-  // Step 1: dirty-tree guard.
+  // Step 1: dirty-tree guard (#7328 shared release-input classifier).
   let label = "Pre-flight git status";
   if (config.dryRun) {
     emit(1, label, `DRYRUN (would run \`git status --porcelain\` in ${projectRoot})`);
   } else {
-    const [ok, output] = checkGitClean(projectRoot, seams);
-    if (ok) {
+    const cleanliness = classifyReleaseInputCleanliness(projectRoot, seams);
+    if (cleanliness.kind === "clean") {
       emit(1, label, "OK (tree clean)");
+    } else if (cleanliness.kind === "session-scratch-only") {
+      emit(
+        1,
+        label,
+        `OK (session-scratch-only; admitted without --allow-dirty):\n${cleanliness.detail}`,
+      );
     } else if (config.allowDirty) {
-      emit(1, label, `WARN (dirty, --allow-dirty set):\n${output}`);
+      emit(
+        1,
+        label,
+        `WARN (dirty, --allow-dirty set; ${cleanliness.reason}):\n${cleanliness.porcelain}`,
+      );
     } else {
       emit(1, label, "FAIL (working tree is dirty; commit/stash or pass --allow-dirty)");
-      process.stderr.write(`${output}\n`);
+      process.stderr.write(`${cleanliness.reason}\n${cleanliness.porcelain}\n`);
       return EXIT_VIOLATION;
     }
   }

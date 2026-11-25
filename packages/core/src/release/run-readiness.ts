@@ -18,11 +18,13 @@ import type { RunGhFn } from "../pr-merge-readiness/types.js";
 import {
   applyNightlyConjunct,
   type CiReuseDecision,
+  classifyReleaseInputCleanliness,
   decideCiReuseFromRuns,
   formatCiReuseDecision,
+  windowsSuiteSkippedLineForSmokeOnly,
 } from "./ci-reuse.js";
 import { RELEASE_CHECK_TIMEOUT_MINUTES } from "./constants.js";
-import { checkGitClean, runGit } from "./git.js";
+import { runGit } from "./git.js";
 import {
   evaluateNightlyReuse,
   formatNightlyLanes,
@@ -186,9 +188,10 @@ export interface ReadinessCiContext {
 }
 
 /**
- * #6849: before the mint, name each nightly lane that is not reusable and why,
- * say the full local Step 5 check will run and about how long, print the
- * command that starts the nightly workflow, and print the Windows host line.
+ * #6849 / #7328: before the mint, name each nightly lane that is not reusable
+ * and why, print the command that starts the nightly workflow, and print the
+ * Windows host line. Tip-green reuse continues with smoke-only; otherwise say
+ * the full local Step 5 check will run and about how long.
  */
 export function readinessNightlyLines(
   decision: CiReuseDecision,
@@ -199,17 +202,22 @@ export function readinessNightlyLines(
     nightly === null
       ? [{ label: "lanes", reason: "not read before the CI reuse rule stopped" }]
       : nightly.lanes.filter((lane) => !lane.reusable);
-  const lines = blocked.map(
-    (lane) =>
-      `Nightly ${lane.label} not reusable (${lane.reason}): the full local Step 5 check will run ` +
-      `(up to ${RELEASE_CHECK_TIMEOUT_MINUTES} minutes).`,
+  const tipGreenSmoke = decision.kind === "reuse";
+  const lines = blocked.map((lane) =>
+    tipGreenSmoke
+      ? `Nightly ${lane.label} not reusable (${lane.reason}): tip-green CI reuse continues with host smoke only.`
+      : `Nightly ${lane.label} not reusable (${lane.reason}): the full local Step 5 check will run ` +
+        `(up to ${RELEASE_CHECK_TIMEOUT_MINUTES} minutes).`,
   );
   if (blocked.length > 0) {
     lines.push(
       `Start the nightly workflow on ${context.baseBranch}: ${nightlyDispatchCommand(context.repo, context.baseBranch)}`,
     );
   }
-  const windows = windowsSuiteSkippedLine(nightly, context.platform);
+  const windows =
+    tipGreenSmoke && blocked.length > 0
+      ? windowsSuiteSkippedLineForSmokeOnly(nightly, context.platform)
+      : windowsSuiteSkippedLine(nightly, context.platform);
   if (windows !== null) lines.push(windows);
   return lines;
 }
@@ -339,16 +347,26 @@ export function runReleaseReadiness(
     checks.push({ name, status: ok ? "ok" : "fail", detail });
   };
 
-  const [clean, dirty] = checkGitClean(input.projectRoot, release);
-  add(
-    "Phase 1: clean working tree",
-    clean,
-    clean
-      ? "tree clean"
-      : dirty.startsWith("git status failed:")
-        ? `working-tree cleanliness could not be verified at readiness entry:\n${dirty}`
-        : `working tree is dirty at readiness entry:\n${dirty}`,
-  );
+  const cleanliness = classifyReleaseInputCleanliness(input.projectRoot, release);
+  if (cleanliness.kind === "clean") {
+    add("Phase 1: clean working tree", true, "tree clean");
+  } else if (cleanliness.kind === "session-scratch-only") {
+    add(
+      "Phase 1: clean working tree",
+      true,
+      `session-scratch-only (admitted without --allow-dirty):\n${cleanliness.detail}`,
+    );
+  } else {
+    // #7338: empty porcelain after probe failure must keep "git status failed:" for footer match
+    const unverifiable = cleanliness.porcelain.trim().length === 0;
+    add(
+      "Phase 1: clean working tree",
+      false,
+      unverifiable
+        ? `working-tree cleanliness could not be verified at readiness entry:\ngit status failed: ${cleanliness.reason}`
+        : `working tree is dirty (${cleanliness.reason}):\n${cleanliness.porcelain}`,
+    );
+  }
 
   const gh = ghOk(runGh, ["api", "rate_limit"]);
   add(
@@ -372,17 +390,27 @@ export function runReleaseReadiness(
   const dry = seams.dryRun(input);
   add("Phase 2 dry run", dry === 0, dry === 0 ? "dry run passed" : `dry run exited ${String(dry)}`);
 
-  // #7327 Prefer-A defense in depth: re-check porcelain after the dry-run seam.
-  const [postClean, postDirty] = checkGitClean(input.projectRoot, release);
-  add(
-    "Phase 2: clean working tree after dry run",
-    postClean,
-    postClean
-      ? "tree clean after dry run"
-      : postDirty.startsWith("git status failed:")
-        ? `working-tree cleanliness could not be verified after the dry-run:\n${postDirty}`
-        : `working tree is dirty after the dry-run:\n${postDirty}`,
-  );
+  // #7327 Prefer-A defense in depth + #7328 shared classifier after the dry-run seam.
+  const postCleanliness = classifyReleaseInputCleanliness(input.projectRoot, release);
+  if (postCleanliness.kind === "clean") {
+    add("Phase 2: clean working tree after dry run", true, "tree clean after dry run");
+  } else if (postCleanliness.kind === "session-scratch-only") {
+    add(
+      "Phase 2: clean working tree after dry run",
+      true,
+      `session-scratch-only after dry run (admitted without --allow-dirty):\n${postCleanliness.detail}`,
+    );
+  } else {
+    // #7338: empty porcelain after probe failure must keep "git status failed:" for footer match
+    const unverifiable = postCleanliness.porcelain.trim().length === 0;
+    add(
+      "Phase 2: clean working tree after dry run",
+      false,
+      unverifiable
+        ? `working-tree cleanliness could not be verified after the dry-run:\ngit status failed: ${postCleanliness.reason}`
+        : `working tree is dirty after the dry-run:\n${postCleanliness.reason}\n${postCleanliness.porcelain}`,
+    );
+  }
 
   const ci = ciReuseAtTip(input, runGh, release, seams.evaluateNightly);
   checks.push({
