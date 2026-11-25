@@ -9,14 +9,16 @@
  * then pre-dispatch begin again — never concurrent dual active.
  */
 
-import { existsSync, readFileSync, realpathSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, realpathSync, statSync } from "node:fs";
 import { isAbsolute, join, normalize, resolve } from "node:path";
 import {
   type AttemptTrigger,
   activeAttempts,
   beginAttempt,
+  completeAttempt,
   completeAttemptOnDisk,
   type DeliveryAttemptRecord,
+  type DeliveryUnitLedger,
   evaluatePreDispatch,
   hasActiveAttempt,
   listUnitLedgers,
@@ -29,7 +31,13 @@ import {
 } from "../delivery-attempt/index.js";
 import { listActiveLifecycleArtifacts, matchPinnedActiveScope } from "../hooks/scope.js";
 import { briefOwnsIssue } from "../intake/residual-identity.js";
-import { defaultScratchDir } from "../orchestration/subagent-monitor.js";
+import {
+  DEFAULT_THRESHOLD_MINUTES,
+  defaultScratchDir,
+  isHeartbeatScratchFilename,
+  parseHeartbeatFile,
+  recordOk,
+} from "../orchestration/subagent-monitor.js";
 import {
   defaultFirstSeenDir,
   defaultSteerDir,
@@ -45,11 +53,21 @@ import {
   worktreePathOrNull,
 } from "../session/git.js";
 import { isLinkedWorktreePath } from "../session/main-worktree.js";
+import { liveOccupant } from "../session/occupancy.js";
 import { EXIT_CONFIG_ERROR, EXIT_GATE_FAILED, EXIT_OK } from "./constants.js";
-import { ensureStoryBindingRecord, removeStoryBindingAttempts } from "./story-binding-record.js";
+import {
+  ensureStoryBindingRecord,
+  isStoryBindingStoreLockedDetail,
+  readStoryBindingRecord,
+  removeStoryBindingAttempts,
+  type StoryBindingLockWait,
+} from "./story-binding-record.js";
 import { ensureSubagentStatusDir, looksLikeWorktreeDir } from "./subagent-status-dir.js";
 import { runText } from "./subprocess.js";
 import { resolveWorkerAuthDestPath, storyIdForBrief } from "./worker-auth-assignment.js";
+
+/** DENY_DUPLICATE_ACTIVE operator hint family (#7274 P4). */
+export type DuplicateActiveHintKind = "binding-repair" | "pre-cancel" | "inspect";
 
 /** Default workflow id for drive-to:merge-ready implement leaves. */
 export const IMPLEMENT_LEAF_WORKFLOW_ID = "drive-to:merge-ready";
@@ -94,6 +112,8 @@ export interface SwarmPreDispatchInput {
     dispatchStartedAt: string | null;
     expectedWorkerId: string | null;
   }) => PreCancelVerdict;
+  /** Begin-facing story-binding store-lock wait (#7274); tests inject sleep/budget. */
+  readonly storyBindingLockWait?: StoryBindingLockWait;
 }
 
 export interface SwarmPreDispatchResult {
@@ -112,6 +132,8 @@ export interface SwarmPreDispatchResult {
    * or complete had no attempt id to record or remove.
    */
   readonly storyBinding?: string;
+  /** Set on DENY_DUPLICATE_ACTIVE so the report hint matches repair vs cancel (#7274). */
+  readonly duplicateActiveHint?: DuplicateActiveHintKind;
 }
 
 export function resolveSourceRevision(projectRoot: string, explicit?: string): string {
@@ -253,6 +275,8 @@ function baseResult(
     reason: string;
     attempt?: DeliveryAttemptRecord | null;
     activeAttemptIds?: readonly string[];
+    storyBinding?: string;
+    duplicateActiveHint?: DuplicateActiveHintKind;
   },
 ): SwarmPreDispatchResult {
   const { scopeId, targetId, workflowId } = unitFields(input);
@@ -266,7 +290,182 @@ function baseResult(
     workflowId,
     attempt: partial.attempt ?? null,
     activeAttemptIds: partial.activeAttemptIds ?? [],
+    ...(partial.storyBinding !== undefined ? { storyBinding: partial.storyBinding } : {}),
+    ...(partial.duplicateActiveHint !== undefined
+      ? { duplicateActiveHint: partial.duplicateActiveHint }
+      : {}),
   };
+}
+
+function attemptHasAttachedWorker(attempt: DeliveryAttemptRecord): boolean {
+  return typeof attempt.workerId === "string" && attempt.workerId.trim().length > 0;
+}
+
+function attemptHasExternalRunId(attempt: DeliveryAttemptRecord): boolean {
+  return typeof attempt.externalRunId === "string" && attempt.externalRunId.trim().length > 0;
+}
+
+/**
+ * Live occupancy on the begin target worktree (#7274 / Prefer-A P4).
+ * A missing attempt.workerId is not enough proof the worker is absent — begin
+ * often omits that optional flag while a leaf still holds the dest lease.
+ */
+function targetLiveOccupantSessionId(
+  input: Pick<SwarmPreDispatchInput, "projectRoot" | "targetId" | "now">,
+): string | null {
+  const target = resolveStoryBindingTarget(input.projectRoot, input.targetId);
+  if (!target.ok) return null;
+  const now = input.now !== undefined ? new Date(input.now) : new Date();
+  if (Number.isNaN(now.getTime())) return null;
+  const live = liveOccupant(target.worktreePath, now);
+  const id = live?.sessionId?.trim() ?? "";
+  return id.length > 0 ? id : null;
+}
+
+/**
+ * Fresh non-terminal heartbeat under the dest scratch dir (#7274 Greptile P1).
+ * Occupancy can be missing while a leaf still pulses subagent-status.
+ */
+function targetHasLiveHeartbeat(
+  input: Pick<SwarmPreDispatchInput, "projectRoot" | "targetId" | "now">,
+): boolean {
+  const target = resolveStoryBindingTarget(input.projectRoot, input.targetId);
+  if (!target.ok) return false;
+  const scratch = defaultScratchDir(target.worktreePath);
+  if (!existsSync(scratch)) return false;
+  const now = input.now !== undefined ? new Date(input.now) : new Date();
+  if (Number.isNaN(now.getTime())) return false;
+  const thresholdSeconds = DEFAULT_THRESHOLD_MINUTES * 60;
+  let names: string[];
+  try {
+    names = readdirSync(scratch).filter((n) => isHeartbeatScratchFilename(n));
+  } catch {
+    return false;
+  }
+  for (const name of names) {
+    const rec = parseHeartbeatFile(join(scratch, name), { now, thresholdSeconds });
+    if (recordOk(rec) && !rec.is_terminal) return true;
+  }
+  return false;
+}
+
+/**
+ * Orphan repair-admit only for exactly one active attempt that never received a
+ * worker/run identity, with no live dest occupancy and no live heartbeat
+ * (#7274 Greptile P1). Null workerId alone is not proof — begin often omits it
+ * while a leaf is live.
+ */
+function orphanRepairEligible(
+  actives: readonly DeliveryAttemptRecord[],
+  input: Pick<SwarmPreDispatchInput, "projectRoot" | "targetId" | "now">,
+): boolean {
+  if (actives.length !== 1) return false;
+  const only = actives[0];
+  if (only === undefined) return false;
+  if (attemptHasAttachedWorker(only) || attemptHasExternalRunId(only)) return false;
+  if (targetLiveOccupantSessionId(input) !== null) return false;
+  return !targetHasLiveHeartbeat(input);
+}
+
+/**
+ * Persist begin-supplied worker/run ids onto a repair-admitted active attempt
+ * so later complete/cancel can find it (#7274 Greptile P1).
+ */
+function stampRunningAttemptIdentity(
+  ledger: DeliveryUnitLedger,
+  attemptId: string,
+  input: {
+    readonly workerId?: string | null;
+    readonly externalRunId?: string | null;
+    readonly now?: string;
+  },
+):
+  | {
+      readonly ok: true;
+      readonly ledger: DeliveryUnitLedger;
+      readonly attempt: DeliveryAttemptRecord;
+    }
+  | { readonly ok: false; readonly detail: string } {
+  const idx = ledger.attempts.findIndex((a) => a.attemptId === attemptId);
+  const prev = idx >= 0 ? ledger.attempts[idx] : undefined;
+  if (prev === undefined || (prev.status !== "queued" && prev.status !== "running")) {
+    return { ok: false, detail: `stampRunningAttemptIdentity: no active attempt ${attemptId}` };
+  }
+  const nextWorker =
+    typeof input.workerId === "string" && input.workerId.trim().length > 0
+      ? input.workerId.trim()
+      : prev.workerId;
+  const nextRun =
+    typeof input.externalRunId === "string" && input.externalRunId.trim().length > 0
+      ? input.externalRunId.trim()
+      : prev.externalRunId;
+  if (nextWorker === prev.workerId && nextRun === prev.externalRunId) {
+    return { ok: true, ledger, attempt: prev };
+  }
+  const updated: DeliveryAttemptRecord = {
+    ...prev,
+    workerId: nextWorker,
+    externalRunId: nextRun,
+  };
+  const attempts = ledger.attempts.slice();
+  attempts[idx] = updated;
+  return {
+    ok: true,
+    ledger: {
+      ...ledger,
+      attempts,
+      updatedAt: input.now ?? new Date().toISOString(),
+    },
+    attempt: updated,
+  };
+}
+
+/** Undo beginAttempt override spend when the attempt is rolled back before spawn. */
+function restoreConsumedOverrideQuota(ledger: DeliveryUnitLedger): DeliveryUnitLedger {
+  const override = ledger.override;
+  if (override === null) return ledger;
+  return {
+    ...ledger,
+    override: {
+      ...override,
+      remainingAttempts: override.remainingAttempts + 1,
+    },
+  };
+}
+
+/**
+ * True when the target resolves to a linked worktree whose record is missing
+ * or omits any of the attempt ids. Unresolvable targets are not repair-eligible
+ * (#7274): plain branch/path units without a binding store stay on DENY.
+ */
+function storyBindingMissingForAttempts(
+  input: Pick<SwarmPreDispatchInput, "projectRoot" | "targetId">,
+  attemptIds: readonly string[],
+): boolean {
+  if (attemptIds.length === 0) return false;
+  const target = resolveStoryBindingTarget(input.projectRoot, input.targetId);
+  if (!target.ok) return false;
+  const read = readStoryBindingRecord(target.worktreePath, target.commonDir);
+  if (!read.ok || read.record === null) return true;
+  const listed = new Set(read.record.attempt_ids);
+  return attemptIds.some((id) => !listed.has(id));
+}
+
+function classifyDuplicateActiveHint(
+  actives: readonly DeliveryAttemptRecord[],
+  bindingMissing: boolean,
+  liveOccupantId: string | null,
+  liveHeartbeat: boolean,
+): DuplicateActiveHintKind {
+  if (
+    actives.some((a) => attemptHasAttachedWorker(a) || attemptHasExternalRunId(a)) ||
+    liveOccupantId !== null ||
+    liveHeartbeat
+  ) {
+    return "pre-cancel";
+  }
+  if (bindingMissing) return "binding-repair";
+  return "inspect";
 }
 
 function listActiveIds(
@@ -497,11 +696,15 @@ function errorText(err: unknown): string {
 
 /**
  * Write or update the target worktree's story-binding record (#6379 items 1 to
- * 3). Runs no `swarm:launch` readiness check and never changes begin's exit
- * code; a failed resolution writes nothing and returns one line naming it.
+ * 3). Runs no `swarm:launch` readiness check. Begin passes `lockWait` (#7274);
+ * callers that must not wait omit it. A failed resolution writes nothing and
+ * returns one line naming it.
  */
 export function ensureBeginStoryBinding(
-  input: Pick<SwarmPreDispatchInput, "projectRoot" | "scopeId" | "targetId">,
+  input: Pick<
+    SwarmPreDispatchInput,
+    "projectRoot" | "scopeId" | "targetId" | "storyBindingLockWait"
+  >,
   attemptIds: readonly string[],
 ): string {
   try {
@@ -520,6 +723,7 @@ export function ensureBeginStoryBinding(
       // ended after begin read the ledger is not written back; ids only
       // another checkout's ledger knows are kept.
       endedAttemptIds: (ids) => endedAttemptIds(input.projectRoot, ids),
+      lockWait: input.storyBindingLockWait ?? {},
     });
     if (!wrote.ok) return `story-binding: no record written (store): ${wrote.detail}`;
     return (
@@ -578,22 +782,12 @@ export function removeEndedStoryBindings(
   }
 }
 
-/** Attempt ids a begin result binds: the new attempt, or the unit's running ones on a duplicate deny. */
-function beginBindingAttemptIds(result: SwarmPreDispatchResult): readonly string[] {
-  if (result.exitCode === EXIT_OK && result.attempt !== null) return [result.attempt.attemptId];
-  if (result.decision === "DENY_DUPLICATE_ACTIVE") return result.activeAttemptIds;
-  return [];
-}
-
+/**
+ * Begin under the unit lock through binding write (#6379 / #7274): wait on the
+ * store lock, roll back a just-created attempt if wait fails, and repair-admit
+ * an orphan running attempt that still lacks a binding and has no worker.
+ */
 function runBegin(input: SwarmPreDispatchInput): SwarmPreDispatchResult {
-  // The record is written after the ledger is saved (#6379 item 3).
-  const result = runBeginLedger(input);
-  const ids = beginBindingAttemptIds(result);
-  if (ids.length === 0) return result;
-  return { ...result, storyBinding: ensureBeginStoryBinding(input, ids) };
-}
-
-function runBeginLedger(input: SwarmPreDispatchInput): SwarmPreDispatchResult {
   const { scopeId, targetId, workflowId } = unitFields(input);
   const sourceRevision = resolveSourceRevision(input.projectRoot, input.sourceRevision);
   const trigger: AttemptTrigger = input.trigger ?? "automatic";
@@ -608,24 +802,25 @@ function runBeginLedger(input: SwarmPreDispatchInput): SwarmPreDispatchResult {
     ensureSubagentStatusDir(armTarget);
   }
 
-  // Exclusive lock → reload → evaluate → begin+save (same decision under lock;
-  // no stale preview decision on the success path).
   try {
     return withUnitLock(input.projectRoot, scopeId, targetId, workflowId, () => {
       // Symlink alias peer: different lexical keys, same physical worktree.
       const peerIds = aliasPeerActiveIds(input.projectRoot, scopeId, targetId, workflowId);
       if (peerIds.length > 0) {
-        // The peer's running ids, so a retried begin can repair the record (#6379).
+        const activeIds = [
+          ...new Set([
+            ...listActiveIds(input.projectRoot, scopeId, targetId, workflowId),
+            ...peerIds,
+          ]),
+        ];
+        const binding = ensureBeginStoryBinding(input, activeIds);
         return baseResult(input, "begin", {
           exitCode: EXIT_GATE_FAILED,
           decision: "DENY_DUPLICATE_ACTIVE",
           reason: "active attempt exists on alias/realpath peer of target",
-          activeAttemptIds: [
-            ...new Set([
-              ...listActiveIds(input.projectRoot, scopeId, targetId, workflowId),
-              ...peerIds,
-            ]),
-          ],
+          activeAttemptIds: activeIds,
+          storyBinding: binding,
+          duplicateActiveHint: "inspect",
         });
       }
       const current = loadOrCreateUnitLedger(input.projectRoot, {
@@ -634,6 +829,103 @@ function runBeginLedger(input: SwarmPreDispatchInput): SwarmPreDispatchResult {
         workflowId,
         now: input.now,
       });
+      const actives = activeAttempts(current);
+
+      // P3: orphan repair-admit — missing binding + exactly one active + no
+      // worker/run id + no live dest occupancy/heartbeat (null workerId alone
+      // is not proof).
+      if (actives.length > 0) {
+        const bindingMissing = storyBindingMissingForAttempts(
+          input,
+          actives.map((a) => a.attemptId),
+        );
+        if (bindingMissing && orphanRepairEligible(actives, input)) {
+          const ids = actives.map((a) => a.attemptId);
+          const binding = ensureBeginStoryBinding(input, ids);
+          if (isStoryBindingStoreLockedDetail(binding)) {
+            return baseResult(input, "begin", {
+              exitCode: EXIT_GATE_FAILED,
+              decision: "DENY_DUPLICATE_ACTIVE",
+              reason: "active attempt exists for unit; binding repair blocked by store lock",
+              attempt: actives[0] ?? null,
+              activeAttemptIds: ids,
+              storyBinding: binding,
+              duplicateActiveHint: "binding-repair",
+            });
+          }
+          if (binding.startsWith("story-binding: no record written")) {
+            return baseResult(input, "begin", {
+              exitCode: EXIT_GATE_FAILED,
+              decision: "DENY_DUPLICATE_ACTIVE",
+              reason: "active attempt exists for unit; binding repair failed",
+              attempt: actives[0] ?? null,
+              activeAttemptIds: ids,
+              storyBinding: binding,
+              duplicateActiveHint: "binding-repair",
+            });
+          }
+          const head = actives[0] ?? null;
+          if (head === null) {
+            return baseResult(input, "begin", {
+              exitCode: EXIT_GATE_FAILED,
+              decision: "DENY_DUPLICATE_ACTIVE",
+              reason: "active attempt exists for unit; binding repair lost the attempt",
+              attempt: null,
+              activeAttemptIds: ids,
+              storyBinding: binding,
+              duplicateActiveHint: "binding-repair",
+            });
+          }
+          // Recheck under the unit lock before admitting (Prefer-A P3 serialize).
+          const refreshed = loadOrCreateUnitLedger(input.projectRoot, {
+            scopeId,
+            targetId,
+            workflowId,
+            now: input.now,
+          });
+          const still = activeAttempts(refreshed);
+          if (
+            !orphanRepairEligible(still, input) ||
+            !still.some((a) => a.attemptId === head.attemptId)
+          ) {
+            return baseResult(input, "begin", {
+              exitCode: EXIT_GATE_FAILED,
+              decision: "DENY_DUPLICATE_ACTIVE",
+              reason: "active attempt exists for unit; repair-admit raced a live worker",
+              attempt: still[0] ?? head,
+              activeAttemptIds: still.map((a) => a.attemptId),
+              storyBinding: binding,
+              duplicateActiveHint: "pre-cancel",
+            });
+          }
+          const stamped = stampRunningAttemptIdentity(refreshed, head.attemptId, {
+            workerId: input.workerId,
+            externalRunId: input.externalRunId,
+            now: input.now,
+          });
+          if (!stamped.ok) {
+            return baseResult(input, "begin", {
+              exitCode: EXIT_GATE_FAILED,
+              decision: "DENY_DUPLICATE_ACTIVE",
+              reason: "active attempt exists for unit; repair-admit lost the attempt before stamp",
+              attempt: still[0] ?? head,
+              activeAttemptIds: still.map((a) => a.attemptId),
+              storyBinding: binding,
+              duplicateActiveHint: "binding-repair",
+            });
+          }
+          saveUnitLedger(input.projectRoot, stamped.ledger);
+          return baseResult(input, "begin", {
+            exitCode: EXIT_OK,
+            decision: "ALLOW_RESUME",
+            reason: `repair-admit; attempt ${stamped.attempt.attemptId} binding restored`,
+            attempt: stamped.attempt,
+            activeAttemptIds: ids,
+            storyBinding: binding,
+          });
+        }
+      }
+
       const decision = evaluatePreDispatch(current, {
         scopeId,
         targetId,
@@ -652,11 +944,29 @@ function runBeginLedger(input: SwarmPreDispatchInput): SwarmPreDispatchResult {
           );
           saveUnitLedger(input.projectRoot, blocked);
         }
+        const activeRows = activeAttempts(current);
+        const activeIds = activeRows.map((a) => a.attemptId);
+        const bindingMissing = storyBindingMissingForAttempts(input, activeIds);
+        const hint =
+          decision.decision === "DENY_DUPLICATE_ACTIVE"
+            ? classifyDuplicateActiveHint(
+                activeRows,
+                bindingMissing,
+                targetLiveOccupantSessionId(input),
+                targetHasLiveHeartbeat(input),
+              )
+            : undefined;
+        const binding =
+          decision.decision === "DENY_DUPLICATE_ACTIVE" && activeIds.length > 0
+            ? ensureBeginStoryBinding(input, activeIds)
+            : undefined;
         return baseResult(input, "begin", {
           exitCode: EXIT_GATE_FAILED,
           decision: decision.decision,
           reason: decision.reason,
-          activeAttemptIds: activeAttempts(current).map((a) => a.attemptId),
+          activeAttemptIds: activeIds,
+          ...(binding !== undefined ? { storyBinding: binding } : {}),
+          ...(hint !== undefined ? { duplicateActiveHint: hint } : {}),
         });
       }
       const { ledger, attempt } = beginAttempt(current, {
@@ -669,12 +979,44 @@ function runBeginLedger(input: SwarmPreDispatchInput): SwarmPreDispatchResult {
         consumeOverride: decision.decision === "ALLOW_OVERRIDE",
       });
       saveUnitLedger(input.projectRoot, ledger);
+      // P1/P2: bind under the same unit lock. Roll back on store/error write failure so
+      // begin never exits spawn-ready unbound. Scope/target miss stays advisory-only
+      // (unit may not be a linked worktree).
+      const binding = ensureBeginStoryBinding(input, [attempt.attemptId]);
+      const bindingFailed =
+        isStoryBindingStoreLockedDetail(binding) ||
+        binding.includes("no record written (store)") ||
+        binding.includes("no record written (error)");
+      if (bindingFailed) {
+        let rolled = completeAttempt(ledger, {
+          attemptId: attempt.attemptId,
+          status: "cancelled",
+          now: input.now,
+        });
+        // Restore override quota: no worker was dispatched (#7274 Greptile P1).
+        if (decision.decision === "ALLOW_OVERRIDE") {
+          rolled = restoreConsumedOverrideQuota(rolled);
+        }
+        saveUnitLedger(input.projectRoot, rolled);
+        const why = isStoryBindingStoreLockedDetail(binding)
+          ? "store lock wait exhausted"
+          : "binding write failed";
+        return baseResult(input, "begin", {
+          exitCode: EXIT_GATE_FAILED,
+          decision: null,
+          reason: `story-binding ${why}; attempt ${attempt.attemptId} rolled back`,
+          attempt: rolled.attempts.find((a) => a.attemptId === attempt.attemptId) ?? null,
+          activeAttemptIds: activeAttempts(rolled).map((a) => a.attemptId),
+          storyBinding: binding,
+        });
+      }
       return baseResult(input, "begin", {
         exitCode: EXIT_OK,
         decision: decision.decision,
         reason: `allowed; attempt ${attempt.attemptId} begun`,
         attempt,
         activeAttemptIds: [attempt.attemptId],
+        storyBinding: binding,
       });
     });
   } catch (err) {
@@ -928,13 +1270,28 @@ export function formatPreDispatchReport(result: SwarmPreDispatchResult): string 
     lines.push(`  ${result.storyBinding}`);
   }
   if (result.exitCode === EXIT_GATE_FAILED && result.decision === "DENY_DUPLICATE_ACTIVE") {
-    lines.push(
-      "  hint: do not spawn; a killed worker stays running until cancelled.",
-      "  Takeover: task subagent:pre-cancel -- --agent <id> --canceller-id <id> --target-id <target>",
-      "  then: task swarm:pre-dispatch -- --scope-id <id> --target-id <target> --action cancel --agent <id>",
-      "  then the same command without --action (begin). REDISPATCH_OK does not lift DENY_DUPLICATE_ACTIVE.",
-      "  ⊗ bare ledger cancel while pre-cancel is red (#5278).",
-    );
+    const hint = result.duplicateActiveHint ?? "pre-cancel";
+    if (hint === "binding-repair") {
+      lines.push(
+        "  hint: do not spawn; binding is missing for the active attempt and no worker id is known.",
+        "  Binding-repair: re-run the same swarm:pre-dispatch begin (scope+target) to repair-admit,",
+        "  or cancel only after confirming a live worker. REDISPATCH_OK does not lift DENY_DUPLICATE_ACTIVE.",
+      );
+    } else if (hint === "inspect") {
+      lines.push(
+        "  hint: do not spawn; an active attempt is already bound for this unit.",
+        "  Inspect: read `.deft/delivery-attempts/` for this scope+target (active attempt ids above);",
+        "  resolve worker/subagent identity, then pre-cancel+cancel only when known. REDISPATCH_OK does not lift DENY_DUPLICATE_ACTIVE.",
+      );
+    } else {
+      lines.push(
+        "  hint: do not spawn; a killed worker stays running until cancelled.",
+        "  Takeover: task subagent:pre-cancel -- --agent <id> --canceller-id <id> --target-id <target>",
+        "  then: task swarm:pre-dispatch -- --scope-id <id> --target-id <target> --action cancel --agent <id>",
+        "  then the same command without --action (begin). REDISPATCH_OK does not lift DENY_DUPLICATE_ACTIVE.",
+        "  ⊗ bare ledger cancel while pre-cancel is red (#5278).",
+      );
+    }
   }
   if (result.exitCode === EXIT_GATE_FAILED && result.reason.startsWith("pre-cancel refused:")) {
     lines.push(

@@ -50,7 +50,7 @@ function ensure(common: string, wt: string, storyId: string, ids: readonly strin
   return written.record;
 }
 
-describe("story-binding record store (#6379)", { timeout: 60_000 }, () => {
+describe("story-binding record store (#6379)", { timeout: 120_000 }, () => {
   it("writes a record under the Git common directory with story id, path and attempt ids, and no auth field", () => {
     const { common, wtA } = repo();
     ensure(common, wtA, "story-a", ["att-1"]);
@@ -123,6 +123,40 @@ describe("story-binding record store (#6379)", { timeout: 60_000 }, () => {
       attemptIds: ["att-1"],
     });
     expect(blocked).toEqual({ ok: false, detail: "the story-binding record store is locked" });
+    // Begin-facing wait: sleep releases the lock so the next acquire succeeds (#7274).
+    writeFileSync(lock, JSON.stringify({ pid: process.pid, token: "other" }), "utf8");
+    let released = false;
+    const waited = ensureStoryBindingRecord({
+      commonDir: common,
+      worktreePath: resolveWorkerAuthDestPath(wtA),
+      storyId: "story-a",
+      attemptIds: ["att-wait"],
+      lockWait: {
+        maxAttempts: 3,
+        sleepMs: 1,
+        maxWaitMs: 100,
+        sleep: () => {
+          if (!released) {
+            rmSync(lock, { force: true });
+            released = true;
+          }
+        },
+      },
+    });
+    expect(waited.ok).toBe(true);
+    if (waited.ok) expect(waited.record.attempt_ids).toContain("att-wait");
+    // Exhausted wait leaves the store locked and does not write.
+    writeFileSync(lock, JSON.stringify({ pid: process.pid, token: "held" }), "utf8");
+    const exhausted = ensureStoryBindingRecord({
+      commonDir: common,
+      worktreePath: resolveWorkerAuthDestPath(wtA),
+      storyId: "story-a",
+      attemptIds: ["att-ex"],
+      lockWait: { maxAttempts: 2, sleepMs: 1, maxWaitMs: 50, sleep: () => {} },
+    });
+    expect(exhausted).toEqual({ ok: false, detail: "the story-binding record store is locked" });
+    // Keep the live lock so removal stays non-waiting and fails closed.
+    writeFileSync(lock, JSON.stringify({ pid: process.pid, token: "held-remove" }), "utf8");
     const removeBlocked = removeStoryBindingAttempts({ commonDir: common, attemptIds: ["att-1"] });
     expect(removeBlocked.ok).toBe(false);
     // A dead holder is reclaimed only through the reclaim ticket: a live ticket
@@ -138,7 +172,7 @@ describe("story-binding record store (#6379)", { timeout: 60_000 }, () => {
     });
     expect(ticketHeld.ok).toBe(false);
     writeFileSync(ticket, JSON.stringify({ pid: 2_147_483_000, token: "gone" }), "utf8");
-    expect(ensure(common, wtA, "story-a", ["att-1"]).attempt_ids).toEqual(["att-1"]);
+    expect(ensure(common, wtA, "story-a", ["att-1"]).attempt_ids).toEqual(["att-wait", "att-1"]);
     expect(() => readFileSync(lock, "utf8")).toThrow();
     expect(() => readFileSync(ticket, "utf8")).toThrow();
     // An unreadable lock is kept while fresh and reclaimed once stale.

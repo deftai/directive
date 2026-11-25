@@ -4,6 +4,14 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
+  completeAttempt,
+  loadUnitLedger,
+  markBlocked,
+  recordOperatorOverride,
+  saveUnitLedger,
+} from "../delivery-attempt/index.js";
+import { applyWorktreeOccupancy } from "../session/occupancy.js";
+import {
   ensureBeginStoryBinding,
   formatPreDispatchReport,
   removeEndedStoryBindings,
@@ -128,7 +136,7 @@ describe("swarm:pre-dispatch begin writes the story-binding record (#6379)", {
     expect(storyOf(wtA)).toBeNull();
   });
 
-  it("writes a missing record again when begin is refused for a running attempt", () => {
+  it("repair-admits an orphan active attempt with missing binding and no worker (#7274)", () => {
     const { primary, wtA } = fixture();
     const first = begin(primary, "plan-a", wtA);
     expect(first.exitCode).toBe(0);
@@ -137,10 +145,245 @@ describe("swarm:pre-dispatch begin writes the story-binding record (#6379)", {
     rmSync(join(common, STORY_BINDING_STORE_DIR, name));
     expect(storyOf(wtA)).toBeNull();
     const again = begin(primary, "plan-a", wtA);
-    expect(again.exitCode).toBe(1);
-    expect(again.decision).toBe("DENY_DUPLICATE_ACTIVE");
+    expect(again.exitCode).toBe(0);
+    expect(again.decision).toBe("ALLOW_RESUME");
+    expect(again.reason).toMatch(/repair-admit/);
     expect(storyOf(wtA)).toBe("plan-a");
     expect(idsOf(wtA)).toEqual([first.attempt?.attemptId]);
+  });
+
+  it("stamps begin-supplied identities onto a repair-admitted attempt (#7274)", () => {
+    const { primary, wtA } = fixture();
+    const first = begin(primary, "plan-a", wtA);
+    expect(first.exitCode).toBe(0);
+    const common = join(primary, ".git");
+    const name = storyBindingRecordName(resolveWorkerAuthDestPath(wtA));
+    rmSync(join(common, STORY_BINDING_STORE_DIR, name));
+    const again = swarmPreDispatch({
+      projectRoot: primary,
+      scopeId: "plan-a",
+      targetId: wtA,
+      sourceRevision: "rev",
+      workerId: "leaf-2",
+      externalRunId: "run-2",
+    });
+    expect(again.exitCode).toBe(0);
+    expect(again.decision).toBe("ALLOW_RESUME");
+    expect(again.attempt?.attemptId).toBe(first.attempt?.attemptId);
+    expect(again.attempt?.workerId).toBe("leaf-2");
+    expect(again.attempt?.externalRunId).toBe("run-2");
+    const ledger = loadUnitLedger(primary, again.scopeId, again.targetId, again.workflowId);
+    const row = ledger?.attempts.find((a) => a.attemptId === first.attempt?.attemptId);
+    expect(row?.workerId).toBe("leaf-2");
+    expect(row?.externalRunId).toBe("run-2");
+  });
+
+  it("refuses repair-admit when dest occupancy is live despite null workerId (#7274)", () => {
+    const { primary, wtA } = fixture();
+    const first = begin(primary, "plan-a", wtA);
+    expect(first.exitCode).toBe(0);
+    expect(first.attempt?.workerId).toBeNull();
+    const common = join(primary, ".git");
+    const name = storyBindingRecordName(resolveWorkerAuthDestPath(wtA));
+    rmSync(join(common, STORY_BINDING_STORE_DIR, name));
+    expect(applyWorktreeOccupancy(wtA, { sessionId: "live-leaf", intent: "swarm" }).code).toBe(0);
+    const again = begin(primary, "plan-a", wtA);
+    expect(again.exitCode).toBe(1);
+    expect(again.decision).toBe("DENY_DUPLICATE_ACTIVE");
+    expect(again.duplicateActiveHint).toBe("pre-cancel");
+    expect(formatPreDispatchReport(again)).toMatch(/Takeover:/);
+  });
+
+  it("refuses repair-admit when the attempt already has an externalRunId (#7274)", () => {
+    const { primary, wtA } = fixture();
+    const first = swarmPreDispatch({
+      projectRoot: primary,
+      scopeId: "plan-a",
+      targetId: wtA,
+      sourceRevision: "rev",
+      externalRunId: "run-live",
+    });
+    expect(first.exitCode).toBe(0);
+    expect(first.attempt?.workerId).toBeNull();
+    expect(first.attempt?.externalRunId).toBe("run-live");
+    const common = join(primary, ".git");
+    const name = storyBindingRecordName(resolveWorkerAuthDestPath(wtA));
+    rmSync(join(common, STORY_BINDING_STORE_DIR, name));
+    const again = begin(primary, "plan-a", wtA);
+    expect(again.exitCode).toBe(1);
+    expect(again.decision).toBe("DENY_DUPLICATE_ACTIVE");
+    expect(again.duplicateActiveHint).toBe("pre-cancel");
+  });
+
+  it("refuses repair-admit when dest has a live heartbeat despite null workerId (#7274)", () => {
+    const { primary, wtA } = fixture();
+    const first = begin(primary, "plan-a", wtA);
+    expect(first.exitCode).toBe(0);
+    expect(first.attempt?.workerId).toBeNull();
+    const common = join(primary, ".git");
+    const name = storyBindingRecordName(resolveWorkerAuthDestPath(wtA));
+    rmSync(join(common, STORY_BINDING_STORE_DIR, name));
+    const scratch = join(wtA, ".deft-scratch", "subagent-status");
+    mkdirSync(scratch, { recursive: true });
+    const now = new Date().toISOString();
+    writeFileSync(
+      join(scratch, "live-leaf.json"),
+      JSON.stringify({
+        agent_id: "live-leaf",
+        parent_id: "parent",
+        last_heartbeat_at: now,
+        last_message: "implementing",
+        phase: "implementing",
+      }),
+      "utf8",
+    );
+    const again = begin(primary, "plan-a", wtA);
+    expect(again.exitCode).toBe(1);
+    expect(again.decision).toBe("DENY_DUPLICATE_ACTIVE");
+    expect(again.duplicateActiveHint).toBe("pre-cancel");
+  });
+
+  it("inspect hint names the delivery-attempts ledger path (#7274)", () => {
+    const { primary, wtA } = fixture();
+    expect(begin(primary, "plan-a", wtA).exitCode).toBe(0);
+    const again = begin(primary, "plan-a", wtA);
+    expect(again.exitCode).toBe(1);
+    expect(again.decision).toBe("DENY_DUPLICATE_ACTIVE");
+    expect(again.duplicateActiveHint).toBe("inspect");
+    expect(formatPreDispatchReport(again)).toMatch(/\.deft\/delivery-attempts\//);
+  });
+
+  it("restores override quota when lock-wait rollback cancels before spawn (#7274)", () => {
+    const { primary, wtA } = fixture();
+    const first = begin(primary, "plan-a", wtA);
+    expect(first.exitCode).toBe(0);
+    let ledger = loadUnitLedger(primary, first.scopeId, first.targetId, first.workflowId);
+    expect(ledger).not.toBeNull();
+    ledger = completeAttempt(ledger!, {
+      attemptId: first.attempt!.attemptId,
+      status: "failed",
+      failure: {
+        stage: "validate",
+        code: "CONFIG_INVALID",
+        fingerprint: "fp-lock-wait-override",
+        retryability: "deterministic",
+        resourceClass: "config",
+      },
+    });
+    ledger = markBlocked(ledger, "BLOCK_NO_MATERIAL_PROGRESS", {
+      kind: "material-delta",
+      description: "need fix",
+      satisfied: false,
+    });
+    ledger = recordOperatorOverride(ledger, {
+      actor: "scott",
+      rationale: "one-shot override for lock-wait rollback",
+      allowedAttempts: 1,
+    });
+    saveUnitLedger(primary, ledger);
+    expect(ledger.override?.remainingAttempts).toBe(1);
+    const store = join(primary, ".git", STORY_BINDING_STORE_DIR);
+    mkdirSync(store, { recursive: true });
+    writeFileSync(
+      join(store, STORY_BINDING_LOCK_NAME),
+      JSON.stringify({ pid: process.pid, token: "held" }),
+      "utf8",
+    );
+    const locked = swarmPreDispatch({
+      projectRoot: primary,
+      scopeId: "plan-a",
+      targetId: wtA,
+      sourceRevision: "rev-2",
+      storyBindingLockWait: { maxAttempts: 2, sleepMs: 1, maxWaitMs: 50, sleep: () => {} },
+    });
+    expect(locked.exitCode).toBe(1);
+    expect(locked.decision).toBeNull();
+    expect(locked.reason).toMatch(/rolled back/);
+    const after = loadUnitLedger(primary, first.scopeId, first.targetId, first.workflowId);
+    expect(after?.override?.remainingAttempts).toBe(1);
+    rmSync(join(store, STORY_BINDING_LOCK_NAME));
+    const retry = begin(primary, "plan-a", wtA);
+    expect(retry.exitCode).toBe(0);
+    expect(retry.decision).toBe("ALLOW_OVERRIDE");
+    const spent = loadUnitLedger(primary, first.scopeId, first.targetId, first.workflowId);
+    expect(spent?.override?.remainingAttempts).toBe(0);
+  });
+
+  it("keeps DENY_DUPLICATE_ACTIVE with pre-cancel hint when a worker is attached (#7274)", () => {
+    const { primary, wtA } = fixture();
+    const first = swarmPreDispatch({
+      projectRoot: primary,
+      scopeId: "plan-a",
+      targetId: wtA,
+      sourceRevision: "rev",
+      workerId: "leaf-1",
+    });
+    expect(first.exitCode).toBe(0);
+    const common = join(primary, ".git");
+    const name = storyBindingRecordName(resolveWorkerAuthDestPath(wtA));
+    rmSync(join(common, STORY_BINDING_STORE_DIR, name));
+    const again = begin(primary, "plan-a", wtA);
+    expect(again.exitCode).toBe(1);
+    expect(again.decision).toBe("DENY_DUPLICATE_ACTIVE");
+    expect(again.duplicateActiveHint).toBe("pre-cancel");
+    expect(formatPreDispatchReport(again)).toMatch(/Takeover:/);
+    expect(storyOf(wtA)).toBe("plan-a");
+    expect(idsOf(wtA)).toEqual([first.attempt?.attemptId]);
+  });
+
+  it("refuses repair-admit when the store lock wait is exhausted (#7274)", () => {
+    const { primary, wtA } = fixture();
+    expect(begin(primary, "plan-a", wtA).exitCode).toBe(0);
+    const common = join(primary, ".git");
+    const name = storyBindingRecordName(resolveWorkerAuthDestPath(wtA));
+    rmSync(join(common, STORY_BINDING_STORE_DIR, name));
+    const store = join(common, STORY_BINDING_STORE_DIR);
+    writeFileSync(
+      join(store, STORY_BINDING_LOCK_NAME),
+      JSON.stringify({ pid: process.pid, token: "held" }),
+      "utf8",
+    );
+    const again = swarmPreDispatch({
+      projectRoot: primary,
+      scopeId: "plan-a",
+      targetId: wtA,
+      sourceRevision: "rev",
+      storyBindingLockWait: { maxAttempts: 2, sleepMs: 1, maxWaitMs: 50, sleep: () => {} },
+    });
+    expect(again.exitCode).toBe(1);
+    expect(again.decision).toBe("DENY_DUPLICATE_ACTIVE");
+    expect(again.duplicateActiveHint).toBe("binding-repair");
+    expect(again.reason).toMatch(/binding repair blocked by store lock/);
+    expect(formatPreDispatchReport(again)).toMatch(/Binding-repair:/);
+    expect(storyOf(wtA)).toBeNull();
+  });
+
+  it("rolls back a just-created attempt when begin store-lock wait is exhausted (#7274)", () => {
+    const { primary, wtA } = fixture();
+    const store = join(primary, ".git", STORY_BINDING_STORE_DIR);
+    mkdirSync(store, { recursive: true });
+    writeFileSync(
+      join(store, STORY_BINDING_LOCK_NAME),
+      JSON.stringify({ pid: process.pid, token: "held" }),
+      "utf8",
+    );
+    const locked = swarmPreDispatch({
+      projectRoot: primary,
+      scopeId: "plan-a",
+      targetId: wtA,
+      sourceRevision: "rev",
+      storyBindingLockWait: { maxAttempts: 2, sleepMs: 1, maxWaitMs: 50, sleep: () => {} },
+    });
+    expect(locked.exitCode).toBe(1);
+    expect(locked.decision).toBeNull();
+    expect(locked.reason).toMatch(/rolled back/);
+    expect(locked.storyBinding).toContain("no record written (store)");
+    expect(locked.activeAttemptIds).toEqual([]);
+    expect(storyOf(wtA)).toBeNull();
+    rmSync(join(store, STORY_BINDING_LOCK_NAME));
+    const retry = begin(primary, "plan-a", wtA);
+    expect(retry.exitCode).toBe(0);
+    expect(storyOf(wtA)).toBe("plan-a");
   });
 
   it("writes no record and prints one line when the scope id or target does not resolve", () => {
@@ -359,7 +602,7 @@ describe("story-binding target and scope resolution (#6379 item 2)", { timeout: 
     expect(resolveStoryBindingScope(root, "nope")).toMatchObject({ ok: false });
   });
 
-  it("reports a locked store and a non-repository root without changing anything", () => {
+  it("rolls back on locked begin wait and still covers non-waiting ensure/remove edges (#7274)", () => {
     const primary = repo("sb-store-");
     const wt = join(primary, "wt");
     git(primary, ["worktree", "add", "-q", "-b", "story-y", wt]);
@@ -372,26 +615,22 @@ describe("story-binding target and scope resolution (#6379 item 2)", { timeout: 
       "utf8",
     );
     const input = { projectRoot: primary, scopeId: "plan-a", targetId: wt };
-    // The store lock does not wait: a live holder makes begin print one line.
-    const locked = swarmPreDispatch({ ...input, sourceRevision: "rev" });
-    expect(locked.exitCode).toBe(0);
+    // Begin waits then rolls back the just-created attempt when the budget ends.
+    const locked = swarmPreDispatch({
+      ...input,
+      sourceRevision: "rev",
+      storyBindingLockWait: { maxAttempts: 2, sleepMs: 1, maxWaitMs: 50, sleep: () => {} },
+    });
+    expect(locked.exitCode).toBe(1);
+    expect(locked.decision).toBeNull();
+    expect(locked.reason).toMatch(/rolled back/);
     expect(locked.storyBinding).toContain("no record written (store)");
+    expect(locked.activeAttemptIds).toEqual([]);
     const id = locked.attempt?.attemptId ?? "";
+    // Complete/remove still do not wait on a live holder.
     expect(removeEndedStoryBindings(primary, [id])).toContain("not removed");
     rmSync(join(store, STORY_BINDING_LOCK_NAME));
-    expect(ensureBeginStoryBinding(input, [id])).toContain("-> plan-a");
-    // An attempt id that this checkout's ledger shows as ended is never written back.
-    expect(
-      swarmPreDispatch({
-        ...input,
-        action: "cancel",
-        attemptId: id,
-        preCancelForce: true,
-        preCancelReason: "t",
-        agentId: "a",
-        cancellerId: "p",
-      }).exitCode,
-    ).toBe(0);
+    // Rolled-back attempt is ended: ensure refuses to write it alone.
     expect(ensureBeginStoryBinding(input, [id])).toContain(
       "no attempt of this unit is still running",
     );

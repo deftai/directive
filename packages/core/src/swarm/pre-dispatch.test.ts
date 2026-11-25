@@ -228,6 +228,7 @@ describe("swarmPreDispatch (#3228)", () => {
       ...unit,
       action: "begin",
       sourceRevision: "r1",
+      workerId: "leaf-hint",
     });
     const denied = swarmPreDispatch({
       projectRoot: root,

@@ -1,5 +1,5 @@
 /**
- * Story-binding record store (#6379).
+ * Story-binding record store (#6379 / #7274).
  *
  * `swarm:pre-dispatch` begin writes one record per linked worktree under
  * `<git-common-dir>/deft-story-binding/`. A record names the worktree's story
@@ -11,9 +11,9 @@
  * can change it. A self-written record can only select another active brief,
  * whose `file_scope` still comes from the merge base.
  *
- * The store lock does not wait, like the delivery-attempt unit lock: a live
- * holder makes the write report "locked", and begin prints that as its one
- * `story-binding:` line (a repeat begin writes a missing record).
+ * Complete/remove acquire the store lock without waiting. Begin may pass
+ * `lockWait` for a bounded retry on contention (#7274); dead-owner reclaim
+ * is unchanged.
  */
 
 import { createHash, randomUUID } from "node:crypto";
@@ -67,7 +67,30 @@ export type RemoveStoryBindingAttemptsResult =
   | { readonly ok: true; readonly updated: readonly string[]; readonly deleted: readonly string[] }
   | { readonly ok: false; readonly detail: string };
 
-const STORE_LOCKED = "the story-binding record store is locked";
+export const STORY_BINDING_STORE_LOCKED = "the story-binding record store is locked";
+
+/** Default begin-facing wait: ~2s wall clock (40 × 50ms) unless maxWaitMs cuts short. */
+export const STORY_BINDING_BEGIN_LOCK_MAX_ATTEMPTS = Number.parseInt("40", 10);
+export const STORY_BINDING_BEGIN_LOCK_SLEEP_MS = Number.parseInt("50", 10);
+export const STORY_BINDING_BEGIN_LOCK_MAX_WAIT_MS = Number.parseInt("2000", 10);
+
+export interface StoryBindingLockWait {
+  readonly maxAttempts?: number;
+  readonly sleepMs?: number;
+  readonly maxWaitMs?: number;
+  readonly sleep?: (ms: number) => void;
+  readonly nowMs?: () => number;
+}
+
+export function isStoryBindingStoreLockedDetail(detail: string): boolean {
+  return detail === STORY_BINDING_STORE_LOCKED || detail.includes(STORY_BINDING_STORE_LOCKED);
+}
+
+function defaultSleep(ms: number): void {
+  if (ms <= 0) return;
+  const buf = new Int32Array(new SharedArrayBuffer(4));
+  Atomics.wait(buf, 0, 0, ms);
+}
 
 function samePath(left: string, right: string): boolean {
   if (process.platform === "win32") return left.toLowerCase() === right.toLowerCase();
@@ -265,18 +288,36 @@ function acquireLock(commonDir: string): string | null {
   return createOwnerFile(commonDir, lockRel(), token) ? token : null;
 }
 
-/** Run `body` under the one record-store lock (#6379 item 5). */
+/**
+ * Run `body` under the one record-store lock (#6379 item 5).
+ * When `wait` is set, retry acquire until attempts or wall-clock budget end (#7274).
+ */
 function withStoreLock<T>(
   commonDir: string,
   body: () => T,
+  wait?: StoryBindingLockWait,
 ): T | { readonly ok: false; readonly detail: string } {
-  const token = acquireLock(commonDir);
-  if (token === null) return { ok: false, detail: STORE_LOCKED };
-  try {
-    return body();
-  } finally {
-    removeIfOurs(commonDir, lockRel(), token);
+  const maxAttempts =
+    wait === undefined ? 1 : (wait.maxAttempts ?? STORY_BINDING_BEGIN_LOCK_MAX_ATTEMPTS);
+  const sleepMs = wait?.sleepMs ?? STORY_BINDING_BEGIN_LOCK_SLEEP_MS;
+  const maxWaitMs = wait?.maxWaitMs ?? STORY_BINDING_BEGIN_LOCK_MAX_WAIT_MS;
+  const sleep = wait?.sleep ?? defaultSleep;
+  const nowMs = wait?.nowMs ?? Date.now;
+  const started = nowMs();
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    const token = acquireLock(commonDir);
+    if (token !== null) {
+      try {
+        return body();
+      } finally {
+        removeIfOurs(commonDir, lockRel(), token);
+      }
+    }
+    if (attempt >= maxAttempts) break;
+    if (nowMs() - started >= maxWaitMs) break;
+    sleep(sleepMs);
   }
+  return { ok: false, detail: STORY_BINDING_STORE_LOCKED };
 }
 
 function errorDetail(err: unknown): string {
@@ -333,6 +374,11 @@ export interface EnsureStoryBindingRecordInput {
    * kept: absence is not proof that it ended.
    */
   readonly endedAttemptIds?: (attemptIds: readonly string[]) => readonly string[];
+  /**
+   * Begin-facing bounded wait on store-lock contention (#7274). Omit for
+   * complete/remove and other non-waiting callers.
+   */
+  readonly lockWait?: StoryBindingLockWait;
 }
 
 /**
@@ -344,45 +390,49 @@ export function ensureStoryBindingRecord(
   input: EnsureStoryBindingRecordInput,
 ): EnsureStoryBindingRecordResult {
   const rel = recordRel(storyBindingRecordName(input.worktreePath));
-  return withStoreLock(input.commonDir, (): EnsureStoryBindingRecordResult => {
-    const existing = loadRecordFile(join(input.commonDir, rel));
-    const sameStory = typeof existing === "object" && existing.story_id === input.storyId;
-    const kept = sameStory ? existing.attempt_ids : [];
-    const candidates = [...new Set([...kept, ...input.attemptIds])];
-    const ended = new Set(input.endedAttemptIds?.(candidates) ?? []);
-    if (input.attemptIds.every((id) => ended.has(id))) {
-      return { ok: false, detail: "no attempt of this unit is still running" };
-    }
-    const attemptIds = candidates.filter((id) => !ended.has(id));
-    const begunFrom = input.begunFrom?.trim() ?? "";
-    const priorOwners =
-      sameStory && existing.attempt_begun_from !== undefined
-        ? { ...existing.attempt_begun_from }
-        : sameStory && existing.begun_from !== undefined
-          ? Object.fromEntries(kept.map((id) => [id, existing.begun_from as string]))
-          : {};
-    const owners: Record<string, string> = {};
-    for (const id of attemptIds) {
-      const prior = priorOwners[id]?.trim() ?? "";
-      if (prior.length > 0) {
-        owners[id] = prior;
-      } else if (begunFrom.length > 0) {
-        owners[id] = begunFrom;
+  return withStoreLock(
+    input.commonDir,
+    (): EnsureStoryBindingRecordResult => {
+      const existing = loadRecordFile(join(input.commonDir, rel));
+      const sameStory = typeof existing === "object" && existing.story_id === input.storyId;
+      const kept = sameStory ? existing.attempt_ids : [];
+      const candidates = [...new Set([...kept, ...input.attemptIds])];
+      const ended = new Set(input.endedAttemptIds?.(candidates) ?? []);
+      if (input.attemptIds.every((id) => ended.has(id))) {
+        return { ok: false, detail: "no attempt of this unit is still running" };
       }
-    }
-    const record: StoryBindingRecord = {
-      story_id: input.storyId,
-      worktree_path: input.worktreePath,
-      attempt_ids: attemptIds,
-      ...(begunFrom.length > 0 ? { begun_from: begunFrom } : {}),
-      ...(Object.keys(owners).length > 0 ? { attempt_begun_from: owners } : {}),
-    };
-    const failed = writeRecordAtomic(input.commonDir, rel, record);
-    if (failed !== null) {
-      return { ok: false, detail: `story-binding record write failed: ${failed}` };
-    }
-    return { ok: true, record };
-  });
+      const attemptIds = candidates.filter((id) => !ended.has(id));
+      const begunFrom = input.begunFrom?.trim() ?? "";
+      const priorOwners =
+        sameStory && existing.attempt_begun_from !== undefined
+          ? { ...existing.attempt_begun_from }
+          : sameStory && existing.begun_from !== undefined
+            ? Object.fromEntries(kept.map((id) => [id, existing.begun_from as string]))
+            : {};
+      const owners: Record<string, string> = {};
+      for (const id of attemptIds) {
+        const prior = priorOwners[id]?.trim() ?? "";
+        if (prior.length > 0) {
+          owners[id] = prior;
+        } else if (begunFrom.length > 0) {
+          owners[id] = begunFrom;
+        }
+      }
+      const record: StoryBindingRecord = {
+        story_id: input.storyId,
+        worktree_path: input.worktreePath,
+        attempt_ids: attemptIds,
+        ...(begunFrom.length > 0 ? { begun_from: begunFrom } : {}),
+        ...(Object.keys(owners).length > 0 ? { attempt_begun_from: owners } : {}),
+      };
+      const failed = writeRecordAtomic(input.commonDir, rel, record);
+      if (failed !== null) {
+        return { ok: false, detail: `story-binding record write failed: ${failed}` };
+      }
+      return { ok: true, record };
+    },
+    input.lockWait,
+  );
 }
 
 export interface RemoveStoryBindingAttemptsInput {
