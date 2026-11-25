@@ -156,11 +156,31 @@ describe("release:run readiness (#6876 clause 2)", () => {
   });
 
   it("refuses when a Phase 1 check, the tag, the version files or the dry run fails", () => {
-    const failing: Array<[string, ReadinessSeams, RunGhFn]> = [
-      ["Phase 1: clean working tree", readinessSeams({}, " M x.ts"), fakeGh()],
-      ["Phase 1: GitHub usable", readinessSeams(), fakeGh({ rateLimit: false })],
-      ["Tag v1.2.0 free", readinessSeams({ tagFree: () => [false, "tag on origin"] }), fakeGh()],
-      ["Phase 2 dry run", readinessSeams({ dryRun: () => 1 }), fakeGh()],
+    const failing: Array<[string, ReadinessSeams, RunGhFn, string]> = [
+      [
+        "Phase 1: clean working tree",
+        readinessSeams({}, " M x.ts"),
+        fakeGh(),
+        "readiness wrote nothing; working tree was dirty at readiness entry",
+      ],
+      [
+        "Phase 1: GitHub usable",
+        readinessSeams(),
+        fakeGh({ rateLimit: false }),
+        "refused: a readiness check failed; nothing was written",
+      ],
+      [
+        "Tag v1.2.0 free",
+        readinessSeams({ tagFree: () => [false, "tag on origin"] }),
+        fakeGh(),
+        "refused: a readiness check failed; nothing was written",
+      ],
+      [
+        "Phase 2 dry run",
+        readinessSeams({ dryRun: () => 1 }),
+        fakeGh(),
+        "refused: a readiness check failed; nothing was written",
+      ],
       [
         "Consistent version files",
         readinessSeams({
@@ -168,16 +188,44 @@ describe("release:run readiness (#6876 clause 2)", () => {
             p.endsWith("CHANGELOG.md") ? "## [1.2.0] - 2026-11-22\n" : '{"version":"0.0.0"}',
         }),
         fakeGh(),
+        "refused: a readiness check failed; nothing was written",
       ],
     ];
-    for (const [name, seams, gh] of failing) {
+    for (const [name, seams, gh, footer] of failing) {
       const result = runReleaseReadiness(INPUT, seams, gh);
       expect(result.ok).toBe(false);
       expect(result.checks.find((c) => c.name === name)?.status).toBe("fail");
-      expect(formatReadiness(result)).toContain(
-        "refused: a readiness check failed; nothing was written",
-      );
+      expect(formatReadiness(result)).toContain(footer);
     }
+  });
+
+  it("refuses with post-dry-run dirty wording when dry-run leaves porcelain (#7327)", () => {
+    let statusCalls = 0;
+    const seams = readinessSeams({
+      release: {
+        spawnText: (_cmd, args) => {
+          if (args.includes("status")) {
+            statusCalls += 1;
+            // Entry clean; post-dry-run dirty (injected-dirt negative).
+            return ok(statusCalls === 1 ? "" : " M .gitignore\n?? .deft/GENERATION.json\n");
+          }
+          if (args.includes("fetch")) return ok();
+          if (args.includes("origin/master^{tree}")) return ok(`${TREE}\n`);
+          if (args.includes("origin/master")) return ok(`${TIP}\n`);
+          return ok();
+        },
+      },
+      dryRun: () => 0,
+    });
+    const result = runReleaseReadiness(INPUT, seams, fakeGh());
+    expect(result.ok).toBe(false);
+    const post = result.checks.find((c) => c.name === "Phase 2: clean working tree after dry run");
+    expect(post?.status).toBe("fail");
+    expect(post?.detail).toContain("working tree is dirty after the dry-run");
+    expect(post?.detail).toContain("M .gitignore");
+    const formatted = formatReadiness(result);
+    expect(formatted).toContain("working tree is dirty after the dry-run");
+    expect(formatted).not.toContain("nothing was written");
   });
 
   it("finds differing workspace versions and an existing CHANGELOG section", () => {

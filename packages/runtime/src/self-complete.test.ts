@@ -72,6 +72,14 @@ describe("isEligibleSelfCompleteCommand", () => {
     }
   });
 
+  it("rejects release:run / release-run so tip cuts stay tree-clean at readiness (#7327)", () => {
+    expect(isEligibleSelfCompleteCommand(["release:run"])).toBe(false);
+    expect(isEligibleSelfCompleteCommand(["release-run"])).toBe(false);
+    expect(
+      isEligibleSelfCompleteCommand(["release:run", "1.2.0", "--expires", "2099-01-01T00:00:00Z"]),
+    ).toBe(false);
+  });
+
   it("accepts ordinary product commands", () => {
     expect(isEligibleSelfCompleteCommand(["verify:branch"])).toBe(true);
     expect(isEligibleSelfCompleteCommand(["check"])).toBe(true);
@@ -158,6 +166,33 @@ describe("maybeSelfCompleteSetup (AC8.6)", () => {
     const result = maybeSelfCompleteSetup(root, { argv: ["doctor"] });
     expect(result.ran).toBe(false);
     expect(result.skipReason).toBe("ineligible");
+  });
+
+  it("#7327: release:run skips self-complete on a tip pin+wiring tree without GENERATION", () => {
+    const root = tempRoot();
+    const installed = runSetup({ operation: "install", from: "none", root });
+    pinRuntime(root, installed.runtimeVersion);
+    // Tip-cut shape: pin + wiring evidence, no GENERATION / readiness marker.
+    rmSync(join(root, ".deft", "GENERATION.json"), { force: true });
+    rmSync(join(root, ".deft", "directive"), { recursive: true, force: true });
+    const before = execFileSync("git", ["-C", root, "status", "--porcelain"], {
+      encoding: "utf8",
+    });
+
+    const releaseRun = maybeSelfCompleteSetup(root, {
+      argv: ["release:run", "1.2.0", "--expires", "2099-01-01T00:00:00Z"],
+    });
+    expect(releaseRun.ran).toBe(false);
+    expect(releaseRun.skipReason).toBe("ineligible");
+    expect(existsSync(join(root, ".deft", "GENERATION.json"))).toBe(false);
+    expect(execFileSync("git", ["-C", root, "status", "--porcelain"], { encoding: "utf8" })).toBe(
+      before,
+    );
+
+    // Measured writer still fires for ordinary product argv (contrast).
+    const ordinary = maybeSelfCompleteSetup(root, { argv: ["verify:branch"] });
+    expect(ordinary.ran).toBe(true);
+    expect(existsSync(join(root, ".deft", "GENERATION.json"))).toBe(true);
   });
 
   it("names a replaced tracked hook on writeErr once per process (#5885 / D-023)", () => {

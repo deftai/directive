@@ -61,6 +61,11 @@ const INELIGIBLE_HEADS = new Set([
   "setup",
   "migrate",
   "help",
+  // #7327 Prefer-A: release:run readiness requires a clean tree at entry.
+  // Self-complete (runSetup) writes GENERATION / .gitignore / .deft/directive
+  // and would fail that check on a tip cut worktree that has pin+wiring only.
+  "release:run",
+  "release-run",
   "--version",
   "--help",
   "-h",
