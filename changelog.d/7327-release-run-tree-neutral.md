@@ -1,2 +1,2 @@
 section: Fixed
-- release:run no longer self-completes setup before readiness, so tip cuts keep a clean tree; readiness also re-checks clean after dry-run and uses honest refuse wording (#7327).
+- release:run no longer self-completes setup before readiness, and stamps that skip on child session:start/setup so tip cuts keep a clean tree through the cut; readiness also re-checks clean after dry-run and uses honest refuse wording (#7327).
