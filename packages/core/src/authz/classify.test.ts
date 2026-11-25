@@ -15,6 +15,39 @@ import {
   matchProtectedStoreShellDest,
 } from "./classify.js";
 
+/** Bound 7153341022: shared N/2N quadratic-guard for #4005/#4188 twins (test-local). */
+const QUADRATIC_GUARD_N = 16_000;
+const QUADRATIC_GUARD_RATIO_CEILING = 3.5;
+const QUADRATIC_GUARD_HANG_MS = 10_000;
+
+function expectClassifyShellAuthzOpsScaleLinear(
+  buildCommand: (shiftCount: number) => string,
+): ReturnType<typeof classifyShellAuthzOps> {
+  // Optional warm call before the timed N/2N pair (Bound footnote).
+  void classifyShellAuthzOps(buildCommand(QUADRATIC_GUARD_N));
+
+  const timeAt = (shiftCount: number) => {
+    const command = buildCommand(shiftCount);
+    const startedAt = performance.now();
+    const classified = classifyShellAuthzOps(command);
+    const elapsedMs = performance.now() - startedAt;
+    expect(elapsedMs, `hang ceiling at N=${shiftCount} (${elapsedMs.toFixed(1)}ms)`).toBeLessThan(
+      QUADRATIC_GUARD_HANG_MS,
+    );
+    return { classified, elapsedMs };
+  };
+
+  const atN = timeAt(QUADRATIC_GUARD_N);
+  const at2N = timeAt(QUADRATIC_GUARD_N * 2);
+  const ratio = atN.elapsedMs === 0 ? 0 : at2N.elapsedMs / atN.elapsedMs;
+  expect(
+    ratio,
+    `elapsed(2N)/elapsed(N)=${ratio.toFixed(3)} (N=${atN.elapsedMs.toFixed(1)}ms, 2N=${at2N.elapsedMs.toFixed(1)}ms)`,
+  ).toBeLessThan(QUADRATIC_GUARD_RATIO_CEILING);
+  expect(at2N.classified).toContain("unknown");
+  return atN.classified;
+}
+
 describe("classifyShellAuthzOps (#2944)", () => {
   it("classifies push/merge via #2711 reuse", () => {
     expect(classifyShellAuthzOps("git push origin HEAD")).toContain("push");
@@ -1597,14 +1630,11 @@ describe("classifyShellAuthzOps (#2944)", () => {
   });
 
   it("preprocesses arithmetic shifts without quadratic rescans (#4005)", () => {
-    const shifts = " << 1".repeat(16_000);
-    const command = `echo $((1${shifts}))\nzip .deft/authz/grants/after-many-shifts.zip /etc/hosts`;
-    const startedAt = performance.now();
-    const classified = classifyShellAuthzOps(command);
-    const elapsedMs = performance.now() - startedAt;
-
+    const classified = expectClassifyShellAuthzOpsScaleLinear((shiftCount) => {
+      const shifts = " << 1".repeat(shiftCount);
+      return `echo $((1${shifts}))\nzip .deft/authz/grants/after-many-shifts.zip /etc/hosts`;
+    });
     expect(classified).toContain("unknown");
-    expect(elapsedMs).toBeLessThan(1_000);
   });
 
   it("emits unknown for unknown-argv0 last-positional dest-of-write (#4188)", () => {
@@ -1717,14 +1747,11 @@ describe("classifyShellAuthzOps (#2944)", () => {
   });
 
   it("preprocesses arithmetic shifts without quadratic rescans for last-positional dest (#4188)", () => {
-    const shifts = " << 1".repeat(16_000);
-    const command = `echo $((1${shifts}))\nmkfile 1k .deft/authz/grants/after-many-shifts.json`;
-    const startedAt = performance.now();
-    const classified = classifyShellAuthzOps(command);
-    const elapsedMs = performance.now() - startedAt;
-
+    const classified = expectClassifyShellAuthzOpsScaleLinear((shiftCount) => {
+      const shifts = " << 1".repeat(shiftCount);
+      return `echo $((1${shifts}))\nmkfile 1k .deft/authz/grants/after-many-shifts.json`;
+    });
     expect(classified).toContain("unknown");
-    expect(elapsedMs).toBeLessThan(1_000);
   });
 
   it("classifies obfuscated programmatic authz-capable writes as settings (#3186)", () => {
