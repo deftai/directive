@@ -138,9 +138,11 @@ const MCP_WRITE_NAME_MARKERS = [
 ] as const;
 
 /**
- * Write-vs-read lattice for MCP/proxy names (#3593). Dest-bearing writes go
- * through inspectMutationGates. Reads such as list_issues stay unclassifiable.
- * Not a matcher catalog: classifier-side only.
+ * Write-vs-read lattice for MCP/proxy names (#3593 / #7352). Dest-bearing writes
+ * go through inspectMutationGates. Reads such as list_issues stay
+ * unclassifiable. Hard-refuse non-gated MCP admit (#7352) reuses this conjunct
+ * so edit/create-class names stay refused under lock. Not a matcher catalog:
+ * classifier-side only.
  */
 export function isMcpWriteShaped(toolName: string): boolean {
   if (isDirectWriteTool(toolName)) return true;

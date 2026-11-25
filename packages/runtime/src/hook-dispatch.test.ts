@@ -876,6 +876,60 @@ describe("hook-dispatch pin-mismatch recovery admit (#6313)", () => {
   });
 });
 
+describe("Claude hard-refuse non-gated MCP admit under pin-mismatch (#7352)", () => {
+  function cheapPinMismatch(): CheapInSyncResult {
+    return {
+      ok: false,
+      pinVersion: "0.129.9",
+      installedVersion: "0.129.8",
+      identityMatch: false,
+      readinessValid: false,
+      failClosed: true,
+      pinMismatchOnly: true,
+      allowSetup: false,
+      recoveryGuidance: PIN_MISMATCH_PROJECT_PM_RECOVERY_GUIDANCE,
+    };
+  }
+
+  function mcpDispatch(
+    host: string,
+    toolName: string,
+  ): { raw: string; wire: Record<string, unknown> } {
+    const out: string[] = [];
+    run([`--host=${host}`, "--event=tool.before", "--project-root=/project"], {
+      readStdin: () => JSON.stringify({ tool_name: toolName, tool_input: {} }),
+      writeOut: (t) => out.push(t),
+      writeErr: () => undefined,
+      cwd: () => "/project",
+      launchingCheckoutRoot: () => "/project",
+      cheapInSync: cheapPinMismatch,
+      stdinEmptyRetryMs: 0,
+    });
+    const raw = out.join("").trim();
+    const wire = raw.length === 0 ? {} : (JSON.parse(raw) as Record<string, unknown>);
+    return { raw, wire };
+  }
+
+  it("admits Claude host UI MCP and skips setup/policy", () => {
+    const { raw, wire } = mcpDispatch("claude", "mcp__ccd_turn__wrap_up");
+    expect(wire.decision).not.toBe("deny");
+    expect(raw).toMatch(/not-gated|non-gated|#7352/i);
+    expect(raw).not.toContain("Directive can't run: the installed");
+  });
+
+  it("still refuses Bash under pin-mismatch", () => {
+    const { raw, wire } = mcpDispatch("claude", "Bash");
+    const nested = wire.hookSpecificOutput as { permissionDecision?: string } | undefined;
+    expect(wire.decision === "deny" || nested?.permissionDecision === "deny").toBe(true);
+    expect(raw).toContain("Directive can't run: the installed");
+  });
+
+  it("does not admit Claude UI MCP on grok under pin-mismatch", () => {
+    const { wire } = mcpDispatch("grok", "mcp__ccd_turn__wrap_up");
+    expect(wire.decision).toBe("deny");
+  });
+});
+
 describe("hook-dispatch session.end (#6274)", () => {
   const RAW = "33333333-aaaa-4bbb-8ccc-000000000003";
   const OWNER = canonicalHostSessionId("claude", RAW);

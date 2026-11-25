@@ -14,6 +14,9 @@
  * install matches the pin.
  */
 
+import { classifyHookAuthzOps } from "../authz/classify.js";
+import { isMcpProxyWrapper, isMcpTool, isMcpWriteShaped } from "../hooks/tools.js";
+import { classifyMcpTool } from "../policy/runtime-authority.js";
 import type { CheapInSyncResult } from "./types.js";
 
 /** Exact project install token sequences admitted on pin mismatch (#6313). */
@@ -130,4 +133,33 @@ export function admitPinMismatchRecovery(input: PinMismatchRecoveryAdmitInput): 
   if (!isPinMismatchOnly(input.cheap)) return null;
   if (!input.shellTool || !input.atProjectRoot) return null;
   return matchPinMismatchRecoveryCommand(input.command);
+}
+
+export interface HardRefuseNonGatedMcpAdmitInput {
+  readonly toolName: string;
+  readonly mcpArgsText: string | null;
+}
+
+/**
+ * Pure classifier AND for Claude hard-refuse non-gated MCP admit (#7352).
+ *
+ * Admits only MCP tools a healthy session already fail-opens: isMcpTool, not a
+ * proxy wrapper, classifyMcpTool null, empty classifyHookAuthzOps, and not
+ * isMcpWriteShaped. Callers gate host/event (Claude tool.before) and placement
+ * before installationIdentityDeny on local root-mismatch / pin-overlay arms.
+ */
+export function admitHardRefuseNonGatedMcp(input: HardRefuseNonGatedMcpAdmitInput): boolean {
+  const toolName = input.toolName.trim();
+  if (toolName.length === 0) return false;
+  if (!isMcpTool(toolName)) return false;
+  if (isMcpProxyWrapper(toolName)) return false;
+  if (classifyMcpTool(toolName, input.mcpArgsText) !== null) return false;
+  if (isMcpWriteShaped(toolName)) return false;
+  const ops = classifyHookAuthzOps({
+    toolName,
+    shellCommand: null,
+    isDirectWrite: false,
+    mcpArgsText: input.mcpArgsText,
+  });
+  return ops.length === 0;
 }

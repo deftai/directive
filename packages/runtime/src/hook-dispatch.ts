@@ -13,6 +13,7 @@ import {
 } from "@deftai/directive-core/dist/install-health/constants.js";
 import { renderPinMismatchRecoveryGuidance } from "@deftai/directive-core/dist/install-health/pin-mismatch-guidance.js";
 import {
+  admitHardRefuseNonGatedMcp,
   admitPinMismatchRecovery,
   admitRootMismatchRecovery,
 } from "@deftai/directive-core/dist/install-health/recovery-admit.js";
@@ -34,6 +35,7 @@ import {
   type HookEvent,
   type HookHost,
   type HookPayloadContext,
+  hookMcpArgsText,
   hookPayloadTopLevelKeys,
   hookShellCommand,
   hookToolName,
@@ -174,6 +176,45 @@ function installationIdentityDeny(
     toolName: null,
     projectRoot: normalizeHookProjectRoot(projectRoot),
     message,
+    scopePath: null,
+  };
+}
+
+/** Explicit not-gated allow message for Claude hard-refuse MCP UI admit (#7352). */
+export const HARD_REFUSE_NON_GATED_MCP_ALLOW_MESSAGE =
+  "Warning: Directive hard-refuse admitted non-gated host MCP " +
+  "(not push/merge, not write-shaped, not authz-class, not proxy). " +
+  "Bash/Edit/Write and gated MCP stay refused (#7352).";
+
+/**
+ * Claude tool.before only: admit non-gated host UI MCP under hard-refuse (#7352).
+ * Returns null to keep the refusal. Foreign-runtime-link never calls this.
+ */
+function hardRefuseNonGatedMcpAdmit(
+  host: HookHost,
+  event: HookEvent,
+  projectRoot: string,
+  payload: unknown,
+): HookDecision | null {
+  if (host !== "claude" || event !== "tool.before") return null;
+  const toolName = hookToolName(payload, host);
+  if (toolName === null) return null;
+  if (
+    !admitHardRefuseNonGatedMcp({
+      toolName,
+      mcpArgsText: hookMcpArgsText(payload),
+    })
+  ) {
+    return null;
+  }
+  return {
+    verdict: "allow",
+    code: "shell-op-unclassifiable",
+    event,
+    host,
+    toolName,
+    projectRoot: normalizeHookProjectRoot(projectRoot),
+    message: HARD_REFUSE_NON_GATED_MCP_ALLOW_MESSAGE,
     scopePath: null,
   };
 }
@@ -536,6 +577,13 @@ export function run(argv: string[], seams: HookDispatchCliSeams = {}): number {
         if (renderedAdmit.length > 0) writeOut(`${renderedAdmit}\n`);
         return 0;
       }
+      // #7352: Claude host UI MCP under local root-mismatch hard-refuse.
+      const mcpAdmit = hardRefuseNonGatedMcpAdmit(args.host, args.event, projectRoot, payload);
+      if (mcpAdmit !== null) {
+        const renderedAdmit = renderHostDecision(args.host, mcpAdmit);
+        if (renderedAdmit.length > 0) writeOut(`${renderedAdmit}\n`);
+        return 0;
+      }
     }
     const message = foreign
       ? `Directive hook refuse (${FOREIGN_RUNTIME_LINK}): this checkout's Directive runtime is linked in from another checkout ` +
@@ -561,6 +609,13 @@ export function run(argv: string[], seams: HookDispatchCliSeams = {}): number {
     const admit = pinMismatchRecoveryAdmit(args.host, args.event, projectRoot, payload, cheap);
     if (admit !== null) {
       const rendered = renderHostDecision(args.host, admit);
+      if (rendered.length > 0) writeOut(`${rendered}\n`);
+      return 0;
+    }
+    // #7352: Claude host UI MCP under pin/overlay hard-refuse.
+    const mcpAdmit = hardRefuseNonGatedMcpAdmit(args.host, args.event, projectRoot, payload);
+    if (mcpAdmit !== null) {
+      const rendered = renderHostDecision(args.host, mcpAdmit);
       if (rendered.length > 0) writeOut(`${rendered}\n`);
       return 0;
     }
