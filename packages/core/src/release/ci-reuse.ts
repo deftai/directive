@@ -80,6 +80,8 @@ export interface ClassifyReleaseInputCleanlinessSeams {
   readonly headGitignore?: () => string | null;
   readonly worktreeGitignore?: () => string | null;
   readonly allUntracked?: () => readonly string[];
+  /** Nested `.gitignore` bodies keyed by repo-relative POSIX path (tests). */
+  readonly nestedGitignoreBodies?: () => ReadonlyMap<string, string>;
   readonly isIgnoredBy?: (gitignoreBody: string, path: string) => boolean;
 }
 
@@ -159,17 +161,65 @@ function parseGitignoreAddedLines(
 }
 
 /**
- * Evaluate whether `path` is ignored by an arbitrary gitignore body.
- * Uses a throwaway repo + `.gitignore` — `git check-ignore` has no `-f`
- * exclude-file flag (unlike check-attr). Exit 0 = ignored, 1 = not ignored;
- * any other status throws so no-concealment fails closed.
+ * Load tracked nested `.gitignore` bodies (not the repo-root file).
+ * Fail closed on list/read errors so no-concealment never drops nested rules.
  */
-function defaultIsIgnoredBy(gitignoreBody: string, path: string, seams: ReleaseSeams): boolean {
+function loadNestedGitignoreBodies(
+  projectRoot: string,
+  seams: ReleaseSeams,
+): ReadonlyMap<string, string> {
+  const listed = runGit(projectRoot, ["ls-files", "-z", "--", ":(glob)**/.gitignore"], seams);
+  if (listed.status !== 0) {
+    const detail = listed.stderr.trim() || listed.stdout.trim() || "unknown";
+    throw new Error(
+      `git ls-files nested .gitignore failed (exit ${String(listed.status)}): ${detail}`,
+    );
+  }
+  const out = new Map<string, string>();
+  for (const raw of listed.stdout.split("\0")) {
+    if (raw.length === 0) continue;
+    const rel = normalizePosix(raw);
+    // Root `.gitignore` is supplied separately as the HEAD/WT body under test.
+    if (rel === ".gitignore" || !rel.includes("/")) continue;
+    try {
+      out.set(rel, readFileSync(join(projectRoot, rel), "utf8"));
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : String(err);
+      throw new Error(`could not read nested .gitignore ${rel}: ${detail}`);
+    }
+  }
+  return out;
+}
+
+/**
+ * Evaluate whether `path` is ignored by an arbitrary root gitignore body plus
+ * nested `.gitignore` files from the project. Uses a throwaway repo —
+ * `git check-ignore` has no `-f` exclude-file flag (unlike check-attr). Exit 0
+ * = ignored, 1 = not ignored; any other status throws so no-concealment fails
+ * closed. Nested rules (e.g. `packages/runtime/.gitignore` → `.pack-stage/`)
+ * must be materialized or `ls-files -o` hits poison session-scratch-only.
+ */
+function defaultIsIgnoredBy(
+  gitignoreBody: string,
+  path: string,
+  seams: ReleaseSeams,
+  nestedBodies: ReadonlyMap<string, string>,
+): boolean {
   const dir = mkdtempSync(join(tmpdir(), "deft-rel-ign-"));
   try {
     const init = runGit(dir, ["init", "-q"], seams);
     if (init.status !== 0) {
       throw new Error(`git init for ignore probe failed: ${init.stderr.trim() || "unknown"}`);
+    }
+    for (const [rel, nestedBody] of nestedBodies) {
+      const data = nestedBody.endsWith("\n") ? nestedBody : `${nestedBody}\n`;
+      containedWrite({
+        root: dir,
+        target: rel,
+        data,
+        mode: "create",
+        mutation: false,
+      });
     }
     const body = gitignoreBody.endsWith("\n") ? gitignoreBody : `${gitignoreBody}\n`;
     containedWrite({
@@ -179,7 +229,7 @@ function defaultIsIgnoredBy(gitignoreBody: string, path: string, seams: ReleaseS
       mode: "create",
       mutation: false,
     });
-    // check-ignore has no -f; rules come from this temp work tree's .gitignore.
+    // check-ignore has no -f; rules come from this temp work tree's ignores.
     const check = runGit(dir, ["check-ignore", "--no-index", "-q", "--", path], seams);
     if (check.status === 0) return true;
     if (check.status === 1) return false;
@@ -312,19 +362,52 @@ export function classifyReleaseInputCleanliness(
     };
   }
 
-  const allUntracked =
-    options.allUntracked?.() ??
-    (() => {
+  let allUntracked: readonly string[];
+  try {
+    if (options.allUntracked) {
+      allUntracked = options.allUntracked();
+    } else {
       const listed = runGit(projectRoot, ["ls-files", "-o", "--directory", "-z"], seams);
-      if (listed.status !== 0) return [] as string[];
-      return listed.stdout
+      if (listed.status !== 0) {
+        const detail = listed.stderr.trim() || listed.stdout.trim() || "unknown";
+        return {
+          kind: "dirty",
+          reason: `git ls-files -o --directory failed (exit ${String(listed.status)}): ${detail}`,
+          porcelain: trimmed.trimEnd(),
+        };
+      }
+      allUntracked = listed.stdout
         .split("\0")
         .filter((p) => p.length > 0)
         .map(normalizePosix);
-    })();
+    }
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : String(err);
+    return {
+      kind: "dirty",
+      reason: `git ls-files -o --directory failed: ${detail}`,
+      porcelain: trimmed.trimEnd(),
+    };
+  }
 
-  const isIgnored =
-    options.isIgnoredBy ?? ((body: string, path: string) => defaultIsIgnoredBy(body, path, seams));
+  let isIgnored: (body: string, path: string) => boolean;
+  if (options.isIgnoredBy) {
+    isIgnored = options.isIgnoredBy;
+  } else {
+    let nestedBodies: ReadonlyMap<string, string>;
+    try {
+      nestedBodies =
+        options.nestedGitignoreBodies?.() ?? loadNestedGitignoreBodies(projectRoot, seams);
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : String(err);
+      return {
+        kind: "dirty",
+        reason: `no-concealment nested .gitignore load failed: ${detail}`,
+        porcelain: trimmed.trimEnd(),
+      };
+    }
+    isIgnored = (body, path) => defaultIsIgnoredBy(body, path, seams, nestedBodies);
+  }
 
   let visible: Set<string>;
   try {

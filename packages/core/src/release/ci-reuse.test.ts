@@ -475,6 +475,7 @@ describe("classifyReleaseInputCleanliness (#7328)", () => {
         worktreeGitignoreDiff: () => memberDiff,
         headGitignore: () => headBody,
         worktreeGitignore: () => wtBody,
+        nestedGitignoreBodies: () => new Map(),
         allUntracked: () => [
           "node_modules/",
           "node_modules/pkg/index.js",
@@ -484,6 +485,96 @@ describe("classifyReleaseInputCleanliness (#7328)", () => {
       },
     );
     expect(decision.kind).toBe("session-scratch-only");
+  });
+
+  it("honors nested .gitignore so pack-stage does not poison session-scratch-only", () => {
+    // Greptile P1: ls-files -o lists packages/runtime/.pack-stage/; without
+    // materializing packages/runtime/.gitignore the probe treats it as visible.
+    const porcelain = [
+      " M .gitignore",
+      `?? ${RELEASE_SESSION_SCRATCH_GENERATION}`,
+      `?? ${RELEASE_SESSION_SCRATCH_DIRECTIVE_DIR}`,
+      "",
+    ].join("\n");
+    const headBody = "node_modules/\n";
+    const wtBody = `node_modules/\n${memberLines.join("\n")}\n`;
+    const nested = new Map([["packages/runtime/.gitignore", ".pack-stage/\n"]]);
+    const decision = classifyReleaseInputCleanliness(
+      "/repo",
+      {},
+      {
+        porcelain: () => porcelain,
+        stagedGitignoreDiff: () => "",
+        worktreeGitignoreDiff: () => memberDiff,
+        headGitignore: () => headBody,
+        worktreeGitignore: () => wtBody,
+        nestedGitignoreBodies: () => nested,
+        allUntracked: () => [
+          "packages/runtime/.pack-stage/",
+          "packages/runtime/.pack-stage/out.js",
+          RELEASE_SESSION_SCRATCH_GENERATION,
+          `${RELEASE_SESSION_SCRATCH_DIRECTIVE_DIR}data-schema.json`,
+        ],
+      },
+    );
+    expect(decision.kind).toBe("session-scratch-only");
+
+    const withoutNested = classifyReleaseInputCleanliness(
+      "/repo",
+      {},
+      {
+        porcelain: () => porcelain,
+        stagedGitignoreDiff: () => "",
+        worktreeGitignoreDiff: () => memberDiff,
+        headGitignore: () => headBody,
+        worktreeGitignore: () => wtBody,
+        nestedGitignoreBodies: () => new Map(),
+        allUntracked: () => [
+          "packages/runtime/.pack-stage/",
+          RELEASE_SESSION_SCRATCH_GENERATION,
+          `${RELEASE_SESSION_SCRATCH_DIRECTIVE_DIR}data-schema.json`,
+        ],
+      },
+    );
+    expect(withoutNested.kind).toBe("dirty");
+    if (withoutNested.kind === "dirty") {
+      expect(withoutNested.reason).toMatch(/no-concealment.*pack-stage/);
+    }
+  });
+
+  it("fails closed when git ls-files -o fails or times out", () => {
+    // Greptile P1: status !== 0 must not collapse to [] and admit scratch-only.
+    const decision = classifyReleaseInputCleanliness(
+      "/repo",
+      {
+        spawnText: (_cmd, args) => {
+          if (args.includes("ls-files") && args.includes("-o")) {
+            return {
+              status: 128,
+              stdout: "",
+              stderr: "fatal: boom",
+              signal: null,
+              error: undefined,
+            };
+          }
+          return { status: 0, stdout: "", stderr: "", signal: null, error: undefined };
+        },
+      },
+      {
+        porcelain: () => " M .gitignore\n",
+        stagedGitignoreDiff: () => "",
+        worktreeGitignoreDiff: () => memberDiff,
+        headGitignore: () => "node_modules/\n",
+        worktreeGitignore: () => `node_modules/\n${memberLines.join("\n")}\n`,
+        nestedGitignoreBodies: () => new Map(),
+        isIgnoredBy: () => true,
+      },
+    );
+    expect(decision.kind).toBe("dirty");
+    if (decision.kind === "dirty") {
+      expect(decision.reason).toMatch(/git ls-files -o --directory failed/);
+      expect(decision.reason).toMatch(/boom/);
+    }
   });
 
   it("fails closed when the ignore probe errors", () => {
