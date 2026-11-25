@@ -380,7 +380,11 @@ function stampRunningAttemptIdentity(
     readonly now?: string;
   },
 ):
-  | { readonly ok: true; readonly ledger: DeliveryUnitLedger; readonly attempt: DeliveryAttemptRecord }
+  | {
+      readonly ok: true;
+      readonly ledger: DeliveryUnitLedger;
+      readonly attempt: DeliveryAttemptRecord;
+    }
   | { readonly ok: false; readonly detail: string } {
   const idx = ledger.attempts.findIndex((a) => a.attemptId === attemptId);
   const prev = idx >= 0 ? ledger.attempts[idx] : undefined;
