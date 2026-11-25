@@ -1,0 +1,77 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Tell the operator the mint and off tradeoff before a batch",
+    "created": "2026-11-25T08:08:08.277Z",
+    "updated": "2026-11-25T08:10:20Z"
+  },
+  "plan": {
+    "id": "github.issue.6573950395",
+    "title": "Tell the operator the mint and off tradeoff before a batch",
+    "status": "completed",
+    "items": [
+      {
+        "id": "clause.1",
+        "title": "An agent reads onePrScopeProof and explains mint and off, including the shared finalize, and does not pick a route in silence.",
+        "status": "completed",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "60e8921207e77d526c9392a6da1e83345d77a6de",
+          "recorded_at": "2026-11-25T08:10:17.437Z",
+          "recorded_by": "MScottAdams"
+        }
+      }
+    ],
+    "metadata": {
+      "kind": "story",
+      "productPullRequest": 7255,
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "origin": "deftai/directive#7253",
+        "id": "github.issue.6573950395"
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "24542dd00a8f88315ab7f390ee8fc4e8498f2a07",
+        "prNumber": 7255,
+        "prBase": "master",
+        "mergeCommit": "60e8921207e77d526c9392a6da1e83345d77a6de",
+        "deliveryBranch": "master",
+        "deliveryCommit": "6f55e91f4c3f5c0ef5946b07b2a911cf82b8cf7a",
+        "verifiedAt": "2026-11-25T08:10:20Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "ea5627dc-8837-44f2-913d-eef958e44b5b",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          7264
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-25T08:10:20Z",
+      "completedSessionId": "ea5627dc-8837-44f2-913d-eef958e44b5b",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-25T08:10:20Z"
+      }
+    },
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/7253",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #7253"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true
+    },
+    "updated": "2026-11-25T08:10:20Z"
+  }
+}
