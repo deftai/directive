@@ -889,17 +889,94 @@ describe("slow-path scope:complete gate (#7252)", () => {
     expect(gate.refuse).toBe(false);
   });
 
-  it("refuses with retry text when a stamped PR merge state cannot be read", () => {
-    root = mkdtempSync(join(tmpdir(), "slow-path-null-"));
+  it("admits a solo eligible brief without merge-state lookup (#7252 Prefer-A P3)", () => {
+    root = mkdtempSync(join(tmpdir(), "slow-path-solo-null-"));
     writeRunning("2026-01-01-a.xbrief.json", { id: "1001", productPr: 11 });
+    let fetches = 0;
     const gate = evaluateSlowPathCompleteGate({
       projectRoot: root,
       repository: "acme/app",
-      fetchPrPayload: () => null,
+      fetchPrPayload: () => {
+        fetches += 1;
+        return null;
+      },
+    });
+    expect(fetches).toBe(0);
+    expect(gate.refuse).toBe(false);
+  });
+
+  it("refuses with retry text when ≥2 eligible and a stamped PR merge state cannot be read", () => {
+    root = mkdtempSync(join(tmpdir(), "slow-path-null-"));
+    writeRunning("2026-01-01-a.xbrief.json", { id: "1001", productPr: 11 });
+    writeRunning("2026-01-01-b.xbrief.json", { id: "1002", productPr: 12 });
+    const gate = evaluateSlowPathCompleteGate({
+      projectRoot: root,
+      repository: "acme/app",
+      fetchPrPayload: (pr) => (pr === 11 ? { merged_at: "2026-01-02T00:00:00Z" } : null),
     });
     expect(gate.refuse).toBe(true);
     if (gate.refuse) {
-      expect(gate.message).toMatch(/could not read merge state for product PR #11/);
+      expect(gate.message).toMatch(/could not read merge state for product PR #12/);
+    }
+  });
+
+  it("admits two eligible when one is open and the other is unreadable", () => {
+    root = mkdtempSync(join(tmpdir(), "slow-path-open-plus-null-"));
+    writeRunning("2026-01-01-a.xbrief.json", {
+      id: "1001",
+      productPr: 11,
+      repository: "acme/app",
+    });
+    writeRunning("2026-01-01-b.xbrief.json", {
+      id: "1002",
+      productPr: 12,
+      repository: "acme/app",
+    });
+    const gate = evaluateSlowPathCompleteGate({
+      projectRoot: root,
+      repository: "acme/app",
+      fetchPrPayload: (pr) => (pr === 11 ? { merged_at: null } : null),
+    });
+    expect(gate.refuse).toBe(false);
+  });
+
+  it("finishes the ≥2-candidate loop before retry-refuse on later unreadable", () => {
+    root = mkdtempSync(join(tmpdir(), "slow-path-finish-loop-"));
+    writeRunning("2026-01-01-a.xbrief.json", {
+      id: "1001",
+      productPr: 11,
+      repository: "acme/app",
+    });
+    writeRunning("2026-01-01-b.xbrief.json", {
+      id: "1002",
+      productPr: 12,
+      repository: "acme/app",
+    });
+    writeRunning("2026-01-01-c.xbrief.json", {
+      id: "1003",
+      productPr: 13,
+      repository: "acme/app",
+    });
+    const seen: number[] = [];
+    const gate = evaluateSlowPathCompleteGate({
+      projectRoot: root,
+      repository: "acme/app",
+      fetchPrPayload: (pr) => {
+        seen.push(pr);
+        if (pr === 11) return null;
+        return {
+          merged_at: "2026-01-02T00:00:00Z",
+          merge_commit_sha: `merge${pr}aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa`,
+          base: { ref: "master" },
+          head: { sha: `head${pr}` },
+        };
+      },
+    });
+    expect(seen.sort((a, b) => a - b)).toEqual([11, 12, 13]);
+    expect(gate.refuse).toBe(true);
+    if (gate.refuse) {
+      expect(gate.merged.map((row) => row.prNumber).sort((a, b) => a - b)).toEqual([12, 13]);
+      expect(gate.message).toMatch(/finalize-cohort/);
     }
   });
 

@@ -157,6 +157,9 @@ function isSlowPathDeliveryLookupConfirmedMissing(message: string): boolean {
  * Refuse one-story scope:complete when ≥2 active briefs already have a merged
  * product PR. Finalize-cohort and --in-pr stay allowed (#7252).
  * Unstamped briefs use delivery lookup, not related github-pr refs (#7258).
+ * Prefer-A Bound 7150994871 P3: admit before lookup when fewer than two
+ * eligible briefs exist; with ≥2 candidates finish the loop and retry-refuse
+ * only when unresolved evidence can still push confirmed merged to ≥2.
  */
 export function evaluateSlowPathCompleteGate(args: {
   readonly projectRoot: string;
@@ -172,6 +175,16 @@ export function evaluateSlowPathCompleteGate(args: {
   }
   const briefs = (args.listBriefs ?? (() => listActiveRunningBriefs(args.projectRoot)))();
   const fallbackRepo = (args.repository ?? resolveRepoForSlowPath(args.projectRoot) ?? "").trim();
+  // Eligible = active-running with a resolvable repo (stamped or unstamped).
+  const eligible = briefs.flatMap((brief) => {
+    const issueRef = resolvePlanGithubIssueRef(brief.plan);
+    const repo = (issueRef?.repository ?? fallbackRepo).trim();
+    return repo.length > 0 ? [{ brief, repo }] : [];
+  });
+  // Cardinality-before-lookup: batching is impossible below two eligible briefs.
+  if (eligible.length < 2) {
+    return { refuse: false };
+  }
   // liveRunGh: ghx can cache a PR as open after merge and under-count here.
   const fetchPr =
     args.fetchPrPayload ??
@@ -179,12 +192,15 @@ export function evaluateSlowPathCompleteGate(args: {
       defaultFetchPrPayload(prNumber, repository, liveRunGh(defaultRunGh)));
   const discover = args.discoverDelivery ?? discoverDeliveryEvidenceForComplete;
   const merged: MergedActiveStory[] = [];
-  for (const brief of briefs) {
-    const issueRef = resolvePlanGithubIssueRef(brief.plan);
-    const repo = (issueRef?.repository ?? fallbackRepo).trim();
-    if (repo.length === 0) {
-      continue;
+  let unresolvedCount = 0;
+  let firstUnresolvedMessage: string | null = null;
+  const noteUnresolved = (message: string): void => {
+    unresolvedCount += 1;
+    if (firstUnresolvedMessage === null) {
+      firstUnresolvedMessage = message;
     }
+  };
+  for (const { brief, repo } of eligible) {
     let prNumber = productPullRequestFromPlan(brief.plan);
     let prRepo = repo;
     // Unstamped: only a delivery lookup product PR counts — not related github-pr refs (#7258).
@@ -198,11 +214,7 @@ export function evaluateSlowPathCompleteGate(args: {
       });
       if (!found.ok) {
         if (!isSlowPathDeliveryLookupConfirmedMissing(found.message)) {
-          return {
-            refuse: true,
-            merged: [],
-            message: `slow-path: ${found.message}`,
-          };
+          noteUnresolved(`slow-path: ${found.message}`);
         }
         continue;
       }
@@ -237,13 +249,11 @@ export function evaluateSlowPathCompleteGate(args: {
     }
     const payload = fetchPr(prNumber, prRepo);
     if (payload === null) {
-      return {
-        refuse: true,
-        merged: [],
-        message:
-          `slow-path: could not read merge state for product PR #${String(prNumber)} in ${prRepo}; ` +
+      noteUnresolved(
+        `slow-path: could not read merge state for product PR #${String(prNumber)} in ${prRepo}; ` +
           "retry after fixing gh auth, rate limit, or network",
-      };
+      );
+      continue;
     }
     if (!isMergedPrPayload(payload)) {
       continue;
@@ -254,14 +264,22 @@ export function evaluateSlowPathCompleteGate(args: {
       repository: prRepo,
     });
   }
-  if (merged.length < 2) {
-    return { refuse: false };
+  if (merged.length >= 2) {
+    return {
+      refuse: true,
+      merged,
+      message: formatSlowPathFinalizeMessage(merged),
+    };
   }
-  return {
-    refuse: true,
-    merged,
-    message: formatSlowPathFinalizeMessage(merged),
-  };
+  // Post-enumeration: retry only when unresolved rows can still reach ≥2 merged.
+  if (merged.length + unresolvedCount >= 2 && firstUnresolvedMessage !== null) {
+    return {
+      refuse: true,
+      merged: [],
+      message: firstUnresolvedMessage,
+    };
+  }
+  return { refuse: false };
 }
 
 /** Test seam so lifecycleMain can stub the #7252 gate without module-cycle spies. */
