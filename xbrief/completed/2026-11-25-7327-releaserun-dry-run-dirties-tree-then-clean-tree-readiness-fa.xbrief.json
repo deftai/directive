@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #7327",
-    "updated": "2026-11-25T17:05:33.068Z"
+    "updated": "2026-11-25T22:53:24Z"
   },
   "plan": {
     "title": "release:run: dry-run dirties tree then clean-tree readiness fails",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "release:run: dry-run dirties tree then clean-tree readiness fails",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/7327",
@@ -19,65 +19,114 @@
     "items": [
       {
         "id": "clause.1",
-        "status": "pending",
+        "status": "completed",
         "title": "Keep the readiness entry clean check before the Phase 2 dry-run seam",
         "x-directive/artifact_path": "packages/core/src/release/run-readiness.ts",
         "narrative": {
           "Acceptance": "Keep the readiness entry clean check before the Phase 2 dry-run seam"
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d98799f903f74f11885f3331c36839b940d2133b",
+          "recorded_at": "2026-11-25T22:53:24Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "id": "clause.2",
-        "status": "pending",
+        "status": "completed",
         "title": "Keep the dry-run path project working-tree neutral on every returned status",
         "x-directive/artifact_path": "packages/core/src/release/run-readiness.ts",
         "narrative": {
           "Acceptance": "Keep the dry-run path project working-tree neutral on every returned status"
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d98799f903f74f11885f3331c36839b940d2133b",
+          "recorded_at": "2026-11-25T22:53:24Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "id": "clause.3",
-        "status": "pending",
+        "status": "completed",
         "title": "After dry-run, run a second clean check and fail readiness when the tree is dirty",
         "x-directive/artifact_path": "packages/core/src/release/run-readiness.ts",
         "narrative": {
           "Acceptance": "After dry-run, run a second clean check and fail readiness when the tree is dirty"
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d98799f903f74f11885f3331c36839b940d2133b",
+          "recorded_at": "2026-11-25T22:53:24Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "id": "clause.4",
-        "status": "pending",
+        "status": "completed",
         "title": "Refuse copy must not claim write-nothing when post-dry-run dirt or a Git error is observed",
         "x-directive/artifact_path": "packages/core/src/release/run-readiness.ts",
         "narrative": {
           "Acceptance": "Refuse copy must not claim write-nothing when post-dry-run dirt or a Git error is observed"
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d98799f903f74f11885f3331c36839b940d2133b",
+          "recorded_at": "2026-11-25T22:53:24Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "id": "clause.5",
-        "status": "pending",
+        "status": "completed",
         "title": "Entry clean-check refuse must not claim the whole release run invocation wrote nothing",
         "x-directive/artifact_path": "packages/core/src/release/run-readiness.ts",
         "narrative": {
           "Acceptance": "Entry clean-check refuse must not claim the whole release run invocation wrote nothing"
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d98799f903f74f11885f3331c36839b940d2133b",
+          "recorded_at": "2026-11-25T22:53:24Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "id": "clause.6",
-        "status": "pending",
+        "status": "completed",
         "title": "Measure and fix the live writer of the observed readiness dirt class",
         "x-directive/artifact_path": "packages/core/src/release/run.ts",
         "narrative": {
           "Acceptance": "Measure and fix the live writer of the observed readiness dirt class"
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d98799f903f74f11885f3331c36839b940d2133b",
+          "recorded_at": "2026-11-25T22:53:24Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "id": "clause.7",
-        "status": "pending",
+        "status": "completed",
         "title": "Add a fresh-worktree regression through the real release run entry path including self-complete",
         "x-directive/artifact_path": "packages/core/src/release/run.test.ts",
         "narrative": {
           "Acceptance": "Add a fresh-worktree regression through the real release run entry path including self-complete"
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "d98799f903f74f11885f3331c36839b940d2133b",
+          "recorded_at": "2026-11-25T22:53:24Z",
+          "recorded_by": "scope:complete"
         }
       }
     ],
@@ -784,7 +833,31 @@
         "algorithm": "sha256",
         "sha256": "19a60b70d0c4aedca05a1c8106f92c5dcf3b4ca074196a2db2c7ede80591135a"
       },
-      "kind": "story"
+      "kind": "story",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "ffd80eb7b91db795c23ef2e13af6b4875db68149",
+        "prNumber": 7338,
+        "prBase": "master",
+        "mergeCommit": "d98799f903f74f11885f3331c36839b940d2133b",
+        "deliveryBranch": "master",
+        "deliveryCommit": "8db11054a6978e9efc1aa6e48bdd404f36ad4feb",
+        "verifiedAt": "2026-11-25T22:53:24Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "identityBasis": "merge-time-mark"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-25T22:53:24Z",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-25T22:53:24Z"
+      }
     },
     "acceptance": {
       "commands": [],
@@ -818,9 +891,36 @@
           "id": "clause.7",
           "text": "Add a fresh-worktree regression through the real release run entry path including self-complete"
         }
+      ],
+      "ambiguity_attestation": "none_found",
+      "sentences": [
+        "Keep the readiness entry clean check before the Phase 2 dry-run seam",
+        "Keep the dry-run path project working-tree neutral on every returned status",
+        "After dry-run, run a second clean check and fail readiness when the tree is dirty",
+        "Refuse copy must not claim write-nothing when post-dry-run dirt or a Git error is observed",
+        "Entry clean-check refuse must not claim the whole release run invocation wrote nothing",
+        "Measure and fix the live writer of the observed readiness dirt class",
+        "Add a fresh-worktree regression through the real release run entry path including self-complete"
+      ],
+      "confessions": [
+        "release:run: dry-run dirties tree then clean-tree readiness fails",
+        "Summary `deft release:run` readiness runs the Phase 2 dry-run before the Phase 1 clean working-tree check.",
+        "On this host the dry-run (or something it invokes) leaves: - `M .gitignore` (un-ignore rules for `.deft/approved-scope/`, `.deft/directive/`, `GENERATION.json`, etc.) - `??",
+        ".deft/GENERATION.json` - `??",
+        ".deft/directive/` The clean-tree check then refuses even when the tree was clean at entry.",
+        "Result: readiness always fails after a successful dry-run on a tip cut worktree.",
+        "Observed (v0.131.5 cut) Fresh worktree at `origin/master` (`30fa5344c`), `git status --porcelain` empty before `release:run`.",
+        "Dry-run OK (35 fragments folded).",
+        "Then: ## Ask 1.",
+        "Run clean-tree check before dry-run, or ignore dry-run-local dirtiness that the cut will not commit.",
+        "Stop dry-run / readiness from mutating `.gitignore` / writing untracked `.deft/` scratch that fails the same readiness gate.",
+        "Or accept `--allow-dirty` on `release:run` with an explicit disclosure when the only dirt is that scratch class.",
+        "Workaround used Manual cut path with `task release -- <version> --allow-dirty` (or clean + re-enter) after operator confirm.",
+        "Operator cut attempt for v0.131.5",
+        "Related: #7326 (github-issue triage cache as hard release preflight)"
       ]
     },
     "id": "github.issue.6596789058",
-    "updated": "2026-11-25T05:18:26Z"
+    "updated": "2026-11-25T22:53:24Z"
   }
 }

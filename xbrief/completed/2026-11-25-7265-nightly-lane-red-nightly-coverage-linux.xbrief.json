@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #7265",
-    "updated": "2026-11-25T16:59:05.966Z"
+    "updated": "2026-11-25T22:55:51Z"
   },
   "plan": {
     "title": "Nightly lane red: Nightly coverage (Linux)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Nightly lane red: Nightly coverage (Linux)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/7265",
@@ -19,26 +19,47 @@
     "items": [
       {
         "id": "clause.1",
-        "status": "pending",
+        "status": "completed",
         "title": "Keep both twin fixtures at 16k-class shifts with unknown classification asserts",
         "narrative": {
           "Acceptance": "Keep both twin fixtures at 16k-class shifts with unknown classification asserts"
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "24097766c7a1619c5f3d1dc43675a3a3a92da7ba",
+          "recorded_at": "2026-11-25T22:55:51Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "id": "clause.2",
-        "status": "pending",
+        "status": "completed",
         "title": "Replace absolute one-second asserts with a shared N/2N ratio helper and hang ceilings",
         "narrative": {
           "Acceptance": "Replace absolute one-second asserts with a shared N/2N ratio helper and hang ceilings"
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "24097766c7a1619c5f3d1dc43675a3a3a92da7ba",
+          "recorded_at": "2026-11-25T22:55:51Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "id": "clause.3",
-        "status": "pending",
+        "status": "completed",
         "title": "Reject delete-twin, raise-only budget, skip-under-coverage, shrink-N, or production API for the meter",
         "narrative": {
           "Acceptance": "Reject delete-twin, raise-only budget, skip-under-coverage, shrink-N, or production API for the meter"
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "24097766c7a1619c5f3d1dc43675a3a3a92da7ba",
+          "recorded_at": "2026-11-25T22:55:51Z",
+          "recorded_by": "scope:complete"
         }
       }
     ],
@@ -68,6 +89,18 @@
           "id": "clause.3",
           "text": "Reject delete-twin, raise-only budget, skip-under-coverage, shrink-N, or production API for the meter"
         }
+      ],
+      "ambiguity_attestation": "none_found",
+      "sentences": [
+        "Keep both twin fixtures at 16k-class shifts with unknown classification asserts",
+        "Replace absolute one-second asserts with a shared N/2N ratio helper and hang ceilings",
+        "Reject delete-twin, raise-only budget, skip-under-coverage, shrink-N, or production API for the meter"
+      ],
+      "confessions": [
+        "Nightly lane red: Nightly coverage (Linux)",
+        "<!-- deft-nightly-lane: coverage --> This issue tracks the Nightly coverage (Linux) lane of the nightly workflow (`.github/workflows/nightly.yml`).",
+        "The workflow reopens it and comments when the lane is red, and comments and closes it when the lane passes.",
+        "Release readiness reuses a lane only when its latest attempt succeeded on the release tree (docs/RELEASING.md)."
       ]
     },
     "metadata": {
@@ -374,9 +407,33 @@
           "shared N/2N quadratic-guard helper replaces absolute 1s twin meters"
         ],
         "model_tier": "standard"
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "99a8c307cfb82aa817001df9b58e421f22a9597f",
+        "prNumber": 7340,
+        "prBase": "master",
+        "mergeCommit": "24097766c7a1619c5f3d1dc43675a3a3a92da7ba",
+        "deliveryBranch": "master",
+        "deliveryCommit": "8db11054a6978e9efc1aa6e48bdd404f36ad4feb",
+        "verifiedAt": "2026-11-25T22:55:51Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "identityBasis": "merge-time-mark"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-25T22:55:51Z",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-25T22:55:51Z"
       }
     },
     "id": "github.issue.6577562966",
-    "updated": "2026-11-25T05:18:42Z"
+    "updated": "2026-11-25T22:55:51Z"
   }
 }
