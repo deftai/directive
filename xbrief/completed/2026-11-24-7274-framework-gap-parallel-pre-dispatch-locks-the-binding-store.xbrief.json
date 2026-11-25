@@ -2,13 +2,13 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #7274",
-    "updated": "2026-11-24T14:17:32Z"
+    "updated": "2026-11-25T02:33:02Z"
   },
   "plan": {
     "title": "Pre-dispatch binding lock repair",
-    "status": "running",
+    "status": "completed",
     "narratives": {
-      "Overview": "relieves: P1 — Begin-only bounded wait/retry on the story-binding store lock during post-ledger binding write (finite retry×sleep or wall-clock cap; complete/remove stay non-waiting; dead-owner reclaim unchanged) relieves: P2 — After that budget fails on store-lock contention for a just-created attempt, roll back/end that attempt under the unit lock and return nonzero non-spawnable; do not leave status=running spawn-ready with a missing binding; clean same-unit retry can begin",
+      "Overview": "\n\n- relieves: P1 — Begin-only bounded wait/retry on the story-binding store lock during post-ledger binding write (finite retry×sleep or wall-clock cap; complete/remove stay non-waiting; dead-owner reclaim unchanged)\n- relieves: P2 — After that budget fails on store-lock contention for a just-created attempt, roll back/end that attempt under the unit lock and return nonzero non-spawnable; do not leave status=running spawn-ready with a missing binding; clean same-unit retry can begin\n- relieves: P3 — Same scope+target begin that finds this unit's active attempt with missing binding for that worktree and no attached worker completes binding and returns a spawn-legal repair-admit of that existing attempt (exit 0 or named repair-admit decision); binding write alone is not enough; serialize the begin/repair decision under the unit lock and recheck the exact attempt so an in-flight begin between ledger save and binding cannot double-admit with a concurrent repair\n- relieves: P4 — DENY_DUPLICATE_ACTIVE hint derives from repair-eligibility/binding outcome plus known identity: eligible failed-admission/missing-binding repair path names binding-repair; known non-null attempt.workerId (and/or resolved occupancy/subagent id for the target) names pre-cancel/takeover; already-bound or uncertain ownership keeps do-not-spawn with inspect/resolve-identity — never imply repair for a valid bound attempt merely because formatter lacks an agent id\n- Footnote: CHANGELOG / operator docs for repair-admit and hint split; panel-deposit siblings field bookkeeping; other non-lock binding failure modes remain residual under open materiality (Codex C4/C5, Grok F5)\n\n\n\n\n\n- A1 — Contended store lock during begin binding: wait budget eventually writes binding or rolls back the just-created attempt with nonzero non-spawnable; never exit 0 spawn-ready with missing binding after store-lock failure\n- A2 — Interleaving: caller B retries while caller A is between ledger save and binding; at most one spawn-ready result; no double dispatch of the same attempt\n- A3 — Orphan repair: same scope+target with missing binding + this unit active attempt + no attached worker → binding written + spawn-legal repair-admit without cancel\n- A4 — Hint matrix: repair-eligible → binding-repair lines; known workerId/subagent → pre-cancel/takeover; already-bound without identity → do-not-spawn/inspect (not repair)\n- A5 — Fixtures cover wait-success, wait-exhausted-rollback+clean-retry, interleaving double-admit refuse, repair-admit, and hint branches\n\n",
       "Description": "",
       "UserStory": "",
       "ImplementationPlan": ""
@@ -17,52 +17,186 @@
       {
         "id": "clause.1",
         "title": "relieves: P1 — Begin-only bounded wait/retry on the story-binding store lock during post-ledger binding write (finite retry×sleep or wall-clock cap; complete/remove stay non-waiting; dead-owner reclaim unchanged)",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Product PR #7314 merged fb665cf59; Bound limbs shipped; vitest pre-dispatch/story-binding suites green; leftover-complete after Tracking-only product",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "operator",
+            "mintedAt": "2026-11-25T02:20:23Z",
+            "mintedVia": "deft authz:grant",
+            "eventRef": "template:acceptance-disposition",
+            "grantId": "grant-20261125022023-0942af"
+          },
+          "recorded_at": "2026-11-25T02:33:02Z"
+        }
       },
       {
         "id": "clause.2",
         "title": "relieves: P2 — After that budget fails on store-lock contention for a just-created attempt, roll back/end that attempt under the unit lock and return nonzero non-spawnable; do not leave status=running spawn-ready with a missing binding; clean same-unit retry can begin",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Product PR #7314 merged fb665cf59; Bound limbs shipped; vitest pre-dispatch/story-binding suites green; leftover-complete after Tracking-only product",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "operator",
+            "mintedAt": "2026-11-25T02:20:23Z",
+            "mintedVia": "deft authz:grant",
+            "eventRef": "template:acceptance-disposition",
+            "grantId": "grant-20261125022023-0942af"
+          },
+          "recorded_at": "2026-11-25T02:33:02Z"
+        }
       },
       {
         "id": "clause.3",
         "title": "relieves: P3 — Same scope+target begin that finds this unit's active attempt with missing binding for that worktree and no attached worker completes binding and returns a spawn-legal repair-admit of that existing attempt (exit 0 or named repair-admit decision); binding write alone is not enough; serialize the begin/repair decision under the unit lock and recheck the exact attempt so an in-flight begin between ledger save and binding cannot double-admit with a concurrent repair",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Product PR #7314 merged fb665cf59; Bound limbs shipped; vitest pre-dispatch/story-binding suites green; leftover-complete after Tracking-only product",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "operator",
+            "mintedAt": "2026-11-25T02:20:23Z",
+            "mintedVia": "deft authz:grant",
+            "eventRef": "template:acceptance-disposition",
+            "grantId": "grant-20261125022023-0942af"
+          },
+          "recorded_at": "2026-11-25T02:33:02Z"
+        }
       },
       {
         "id": "clause.4",
         "title": "relieves: P4 — DENY_DUPLICATE_ACTIVE hint derives from repair-eligibility/binding outcome plus known identity: eligible failed-admission/missing-binding repair path names binding-repair; known non-null attempt.workerId (and/or resolved occupancy/subagent id for the target) names pre-cancel/takeover; already-bound or uncertain ownership keeps do-not-spawn with inspect/resolve-identity — never imply repair for a valid bound attempt merely because formatter lacks an agent id",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Product PR #7314 merged fb665cf59; Bound limbs shipped; vitest pre-dispatch/story-binding suites green; leftover-complete after Tracking-only product",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "operator",
+            "mintedAt": "2026-11-25T02:20:23Z",
+            "mintedVia": "deft authz:grant",
+            "eventRef": "template:acceptance-disposition",
+            "grantId": "grant-20261125022023-0942af"
+          },
+          "recorded_at": "2026-11-25T02:33:02Z"
+        }
       },
       {
         "id": "clause.5",
         "title": "Footnote: CHANGELOG / operator docs for repair-admit and hint split; panel-deposit siblings field bookkeeping; other non-lock binding failure modes remain residual under open materiality (Codex C4/C5, Grok F5)",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Product PR #7314 merged fb665cf59; Bound limbs shipped; vitest pre-dispatch/story-binding suites green; leftover-complete after Tracking-only product",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "operator",
+            "mintedAt": "2026-11-25T02:20:23Z",
+            "mintedVia": "deft authz:grant",
+            "eventRef": "template:acceptance-disposition",
+            "grantId": "grant-20261125022023-0942af"
+          },
+          "recorded_at": "2026-11-25T02:33:02Z"
+        }
       },
       {
         "id": "clause.6",
         "title": "A1 — Contended store lock during begin binding: wait budget eventually writes binding or rolls back the just-created attempt with nonzero non-spawnable; never exit 0 spawn-ready with missing binding after store-lock failure",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Product PR #7314 merged fb665cf59; Bound limbs shipped; vitest pre-dispatch/story-binding suites green; leftover-complete after Tracking-only product",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "operator",
+            "mintedAt": "2026-11-25T02:20:23Z",
+            "mintedVia": "deft authz:grant",
+            "eventRef": "template:acceptance-disposition",
+            "grantId": "grant-20261125022023-0942af"
+          },
+          "recorded_at": "2026-11-25T02:33:02Z"
+        }
       },
       {
         "id": "clause.7",
         "title": "A2 — Interleaving: caller B retries while caller A is between ledger save and binding; at most one spawn-ready result; no double dispatch of the same attempt",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Product PR #7314 merged fb665cf59; Bound limbs shipped; vitest pre-dispatch/story-binding suites green; leftover-complete after Tracking-only product",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "operator",
+            "mintedAt": "2026-11-25T02:20:23Z",
+            "mintedVia": "deft authz:grant",
+            "eventRef": "template:acceptance-disposition",
+            "grantId": "grant-20261125022023-0942af"
+          },
+          "recorded_at": "2026-11-25T02:33:02Z"
+        }
       },
       {
         "id": "clause.8",
         "title": "A3 — Orphan repair: same scope+target with missing binding + this unit active attempt + no attached worker → binding written + spawn-legal repair-admit without cancel",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Product PR #7314 merged fb665cf59; Bound limbs shipped; vitest pre-dispatch/story-binding suites green; leftover-complete after Tracking-only product",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "operator",
+            "mintedAt": "2026-11-25T02:20:23Z",
+            "mintedVia": "deft authz:grant",
+            "eventRef": "template:acceptance-disposition",
+            "grantId": "grant-20261125022023-0942af"
+          },
+          "recorded_at": "2026-11-25T02:33:02Z"
+        }
       },
       {
         "id": "clause.9",
         "title": "A4 — Hint matrix: repair-eligible → binding-repair lines; known workerId/subagent → pre-cancel/takeover; already-bound without identity → do-not-spawn/inspect (not repair)",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Product PR #7314 merged fb665cf59; Bound limbs shipped; vitest pre-dispatch/story-binding suites green; leftover-complete after Tracking-only product",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "operator",
+            "mintedAt": "2026-11-25T02:20:23Z",
+            "mintedVia": "deft authz:grant",
+            "eventRef": "template:acceptance-disposition",
+            "grantId": "grant-20261125022023-0942af"
+          },
+          "recorded_at": "2026-11-25T02:33:02Z"
+        }
       },
       {
         "id": "clause.10",
         "title": "A5 — Fixtures cover wait-success, wait-exhausted-rollback+clean-retry, interleaving double-admit refuse, repair-admit, and hint branches",
-        "status": "pending"
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Product PR #7314 merged fb665cf59; Bound limbs shipped; vitest pre-dispatch/story-binding suites green; leftover-complete after Tracking-only product",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "operator",
+            "mintedAt": "2026-11-25T02:20:23Z",
+            "mintedVia": "deft authz:grant",
+            "eventRef": "template:acceptance-disposition",
+            "grantId": "grant-20261125022023-0942af"
+          },
+          "recorded_at": "2026-11-25T02:33:02Z"
+        }
       }
     ],
     "tags": [
@@ -90,7 +224,7 @@
     ],
     "acceptance": {
       "commands": [],
-      "none_stated": false,
+      "none_stated": true,
       "derived_reason": "Prefer-A Bound limbs same-text (#5055/#4374)",
       "source_rung": "derived",
       "clauses": [
@@ -165,7 +299,24 @@
           "provenance": "statement"
         }
       ],
-      "ambiguity_attestation": "none_found"
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "Pre-dispatch binding lock repair",
+        "relieves: P1 — Begin-only bounded wait/retry on the story-binding store lock during post-ledger binding write (finite retry×sleep or wall-clock cap; complete/remove stay non-waiting; dead-owner reclaim unchanged) relieves: P2 — After that budget fails on store-lock contention for a just-created attempt, roll back/end that attempt under the unit lock and return nonzero non-spawnable; do not leave status=running spawn-ready with a missing binding; clean same-unit retry can begin"
+      ],
+      "admitted_source_sentences": [
+        "relieves: P1 — Begin-only bounded wait/retry on the story-binding store lock during post-ledger binding write (finite retry×sleep or wall-clock cap; complete/remove stay non-waiting; dead-owner reclaim unchanged)",
+        "relieves: P2 — After that budget fails on store-lock contention for a just-created attempt, roll back/end that attempt under the unit lock and return nonzero non-spawnable; do not leave status=running spawn-ready with a missing binding; clean same-unit retry can begin",
+        "relieves: P3 — Same scope+target begin that finds this unit's active attempt with missing binding for that worktree and no attached worker completes binding and returns a spawn-legal repair-admit of that existing attempt (exit 0 or named repair-admit decision); binding write alone is not enough; serialize the begin/repair decision under the unit lock and recheck the exact attempt so an in-flight begin between ledger save and binding cannot double-admit with a concurrent repair",
+        "relieves: P4 — DENY_DUPLICATE_ACTIVE hint derives from repair-eligibility/binding outcome plus known identity: eligible failed-admission/missing-binding repair path names binding-repair; known non-null attempt.workerId (and/or resolved occupancy/subagent id for the target) names pre-cancel/takeover; already-bound or uncertain ownership keeps do-not-spawn with inspect/resolve-identity — never imply repair for a valid bound attempt merely because formatter lacks an agent id",
+        "Footnote: CHANGELOG / operator docs for repair-admit and hint split; panel-deposit siblings field bookkeeping; other non-lock binding failure modes remain residual under open materiality (Codex C4/C5, Grok F5)",
+        "A1 — Contended store lock during begin binding: wait budget eventually writes binding or rolls back the just-created attempt with nonzero non-spawnable; never exit 0 spawn-ready with missing binding after store-lock failure",
+        "A2 — Interleaving: caller B retries while caller A is between ledger save and binding; at most one spawn-ready result; no double dispatch of the same attempt",
+        "A3 — Orphan repair: same scope+target with missing binding + this unit active attempt + no attached worker → binding written + spawn-legal repair-admit without cancel",
+        "A4 — Hint matrix: repair-eligible → binding-repair lines; known workerId/subagent → pre-cancel/takeover; already-bound without identity → do-not-spawn/inspect (not repair)",
+        "A5 — Fixtures cover wait-success, wait-exhausted-rollback+clean-retry, interleaving double-admit refuse, repair-admit, and hint branches"
+      ],
+      "admitted_source_digest": "fc3c74fbd905618a28a95e4bc884a365164673658d59e58bbbc5bb74e5ebf7ed"
     },
     "metadata": {
       "intended_placement": {
@@ -567,14 +718,42 @@
         ],
         "file_scope_confidence": "high",
         "verify_commands": [
-          "pnpm exec vitest related --run"
+          "pnpm exec vitest run packages/core/src/swarm/pre-dispatch-story-binding.test.ts packages/core/src/swarm/story-binding-record.test.ts packages/core/src/swarm/pre-dispatch.test.ts"
         ],
         "depends_on": [],
         "conflict_group": "pre-dispatch-binding-store-lock-orphan-attempt-repair",
         "missing_traces_justification": "Prefer-A Bound limbs are the acceptance surface; traces deferred to product PR evidence."
+      },
+      "productPullRequest": 7314,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "1eeb29f5df2890e9b7dc56758630de540428c668",
+        "prNumber": 7314,
+        "prBase": "master",
+        "mergeCommit": "fb665cf59beadae8400111665faab58ee2f5963c",
+        "deliveryBranch": "master",
+        "deliveryCommit": "e192746ff6dbb684df0b02742a654d1916104462",
+        "verifiedAt": "2026-11-25T02:33:02Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          7309
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-25T02:33:02Z",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-25T02:33:02Z"
       }
     },
     "id": "github.issue.6580878198",
-    "updated": "2026-11-24T14:17:32Z"
+    "updated": "2026-11-25T02:33:02Z"
   }
 }
