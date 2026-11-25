@@ -3,11 +3,11 @@
     "version": "0.8",
     "description": "Isolate vb-cov-cli temp fixture cleanup and finalize pathspecs when vbrief/ is absent.",
     "created": "2026-11-24T18:00:00Z",
-    "updated": "2026-11-24T19:58:48Z"
+    "updated": "2026-11-25T03:03:04Z"
   },
   "plan": {
     "title": "fix(test): isolate vb-cov-cli fixture + finalize pathspecs when vbrief absent",
-    "status": "running",
+    "status": "completed",
     "id": "github.issue.6587893970",
     "narratives": {
       "Overview": "Stop Merge-gate flake from leftover vb-cov-cli proposed-in-active fixtures, and let finalize-cohort stage only existing xbrief/ and/or vbrief/ trees.",
@@ -19,22 +19,76 @@
       {
         "id": "clause.1",
         "title": "coverage-boost validate CLI test wraps fixture root in try/finally and always removes it.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Product PR #7300 merged as 4cbb151b3ebf41f203b94f26e6f6411c67cc4e19; vitest coverage-boost + finalize-cohort-batch-7082 green (21 passed); leftover finalize — clause-walk has null artifact_path (reminted approved-scope) so Bound limbs are unverifiable without disposition",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "operator",
+            "mintedAt": "2026-11-25T02:56:00Z",
+            "mintedVia": "deft authz:grant",
+            "eventRef": "template:acceptance-disposition",
+            "grantId": "grant-20261125025600-7c6c76"
+          },
+          "recorded_at": "2026-11-25T03:03:04Z"
+        }
       },
       {
         "id": "clause.2",
         "title": "finalize-cohort commitLifecycleMoves uses git status/add pathspecs only for existing xbrief/ and/or vbrief/.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Product PR #7300 merged as 4cbb151b3ebf41f203b94f26e6f6411c67cc4e19; vitest coverage-boost + finalize-cohort-batch-7082 green (21 passed); leftover finalize — clause-walk has null artifact_path (reminted approved-scope) so Bound limbs are unverifiable without disposition",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "operator",
+            "mintedAt": "2026-11-25T02:56:00Z",
+            "mintedVia": "deft authz:grant",
+            "eventRef": "template:acceptance-disposition",
+            "grantId": "grant-20261125025600-7c6c76"
+          },
+          "recorded_at": "2026-11-25T03:03:04Z"
+        }
       },
       {
         "id": "clause.3",
         "title": "finalize-cohort-batch-7082 (and related) tests expect conditional pathspecs.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Product PR #7300 merged as 4cbb151b3ebf41f203b94f26e6f6411c67cc4e19; vitest coverage-boost + finalize-cohort-batch-7082 green (21 passed); leftover finalize — clause-walk has null artifact_path (reminted approved-scope) so Bound limbs are unverifiable without disposition",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "operator",
+            "mintedAt": "2026-11-25T02:56:00Z",
+            "mintedVia": "deft authz:grant",
+            "eventRef": "template:acceptance-disposition",
+            "grantId": "grant-20261125025600-7c6c76"
+          },
+          "recorded_at": "2026-11-25T03:03:04Z"
+        }
       },
       {
         "id": "clause.4",
         "title": "changelog.d fragment section Fixed for the flake and pathspec fix.",
-        "status": "proposed"
+        "status": "completed",
+        "x-directive/requires": "merge",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "Product PR #7300 merged as 4cbb151b3ebf41f203b94f26e6f6411c67cc4e19; vitest coverage-boost + finalize-cohort-batch-7082 green (21 passed); leftover finalize — clause-walk has null artifact_path (reminted approved-scope) so Bound limbs are unverifiable without disposition",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "operator",
+            "mintedAt": "2026-11-25T02:56:00Z",
+            "mintedVia": "deft authz:grant",
+            "eventRef": "template:acceptance-disposition",
+            "grantId": "grant-20261125025600-7c6c76"
+          },
+          "recorded_at": "2026-11-25T03:03:04Z"
+        }
       }
     ],
     "acceptance": {
@@ -71,6 +125,11 @@
           "ambiguous": false,
           "provenance": "statement"
         }
+      ],
+      "confessions": [
+        "fix(test): isolate vb-cov-cli fixture + finalize pathspecs when vbrief absent",
+        "Stop Merge-gate flake from leftover vb-cov-cli proposed-in-active fixtures, and let finalize-cohort stage only existing xbrief/ and/or vbrief/ trees.",
+        "coverage-boost.test.ts must always rmSync its temp root; commitLifecycleMoves must not pathspec a missing vbrief/."
       ],
       "ambiguity_attestation": "none_found"
     },
@@ -115,7 +174,36 @@
         "module_boundary": "packages/core",
         "cohesion_exemption": "finalize-cohort.ts already exceeds review-trigger; thin pathspec-only edit stays in this story with remint cohesion_exemption"
       },
-      "productPullRequest": 7300
+      "productPullRequest": 7300,
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "db948b4c5e4d9098483e51c783e9ce0800305488",
+        "prNumber": 7300,
+        "prBase": "master",
+        "mergeCommit": "4cbb151b3ebf41f203b94f26e6f6411c67cc4e19",
+        "deliveryBranch": "master",
+        "deliveryCommit": "f8cadd73d4c12d501cce8fa4ac5e15b28a2de0ec",
+        "verifiedAt": "2026-11-25T03:03:04Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:grok:v1:MDFhMjEwYTMtMjQ2NC03NjYzLWI0NWItN2VjMWYxODI5MGIx",
+        "identityBasis": "merge-time-mark",
+        "competingMarkedPrs": [
+          7295
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-25T03:03:04Z",
+      "completedSessionId": "host:grok:v1:MDFhMjEwYTMtMjQ2NC03NjYzLWI0NWItN2VjMWYxODI5MGIx",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-25T03:03:04Z"
+      }
     },
     "references": [
       {
@@ -129,6 +217,6 @@
         "title": "Residual deeper hygiene #7291"
       }
     ],
-    "updated": "2026-11-24T19:58:48Z"
+    "updated": "2026-11-25T03:03:04Z"
   }
 }
