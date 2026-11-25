@@ -77,6 +77,8 @@ export interface ParsedArgs {
   quiet: boolean;
   /** Explicit operator confirm for the #3110 human-presence mint (#3384). */
   confirm: boolean;
+  /** Complete a previously opened harness-attended request (#7279). */
+  requestId: string;
   /** Optional owner/name seed for preimage approvedRepos (#3385 R5). */
   repo: string;
   /** Repeatable `--add-path` widen requests (#6643); empty means the plain mint. */
@@ -102,7 +104,10 @@ function usage(): string {
     "each story's plan id, brief, worktree, file_scope, acceptance and intent digest, asks for " +
     "the typed mint once, and writes each record pair into that story's worktree.\n" +
     "  --actor is display only and never authorizes mint. Mint requires a real TTY, " +
-    "controlling terminal, --confirm, and typed phrase mint (#3110). Agent/CI shells refuse."
+    "controlling terminal, --confirm, and typed phrase mint (#3110). Under agent/CI " +
+    "markers, open a harness-attended request and confirm via controlling-TTY phrase or " +
+    "host-authenticated user-event (--request-id); markers may stay set; bare chat-yes " +
+    "is request-open only (#7279)."
   );
 }
 
@@ -162,6 +167,7 @@ export function parseArgs(argv: string[]): ParsedArgs {
     xbriefRelPath: "",
     quiet: false,
     confirm: false,
+    requestId: "",
     repo: "",
     addPaths: [],
     manifest: "",
@@ -179,6 +185,17 @@ export function parseArgs(argv: string[]): ParsedArgs {
       parsed.quiet = true;
     } else if (arg === "--confirm") {
       parsed.confirm = true;
+    } else if (arg === "--request-id" || arg === "--requestId") {
+      const value = argv[i + 1];
+      if (value === undefined || value === "--") {
+        return { ...parsed, error: "argument --request-id: expected one argument" };
+      }
+      parsed.requestId = value;
+      i += 1;
+    } else if (arg?.startsWith("--request-id=")) {
+      parsed.requestId = arg.slice("--request-id=".length);
+    } else if (arg?.startsWith("--requestId=")) {
+      parsed.requestId = arg.slice("--requestId=".length);
     } else if (arg === "--project-root") {
       const value = argv[i + 1];
       if (value === undefined || value === "--") {
@@ -603,21 +620,6 @@ export function run(
   const verb = "scope:record-approved-scope";
   const uatBlocked = refuseMintWhileUatActive(verb, projectRoot);
   if (uatBlocked !== null) return uatBlocked;
-  const resolved = resolveHumanPresenceMintSeams(seams);
-  const mintBlocked = refuseNonInteractiveMint({
-    verb,
-    confirm: args.confirm,
-    isTty: resolved.isTty,
-    environ: resolved.environ,
-    hasControllingTerminal: resolved.hasControllingTerminal,
-    readInteractiveConfirm: resolved.readInteractiveConfirm,
-    operatorStop: {
-      projectRoot,
-      args: mintArgsAfterVerb(argv, null),
-      record: resolved.recordOperatorStop,
-    },
-  });
-  if (mintBlocked !== null) return mintBlocked;
 
   const stamp = {
     kind: args.kind.trim(),
@@ -646,6 +648,40 @@ export function run(
     );
     return 2;
   }
+  const planId = scopeProvenance.extractPlanId(payload);
+  if (planId === null) {
+    process.stderr.write("scope_record_approved_scope: the brief has no plan.id\n");
+    return 2;
+  }
+  // Freeze destinations before confirm so harness-attended binding is concrete (#7279).
+  const destinations = [
+    scopeProvenance.approvedScopeRecordPath(projectRoot, planId),
+    scopeProvenance.approvedScopeIntentPath(projectRoot, planId),
+  ];
+  const resolved = resolveHumanPresenceMintSeams(seams);
+  const mintBlocked = refuseNonInteractiveMint({
+    verb,
+    confirm: args.confirm,
+    isTty: resolved.isTty,
+    environ: resolved.environ,
+    hasControllingTerminal: resolved.hasControllingTerminal,
+    readInteractiveConfirm: resolved.readInteractiveConfirm,
+    readHostAuthenticatedConfirm: resolved.readHostAuthenticatedConfirm,
+    operatorStop: {
+      projectRoot,
+      args: mintArgsAfterVerb(argv, null),
+      record: resolved.recordOperatorStop,
+    },
+    harnessAttended: {
+      destinations,
+      ...(args.requestId.trim().length > 0 ? { requestId: args.requestId.trim() } : {}),
+    },
+  });
+  if (mintBlocked !== null) return mintBlocked;
+  // Fresh UAT recheck at confirm time (#7279).
+  const uatRecheck = refuseMintWhileUatActive(verb, projectRoot);
+  if (uatRecheck !== null) return uatRecheck;
+
   if (args.addPaths.length > 0) {
     return runWiden({
       projectRoot,
@@ -767,6 +803,7 @@ function runCohort(
     );
     return 0;
   }
+  const destinations = prepared.stories.flatMap((s) => [s.recordPath, s.intentPath]);
   const resolved = resolveHumanPresenceMintSeams(seams);
   const mintBlocked = refuseNonInteractiveMint({
     verb,
@@ -775,13 +812,23 @@ function runCohort(
     environ: resolved.environ,
     hasControllingTerminal: resolved.hasControllingTerminal,
     readInteractiveConfirm: resolved.readInteractiveConfirm,
+    readHostAuthenticatedConfirm: resolved.readHostAuthenticatedConfirm,
     operatorStop: {
       projectRoot,
       args: mintArgsAfterVerb(argv, null),
       record: resolved.recordOperatorStop,
     },
+    harnessAttended: {
+      destinations,
+      ...(args.requestId.trim().length > 0 ? { requestId: args.requestId.trim() } : {}),
+    },
   });
   if (mintBlocked !== null) return mintBlocked;
+  // Fresh UAT recheck across every destination root at confirm time (#7279).
+  for (const root of new Set(roots)) {
+    const uatRecheck = refuseMintWhileUatActive(verb, root);
+    if (uatRecheck !== null) return uatRecheck;
+  }
   const written = writeCohortPairs(prepared.stories, cohortSeams);
   if (!written.ok) {
     process.stderr.write(

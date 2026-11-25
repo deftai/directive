@@ -1,12 +1,25 @@
 /**
- * Shared #3110 human-presence mint gate (#3384).
+ * Shared #3110 human-presence mint gate (#3384 / #7279).
  *
  * Used by `authz` mutating verbs and `scope:record-approved-scope`. Multi-factor
  * human presence: interactive TTY + controlling terminal + `--confirm` + typed
- * phrase `mint`. Agent/CI env markers refuse fail-closed. `--actor` is never
- * an input here — display only at the caller.
+ * phrase `mint`. Agent/CI env markers refuse fail-closed for unmarked verbs.
+ * Kept-mint verbs may complete under markers via a harness-attended freeze +
+ * operator-controlled confirm (controlling-TTY phrase or host-authenticated
+ * user-event) without forge-by-unset (#7279). `--actor` is never an input here
+ * — display only at the caller.
  */
-import { closeSync, openSync, readSync } from "node:fs";
+import { createHash, randomBytes } from "node:crypto";
+import {
+  closeSync,
+  existsSync,
+  mkdirSync,
+  openSync,
+  readFileSync,
+  readSync,
+  writeFileSync,
+} from "node:fs";
+import { join } from "node:path";
 import { loadAuthzState } from "@deftai/directive-core/authz";
 import {
   formatOperatorCommand,
@@ -67,7 +80,20 @@ export const AUTHZ_AGENT_SHELL_ENV_MARKERS = [
 /** Phrase an operator must type on the controlling TTY after --confirm (#3110). */
 export const AUTHZ_INTERACTIVE_CONFIRM_PHRASE = "mint";
 
-/** Testable seams for TTY / agent-shell detection (#3110 / #3384). */
+/**
+ * Host-authenticated user-event that may complete a frozen harness-attended
+ * mint request (#7279). Must name the request id and matching authority digest;
+ * the requesting agent shell cannot forge provenance.
+ */
+export interface HostAuthenticatedUserEvent {
+  readonly requestId: string;
+  readonly authorityPayloadDigest: string;
+  readonly hostSessionId: string;
+  readonly authenticatedAt: string;
+  readonly provenance: "host-user-event";
+}
+
+/** Testable seams for TTY / agent-shell detection (#3110 / #3384 / #7279). */
 export interface HumanPresenceMintSeams {
   /**
    * When true, interactive human TTY is present.
@@ -86,6 +112,11 @@ export interface HumanPresenceMintSeams {
    * Default: one line from the controlling terminal. Tests inject a fixed phrase.
    */
   readonly readInteractiveConfirm?: () => string | null;
+  /**
+   * Optional host-authenticated confirm for a frozen request id (#7279).
+   * Default: null (no host event). Tests inject a matching event.
+   */
+  readonly readHostAuthenticatedConfirm?: (requestId: string) => HostAuthenticatedUserEvent | null;
   /**
    * Recorder for an agent-refused mint (#6275). Default: core
    * `recordOperatorStop`, which writes nothing while the notifier is off.
@@ -169,6 +200,12 @@ function defaultReadInteractiveConfirm(): string | null {
   }
 }
 
+function defaultReadHostAuthenticatedConfirm(
+  _requestId: string,
+): HostAuthenticatedUserEvent | null {
+  return null;
+}
+
 export function resolveHumanPresenceMintSeams(
   seams: HumanPresenceMintSeams = {},
 ): Required<HumanPresenceMintSeams> {
@@ -177,8 +214,424 @@ export function resolveHumanPresenceMintSeams(
     environ: seams.environ ?? process.env,
     hasControllingTerminal: seams.hasControllingTerminal ?? defaultHasControllingTerminal,
     readInteractiveConfirm: seams.readInteractiveConfirm ?? defaultReadInteractiveConfirm,
+    readHostAuthenticatedConfirm:
+      seams.readHostAuthenticatedConfirm ?? defaultReadHostAuthenticatedConfirm,
     recordOperatorStop: seams.recordOperatorStop ?? defaultRecordOperatorStop,
   };
+}
+
+/** Inventoried kept-mint verbs eligible for harness-attended confirm (#7279 / #7031). */
+export const HARNESS_ATTENDED_MINT_VERBS = [
+  "scope:record-approved-scope",
+  "authz:grant",
+  "authz:uat-start",
+  "authz:uat-suspend",
+  "authz:revoke",
+] as const;
+
+export type HarnessAttendedMintVerb = (typeof HARNESS_ATTENDED_MINT_VERBS)[number];
+
+export function isHarnessAttendedMintVerb(verb: string): verb is HarnessAttendedMintVerb {
+  return (HARNESS_ATTENDED_MINT_VERBS as readonly string[]).includes(verb);
+}
+
+/** Relative store under the canonical checkout for frozen requests (#7279). */
+export const HARNESS_ATTENDED_MINT_STORE_REL = ".deft/harness-attended-mint";
+
+/** Default single-use request TTL (15 minutes). */
+export const HARNESS_ATTENDED_MINT_TTL_MS = 15 * 60 * 1000;
+
+export type HarnessAttendedMintRequestStatus = "open" | "cancelled" | "completed" | "expired";
+
+export interface HarnessAttendedMintRequest {
+  readonly schemaVersion: 1;
+  readonly requestId: string;
+  readonly verb: string;
+  readonly projectRoot: string;
+  readonly authorityPayloadDigest: string;
+  readonly destinations: readonly string[];
+  readonly args: readonly string[];
+  readonly createdAt: string;
+  readonly expiresAt: string;
+  status: HarnessAttendedMintRequestStatus;
+  completedAt?: string;
+  completedVia?: "controlling-tty-phrase" | "host-user-event";
+}
+
+/** Options that route a kept-mint verb through harness-attended confirm (#7279). */
+export interface HarnessAttendedMintOptions {
+  /** Resolved write destinations frozen into the request. */
+  readonly destinations: readonly string[];
+  /**
+   * Chat-yes / request-open: freeze only and refuse the write. Never stamps.
+   * Implied when `--confirm` is absent under agent markers.
+   */
+  readonly requestOpenOnly?: boolean;
+  /** Complete a previously opened request; must still match the freeze. */
+  readonly requestId?: string;
+  readonly ttlMs?: number;
+  readonly now?: () => Date;
+  readonly newRequestId?: () => string;
+  readonly storeRoot?: string;
+}
+
+/**
+ * Drop confirm-ceremony flags from argv before freezing (#7279).
+ * `--confirm` / `--request-id` are how the operator completes the request; they
+ * must not change the authority payload digest between request-open and confirm.
+ */
+export function normalizeHarnessAttendedArgs(args: readonly string[]): string[] {
+  const out: string[] = [];
+  for (let i = 0; i < args.length; i++) {
+    const a = args[i] as string;
+    if (a === "--confirm") continue;
+    if (a === "--request-id" || a === "--requestId") {
+      i += 1;
+      continue;
+    }
+    if (a.startsWith("--request-id=") || a.startsWith("--requestId=")) continue;
+    out.push(a);
+  }
+  return out;
+}
+
+/** Canonical digest over verb + checkout + destinations + argv (#7279). */
+export function digestHarnessAttendedAuthorityPayload(input: {
+  readonly verb: string;
+  readonly projectRoot: string;
+  readonly destinations: readonly string[];
+  readonly args: readonly string[];
+}): string {
+  const body = JSON.stringify({
+    verb: input.verb,
+    projectRoot: input.projectRoot.replace(/\\/g, "/").replace(/\/+$/, ""),
+    destinations: [...input.destinations]
+      .map((d) => d.replace(/\\/g, "/").replace(/\/+$/, ""))
+      .sort(),
+    args: normalizeHarnessAttendedArgs(input.args),
+  });
+  return `sha256:${createHash("sha256").update(body, "utf8").digest("hex")}`;
+}
+
+export function harnessAttendedMintStoreRoot(projectRoot: string, storeRoot?: string): string {
+  return storeRoot ?? join(projectRoot, HARNESS_ATTENDED_MINT_STORE_REL);
+}
+
+export function harnessAttendedMintRequestPath(storeRoot: string, requestId: string): string {
+  const safe = requestId.replace(/[^a-zA-Z0-9._-]/g, "_");
+  return join(storeRoot, `${safe}.json`);
+}
+
+function defaultNewRequestId(): string {
+  return randomBytes(16).toString("hex");
+}
+
+function toIsoZ(d: Date): string {
+  return d.toISOString().replace(/\.\d{3}Z$/, "Z");
+}
+
+/** Open (freeze) a single-use harness-attended mint request. Never stamps. */
+export function openHarnessAttendedMintRequest(input: {
+  readonly verb: string;
+  readonly projectRoot: string;
+  readonly destinations: readonly string[];
+  readonly args: readonly string[];
+  readonly ttlMs?: number;
+  readonly now?: () => Date;
+  readonly newRequestId?: () => string;
+  readonly storeRoot?: string;
+}): { ok: true; request: HarnessAttendedMintRequest } | { ok: false; error: string } {
+  if (!isHarnessAttendedMintVerb(input.verb)) {
+    return {
+      ok: false,
+      error: `verb ${input.verb} is not harness-attended eligible (#7279)`,
+    };
+  }
+  if (input.destinations.length === 0) {
+    return { ok: false, error: "destinations must be non-empty for a frozen request (#7279)" };
+  }
+  const now = input.now ?? (() => new Date());
+  const created = now();
+  const ttl = input.ttlMs ?? HARNESS_ATTENDED_MINT_TTL_MS;
+  const requestId = (input.newRequestId ?? defaultNewRequestId)();
+  const normalizedArgs = normalizeHarnessAttendedArgs(input.args);
+  const digest = digestHarnessAttendedAuthorityPayload({
+    ...input,
+    args: normalizedArgs,
+  });
+  const request: HarnessAttendedMintRequest = {
+    schemaVersion: 1,
+    requestId,
+    verb: input.verb,
+    projectRoot: input.projectRoot,
+    authorityPayloadDigest: digest,
+    destinations: [...input.destinations],
+    args: normalizedArgs,
+    createdAt: toIsoZ(created),
+    expiresAt: toIsoZ(new Date(created.getTime() + ttl)),
+    status: "open",
+  };
+  const store = harnessAttendedMintStoreRoot(input.projectRoot, input.storeRoot);
+  try {
+    mkdirSync(store, { recursive: true });
+    writeFileSync(
+      harnessAttendedMintRequestPath(store, requestId),
+      `${JSON.stringify(request, null, 2)}\n`,
+      "utf8",
+    );
+  } catch (err: unknown) {
+    return { ok: false, error: `failed to persist request: ${String(err)}` };
+  }
+  return { ok: true, request };
+}
+
+export function loadHarnessAttendedMintRequest(
+  projectRoot: string,
+  requestId: string,
+  storeRoot?: string,
+): HarnessAttendedMintRequest | null {
+  const path = harnessAttendedMintRequestPath(
+    harnessAttendedMintStoreRoot(projectRoot, storeRoot),
+    requestId,
+  );
+  if (!existsSync(path)) return null;
+  try {
+    const raw = JSON.parse(readFileSync(path, "utf8")) as HarnessAttendedMintRequest;
+    if (raw.schemaVersion !== 1 || typeof raw.requestId !== "string") return null;
+    return raw;
+  } catch {
+    return null;
+  }
+}
+
+function saveHarnessAttendedMintRequest(
+  projectRoot: string,
+  request: HarnessAttendedMintRequest,
+  storeRoot?: string,
+): void {
+  const store = harnessAttendedMintStoreRoot(projectRoot, storeRoot);
+  mkdirSync(store, { recursive: true });
+  writeFileSync(
+    harnessAttendedMintRequestPath(store, request.requestId),
+    `${JSON.stringify(request, null, 2)}\n`,
+    "utf8",
+  );
+}
+
+/**
+ * Refresh status for expiry without completing. Returns the loaded request or
+ * null when missing.
+ */
+export function refreshHarnessAttendedMintRequestStatus(
+  projectRoot: string,
+  requestId: string,
+  opts: { readonly now?: () => Date; readonly storeRoot?: string } = {},
+): HarnessAttendedMintRequest | null {
+  const loaded = loadHarnessAttendedMintRequest(projectRoot, requestId, opts.storeRoot);
+  if (loaded === null) return null;
+  if (loaded.status === "open") {
+    const now = opts.now ?? (() => new Date());
+    if (now().getTime() > Date.parse(loaded.expiresAt)) {
+      loaded.status = "expired";
+      saveHarnessAttendedMintRequest(projectRoot, loaded, opts.storeRoot);
+    }
+  }
+  return loaded;
+}
+
+function formatRequestOpenGuidance(verb: string, request: HarnessAttendedMintRequest): string {
+  return (
+    `${verb}: harness-attended request-open only (bare chat-yes never stamps) (#7279).\n` +
+    `  requestId: ${request.requestId}\n` +
+    `  authorityPayloadDigest: ${request.authorityPayloadDigest}\n` +
+    `  projectRoot: ${request.projectRoot}\n` +
+    `  destinations: ${request.destinations.join(" | ")}\n` +
+    `  expiresAt: ${request.expiresAt}\n` +
+    "  Confirm on a controlling TTY with --confirm --request-id " +
+    `${request.requestId} and typed phrase '${AUTHZ_INTERACTIVE_CONFIRM_PHRASE}', ` +
+    "or via a host-authenticated user-event bound to this request. " +
+    "Agent-shell markers may stay set (no forge-by-unset).\n"
+  );
+}
+
+/**
+ * Under agent-shell markers, admit a kept-mint verb only through a frozen
+ * single-use request confirmed by controlling-TTY phrase or host-authenticated
+ * user-event (#7279). Markers stay set.
+ */
+export function admitHarnessAttendedMint(input: {
+  readonly verb: string;
+  readonly confirm: boolean;
+  readonly projectRoot: string;
+  readonly args: readonly string[];
+  readonly destinations: readonly string[];
+  readonly requestOpenOnly?: boolean;
+  readonly requestId?: string;
+  readonly ttlMs?: number;
+  readonly now?: () => Date;
+  readonly newRequestId?: () => string;
+  readonly storeRoot?: string;
+  readonly isTty: () => boolean;
+  readonly hasControllingTerminal: () => boolean;
+  readonly readInteractiveConfirm: () => string | null;
+  readonly readHostAuthenticatedConfirm: (requestId: string) => HostAuthenticatedUserEvent | null;
+  readonly environ: NodeJS.ProcessEnv;
+  readonly operatorStop?: MintOperatorStopContext;
+}): number | null {
+  const { verb, confirm, projectRoot } = input;
+  const requestOpenOnly = input.requestOpenOnly === true || !confirm;
+
+  const expectedDigest = digestHarnessAttendedAuthorityPayload({
+    verb,
+    projectRoot,
+    destinations: input.destinations,
+    args: input.args,
+  });
+
+  let request: HarnessAttendedMintRequest;
+  if (input.requestId !== undefined && input.requestId.trim().length > 0) {
+    const loaded = refreshHarnessAttendedMintRequestStatus(projectRoot, input.requestId.trim(), {
+      now: input.now,
+      storeRoot: input.storeRoot,
+    });
+    if (loaded === null) {
+      process.stderr.write(
+        `${verb}: harness-attended request ${input.requestId.trim()} not found (#7279).\n`,
+      );
+      return 2;
+    }
+    request = loaded;
+  } else {
+    const opened = openHarnessAttendedMintRequest({
+      verb,
+      projectRoot,
+      destinations: input.destinations,
+      args: input.args,
+      ttlMs: input.ttlMs,
+      now: input.now,
+      newRequestId: input.newRequestId,
+      storeRoot: input.storeRoot,
+    });
+    if (!opened.ok) {
+      process.stderr.write(`${verb}: ${opened.error}\n`);
+      return 2;
+    }
+    request = opened.request;
+  }
+
+  if (request.verb !== verb) {
+    process.stderr.write(
+      `${verb}: harness-attended request ${request.requestId} verb mismatch ` +
+        `(frozen=${request.verb}) (#7279).\n`,
+    );
+    return 2;
+  }
+  if (request.authorityPayloadDigest !== expectedDigest) {
+    process.stderr.write(
+      `${verb}: harness-attended request ${request.requestId} changed ` +
+        `(authority payload or destinations no longer match freeze) (#7279).\n`,
+    );
+    return 2;
+  }
+  if (request.status === "cancelled") {
+    process.stderr.write(
+      `${verb}: harness-attended request ${request.requestId} was cancelled (#7279).\n`,
+    );
+    return 2;
+  }
+  if (request.status === "completed") {
+    process.stderr.write(
+      `${verb}: harness-attended request ${request.requestId} already completed (#7279).\n`,
+    );
+    return 2;
+  }
+  if (request.status === "expired") {
+    process.stderr.write(
+      `${verb}: harness-attended request ${request.requestId} expired at ${request.expiresAt} (#7279).\n`,
+    );
+    return 2;
+  }
+
+  if (requestOpenOnly) {
+    process.stderr.write(formatRequestOpenGuidance(verb, request));
+    if (input.operatorStop !== undefined) {
+      const confirmArgs = [
+        ...input.args.filter((a) => a !== "--confirm" && !a.startsWith("--request-id")),
+        "--confirm",
+        `--request-id=${request.requestId}`,
+      ];
+      recordMintOperatorStop(verb, input.environ, {
+        ...input.operatorStop,
+        args: confirmArgs,
+      });
+    }
+    return 2;
+  }
+
+  // Confirm path: host-authenticated user-event OR controlling-TTY phrase.
+  // Markers intentionally stay set (no forge-by-unset).
+  const hostEvent = input.readHostAuthenticatedConfirm(request.requestId);
+  if (hostEvent !== null) {
+    const nowMs = (input.now ?? (() => new Date()))().getTime();
+    const authMs = Date.parse(hostEvent.authenticatedAt);
+    if (
+      hostEvent.provenance !== "host-user-event" ||
+      hostEvent.requestId !== request.requestId ||
+      hostEvent.authorityPayloadDigest !== request.authorityPayloadDigest ||
+      hostEvent.hostSessionId.trim().length === 0 ||
+      Number.isNaN(authMs) ||
+      authMs > nowMs ||
+      authMs < Date.parse(request.createdAt) ||
+      authMs > Date.parse(request.expiresAt)
+    ) {
+      process.stderr.write(
+        `${verb}: host-authenticated user-event rejected for request ${request.requestId} (#7279).\n`,
+      );
+      return 2;
+    }
+    request.status = "completed";
+    request.completedAt = toIsoZ(input.now?.() ?? new Date());
+    request.completedVia = "host-user-event";
+    saveHarnessAttendedMintRequest(projectRoot, request, input.storeRoot);
+    process.stderr.write(
+      `${verb}: harness-attended confirm via host-authenticated user-event ` +
+        `(requestId=${request.requestId}; markers may stay set) (#7279).\n`,
+    );
+    return null;
+  }
+
+  if (!input.isTty()) {
+    process.stderr.write(
+      `${verb}: harness-attended confirm requires controlling-TTY phrase or ` +
+        "host-authenticated user-event; non-TTY agent shell cannot stamp (#7279).\n",
+    );
+    return 2;
+  }
+  if (!input.hasControllingTerminal()) {
+    process.stderr.write(
+      `${verb}: harness-attended confirm needs a controlling terminal (or host ` +
+        "user-event); open a real console without unsetting agent markers (#7279).\n",
+    );
+    return 2;
+  }
+  process.stderr.write(
+    `${verb}: harness-attended request ${request.requestId} — type ` +
+      `'${AUTHZ_INTERACTIVE_CONFIRM_PHRASE}' to confirm (markers may stay set) (#7279): `,
+  );
+  const line = input.readInteractiveConfirm();
+  const phrase = (line ?? "").trim().toLowerCase();
+  if (phrase !== AUTHZ_INTERACTIVE_CONFIRM_PHRASE) {
+    process.stderr.write(
+      `\n${verb}: interactive confirm phrase mismatch (got ${JSON.stringify(line ?? "")}). ` +
+        `Type exactly '${AUTHZ_INTERACTIVE_CONFIRM_PHRASE}' on the controlling TTY (#7279).\n`,
+    );
+    return 2;
+  }
+  request.status = "completed";
+  request.completedAt = toIsoZ(input.now?.() ?? new Date());
+  request.completedVia = "controlling-tty-phrase";
+  saveHarnessAttendedMintRequest(projectRoot, request, input.storeRoot);
+  return null;
 }
 
 /** Active UAT campaign id, or null when no lease is active. */
@@ -277,11 +730,13 @@ export function mintArgsAfterVerb(argv: readonly string[], subcommand: string | 
 }
 
 /**
- * Refuse non-interactive / agent-shell mint outside UAT (#3110 / #3384).
+ * Refuse non-interactive / agent-shell mint outside UAT (#3110 / #3384 / #7279).
  *
  * Multi-factor human-presence gate (applies only when UAT lease is inactive):
- * 1. No known agent/CI env markers
- * 2. Interactive TTY (stdin + stdout isTTY)
+ * 1. No known agent/CI env markers — unless `harnessAttended` is supplied for an
+ *    inventoried kept-mint verb, in which case confirmation is controlling-TTY
+ *    phrase or host-authenticated user-event bound to a frozen request (#7279)
+ * 2. Interactive TTY (stdin + stdout isTTY) — ordinary human CLI path
  * 3. Controlling terminal device present (`/dev/tty` / `\\.\CONIN$`)
  * 4. Explicit argv `--confirm` (flag alone never enough)
  * 5. Interactive typed phrase `mint` (argv --confirm alone never enough even on PTY)
@@ -297,21 +752,68 @@ export function refuseNonInteractiveMint(input: {
   readonly hasControllingTerminal: () => boolean;
   readonly readInteractiveConfirm: () => string | null;
   /**
+   * Optional host-authenticated confirm seam (#7279). Defaults to no event
+   * when omitted; harness-attended callers pass the resolved seam.
+   */
+  readonly readHostAuthenticatedConfirm?: (requestId: string) => HostAuthenticatedUserEvent | null;
+  /**
    * Caller context for the #6275 operator-stop record: the mint argv (after the
-   * verb) and the project root. Used only on the agent-marker branch.
+   * verb) and the project root. Used on agent-marker refuse and request-open.
    */
   readonly operatorStop?: MintOperatorStopContext;
+  /**
+   * When set for an inventoried kept-mint verb, route agent-shell markers into
+   * harness-attended freeze+confirm instead of forge-by-unset (#7279).
+   */
+  readonly harnessAttended?: HarnessAttendedMintOptions;
 }): number | null {
   const { verb, confirm } = input;
   const matchedMarkers = detectedAgentShellMarkers(input.environ);
   if (matchedMarkers.length > 0) {
+    const harness = input.harnessAttended;
+    if (
+      harness !== undefined &&
+      isHarnessAttendedMintVerb(verb) &&
+      input.operatorStop !== undefined
+    ) {
+      return admitHarnessAttendedMint({
+        verb,
+        confirm,
+        projectRoot: input.operatorStop.projectRoot,
+        args: input.operatorStop.args,
+        destinations: harness.destinations,
+        requestOpenOnly: harness.requestOpenOnly,
+        requestId: harness.requestId,
+        ttlMs: harness.ttlMs,
+        now: harness.now,
+        newRequestId: harness.newRequestId,
+        storeRoot: harness.storeRoot,
+        isTty: input.isTty,
+        hasControllingTerminal: input.hasControllingTerminal,
+        readInteractiveConfirm: input.readInteractiveConfirm,
+        readHostAuthenticatedConfirm:
+          input.readHostAuthenticatedConfirm ?? defaultReadHostAuthenticatedConfirm,
+        environ: input.environ,
+        operatorStop: input.operatorStop,
+      });
+    }
     const named = matchedMarkers.join(", ");
-    process.stderr.write(
-      `${verb}: refusing operator-cli stamp from an agent/host/CI shell ` +
-        `(matched agent-shell env markers: ${named}). Unset ${named} and retry ` +
-        "from a human interactive TTY without agent-shell markers, plus --confirm " +
-        "and typed phrase (#3110 / #5983).\n",
-    );
+    if (isHarnessAttendedMintVerb(verb)) {
+      process.stderr.write(
+        `${verb}: refusing operator-cli stamp from an agent/host/CI shell ` +
+          `(matched agent-shell env markers: ${named}). ` +
+          "Do not unset markers (forge-by-unset). Open a harness-attended request " +
+          "and confirm via controlling-TTY phrase or host-authenticated user-event " +
+          "bound to the frozen request (#7279 / #3110).\n",
+      );
+    } else {
+      process.stderr.write(
+        `${verb}: refusing operator-cli stamp from an agent/host/CI shell ` +
+          `(matched agent-shell env markers: ${named}). Unset ${named} and retry ` +
+          "from a human interactive TTY without agent-shell markers, plus --confirm " +
+          "and typed phrase (#3110 / #5983).\n",
+      );
+    }
     if (input.operatorStop !== undefined) {
       recordMintOperatorStop(verb, input.environ, input.operatorStop);
     }

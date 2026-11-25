@@ -225,7 +225,7 @@ describe("scope-record-approved-scope CLI (#3205)", () => {
     expect(printed.join("")).not.toContain("with requireHumanMerge=true");
   });
 
-  it("shared-gate refuse matrix for scope:record-approved-scope (#3384)", () => {
+  it("shared-gate refuse matrix for scope:record-approved-scope (#3384 / #7279)", () => {
     root = mkdtempSync(join(tmpdir(), "scope-record-refuse-"));
     mkdirSync(join(root, "xbrief", "pending"), { recursive: true });
     const xb = join(root, "xbrief/pending/story.xbrief.json");
@@ -250,8 +250,21 @@ describe("scope-record-approved-scope CLI (#3205)", () => {
       return true;
     });
 
-    expect(run(argv, { ...operatorSeams(), environ: { CLAUDECODE: "1" } })).toBe(2);
-    expect(run(argv, { ...operatorSeams(), environ: { CI: "true" } })).toBe(2);
+    // Under markers, harness-attended still refuses without an independent confirm surface.
+    expect(
+      run(argv, {
+        ...operatorSeams(),
+        environ: { CLAUDECODE: "1" },
+        hasControllingTerminal: () => false,
+      }),
+    ).toBe(2);
+    expect(
+      run(argv, {
+        ...operatorSeams(),
+        environ: { CI: "true" },
+        hasControllingTerminal: () => false,
+      }),
+    ).toBe(2);
     expect(run(argv, { ...operatorSeams(), isTty: () => false })).toBe(2);
     expect(run(argv, { ...operatorSeams(), hasControllingTerminal: () => false })).toBe(2);
     expect(run(argv, { ...operatorSeams(), readInteractiveConfirm: () => "yes" })).toBe(2);
@@ -261,11 +274,41 @@ describe("scope-record-approved-scope CLI (#3205)", () => {
         operatorSeams(),
       ),
     ).toBe(2);
-    expect(err.join("")).toMatch(/agent|CI|TTY|--confirm|controlling terminal|phrase|mint/i);
+    expect(err.join("")).toMatch(
+      /agent|CI|TTY|--confirm|controlling terminal|phrase|mint|harness-attended/i,
+    );
     expect(existsSync(join(root, ".deft/approved-scope"))).toBe(false);
   });
 
-  it("--actor Flynn from an agent/CI shell cannot mint (#3384)", () => {
+  it("agent-shell markers with controlling-TTY phrase mint via harness-attended (#7279)", () => {
+    root = mkdtempSync(join(tmpdir(), "scope-record-ham-"));
+    mkdirSync(join(root, "xbrief", "pending"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief/pending/story.xbrief.json"),
+      `${JSON.stringify({
+        plan: { id: "story-1", metadata: { swarm: { file_scope: ["src/a.ts"] } } },
+      })}\n`,
+      "utf8",
+    );
+    vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+    expect(
+      run(
+        [
+          "xbrief/pending/story.xbrief.json",
+          "--project-root",
+          root,
+          "--actor",
+          "Flynn",
+          "--confirm",
+        ],
+        { ...operatorSeams(), environ: { GROK_AGENT: "1" } },
+      ),
+    ).toBe(0);
+    expect(existsSync(join(root, ".deft/approved-scope/story-1.json"))).toBe(true);
+  });
+
+  it("--actor Flynn from an agent shell without confirm surface cannot mint (#3384 / #7279)", () => {
     root = mkdtempSync(join(tmpdir(), "scope-record-flynn-"));
     mkdirSync(join(root, "xbrief", "pending"), { recursive: true });
     writeFileSync(
@@ -293,7 +336,11 @@ describe("scope-record-approved-scope CLI (#3205)", () => {
             "Flynn",
             "--confirm",
           ],
-          { ...operatorSeams(), environ: { [key]: "1" } },
+          {
+            ...operatorSeams(),
+            environ: { [key]: "1" },
+            hasControllingTerminal: () => false,
+          },
         ),
       ).toBe(2);
     }
@@ -420,8 +467,20 @@ describe("scope-record-approved-scope CLI (#3205)", () => {
       return true;
     });
 
-    expect(run(advertised, { ...operatorSeams(), environ: { CLAUDECODE: "1" } })).toBe(2);
-    expect(run(advertised, { ...operatorSeams(), environ: { CI: "true" } })).toBe(2);
+    expect(
+      run(advertised, {
+        ...operatorSeams(),
+        environ: { CLAUDECODE: "1" },
+        hasControllingTerminal: () => false,
+      }),
+    ).toBe(2);
+    expect(
+      run(advertised, {
+        ...operatorSeams(),
+        environ: { CI: "true" },
+        hasControllingTerminal: () => false,
+      }),
+    ).toBe(2);
     expect(run(advertised, { ...operatorSeams(), isTty: () => false })).toBe(2);
     expect(run(advertised, { ...operatorSeams(), hasControllingTerminal: () => false })).toBe(2);
     expect(run(advertised, { ...operatorSeams(), readInteractiveConfirm: () => "yes" })).toBe(2);
@@ -435,7 +494,7 @@ describe("scope-record-approved-scope CLI (#3205)", () => {
     startUatLease({ projectRoot: root, campaignId: "uat-4203", actor: "op" });
     expect(run(advertised, operatorSeams())).toBe(2);
     expect(err.join("")).toMatch(
-      /agent|CI|TTY|--confirm|controlling terminal|phrase|mint|unrecognized|UAT lease is ACTIVE/i,
+      /agent|CI|TTY|--confirm|controlling terminal|phrase|mint|harness-attended|unrecognized|UAT lease is ACTIVE/i,
     );
     expect(existsSync(join(root, ".deft/approved-scope"))).toBe(false);
   });
@@ -771,7 +830,7 @@ describe("scope-record-approved-scope --add-path widen (#6643)", () => {
     expect(gitCalls.length).toBeGreaterThan(0);
   });
 
-  it("refuses from an agent shell with no checkout, branch or PR (gate unchanged)", () => {
+  it("refuses from an agent shell without confirm surface before widen git/PR (#7279)", () => {
     const { bound, text, gitCalls, ghCalls, seams } = setup();
     vi.spyOn(process.stderr, "write").mockImplementation(() => true);
     const code = run(
@@ -785,7 +844,11 @@ describe("scope-record-approved-scope --add-path widen (#6643)", () => {
         "--add-path",
         "src/b.ts",
       ],
-      { ...operatorSeams(), environ: { CLAUDECODE: "1" } },
+      {
+        ...operatorSeams(),
+        environ: { CLAUDECODE: "1" },
+        hasControllingTerminal: () => false,
+      },
       seams,
     );
     expect(code).toBe(2);

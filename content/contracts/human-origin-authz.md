@@ -91,10 +91,24 @@ deft authz:revoke -- grant-…
 
 ## Operator mint inventory (#7031)
 
-An operator mint is the terminal step `refuseNonInteractiveMint` runs: a real
-TTY, a controlling terminal, no agent or CI marker, `--confirm` and the typed
-phrase `mint`. It proves that a person was at a terminal. It does not prove that
-the person reviewed anything, and it does not check identity.
+An operator mint is the terminal step `refuseNonInteractiveMint` runs. On an
+ordinary human console (no agent or CI marker) that means a real TTY, a
+controlling terminal, `--confirm`, and the typed phrase `mint`. It proves that
+a person was at a terminal. It does not prove that the person reviewed anything,
+and it does not check identity.
+
+Under agent or CI markers, inventoried kept-mint verbs
+(`scope:record-approved-scope`, `authz:grant`, `authz:uat-start`,
+`authz:uat-suspend`, `authz:revoke`) do **not** forge by unsetting markers
+(#7279). The harness may only **request-open**: freeze verb, authority payload,
+canonical checkout, and resolved destinations under a single-use request id.
+Bare chat-yes is that request-open only and never stamps. Completion is an
+operator-controlled confirmation surface — controlling-TTY phrase `mint` or a
+host-authenticated user-event — bound to that unchanged request, with a fresh
+command-specific admission recheck (including active-UAT refuse and the
+`uat-suspend` exception) before existing writers run. Observable-scope and
+intent-constraint stay on #7031 declared writers; `--minted-via in-harness-ask`
+is not restored for them; #6945 signed keep-out is unchanged.
 
 A command keeps the mint when its record is live authority before any merge: a
 hook or a verb reads it inside the session, before a PR exists. A command drops
