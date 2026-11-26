@@ -5,6 +5,7 @@
  */
 import { existsSync, lstatSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { hostHookRepairOptOutDisclosureBullet } from "@deftai/directive-core/dist/init-deposit/host-hook-outer.js";
 import type { PackageManager } from "./pm.js";
 import { INSTALL_SCRIPT_POLICY_PLAN_LINE } from "./pm.js";
 
@@ -604,6 +605,8 @@ export function presentRepairPlan(io: PresentIo, fields: RepairPlanFields): void
     writeBullet(io, `check this project's Directive-managed files for ${fields.version}`);
     writeBullet(io, "write only what is missing or out of date");
     writeGitHookPlanBullets(io, gitHookPlanFor(fields));
+    // #7349 Prefer-A Bound P3: name host-hook paths before approval when opt-out rewrite may run.
+    writeBullet(io, hostHookRepairOptOutDisclosureBullet());
     writeBullet(io, "leave matching files and your other project files alone");
   } else {
     writeHumanParagraph(
@@ -615,6 +618,7 @@ export function presentRepairPlan(io: PresentIo, fields: RepairPlanFields): void
     writeBullet(io, `reinstall Directive ${fields.version} with ${fields.pm}`);
     writeBullet(io, "rerun project setup");
     writeGitHookPlanBullets(io, gitHookPlanFor(fields));
+    writeBullet(io, hostHookRepairOptOutDisclosureBullet());
     writeBlank(io);
     writeHumanParagraph(io, "Your existing settings and other files stay as they are.");
   }
