@@ -2138,7 +2138,12 @@ export function checkAgyHookOrder(projectRoot: string, seams: CheckSeams = {}): 
   const text = readText(join(projectRoot, AGY_HOOKS_JSON_REL), seams);
   const findings = text === null ? [] : agyHookOrderFindings(text);
   const unparseable = findings.some((finding) => finding.kind === "unparseable-config");
-  if (text === null || (!unparseable && !agyConfigHasDirectiveEntry(text))) {
+  // An unreadable file counts only when it names Directive's entry; another tool's
+  // file at this path is not Directive's to report.
+  const ours = unparseable
+    ? text !== null && text.includes(AGY_DIRECTIVE_HOOK_NAME)
+    : text !== null && agyConfigHasDirectiveEntry(text);
+  if (text === null || !ours) {
     return {
       name,
       status: "pass",

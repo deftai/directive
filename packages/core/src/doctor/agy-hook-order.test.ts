@@ -54,12 +54,21 @@ describe("doctor agy hook ordering (#7378)", () => {
     }
   });
 
-  it("reports an unparseable config as a finding", () => {
-    const root = project("{bad");
+  it("reports an unparseable config that names Directive's entry as a finding", () => {
+    const root = project(`{"${AGY_DIRECTIVE_HOOK_NAME}": bad`);
     try {
       const result = checkAgyHookOrder(root);
       expect(result.status).toBe("fail");
       expect(result.detail).toContain("not valid JSON");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("leaves another tool's unreadable file at the same path alone", () => {
+    const root = project("# not json\n");
+    try {
+      expect(checkAgyHookOrder(root).status).toBe("pass");
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
