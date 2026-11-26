@@ -397,6 +397,25 @@ export const HOST_TOOL_SURFACE_AUDIT: Readonly<Record<ClassifyHookHost, HostTool
       "and claiming coverage here would hide that.",
     source: "Issue #3987 comment 5471374558 finding F8.",
   },
+  agy: {
+    mutation: {
+      directWrite: ["write_file", "edit_file"],
+      shell: ["run_command"],
+      spawn: ["invoke_subagent"],
+      kill: [],
+    },
+    nonMutation: {
+      read_file: "read",
+      send_message: "child-to-parent message; mutates no product path",
+    },
+    unobservedReason:
+      "Only the names emitted by the observed prompts are listed. `run_workflow`, `swarm`, " +
+      "`define_subagent`, and any delete, rename or move file tool were never emitted, so " +
+      "they stay unclaimed rather than asserted (#7345). Observed on win32 only.",
+    source:
+      "Observed directly on Antigravity agy 1.5.16 (2026-11-25) with a recording PreToolUse " +
+      "hook; payloads and the admission verdict live in classify/agy-observation.ts (#7345 / #7332).",
+  },
 };
 
 /**

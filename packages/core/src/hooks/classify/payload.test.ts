@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { AGY_PRETOOLUSE_FIXTURES, AGY_SESSION_START_FIXTURE } from "./agy-observation.js";
 import {
   fieldPresent,
   fieldString,
@@ -159,5 +160,47 @@ describe("landProcessOnlyFlagOnToolInput (#4315)", () => {
       tool_input: { subagent_type: "general-purpose", process_only: true, cwd: "/dest" },
     };
     expect(landProcessOnlyFlagOnToolInput(payload)).toBe(payload);
+  });
+});
+
+describe("agy observed hook payload shape (#7345)", () => {
+  const COMMON = [
+    "artifactDirectoryPath",
+    "conversationId",
+    "cwd",
+    "hookEventName",
+    "lastUserInput",
+    "modelName",
+    "transcriptPath",
+    "workspacePaths",
+  ];
+
+  it("records camelCase PreToolUse stdin with a nested toolCall and no tool_name", () => {
+    for (const [id, fixture] of Object.entries(AGY_PRETOOLUSE_FIXTURES)) {
+      expect(hookPayloadTopLevelKeys(fixture), id).toEqual(
+        [...COMMON, "stepIdx", "toolCall"].sort(),
+      );
+      expect(fixture.hookEventName, id).toBe("PreToolUse");
+      expect(Object.keys(fixture.toolCall).sort(), id).toEqual(["args", "id", "name"]);
+    }
+  });
+
+  it("records SessionStart stdin without a toolCall", () => {
+    expect(hookPayloadTopLevelKeys(AGY_SESSION_START_FIXTURE)).toEqual([...COMMON].sort());
+    expect(AGY_SESSION_START_FIXTURE.hookEventName).toBe("SessionStart");
+  });
+
+  it("keeps the observed capitalized argument keys and a distinct child conversationId", () => {
+    const f = AGY_PRETOOLUSE_FIXTURES;
+    expect(Object.keys(f.run_command.toolCall.args)).toContain("CommandLine");
+    expect(Object.keys(f.write_file.toolCall.args)).toEqual(["Content", "Overwrite", "Path"]);
+    expect(Object.keys(f.edit_file.toolCall.args)).toEqual(["Path", "Replacement", "Target"]);
+    expect(f.child_run_command.conversationId).not.toBe(f.invoke_subagent.conversationId);
+    expect(f.child_send_message.toolCall.args.Recipient).toBe(f.invoke_subagent.conversationId);
+  });
+
+  it("carries no local user or workspace paths", () => {
+    const text = JSON.stringify([AGY_PRETOOLUSE_FIXTURES, AGY_SESSION_START_FIXTURE]);
+    expect(text).not.toMatch(/AppData|scratchpad/);
   });
 });

@@ -1,9 +1,18 @@
 import { describe, expect, it } from "vitest";
 import { fixtureCasesFor, HOOK_FIXTURE_CASES } from "../fixtures/index.js";
+import { HOST_TOOL_SURFACE_AUDIT } from "../tools.js";
+import {
+  AGY_ADMISSION_VERDICT,
+  AGY_OBSERVED_BEHAVIORS,
+  AGY_OBSERVED_HOST_VERSION,
+  AGY_PRETOOLUSE_FIXTURES,
+  agyAdmissionPasses,
+} from "./agy-observation.js";
 import { classifyHookPayload } from "./classify.js";
 import { hookWriteTargetPath } from "./paths.js";
 import { parseHookStdin } from "./stdin.js";
 import { hookToolName } from "./tool-name.js";
+import { CLASSIFY_HOOK_HOSTS } from "./types.js";
 
 describe("classifyHookPayload (pure, #2950)", () => {
   it("classifies Cursor Write without process I/O", () => {
@@ -106,5 +115,58 @@ describe("shared fixture corpus (#2950 Phase B)", () => {
       expect(hookToolName(payload, c.host), c.id).toBe(c.expected.toolName);
       expect(hookWriteTargetPath(payload), c.id).toBe(c.expected.writeTargetPath);
     }
+  });
+});
+
+describe("agy host observation and admission verdict (#7345)", () => {
+  it("registers agy and backs HOST_TOOL_SURFACE_AUDIT.agy with the observation", () => {
+    expect(CLASSIFY_HOOK_HOSTS).toContain("agy");
+    const audit = HOST_TOOL_SURFACE_AUDIT.agy;
+    expect(audit.source).toContain(AGY_OBSERVED_HOST_VERSION);
+    expect(audit.unobservedReason ?? "").toMatch(/run_workflow/);
+    const fixtureTools = new Set(
+      Object.values(AGY_PRETOOLUSE_FIXTURES).map((f) => f.toolCall.name),
+    );
+    const named = [
+      ...audit.mutation.directWrite,
+      ...audit.mutation.shell,
+      ...audit.mutation.spawn,
+      ...Object.keys(audit.nonMutation),
+    ];
+    for (const name of named) expect(fixtureTools.has(name), `${name} was observed`).toBe(true);
+  });
+
+  it("commits a verdict that names every property and cites known scenarios", () => {
+    const scenarios = new Set(Object.values(AGY_OBSERVED_BEHAVIORS).flatMap((b) => b.scenarios));
+    const props = Object.keys(AGY_ADMISSION_VERDICT.properties).sort();
+    expect(props).toEqual([
+      "finalExecutedArgumentIntegrity",
+      "nonWeakenableDenial",
+      "runtimeFailureBoundary",
+    ]);
+    for (const verdict of Object.values(AGY_ADMISSION_VERDICT.properties)) {
+      expect(["pass", "fail"]).toContain(verdict.status);
+      expect(verdict.evidence.length).toBeGreaterThan(0);
+      for (const id of verdict.evidence) expect(scenarios.has(id), id).toBe(true);
+    }
+    expect(AGY_ADMISSION_VERDICT.hostVersion).toBe(AGY_OBSERVED_HOST_VERSION);
+    expect(AGY_ADMISSION_VERDICT.unobserved.length).toBeGreaterThan(0);
+  });
+
+  it("derives overall from the properties and never fabricates a pass", () => {
+    const anyFail = Object.values(AGY_ADMISSION_VERDICT.properties).some(
+      (p) => p.status === "fail",
+    );
+    expect(AGY_ADMISSION_VERDICT.overall).toBe(anyFail ? "fail" : "pass");
+    expect(agyAdmissionPasses()).toBe(!anyFail);
+    const props = Object.fromEntries(
+      Object.entries(AGY_ADMISSION_VERDICT.properties).map(([k, v]) => [
+        k,
+        { ...v, status: "pass" as const },
+      ]),
+    ) as typeof AGY_ADMISSION_VERDICT.properties;
+    const allPass = { ...AGY_ADMISSION_VERDICT, overall: "pass" as const, properties: props };
+    expect(agyAdmissionPasses(allPass)).toBe(true);
+    expect(agyAdmissionPasses({ ...allPass, overall: "fail" })).toBe(false);
   });
 });
