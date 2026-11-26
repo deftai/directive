@@ -710,7 +710,8 @@
           "xbrief/active/2026-11-25-7351-framework-gap-admit-same-repo-claudedirective-linked-worktre.xbrief.json",
           "xbrief/active/2026-11-25-7352-framework-gap-claude-host-hook-matcher-gates-host-mcpui-tool.xbrief.json",
           "changelog.d/7351-activate-same-repo-admit.md",
-          "changelog.d/7352-activate-mcp-ui-admit.md"
+          "changelog.d/7352-activate-mcp-ui-admit.md",
+          "packages/runtime/src/hook-identity-failclosed.test.ts"
         ],
         "file_scope_confidence": "high",
         "depends_on": [],
