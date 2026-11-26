@@ -1,0 +1,155 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #7384",
+    "updated": "2026-11-26T18:22:00Z"
+  },
+  "plan": {
+    "title": "fix(test): stub the #7252 slow-path gate in open-umbrella-warning test so it stays offline (#7265)",
+    "status": "running",
+    "narratives": {
+      "Description": "fix(test): stub the #7252 slow-path gate in open-umbrella-warning test so it stays offline (#7265)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/7384",
+      "Overview": "## Problem\n\nThe nightly coverage lane (tracked by #7265) fails on one test: `packages/core/src/scope/open-umbrella-warning.test.ts:511`. `lifecycleMain([\"complete\", child, \"--non-delivery\", ...])` returns 1, not 0.\n\n## Cause\n\n#7252 added the slow-path gate `slowPathCompleteGateSeam.evaluate` (scope `main.ts`). With 2 eligible briefs the gate does live `gh` delivery lookups. The nightly coverage step has no `GH_TOKEN`, so the lookups fail and the gate refuses. PR CI has a token, so the test passes there but spends about 16 s on network. Reproduce with `GH_TOKEN=bad GH_HOST=invalid.example`.\n\n`main.test.ts` (~1006-1022) already stubs the seam. Copy that pattern. Coverage thresholds are not at fault.\n\nRefs #7265 #7252\n\n## Acceptance Criteria\n\n- [ ] open-umbrella-warning.test.ts replaces `slowPathCompleteGateSeam.evaluate` with `{ refuse: false }` for the complete test and restores it in `finally` (same pattern as main.test.ts), so the suite makes zero live `gh` calls.\n- [ ] The test passes with `GH_TOKEN=bad GH_HOST=invalid.example`, and runs in under ~1 s locally.\n- [ ] A grep sweep lists other test files that run `lifecycleMain complete` with 2+ active running briefs and no seam stub; each is fixed or confirmed unaffected.\n- [ ] No threshold, workflow or product (main.ts) change.\n\n",
+      "Labels": "bug"
+    },
+    "items": [
+      {
+        "title": "open-umbrella-warning.test.ts replaces `slowPathCompleteGateSeam.evaluate` with `{ refuse: false }` for the complete test and restores it in `finally` (same pattern as main.test.ts), so the suite makes zero live `gh` calls.",
+        "status": "proposed",
+        "id": "clause.1"
+      },
+      {
+        "title": "The test passes with `GH_TOKEN=bad GH_HOST=invalid.example`, and runs in under ~1 s locally.",
+        "status": "proposed",
+        "id": "clause.2"
+      },
+      {
+        "title": "A grep sweep lists other test files that run `lifecycleMain complete` with 2+ active running briefs and no seam stub; each is fixed or confirmed unaffected.",
+        "status": "proposed",
+        "id": "clause.3"
+      },
+      {
+        "title": "No threshold, workflow or product (main.ts) change.",
+        "status": "proposed",
+        "id": "clause.4"
+      }
+    ],
+    "tags": [
+      "bug"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/7384",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #7384: fix(test): stub the #7252 slow-path gate in open-umbrella-warning test so it stays offline (#7265)"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/7265",
+        "type": "x-xbrief/refs",
+        "title": "Issue #7265"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "lifecycleMain complete",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L19"
+        }
+      ],
+      "swarm": {
+        "file_scope": [
+          "packages/core/src/scope/open-umbrella-warning.test.ts",
+          "changelog.d/7384-stub-slow-path-gate-in-umbrella-test.md"
+        ],
+        "file_scope_confidence": "high",
+        "readiness": "ready",
+        "parallel_safe": true,
+        "size": "small",
+        "model_tier": "standard",
+        "depends_on": [],
+        "conflict_group": "scope-tests-slow-path-stub",
+        "verify_commands": [
+          "pnpm exec vitest run --reporter=dot packages/core/src/scope/open-umbrella-warning.test.ts packages/core/src/scope/main.test.ts"
+        ],
+        "expected_outputs": [
+          "open-umbrella-warning.test.ts stubs slowPathCompleteGateSeam.evaluate and restores it in finally; passes offline",
+          "one changelog fragment changelog.d/7384-stub-slow-path-gate-in-umbrella-test.md"
+        ],
+        "Traces": [
+          "#7384",
+          "#7265",
+          "#7252"
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6632643532,
+        "origin": "deftai/directive#7384",
+        "id": "github.issue.6632643532"
+      },
+      "kind": "bug"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per sentence-list entry (4), in order (#6333)",
+      "sentences": [
+        "open-umbrella-warning.test.ts replaces `slowPathCompleteGateSeam.evaluate` with `{ refuse: false }` for the complete test and restores it in `finally` (same pattern as main.test.ts), so the suite makes zero live `gh` calls.",
+        "The test passes with `GH_TOKEN=bad GH_HOST=invalid.example`, and runs in under ~1 s locally.",
+        "A grep sweep lists other test files that run `lifecycleMain complete` with 2+ active running briefs and no seam stub; each is fixed or confirmed unaffected.",
+        "No threshold, workflow or product (main.ts) change."
+      ],
+      "admitted_source_sentences": [
+        "open-umbrella-warning.test.ts replaces `slowPathCompleteGateSeam.evaluate` with `{ refuse: false }` for the complete test and restores it in `finally` (same pattern as main.test.ts), so the suite makes zero live `gh` calls.",
+        "The test passes with `GH_TOKEN=bad GH_HOST=invalid.example`, and runs in under ~1 s locally.",
+        "A grep sweep lists other test files that run `lifecycleMain complete` with 2+ active running briefs and no seam stub; each is fixed or confirmed unaffected.",
+        "No threshold, workflow or product (main.ts) change."
+      ],
+      "admitted_source_digest": "5f4d618324e3966c857f351e19a4f465a29547a8ab47606ced91aae24180e611",
+      "admitted_source_extractor": 2,
+      "clauses": [
+        {
+          "id": 1,
+          "text": "open-umbrella-warning.test.ts replaces `slowPathCompleteGateSeam.evaluate` with `{ refuse: false }` for the complete test and restores it in `finally` (same pattern as main.test.ts), so the suite makes zero live `gh` calls.",
+          "artifact_path": "packages/core/src/scope/open-umbrella-warning.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "The test passes with `GH_TOKEN=bad GH_HOST=invalid.example`, and runs in under ~1 s locally.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "A grep sweep lists other test files that run `lifecycleMain complete` with 2+ active running briefs and no seam stub; each is fixed or confirmed unaffected.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "No threshold, workflow or product (main.ts) change.",
+          "artifact_path": "packages/core/src/scope/open-umbrella-warning.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.6632643532",
+    "updated": "2026-11-26T18:22:00Z"
+  }
+}
