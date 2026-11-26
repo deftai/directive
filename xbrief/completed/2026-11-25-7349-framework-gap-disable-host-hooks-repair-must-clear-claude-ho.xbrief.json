@@ -6,7 +6,7 @@
   },
   "plan": {
     "title": "Prefer-A Bound: Claude disable-host-hooks strip or honest repair",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Prefer-A Bound conflict_group claude-disable-host-hooks-strip-or-honest-repair.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/7349",
@@ -27,14 +27,6 @@
           "Acceptance": "relieves: P1 — Confirm disable strips or chains repair for the named host’s managed hook entries before exit 0"
         },
         "x-directive/artifact_path": "packages/core/src/policy/host-hooks.ts",
-        "x-directive/disposition": {
-          "status": "not_applicable",
-          "provenance": {
-            "kind": "operator-session",
-            "actor": "Scott",
-            "at": "2026-11-26T05:06:47Z"
-          }
-        },
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "f5b8d0cbfd88f5844a3a07ff900ea5707505008e",
@@ -50,14 +42,6 @@
           "Acceptance": "relieves: P2 — Root-mismatch recovery names launch-checkout repair or stripping disable, not new-session alone"
         },
         "x-directive/artifact_path": "packages/core/src/install-health/constants.ts",
-        "x-directive/disposition": {
-          "status": "not_applicable",
-          "provenance": {
-            "kind": "operator-session",
-            "actor": "Scott",
-            "at": "2026-11-26T05:06:47Z"
-          }
-        },
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "f5b8d0cbfd88f5844a3a07ff900ea5707505008e",
@@ -73,14 +57,6 @@
           "Acceptance": "relieves: P3 — Repair disclosure lists `.claude/settings.json` and `.claude/deft-hook-*.mjs` when it changes them"
         },
         "x-directive/artifact_path": "packages/core/src/init-deposit/host-hook-outer.ts",
-        "x-directive/disposition": {
-          "status": "not_applicable",
-          "provenance": {
-            "kind": "operator-session",
-            "actor": "Scott",
-            "at": "2026-11-26T05:06:47Z"
-          }
-        },
         "x-directive/evidence": {
           "kind": "merge",
           "pointer": "f5b8d0cbfd88f5844a3a07ff900ea5707505008e",
@@ -112,45 +88,21 @@
           "text": "relieves: P1 — Confirm disable strips or chains repair for the named host’s managed hook entries before exit 0",
           "artifact_path": "packages/core/src/policy/host-hooks.ts",
           "ambiguous": false,
-          "provenance": "statement",
-          "x-directive/disposition": {
-            "status": "not_applicable",
-            "provenance": {
-              "kind": "operator-session",
-              "actor": "Scott",
-              "at": "2026-11-26T05:06:47Z"
-            }
-          }
+          "provenance": "statement"
         },
         {
           "id": "clause.2",
           "text": "relieves: P2 — Root-mismatch recovery names launch-checkout repair or stripping disable, not new-session alone",
           "artifact_path": "packages/core/src/install-health/constants.ts",
           "ambiguous": false,
-          "provenance": "statement",
-          "x-directive/disposition": {
-            "status": "not_applicable",
-            "provenance": {
-              "kind": "operator-session",
-              "actor": "Scott",
-              "at": "2026-11-26T05:06:47Z"
-            }
-          }
+          "provenance": "statement"
         },
         {
           "id": "clause.3",
           "text": "relieves: P3 — Repair disclosure lists `.claude/settings.json` and `.claude/deft-hook-*.mjs` when it changes them",
           "artifact_path": "packages/core/src/init-deposit/host-hook-outer.ts",
           "ambiguous": false,
-          "provenance": "statement",
-          "x-directive/disposition": {
-            "status": "not_applicable",
-            "provenance": {
-              "kind": "operator-session",
-              "actor": "Scott",
-              "at": "2026-11-26T05:06:47Z"
-            }
-          }
+          "provenance": "statement"
         }
       ],
       "sentences": [
