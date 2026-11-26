@@ -9,8 +9,12 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { runInstall } from "./bookends.js";
 import { classifyPinVersion, type ProjectInstallState, readProjectInstallState } from "./pin.js";
-import { hostHookRepairOptOutDisclosureBullet } from "@deftai/directive-core/dist/init-deposit/host-hook-outer.js";
-import { HUMAN_GIT_HOOKS_INACTIVE_LINE, presentRepairPlan } from "./plan-present.js";
+import { hostHookRepairOptOutDisclosureBullet as coreHostHookRepairOptOutDisclosureBullet } from "@deftai/directive-core/dist/init-deposit/host-hook-outer.js";
+import {
+  HUMAN_GIT_HOOKS_INACTIVE_LINE,
+  hostHookRepairOptOutDisclosureBullet,
+  presentRepairPlan,
+} from "./plan-present.js";
 import {
   buildPmExactAddArgs,
   detectPackageManager,
@@ -1453,6 +1457,7 @@ describe("presentRepairPlan host-hook opt-out disclosure (#7349 P3)", () => {
 
   it("names Claude registration and outer glob on both repair branches", () => {
     const expected = hostHookRepairOptOutDisclosureBullet("claude");
+    expect(expected).toBe(coreHostHookRepairOptOutDisclosureBullet("claude"));
     expect(expected).toContain(".claude/settings.json");
     expect(expected).toContain(".claude/deft-hook-*.mjs");
     expect(capturePlan(false)).toContain(expected);

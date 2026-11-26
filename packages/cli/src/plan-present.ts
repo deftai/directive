@@ -5,9 +5,35 @@
  */
 import { existsSync, lstatSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { hostHookRepairOptOutDisclosureBullet } from "@deftai/directive-core/dist/init-deposit/host-hook-outer.js";
 import type { PackageManager } from "./pm.js";
 import { INSTALL_SCRIPT_POLICY_PLAN_LINE } from "./pm.js";
+
+/**
+ * Repair-plan bullet when host-hook opt-out rewrite/remove may run (#7349 P3).
+ * Kept in sync with core `hostHookRepairOptOutDisclosureBullet` (entry-guard-style
+ * CLI local copy — CLI production sources do not import core package deep paths).
+ */
+export function hostHookRepairOptOutDisclosureBullet(
+  host: "claude" | "cursor" | "codex" | "grok" = "claude",
+): string {
+  const registration =
+    host === "cursor"
+      ? ".cursor/hooks.json"
+      : host === "codex"
+        ? ".codex/hooks.json"
+        : host === "grok"
+          ? ".grok/hooks/deft.json"
+          : ".claude/settings.json";
+  const outerGlob =
+    host === "cursor"
+      ? ".cursor/deft-hook-*.mjs"
+      : host === "codex"
+        ? ".codex/deft-hook-*.mjs"
+        : host === "grok"
+          ? ".grok/hooks/deft-hook-*.mjs"
+          : ".claude/deft-hook-*.mjs";
+  return `rewrite or remove Directive host hooks when plan.policy.hostHooks opts out (${registration}, ${outerGlob})`;
+}
 
 /** Local IO shape (matches bookends BookendIo; avoid circular import). */
 export interface PresentIo {
