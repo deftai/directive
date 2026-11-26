@@ -4,13 +4,18 @@
  */
 
 import { isDirectWriteTool, isMcpTool, isShellTool, isSpawnTool } from "../tools.js";
+import { agyWriteIntent } from "./agy-wire.js";
 import { hookPathSet, hookShellCommand, hookWriteTargetPath } from "./paths.js";
 import { hookPayloadTopLevelKeys } from "./payload.js";
 import { hookToolName } from "./tool-name.js";
 import type { ClassifyHookPayloadInput, HookClassification, HookWriteIntent } from "./types.js";
 
-function writeIntentForTool(toolName: string | null): HookWriteIntent {
+function writeIntentForTool(toolName: string | null, host?: string): HookWriteIntent {
   if (toolName === null) return "unknown";
+  if (host === "agy") {
+    const agy = agyWriteIntent(toolName);
+    if (agy !== null) return agy;
+  }
   if (isDirectWriteTool(toolName)) return "direct-write";
   if (isSpawnTool(toolName)) return "spawn";
   if (isShellTool(toolName)) return "shell";
@@ -23,13 +28,13 @@ function writeIntentForTool(toolName: string | null): HookWriteIntent {
  */
 export function classifyHookPayload(input: ClassifyHookPayloadInput): HookClassification {
   const toolName = hookToolName(input.payload, input.host);
-  const writeTargetPath = hookWriteTargetPath(input.payload);
+  const writeTargetPath = hookWriteTargetPath(input.payload, input.host);
   return {
     toolName,
-    writeIntent: writeIntentForTool(toolName),
+    writeIntent: writeIntentForTool(toolName, input.host),
     writeTargetPath,
-    shellCommand: hookShellCommand(input.payload),
+    shellCommand: hookShellCommand(input.payload, input.host),
     topLevelKeys: hookPayloadTopLevelKeys(input.payload),
-    paths: hookPathSet(input.payload),
+    paths: hookPathSet(input.payload, input.host),
   };
 }

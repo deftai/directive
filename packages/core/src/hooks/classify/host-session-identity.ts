@@ -37,6 +37,7 @@ import {
   readHostEnvIdentity,
 } from "../../session/host-session-owner.js";
 import { isShellTool } from "../tools.js";
+import { normalizeAgyHookPayload } from "./agy-wire.js";
 import { hookShellCommand } from "./paths.js";
 import { record, toolInputRecord } from "./payload.js";
 import { hookToolName } from "./tool-name.js";
@@ -109,6 +110,8 @@ function resolvedHostIdentity(
  * - Claude Code: payload `session_id` (`agent_id` is not the owner key).
  *   When GROK_HOOK_EVENT is set, that field is canonicalized as grok (#4708).
  * - Cursor: payload `conversation_id`; simultaneous `session_id` must agree.
+ * - Antigravity (agy): payload `conversationId`. A subagent started with
+ *   `invoke_subagent` has its own id and the payload names no parent (#7345).
  * - Grok: hook process `GROK_SESSION_ID` (#3873). The payload `session_id` is
  *   deliberately not read -- that contract is unverified.
  * - Unknown hosts: no guessed identity; callers keep the explicit/env flow.
@@ -1078,4 +1081,25 @@ export function rewriteExactLifecycleCommand(
     rewrittenCommand,
     updatedInput: { ...toolInput, command: rewrittenCommand },
   };
+}
+
+/** Exact-lifecycle rewrite for Antigravity, delivered as `overwrite.CommandLine` (#7346). */
+export type AgyLifecycleRewrite =
+  | (ExactLifecycleCommandRewrite & { readonly overwrite: { readonly CommandLine: string } })
+  | ExactLifecycleCommandConflict
+  | null;
+
+/**
+ * Same rewrite as {@link rewriteExactLifecycleCommand}, read from an agy payload
+ * (`toolCall.args.CommandLine`). The only thing it adds to the wire is
+ * `overwrite.CommandLine`; a conflict, a compound command, or an uninspectable
+ * one stays null or a conflict, exactly as for the other hosts.
+ */
+export function rewriteAgyExactLifecycleCommand(
+  payload: unknown,
+  sessionId: string,
+): AgyLifecycleRewrite {
+  const result = rewriteExactLifecycleCommand(normalizeAgyHookPayload(payload), sessionId);
+  if (result === null || result.kind === "conflict") return result;
+  return { ...result, overwrite: { CommandLine: result.rewrittenCommand } };
 }

@@ -4,6 +4,7 @@
  */
 
 import { fileURLToPath } from "node:url";
+import { normalizeAgyHookPayload } from "./agy-wire.js";
 import { firstString, record, toolInputRecord } from "./payload.js";
 import { applyPatchBodyTextFromParsed, applyPatchMutationPaths } from "./stdin.js";
 
@@ -45,8 +46,8 @@ function collectPathishFields(value: unknown, into: string[], depth: number): vo
  * Best-effort write-target path from host PreToolUse payloads (#2625).
  * Hosts disagree on nesting (`tool_input.file_path` vs top-level `path`).
  */
-export function hookWriteTargetPath(payload: unknown): string | null {
-  const input = record(payload);
+export function hookWriteTargetPath(payload: unknown, host?: string): string | null {
+  const input = record(host === "agy" ? normalizeAgyHookPayload(payload) : payload);
   if (input === null) return null;
   const toolInput = toolInputRecord(input);
   const nested =
@@ -177,8 +178,8 @@ export function hookMutationTargetPaths(payload: unknown): string[] {
  * Best-effort shell command string from host PreToolUse payloads (#2711).
  * Hosts disagree on nesting (`tool_input.command` vs top-level `command`).
  */
-export function hookShellCommand(payload: unknown): string | null {
-  const input = record(payload);
+export function hookShellCommand(payload: unknown, host?: string): string | null {
+  const input = record(host === "agy" ? normalizeAgyHookPayload(payload) : payload);
   if (input === null) return null;
   const toolInput = toolInputRecord(input);
   return firstString([
@@ -207,7 +208,7 @@ export function hookMcpArgsText(payload: unknown): string | null {
  * Collect distinct path-like strings from a payload for fixture assertions.
  * Write target first when present; does not invent paths from free text.
  */
-export function hookPathSet(payload: unknown): string[] {
+export function hookPathSet(payload: unknown, host?: string): string[] {
   const seen = new Set<string>();
   const out: string[] = [];
   const push = (value: string | null): void => {
@@ -215,6 +216,6 @@ export function hookPathSet(payload: unknown): string[] {
     seen.add(value);
     out.push(value);
   };
-  push(hookWriteTargetPath(payload));
+  push(hookWriteTargetPath(payload, host));
   return out;
 }

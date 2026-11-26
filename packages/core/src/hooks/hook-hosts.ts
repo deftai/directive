@@ -4,5 +4,5 @@
  * ownership API, can name the hosts without importing the dispatcher (#5771).
  */
 
-export const HOOK_HOSTS = ["claude", "grok", "cursor", "codex"] as const;
+export const HOOK_HOSTS = ["claude", "grok", "cursor", "codex", "agy"] as const;
 export type HookHost = (typeof HOOK_HOSTS)[number];

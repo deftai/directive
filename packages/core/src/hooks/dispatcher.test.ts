@@ -39,6 +39,7 @@ import {
 import { persistTrustedSessionPosture } from "../session/posture.js";
 import { ritualStatePath } from "../session/ritual-sentinel.js";
 import { GROK_CRITIC_SPAWN_NOT_READY_RECOVERY } from "../session/spawn-occupancy.js";
+import { AGY_SESSION_START_NOTICES } from "./classify/agy-wire.js";
 import {
   classifyUninspectableLifecycleMiss,
   formatLauncherCorrectLifecycleRecovery,
@@ -2289,6 +2290,15 @@ describe("direct-write hook policy", () => {
       );
       expect(softAgentsRebindForbiddenHits(decision.message)).toEqual([]);
 
+      if (host === "agy") {
+        // agy injects a fixed catalog notice, never decision.message (#7346).
+        expect(JSON.parse(renderHostDecision(host, decision))).toEqual({
+          injectSteps: [
+            { systemMessage: { systemMessage: AGY_SESSION_START_NOTICES["directive-disabled"] } },
+          ],
+        });
+        continue;
+      }
       const injected = sessionStartInjectionField(host, renderHostDecision(host, decision));
       expect(injected).toBe(decision.message);
     }
@@ -2322,6 +2332,9 @@ describe("direct-write hook policy", () => {
           permission: "allow",
           code: "directive-disabled",
         });
+      } else if (host === "agy") {
+        // Empty stdout is an agy fail-open path, so the allow is explicit (#7346).
+        expect(JSON.parse(rendered)).toEqual({ decision: "allow" });
       } else {
         expect(rendered).toBe("");
       }

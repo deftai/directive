@@ -82,6 +82,13 @@ export const AGENT_HOOK_PATHS = [
 ] as const;
 
 /**
+ * Where Antigravity reads named-object hooks. Lookup only: it stays out of
+ * AGENT_HOOK_PATHS, which every deposit loop walks, because nothing is deposited
+ * there until the deposit-doctor slice passes the admission verdict (#7346 / #7332).
+ */
+export const AGY_HOOK_PATH = ".agents/hooks.json" as const;
+
+/**
  * Grok PreToolUse outer-deny wrapper (#5656 Prefer-A Bound, OVPR / AC9.1).
  * Host schema has no attested failClosed; the wrapper emits Grok's deny
  * envelope when the package-relative hook-bin cannot run (missing module /
@@ -264,7 +271,7 @@ export const NESTED_TOOL_BEFORE_TIMEOUT_SECONDS = CURSOR_TOOL_BEFORE_TIMEOUT_SEC
  */
 export const NESTED_HOOK_TIMEOUT_SECONDS = 5;
 
-export type AgentHookPath = (typeof AGENT_HOOK_PATHS)[number];
+export type AgentHookPath = (typeof AGENT_HOOK_PATHS)[number] | typeof AGY_HOOK_PATH;
 
 /**
  * Matchers write merge and non-grok inspect valid() share so they cannot drift (#4692).
@@ -293,6 +300,7 @@ export const AGENT_HOOK_PATH_BY_HOST: Readonly<Record<HookHost, AgentHookPath>> 
   grok: AGENT_HOOK_PATHS[1],
   cursor: AGENT_HOOK_PATHS[2],
   codex: AGENT_HOOK_PATHS[3],
+  agy: AGY_HOOK_PATH,
 };
 
 export type AgentHookRegistrationStatus = "healthy" | "disabled" | "missing" | "drifted";
@@ -883,6 +891,7 @@ function hasSessionStartRegistration(
   host: HookHost,
   bin: string,
 ): boolean {
+  if (host === "agy") return false; // named-object schema; no deposit until deposit-doctor (#7346)
   return host === "cursor"
     ? hasCursorSessionStart(config, bin)
     : hasNestedSessionStart(config, host, bin);
@@ -1035,7 +1044,7 @@ export function depositedPreToolUseMatchers(
   host: HookHost,
 ): readonly string[] | null {
   const path = join(resolve(projectRoot), AGENT_HOOK_PATH_BY_HOST[host]);
-  if (!existsSync(path)) return null;
+  if (host === "agy" || !existsSync(path)) return null; // agy has no deposit yet (#7346)
   let config: Record<string, unknown>;
   try {
     config = readConfig(path);

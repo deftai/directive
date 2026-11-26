@@ -46,7 +46,7 @@ function writeProjectDefinition(root: string, policy: Record<string, unknown>): 
 }
 
 describe("hostHooks policy (#2752)", () => {
-  it("defaults all four deposited hosts to true", () => {
+  it("defaults the four deposited hosts to true", () => {
     expect(resolveHostHooksPolicy(undefined)).toEqual(DEFAULT_HOST_HOOKS_POLICY);
     expect(isHostHookDepositEnabled("claude")).toBe(true);
   });
@@ -65,8 +65,33 @@ describe("hostHooks policy (#2752)", () => {
       "plan.policy.hostHooks.claude must be a boolean",
     );
     expect(validateHostHooks({ opencode: false })).toContain(
-      "plan.policy.hostHooks.opencode is not a deposited host (claude, grok, cursor, codex)",
+      "plan.policy.hostHooks.opencode is not a deposited host (claude, grok, cursor, codex, agy)",
     );
+  });
+
+  it("keeps agy default-off and still disables it without touching .agents/hooks.json (#7346)", () => {
+    expect(DEFAULT_HOST_HOOKS_POLICY.agy).toBe(false);
+    expect(resolveHostHooksPolicy(undefined).agy).toBe(false);
+    expect(resolveHostHooksPolicy({ agy: true }).agy).toBe(true);
+    expect(validateHostHooks({ agy: false })).toEqual([]);
+    expect(validateHostHooks({ agy: "yes" })).toContain(
+      "plan.policy.hostHooks.agy must be a boolean",
+    );
+    expect(parseHookHost("agy")).toBe("agy");
+    expect(isHostHookDepositEnabled("agy")).toBe(false);
+    expect(hostHookRegistrationRelPath("agy")).toBe(".agents/hooks.json");
+
+    const root = project();
+    writeProjectDefinition(root, { hostHooks: { agy: true } });
+    mkdirSync(join(root, ".agents"), { recursive: true });
+    const foreign = '{"hooks":{"mine":{"event":"PreToolUse","command":"echo hi"}}}';
+    writeFileSync(join(root, ".agents/hooks.json"), foreign, "utf8");
+    const result = disableHostHooks(root, { host: "agy", confirm: true, actor: "test" });
+    expect(result.exitCode).toBe(0);
+    expect(result.changed).toBe(true);
+    expect(result.touchedPaths).toEqual([]);
+    expect(loadHostHooksPolicyFromProject(root).agy).toBe(false);
+    expect(readFileSync(join(root, ".agents/hooks.json"), "utf8")).toBe(foreign);
   });
 
   it("loads typed policy from PROJECT-DEFINITION", () => {

@@ -10,7 +10,7 @@
  * gate later presents is the #3873 defect -- the session denied by its own lease.
  */
 
-export const HOST_IDENTITY_PROVIDERS = ["codex", "claude", "cursor", "grok"] as const;
+export const HOST_IDENTITY_PROVIDERS = ["codex", "claude", "cursor", "grok", "agy"] as const;
 export type HookHostIdentityProvider = (typeof HOST_IDENTITY_PROVIDERS)[number];
 export const MAX_HOOK_HOST_IDENTITY_UTF8_BYTES = 512;
 
@@ -31,6 +31,28 @@ const HOST_IDENTITY_SOURCES: Readonly<Record<HookHostIdentityProvider, HookHostI
   claude: { kind: "payload", field: "session_id" },
   cursor: { kind: "payload", field: "conversation_id" },
   grok: { kind: "host-env", variable: "GROK_SESSION_ID" },
+  // Antigravity: `conversationId` is stable across one session's hooks and equals
+  // ANTIGRAVITY_CONVERSATION_ID, but an invoke_subagent child gets its own id with no
+  // parent field (#7345 observation). Payload-only, like the other payload hosts.
+  agy: { kind: "payload", field: "conversationId" },
+};
+
+/**
+ * Whether a host registers a hook that releases the lease when the session ends.
+ * `unsupported` means clean release covers only an explicit `session:end` /
+ * `occupancy:release` command. Antigravity has no SessionEnd event, and `Stop` is
+ * never wired to `session.end` (#7346).
+ */
+export type HostSessionEndSupport = "deposited" | "unsupported";
+
+export const HOST_SESSION_END_SUPPORT: Readonly<
+  Record<HookHostIdentityProvider, HostSessionEndSupport>
+> = {
+  claude: "deposited",
+  codex: "unsupported",
+  cursor: "unsupported",
+  grok: "unsupported",
+  agy: "unsupported",
 };
 
 // #4431: payload hosts stay payload-only. Adding CLAUDE_CODE_SESSION_ID (or a
@@ -210,6 +232,9 @@ const DECLARED_IDENTITY_HOST_PRESENCE: Readonly<
   claude: ["CLAUDECODE", "CLAUDE_CODE", "CLAUDE_CODE_ENTRYPOINT", "CLAUDE_CODE_SESSION_ID"],
   cursor: ["CURSOR_AGENT", "CURSOR_TRACE_ID", "CURSOR_SESSION_ID"],
   codex: ["CODEX_SANDBOX", "CODEX_CI", "OPENAI_CODEX"],
+  // No marker yet: with no deposited hook an agy shell has no PreToolUse rewrite to bind
+  // its claim, so a refuse-mint would strand it. The deposit-doctor slice decides (#7346).
+  agy: [],
 };
 
 /**
