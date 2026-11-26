@@ -327,9 +327,9 @@ describe("agy critic seat (#7245)", () => {
         commentUrl: "https://github.com/deftai/directive/issues/7245#issuecomment-1",
       }),
     ).toEqual({ ok: true });
-    expect(evaluateAgySeatCompletion({ model: "gemini-4-hydrogen-high", commentUrl: null })).toEqual(
-      { ok: false, reason: "missing-comment-url" },
-    );
+    expect(
+      evaluateAgySeatCompletion({ model: "gemini-4-hydrogen-high", commentUrl: null }),
+    ).toEqual({ ok: false, reason: "missing-comment-url" });
     expect(
       evaluateAgySeatCompletion({
         model: "gemini-4-hydrogen-medium",
