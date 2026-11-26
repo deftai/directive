@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #7331",
-    "updated": "2026-11-25T18:26:49.732Z"
+    "updated": "2026-11-25T22:43:22Z"
   },
   "plan": {
     "title": "release: ship pin-PR setup in skill; local-update must survive untracked approved-scope twins",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "release: ship pin-PR setup in skill; local-update must survive untracked approved-scope twins",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/7331",
@@ -20,26 +20,47 @@
     "items": [
       {
         "id": "1",
-        "status": "pending",
+        "status": "completed",
         "title": "Ship durable pin-PR setup (release:pin-pr and/or release-skill post-run Phase): tip worktree + chore/pin-directive-<version>; bump package.json pin + replace minimumReleaseAgeExclude; ensure changelog.d/ exists; write pin fragment; pnpm update -w @deftai/directive-runtime@<version> + frozen-lockfile verify; open PR with Documentation impact change_class: none — relieves: P1",
         "narrative": {
           "Acceptance": "Ship durable pin-PR setup (release:pin-pr and/or release-skill post-run Phase): tip worktree + chore/pin-directive-<version>; bump package.json pin + replace minimumReleaseAgeExclude; ensure changelog.d/ exists; write pin fragment; pnpm update -w @deftai/directive-runtime@<version> + frozen-lockfile verify; open PR with Documentation impact change_class: none — relieves: P1"
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "6f0106c9484d9e05c67a8be495d0dc4b48b3b322",
+          "recorded_at": "2026-11-25T22:39:39Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "id": "2",
-        "status": "pending",
+        "status": "completed",
         "title": "On the release:local-update path that owns git pull --ff-only, for untracked tip-tracked .deft/approved-scope/** (same-class mint paths): tip-byte-identical → remove untracked; else → move aside to OS temp; retry ff-only; print one-step remediation; never git clean -fd the whole tree — relieves: P2",
         "narrative": {
           "Acceptance": "On the release:local-update path that owns git pull --ff-only, for untracked tip-tracked .deft/approved-scope/** (same-class mint paths): tip-byte-identical → remove untracked; else → move aside to OS temp; retry ff-only; print one-step remediation; never git clean -fd the whole tree — relieves: P2"
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "6f0106c9484d9e05c67a8be495d0dc4b48b3b322",
+          "recorded_at": "2026-11-25T22:39:39Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "id": "3",
-        "status": "pending",
+        "status": "completed",
         "title": "releaseRunFinalLines and skill exit / post-run card after finish+promote name both runnable paths (pin-PR setup + local-update clash remediation) — relieves: P3",
         "narrative": {
           "Acceptance": "releaseRunFinalLines and skill exit / post-run card after finish+promote name both runnable paths (pin-PR setup + local-update clash remediation) — relieves: P3"
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "6f0106c9484d9e05c67a8be495d0dc4b48b3b322",
+          "recorded_at": "2026-11-25T22:39:39Z",
+          "recorded_by": "scope:complete"
         }
       }
     ],
@@ -90,7 +111,17 @@
         "On the release:local-update path that owns git pull --ff-only, for untracked tip-tracked .deft/approved-scope/** (same-class mint paths): tip-byte-identical → remove untracked; else → move aside to OS temp; retry ff-only; print one-step remediation; never git clean -fd the whole tree — relieves: P2",
         "releaseRunFinalLines and skill exit / post-run card after finish+promote name both runnable paths (pin-PR setup + local-update clash remediation) — relieves: P3"
       ],
-      "admitted_source_digest": "d1a08d2f1ed3f22094549183f37f4615e59c2016382a96c84d32797df7c276d8"
+      "admitted_source_digest": "d1a08d2f1ed3f22094549183f37f4615e59c2016382a96c84d32797df7c276d8",
+      "ambiguity_attestation": "none_found",
+      "sentences": [
+        "Ship durable pin-PR setup (release:pin-pr and/or release-skill post-run Phase): tip worktree + chore/pin-directive-<version>; bump package.json pin + replace minimumReleaseAgeExclude; ensure changelog.d/ exists; write pin fragment; pnpm update -w @deftai/directive-runtime@<version> + frozen-lockfile verify; open PR with Documentation impact change_class: none — relieves: P1",
+        "On the release:local-update path that owns git pull --ff-only, for untracked tip-tracked .deft/approved-scope/** (same-class mint paths): tip-byte-identical → remove untracked; else → move aside to OS temp; retry ff-only; print one-step remediation; never git clean -fd the whole tree — relieves: P2",
+        "releaseRunFinalLines and skill exit / post-run card after finish+promote name both runnable paths (pin-PR setup + local-update clash remediation) — relieves: P3"
+      ],
+      "confessions": [
+        "release: ship pin-PR setup in skill; local-update must survive untracked approved-scope twins",
+        "On the release:local-update path that owns git pull --ff-only, for untracked tip-tracked .deft/approved-scope/ (same-class mint paths): tip-byte-identical → remove untracked; else → move aside to OS temp; retry ff-only; print one-step remediation; never git clean -fd the whole tree — relieves: P2"
+      ]
     },
     "metadata": {
       "intended_placement": {
@@ -447,9 +478,33 @@
           "local-update remediates untracked approved-scope twins per-path"
         ],
         "model_tier": "standard"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "412b5617e496fab45720830f91d893364916d4ce",
+        "prNumber": 7335,
+        "prBase": "master",
+        "mergeCommit": "6f0106c9484d9e05c67a8be495d0dc4b48b3b322",
+        "deliveryBranch": "master",
+        "deliveryCommit": "a170b2b075a5b09876fc8d3fc04dec5c6a2eff64",
+        "verifiedAt": "2026-11-25T22:43:22Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "identityBasis": "merge-time-mark"
+      },
+      "completedAt": "2026-11-25T22:43:22Z",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-25T22:43:22Z"
       }
     },
     "id": "github.issue.6597371485",
-    "updated": "2026-11-25T18:26:49.732Z"
+    "updated": "2026-11-25T22:43:22Z"
   }
 }

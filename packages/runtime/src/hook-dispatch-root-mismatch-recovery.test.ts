@@ -122,3 +122,61 @@ describe("root-mismatch recovery admit (#6599)", () => {
     }
   });
 });
+
+describe("Claude hard-refuse non-gated MCP admit under root-mismatch (#7352)", () => {
+  function mcpDispatch(
+    host: string,
+    toolName: string,
+    toolInput: Record<string, unknown> = {},
+  ): Outcome {
+    const out: string[] = [];
+    const code = run([`--host=${host}`, "--event=tool.before", "--project-root=/worktree"], {
+      readStdin: () =>
+        JSON.stringify({
+          tool_name: toolName,
+          tool_input: toolInput,
+          cwd: "/worktree",
+        }),
+      writeOut: (t) => out.push(t),
+      writeErr: () => undefined,
+      cwd: () => "/worktree",
+      stdinEmptyRetryMs: 0,
+      launchingCheckoutRoot: () => "/primary",
+      launcherPath: () => undefined,
+      cheapInSync: () => OK_CHEAP,
+    });
+    expect(code).toBe(0);
+    const raw = out.join("").trim();
+    const wire = raw.length === 0 ? {} : (JSON.parse(raw) as Record<string, unknown>);
+    return { raw, wire, text: raw };
+  }
+
+  it("admits sanitized Claude host UI MCP names", () => {
+    for (const toolName of ["mcp__ccd_turn__wrap_up", "mcp__ccd_turn__task_list"]) {
+      const o = mcpDispatch("claude", toolName);
+      expect(denied(o), toolName).toBe(false);
+      expect(o.text).toMatch(/not-gated|non-gated|#7352/i);
+    }
+  });
+
+  it.each([
+    ["Bash", {}],
+    ["Edit", { file_path: "/worktree/x.ts" }],
+    ["Write", { file_path: "/worktree/x.ts" }],
+    ["CallMcpTool", { tool_name: "mcp__ccd_turn__wrap_up" }],
+    ["use_tool", { tool_name: "mcp__ccd_turn__wrap_up" }],
+    ["mcp__github__merge_pull_request", {}],
+    ["mcp__fs__edit_record", { path: "/tmp/x" }],
+    // Host UI MCP name with forge-sensitive args must stay refused (#7352 Greptile).
+    ["mcp__ccd_turn__wrap_up", { command: "git push origin HEAD" }],
+  ])("still refuses %s", (toolName, toolInput) => {
+    const o = mcpDispatch("claude", toolName, toolInput);
+    expect(denied(o)).toBe(true);
+    expect(o.text).toContain(HOOK_ROOT_MISMATCH_RECOVERY_GUIDANCE);
+  });
+
+  it("does not admit on non-Claude hosts", () => {
+    const o = mcpDispatch("grok", "mcp__ccd_turn__wrap_up");
+    expect(denied(o)).toBe(true);
+  });
+});

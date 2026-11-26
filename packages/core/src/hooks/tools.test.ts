@@ -57,6 +57,17 @@ describe("hooks tools classifiers (#2711 / #2952)", () => {
     expect(expectsLocalMutationDest("mcp__serena__create_text_file")).toBe(true);
   });
 
+  it("isMcpWriteShaped keeps host UI MCP non-write while edit/create stay write (#7352)", () => {
+    expect(isMcpWriteShaped("mcp__ccd_turn__wrap_up")).toBe(false);
+    expect(isMcpWriteShaped("mcp__ccd_turn__task_list")).toBe(false);
+    expect(isMcpWriteShaped("mcp__fs__edit_record")).toBe(true);
+    expect(expectsLocalMutationDest("mcp__fs__edit_record")).toBe(false);
+    expect(isMcpWriteShaped("mcp__fs__create_note")).toBe(true);
+    expect(expectsLocalMutationDest("mcp__fs__create_note")).toBe(false);
+    expect(MCP_HOOK_MATCHER).toContain("mcp__.*");
+    expect(MCP_HOOK_MATCHER).toContain(".*__.*");
+  });
+
   it("isDirectWriteTool and isSpawnTool stay narrow", () => {
     expect(isDirectWriteTool("Write")).toBe(true);
     expect(isDirectWriteTool("Edit")).toBe(true);
