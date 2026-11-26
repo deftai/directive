@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #7358",
-    "updated": "2026-11-26T18:07:59Z"
+    "updated": "2026-11-26T19:08:47Z"
   },
   "plan": {
     "title": "[framework-gap] Replace retiring gemini-3.8-flash-high in AGY design-critique critic seat before Nov 30, 2026 sunset",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "[framework-gap] Replace retiring gemini-3.8-flash-high in AGY design-critique critic seat before Nov 30, 2026 sunset. The published AGY_CRITIC_MODEL, AGY_PONG_ARGV and AGY_SHORT_POINTER_ARGV still name gemini-3.8-flash-high, which Antigravity removes on 2026-11-30, so agy critic pong and pointer dispatch would fail after that date. Pin all three to gemini-4-hydrogen-high and keep seat discharge keyed only to AGY_CRITIC_MODEL.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/7358",
@@ -17,23 +17,51 @@
     "items": [
       {
         "title": "Replace AGY_CRITIC_MODEL — set the published constant to gemini-4-hydrogen-high as the sole all-plans survivor pin after the 2026-11-30 sunset.",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e2d54c35dc94d59a6813e504b09f20c8522f8bac",
+          "recorded_at": "2026-11-26T19:08:47Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Pin pong and short-pointer argv — put the same Hydrogen slug on AGY_PONG_ARGV and AGY_SHORT_POINTER_ARGV --model flags.",
-        "status": "proposed",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e2d54c35dc94d59a6813e504b09f20c8522f8bac",
+          "recorded_at": "2026-11-26T19:08:47Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Keep discharge keyed to the constant — agyModelDischargesSeat / evaluateAgySeatCompletion admit only AGY_CRITIC_MODEL; refuse gemini-3.8-flash-high, Claude, GPT, and Argon as discharge.",
-        "status": "proposed",
-        "id": "clause.3"
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e2d54c35dc94d59a6813e504b09f20c8522f8bac",
+          "recorded_at": "2026-11-26T19:08:47Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Flip fixtures and CHANGELOG — retarget launcher-argv tests so hydrogen-high admits and retiring 3.8 misses, and record the published pin change.",
-        "status": "proposed",
-        "id": "clause.4"
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e2d54c35dc94d59a6813e504b09f20c8522f8bac",
+          "recorded_at": "2026-11-26T19:08:47Z",
+          "recorded_by": "scope:complete"
+        }
       }
     ],
     "tags": [
@@ -394,9 +422,39 @@
           "agy critic seat pinned to gemini-4-hydrogen-high"
         ],
         "model_tier": "standard"
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "f57907142fbf0094e41ee80c537ba42abcb49e7a",
+        "prNumber": 7399,
+        "prBase": "master",
+        "mergeCommit": "e2d54c35dc94d59a6813e504b09f20c8522f8bac",
+        "deliveryBranch": "master",
+        "deliveryCommit": "9dedfd379916b1fc8c0bf3d10e4044ca3f7341af",
+        "verifiedAt": "2026-11-26T19:08:47Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:YTQ2NTZlZmEtNzdjMy00ZTZhLWEyYmMtNjYxNjdkYTg5NDA4",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          7383,
+          7386
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-26T19:08:47Z",
+      "completedSessionId": "host:claude:v1:YTQ2NTZlZmEtNzdjMy00ZTZhLWEyYmMtNjYxNjdkYTg5NDA4",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-26T19:08:47Z"
       }
     },
     "id": "github.issue.6614242598",
-    "updated": "2026-11-26T18:07:59Z"
+    "updated": "2026-11-26T19:08:47Z"
   }
 }
