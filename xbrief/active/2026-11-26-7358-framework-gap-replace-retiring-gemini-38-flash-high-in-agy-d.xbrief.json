@@ -8,7 +8,7 @@
     "title": "[framework-gap] Replace retiring gemini-3.8-flash-high in AGY design-critique critic seat before Nov 30, 2026 sunset",
     "status": "running",
     "narratives": {
-      "Description": "[framework-gap] Replace retiring gemini-3.8-flash-high in AGY design-critique critic seat before Nov 30, 2026 sunset",
+      "Description": "[framework-gap] Replace retiring gemini-3.8-flash-high in AGY design-critique critic seat before Nov 30, 2026 sunset. The published AGY_CRITIC_MODEL, AGY_PONG_ARGV and AGY_SHORT_POINTER_ARGV still name gemini-3.8-flash-high, which Antigravity removes on 2026-11-30, so agy critic pong and pointer dispatch would fail after that date. Pin all three to gemini-4-hydrogen-high and keep seat discharge keyed only to AGY_CRITIC_MODEL.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/7358",
       "Overview": "\n\n1. Replace AGY_CRITIC_MODEL — set the published constant to gemini-4-hydrogen-high as the sole all-plans survivor pin after the 2026-11-30 sunset.\n2. Pin pong and short-pointer argv — put the same Hydrogen slug on AGY_PONG_ARGV and AGY_SHORT_POINTER_ARGV --model flags.\n3. Keep discharge keyed to the constant — agyModelDischargesSeat / evaluateAgySeatCompletion admit only AGY_CRITIC_MODEL; refuse gemini-3.8-flash-high, Claude, GPT, and Argon as discharge.\n4. Flip fixtures and CHANGELOG — retarget launcher-argv tests so hydrogen-high admits and retiring 3.8 misses, and record the published pin change.\n\n\n",
       "Constraint": "- Defaulting the Free-plan pin to Neon or Carbon.\n- Pinning Argon (also retires 2026-11-30).\n- Relabeling seat or launcher away from agy.\n- Absorbing #7332 first-class host/hooks work.\n- Changing sandbox vs --dangerously-skip-permissions in this Bound.",
