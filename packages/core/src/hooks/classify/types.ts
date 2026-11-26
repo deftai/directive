@@ -4,7 +4,7 @@
  */
 
 /** Host ids that PreToolUse / SessionStart dispatch understands. */
-export const CLASSIFY_HOOK_HOSTS = ["claude", "grok", "cursor", "codex"] as const;
+export const CLASSIFY_HOOK_HOSTS = ["claude", "grok", "cursor", "codex", "agy"] as const;
 export type ClassifyHookHost = (typeof CLASSIFY_HOOK_HOSTS)[number];
 
 /**
