@@ -13,16 +13,13 @@ import {
 } from "@deftai/directive-core/dist/install-health/constants.js";
 import { renderPinMismatchRecoveryGuidance } from "@deftai/directive-core/dist/install-health/pin-mismatch-guidance.js";
 import {
-<<<<<<< HEAD
   readInstalledRuntimeVersion,
   readRuntimePin,
 } from "@deftai/directive-core/dist/install-health/readers.js";
 import {
-=======
   admitHardRefuseNonGatedMcp,
->>>>>>> origin/master
-  admitPinMismatchRecovery,
-  admitRootMismatchRecovery,
+admitPinMismatchRecovery,
+admitRootMismatchRecovery,
 } from "@deftai/directive-core/dist/install-health/recovery-admit.js";
 import {
   classifyRootMismatch,
@@ -42,9 +39,9 @@ import {
   type HookEvent,
   type HookHost,
   type HookPayloadContext,
-  hookMcpArgsText,
   hookPayloadTopLevelKeys,
   hookShellCommand,
+  hookMcpArgsText,
   hookToolName,
   isHookEvent,
   isHookHost,
@@ -216,7 +213,7 @@ function installationIdentityDeny(
   };
 }
 
-/** Explicit not-gated allow message for Claude hard-refuse MCP UI admit (#7352). */
+/** Tool-input fields that name a shell call's run directory (#6313). */
 export const HARD_REFUSE_NON_GATED_MCP_ALLOW_MESSAGE =
   "Warning: Directive hard-refuse admitted non-gated host MCP " +
   "(not push/merge, not write-shaped, not authz-class, not proxy). " +
@@ -255,7 +252,6 @@ function hardRefuseNonGatedMcpAdmit(
   };
 }
 
-/** Tool-input fields that name a shell call's run directory (#6313). */
 const SHELL_RUN_DIRECTORY_FIELDS = ["workdir", "cwd", "working_directory", "workingDirectory"];
 
 /**
@@ -637,10 +633,6 @@ export function run(argv: string[], seams: HookDispatchCliSeams = {}): number {
         if (renderedAdmit.length > 0) writeOut(`${renderedAdmit}\n`);
         return 0;
       }
-<<<<<<< HEAD
-      const message =
-        `Directive hook refuse: payload project root does not match the launching checkout ` +
-=======
       // #7352: Claude host UI MCP under local root-mismatch hard-refuse.
       const mcpAdmit = hardRefuseNonGatedMcpAdmit(args.host, args.event, projectRoot, payload);
       if (mcpAdmit !== null) {
@@ -648,13 +640,8 @@ export function run(argv: string[], seams: HookDispatchCliSeams = {}): number {
         if (renderedAdmit.length > 0) writeOut(`${renderedAdmit}\n`);
         return 0;
       }
-    }
-    const message = foreign
-      ? `Directive hook refuse (${FOREIGN_RUNTIME_LINK}): this checkout's Directive runtime is linked in from another checkout ` +
-        `(payloadRoot=${payloadRootText} launchRoot=${launchRootText}). ` +
-        `Recovery: ${FOREIGN_RUNTIME_LINK_RECOVERY_GUIDANCE.replaceAll("<payloadRoot>", payloadRootText)}`
-      : `Directive hook refuse: payload project root does not match the launching checkout ` +
->>>>>>> origin/master
+      const message =
+        `Directive hook refuse: payload project root does not match the launching checkout ` +
         `(payloadRoot=${payloadRootText} ` +
         `launchRoot=${launchRootText}). Recovery: ${HOOK_ROOT_MISMATCH_RECOVERY_GUIDANCE}`;
       const decision = installationIdentityDeny(args.host, args.event, projectRoot, message);
