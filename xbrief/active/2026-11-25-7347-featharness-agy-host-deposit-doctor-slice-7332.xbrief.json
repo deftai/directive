@@ -123,7 +123,7 @@
           "github.issue.6609698953"
         ],
         "verify_commands": [
-          "pnpm exec vitest run --reporter=dot"
+          "pnpm exec vitest run --reporter=dot packages/core/src/init-deposit/host-hook-outer.test.ts packages/core/src/init-deposit/hygiene.test.ts packages/core/src/hooks/classify/classify.test.ts packages/core/src/doctor/checks.test.ts"
         ],
         "expected_outputs": [
           "Prefer-A Bound slice #7347 shipped"
