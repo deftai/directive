@@ -18,8 +18,8 @@ import {
 } from "@deftai/directive-core/dist/install-health/readers.js";
 import {
   admitHardRefuseNonGatedMcp,
-admitPinMismatchRecovery,
-admitRootMismatchRecovery,
+  admitPinMismatchRecovery,
+  admitRootMismatchRecovery,
 } from "@deftai/directive-core/dist/install-health/recovery-admit.js";
 import {
   classifyRootMismatch,
@@ -39,9 +39,9 @@ import {
   type HookEvent,
   type HookHost,
   type HookPayloadContext,
+  hookMcpArgsText,
   hookPayloadTopLevelKeys,
   hookShellCommand,
-  hookMcpArgsText,
   hookToolName,
   isHookEvent,
   isHookHost,
@@ -644,6 +644,27 @@ export function run(argv: string[], seams: HookDispatchCliSeams = {}): number {
         `Directive hook refuse: payload project root does not match the launching checkout ` +
         `(payloadRoot=${payloadRootText} ` +
         `launchRoot=${launchRootText}). Recovery: ${HOOK_ROOT_MISMATCH_RECOVERY_GUIDANCE}`;
+      const decision = installationIdentityDeny(args.host, args.event, projectRoot, message);
+      const rendered = renderHostDecision(args.host, decision);
+      if (rendered.length > 0) writeOut(`${rendered}\n`);
+      return 0;
+    }
+    // #7351: launch overlay must refuse before same-repo admit (versions may still match).
+    const launchCheap = (seams.cheapInSync ?? checkCheapInSync)(launchRoot);
+    if (launchCheap.failClosed === true && launchCheap.pinMismatchOnly !== true) {
+      const mcpAdmit = hardRefuseNonGatedMcpAdmit(args.host, args.event, projectRoot, payload);
+      if (mcpAdmit !== null) {
+        const renderedAdmit = renderHostDecision(args.host, mcpAdmit);
+        if (renderedAdmit.length > 0) writeOut(`${renderedAdmit}\n`);
+        return 0;
+      }
+      const cheapRecovery = launchCheap.recoveryGuidance ?? ENTRY_GUARD_MESSAGES.overlay;
+      const message =
+        `Directive hook refuse: launching checkout has a materialize-runtime overlay; ` +
+        `same-repo linked worktrees cannot use that runtime ` +
+        `(payloadRoot=${payloadRootText} launchRoot=${launchRootText} ` +
+        `pin=${launchCheap.pinVersion ?? "?"} installed=${launchCheap.installedVersion ?? "?"}). ` +
+        `Recovery: ${cheapRecovery}`;
       const decision = installationIdentityDeny(args.host, args.event, projectRoot, message);
       const rendered = renderHostDecision(args.host, decision);
       if (rendered.length > 0) writeOut(`${rendered}\n`);

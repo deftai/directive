@@ -1202,19 +1202,60 @@ describe("#7351 same-repo Claude WT and Directive dest admit", () => {
         launchingCheckoutRoot: () => "/repo",
         sameRepoGitCommonDir: () => true,
         launchInstalledMatchesPayloadPin: () => false,
-        cheapInSync: () => ({
-          ...OK_CHEAP,
-          ok: false,
-          failClosed: true,
-          pinMismatchOnly: false,
-          identityMatch: true,
-          recoveryGuidance: "retire overlay",
-        }),
+        cheapInSync: (root) =>
+          root === "/repo"
+            ? OK_CHEAP
+            : {
+                ...OK_CHEAP,
+                ok: false,
+                failClosed: true,
+                pinMismatchOnly: false,
+                identityMatch: true,
+                recoveryGuidance: "retire overlay",
+              },
       },
     );
     const text = out.join("");
     expect(code).toBe(0);
     expect(text).toMatch(/overlay|materialize-runtime/i);
+    expect(text).not.toContain("admitted the launch-runtime recovery");
+  });
+
+  it("refuses same-repo admit when launch checkout has a materialize overlay", () => {
+    const out: string[] = [];
+    const code = run(
+      ["--host=claude", "--event=tool.before", "--project-root=/repo/.claude/worktrees/agent-wt"],
+      {
+        readStdin: () =>
+          JSON.stringify({
+            tool_name: "Bash",
+            tool_input: { command: "git status" },
+            cwd: "/repo/.claude/worktrees/agent-wt",
+          }),
+        writeOut: (t) => out.push(t),
+        writeErr: () => undefined,
+        cwd: () => "/repo/.claude/worktrees/agent-wt",
+        stdinEmptyRetryMs: 0,
+        launchingCheckoutRoot: () => "/repo",
+        sameRepoGitCommonDir: () => true,
+        launchInstalledMatchesPayloadPin: () => true,
+        cheapInSync: (root) =>
+          root === "/repo"
+            ? {
+                ...OK_CHEAP,
+                ok: false,
+                failClosed: true,
+                pinMismatchOnly: false,
+                identityMatch: true,
+                recoveryGuidance: "retire launch overlay",
+              }
+            : OK_CHEAP,
+      },
+    );
+    const text = out.join("");
+    expect(code).toBe(0);
+    expect(text).toMatch(/launching checkout has a materialize-runtime overlay/i);
+    expect(text).toContain("retire launch overlay");
     expect(text).not.toContain("admitted the launch-runtime recovery");
   });
 });
