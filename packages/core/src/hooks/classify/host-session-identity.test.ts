@@ -1,6 +1,6 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   HOST_IDENTITY_PROVIDERS,
@@ -9,6 +9,7 @@ import {
 } from "../../session/host-session-owner.js";
 import type { HookDispatchInput } from "../dispatcher.js";
 import { resolveArcSpendSessionForHook } from "../dispatcher-plan-choice.js";
+import { decideHook, type HookPolicySeams, renderHostDecision } from "../index.js";
 import { AGY_PRETOOLUSE_FIXTURES, AGY_SESSION_START_FIXTURE } from "./agy-observation.js";
 import {
   AGY_SESSION_START_NOTICES,
@@ -1112,6 +1113,104 @@ describe("agy wire adapter (#7346)", () => {
           message: "m",
         }),
       ).toBe("");
+    });
+  });
+});
+
+describe("agy through decideHook and renderHostDecision (#7346)", () => {
+  const CONVERSATION = "4432514a-f897-4dbf-9276-b9d8aca01eb7";
+  const OWNER = `host:agy:v1:${Buffer.from(CONVERSATION, "utf8").toString("base64url")}`;
+
+  function seams(): HookPolicySeams {
+    return {
+      verifyRitual: () => ({
+        code: 0,
+        message: "OK session ritual gated tier is fresh.",
+        tier: "gated",
+        statePath: "/ritual-state.json",
+        bypassed: false,
+        wouldFailCode: null,
+        posture: "mutation" as const,
+        ritualStateRequired: true,
+        boundSessionId: OWNER,
+      }),
+      inspectScope: () => ({ ready: true, path: "/story.xbrief.json", message: "OK active scope" }),
+      sessionStart: () => ({ code: 0, stdout: "", stderr: "" }),
+      runningInsideDeftRepo: () => true,
+      realpathLifecycleExecutionRoot: (path) => resolve(path),
+      loadStoryWriteFence: () => ({ fileScope: ["**"], denyPaths: [] }),
+    };
+  }
+
+  function agyPayload(name: string, args: Record<string, unknown>) {
+    return {
+      conversationId: CONVERSATION,
+      hookEventName: "PreToolUse",
+      toolCall: { id: "call_1", name, args },
+    };
+  }
+
+  function decide(payload: unknown, event: "tool.before" | "session.start" = "tool.before") {
+    const projectRoot = mkdtempSync(join(tmpdir(), "deft-agy-e2e-"));
+    try {
+      return decideHook({ host: "agy", event, projectRoot, payload, environ: {} }, seams());
+    } finally {
+      rmSync(projectRoot, { recursive: true, force: true });
+    }
+  }
+
+  it("denies each native spawn tool fail-closed with the single route", () => {
+    for (const tool of AGY_UNSUPPORTED_SPAWN_TOOLS) {
+      const decision = decide(agyPayload(tool, { Prompt: "x", Workspace: "branch" }));
+      expect(decision).toMatchObject({ verdict: "deny", code: "spawn-not-ready", toolName: tool });
+      expect(decision.message).toBe(agyUnsupportedSpawnDenialMessage(tool));
+      expect(JSON.parse(renderHostDecision("agy", decision))).toEqual({
+        decision: "deny",
+        reason: agyUnsupportedSpawnDenialMessage(tool),
+      });
+    }
+  });
+
+  it("rewrites an exact lifecycle command to the agy owner via overwrite.CommandLine", () => {
+    const decision = decide(agyPayload("run_command", { CommandLine: "deft session:start" }));
+    expect(decision.verdict).toBe("allow");
+    expect(decision.updatedInput).toMatchObject({
+      command: `deft session:start --session-id=${OWNER}`,
+    });
+    expect(JSON.parse(renderHostDecision("agy", decision))).toEqual({
+      decision: "allow",
+      overwrite: { CommandLine: `deft session:start --session-id=${OWNER}` },
+    });
+  });
+
+  it("denies a lifecycle command that names a different owner", () => {
+    const decision = decide(
+      agyPayload("run_command", {
+        CommandLine: "deft session:start --session-id=host:agy:v1:eHg",
+      }),
+    );
+    expect(decision.verdict).toBe("deny");
+    expect(JSON.parse(renderHostDecision("agy", decision)).decision).toBe("deny");
+  });
+
+  it("denies an uninspectable lifecycle command instead of letting it through", () => {
+    const decision = decide(
+      agyPayload("run_command", { CommandLine: "deft session:start && echo hi" }),
+    );
+    expect(decision.verdict).toBe("deny");
+    expect(decision.updatedInput).toBeUndefined();
+  });
+
+  it("emits the SessionStart notice through injectSteps", () => {
+    const decision = decide(
+      { conversationId: CONVERSATION, hookEventName: "SessionStart" },
+      "session.start",
+    );
+    expect(decision.verdict).toBe("allow");
+    expect(JSON.parse(renderHostDecision("agy", decision))).toEqual({
+      injectSteps: [
+        { systemMessage: { systemMessage: AGY_SESSION_START_NOTICES["session-start-ritual"] } },
+      ],
     });
   });
 });

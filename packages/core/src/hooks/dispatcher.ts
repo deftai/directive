@@ -151,7 +151,12 @@ import {
   type RoutingSpawnClass,
 } from "../swarm/routing-honor.js";
 import type { ReadWorkerAuthAssignmentResult } from "../swarm/worker-auth-assignment.js";
-import { renderAgyHostDecision } from "./classify/agy-wire.js";
+import {
+  agyUnsupportedSpawnDenialMessage,
+  isAgyUnsupportedSpawnTool,
+  normalizeAgyHookPayload,
+  renderAgyHostDecision,
+} from "./classify/agy-wire.js";
 import {
   formatLauncherCorrectLifecycleRecovery,
   UNRESOLVED_HOST_OWNER,
@@ -4122,7 +4127,7 @@ function lifecycleExecutionRootCheck(
  * outside it binds its claim in the CLI instead: `resolveOccupancySessionId`
  * resolves the same ambient host owner the write gate will present.
  */
-const UPDATED_INPUT_WIRE_HOSTS = ["codex", "claude", "cursor"] as const;
+const UPDATED_INPUT_WIRE_HOSTS = ["codex", "claude", "cursor", "agy"] as const;
 
 function hostAcceptsUpdatedInput(host: HookHost): boolean {
   return (UPDATED_INPUT_WIRE_HOSTS as readonly string[]).includes(host);
@@ -4827,10 +4832,20 @@ function decideHookWithSignals(input: HookDispatchInput, seams: HookPolicySeams)
       scopePath: null,
     };
   }
+  if (input.host === "agy" && input.event === "tool.before") {
+    // #7346: native agy spawn tools carry no child checkout or process-only class; deny.
+    const agyTool = hookToolName(input.payload, input.host);
+    if (agyTool !== null && isAgyUnsupportedSpawnTool(agyTool)) {
+      return deny(input, "spawn-not-ready", agyTool, agyUnsupportedSpawnDenialMessage(agyTool));
+    }
+  }
   const observation: DispatchObservation = { effectiveRoots: [], foreignTarget: false };
   const landed: HookDispatchInput = {
     ...input,
-    payload: landProcessOnlyFlagOnToolInput(input.payload),
+    // #7346: agy keeps tool args at toolCall.args; read them in the shape the gates know.
+    payload: landProcessOnlyFlagOnToolInput(
+      input.host === "agy" ? normalizeAgyHookPayload(input.payload) : input.payload,
+    ),
   };
   const decision = routeHookDecision(landed, seams, observation);
   // Skipped for the #3039 kill-switch and #2926 opt-out, which short-circuit

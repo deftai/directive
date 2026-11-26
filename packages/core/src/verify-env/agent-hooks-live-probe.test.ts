@@ -135,7 +135,14 @@ describe("probeAgentHooksLive", () => {
     const result = probeAgentHooksLive("/project", { resolveCommand: () => null });
 
     expect(result.code).toBe(2);
-    expect(result.hosts.map((entry) => entry.host)).toEqual(["claude", "grok", "cursor", "codex"]);
+    // agy is a registered host (#7346); real callers pass only the deposited hosts.
+    expect(result.hosts.map((entry) => entry.host)).toEqual([
+      "claude",
+      "grok",
+      "cursor",
+      "codex",
+      "agy",
+    ]);
     expect(result.hosts.every((entry) => entry.status === "unavailable")).toBe(true);
   });
 
