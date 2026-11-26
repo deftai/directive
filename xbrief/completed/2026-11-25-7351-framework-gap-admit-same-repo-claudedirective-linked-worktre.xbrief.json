@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #7351",
-    "updated": "2026-11-25T22:20:26Z"
+    "updated": "2026-11-26T02:11:01Z"
   },
   "plan": {
     "title": "[framework-gap] Admit same-repo Claude/Directive linked worktrees under host-hook root check (split from #7349)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Same-repo Claude linked worktrees and Directive dest worktrees are refused when launchRoot is primary and payloadRoot is the worktree. This activation records Prefer-A Bound so a later product PR can admit matching gitCommonDir before path-only rootsMatch refuse.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/7351",
@@ -22,32 +22,50 @@
     "items": [
       {
         "title": "relieves: P1 — Admit when launch and payload gitCommonDir match before path-only rootsMatch refuse",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P1 — Admit when launch and payload gitCommonDir match before path-only rootsMatch refuse",
           "Traces": "#7351",
           "Description": "Primary touch: packages/runtime/src/hook-dispatch.ts"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/runtime/src/hook-dispatch.ts",
+          "recorded_at": "2026-11-26T02:10:43Z",
+          "recorded_by": "scope:stamp-evidence"
         }
       },
       {
         "title": "relieves: P2 — Cover primary-launched hook with same-repo worktree payload (Claude WT and Directive dest) in regression",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P2 — Cover primary-launched hook with same-repo worktree payload (Claude WT and Directive dest) in regression",
           "Traces": "#7351",
           "Description": "Primary touch: packages/runtime/src/hook-dispatch.test.ts"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/runtime/src/hook-dispatch.test.ts",
+          "recorded_at": "2026-11-26T02:10:43Z",
+          "recorded_by": "scope:stamp-evidence"
         }
       },
       {
         "title": "relieves: P3 — Keep mismatch recovery for true cross-repo / unresolved-common-dir; do not claim same-repo needs disable",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P3 — Keep mismatch recovery for true cross-repo / unresolved-common-dir; do not claim same-repo needs disable",
           "Traces": "#7351",
           "Description": "Primary touch: packages/runtime/src/hook-dispatch-worktree.test.ts"
+        },
+        "x-directive/evidence": {
+          "kind": "test",
+          "pointer": "packages/runtime/src/hook-dispatch-worktree.test.ts",
+          "recorded_at": "2026-11-26T02:10:43Z",
+          "recorded_by": "scope:stamp-evidence"
         }
       }
     ],
@@ -723,9 +741,33 @@
           "Claude WT and Directive dest positive regressions; cross-repo and foreign-runtime still deny"
         ],
         "model_tier": "standard"
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "fac5b4e2f1a61e0a888048162262f1a8749293c3",
+        "prNumber": 7364,
+        "prBase": "master",
+        "mergeCommit": "eb04ebe412901ad203768f7e6df2d5f9a8dd699b",
+        "deliveryBranch": "master",
+        "deliveryCommit": "7c99a8c3b43d4045878c755d5ca7fb2ae873a577",
+        "verifiedAt": "2026-11-26T02:11:01Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "identityBasis": "merge-time-mark"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-26T02:11:01Z",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-26T02:11:01Z"
       }
     },
     "id": "github.issue.6611317125",
-    "updated": "2026-11-25T22:20:26Z"
+    "updated": "2026-11-26T02:11:01Z"
   }
 }
