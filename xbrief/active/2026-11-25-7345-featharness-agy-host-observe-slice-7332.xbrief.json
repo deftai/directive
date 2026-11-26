@@ -56,20 +56,32 @@
     "acceptance": {
       "commands": [],
       "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 3 independently testable clauses from the task statement before product edit (#3323)",
       "clauses": [
         {
-          "id": "clause.1",
-          "text": "Register agy in CLASSIFY_HOOK_HOSTS so HOST_TOOL_SURFACE_AUDIT.agy compiles"
+          "id": 1,
+          "text": "Register agy in CLASSIFY_HOOK_HOSTS so HOST_TOOL_SURFACE_AUDIT.agy compiles",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
         },
         {
-          "id": "clause.2",
-          "text": "Commit version-stamped Antigravity observation + PreToolUse fixtures with unobservedReason for any unobserved surface"
+          "id": 2,
+          "text": "Commit version-stamped Antigravity observation + PreToolUse fixtures with unobservedReason for any unobserved surface",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
         },
         {
-          "id": "clause.3",
-          "text": "Commit machine-readable pass/fail admission verdict on non-weakenable denial, final executed argument integrity, and selected runtime-failure boundary"
+          "id": 3,
+          "text": "Commit machine-readable pass/fail admission verdict on non-weakenable denial, final executed argument integrity, and selected runtime-failure boundary",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
         }
-      ]
+      ],
+      "ambiguity_attestation": "none_found"
     },
     "metadata": {
       "intended_placement": {

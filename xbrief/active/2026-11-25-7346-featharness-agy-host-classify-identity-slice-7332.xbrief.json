@@ -56,20 +56,32 @@
     "acceptance": {
       "commands": [],
       "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "derived 3 independently testable clauses from the task statement before product edit (#3323)",
       "clauses": [
         {
-          "id": "clause.1",
-          "text": "Register agy in HOOK_HOSTS, AGENT_HOOK_PATH_BY_HOST, HOST_IDENTITY_PROVIDERS with sessionEndSupport unsupported"
+          "id": 1,
+          "text": "Register agy in HOOK_HOSTS, AGENT_HOOK_PATH_BY_HOST, HOST_IDENTITY_PROVIDERS with sessionEndSupport unsupported",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
         },
         {
-          "id": "clause.2",
-          "text": "Add plan.policy.hostHooks.agy with DEFAULT_HOST_HOOKS_POLICY.agy false (no deposit yet)"
+          "id": 2,
+          "text": "Add plan.policy.hostHooks.agy with DEFAULT_HOST_HOOKS_POLICY.agy false (no deposit yet)",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
         },
         {
-          "id": "clause.3",
-          "text": "Land host-keyed payload normalization, narrow overwrite.CommandLine rewrites, spend-resolve alignment, SessionStart notices, fail-closed deny of unsupported native spawn tools"
+          "id": 3,
+          "text": "Land host-keyed payload normalization, narrow overwrite.CommandLine rewrites, spend-resolve alignment, SessionStart notices, fail-closed deny of unsupported native spawn tools",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
         }
-      ]
+      ],
+      "ambiguity_attestation": "none_found"
     },
     "metadata": {
       "intended_placement": {
