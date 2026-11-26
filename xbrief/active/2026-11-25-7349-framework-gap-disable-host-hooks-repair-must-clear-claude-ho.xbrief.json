@@ -486,7 +486,8 @@
           "packages/core/src/install-health/constants.ts",
           "packages/core/src/init-deposit/host-hook-outer.ts",
           "changelog.d/7349-disable-host-hooks-strip-or-repair.md",
-          "packages/cli/src/entry-guard.ts"
+          "packages/cli/src/entry-guard.ts",
+          "xbrief/active/2026-11-25-7349-framework-gap-disable-host-hooks-repair-must-clear-claude-ho.xbrief.json"
         ],
         "file_scope_confidence": "high",
         "depends_on": [],
