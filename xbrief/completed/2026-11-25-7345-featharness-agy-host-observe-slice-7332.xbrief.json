@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #7345",
-    "updated": "2026-11-25T18:35:09.553Z"
+    "updated": "2026-11-26T19:16:21Z"
   },
   "plan": {
     "title": "feat(harness): agy host observe slice (#7332)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Activate Prefer-A Bound #7345 so the Antigravity host observe slice can ship. Register agy in CLASSIFY_HOOK_HOSTS, land observation fixtures with unobservedReason, and record a machine-readable admission verdict for later slices.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/7345",
@@ -19,26 +19,47 @@
     "items": [
       {
         "id": "clause.1",
-        "status": "pending",
+        "status": "completed",
         "title": "Register agy in CLASSIFY_HOOK_HOSTS so HOST_TOOL_SURFACE_AUDIT.agy compiles",
         "narrative": {
           "Acceptance": "Register agy in CLASSIFY_HOOK_HOSTS so HOST_TOOL_SURFACE_AUDIT.agy compiles"
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9dedfd379916b1fc8c0bf3d10e4044ca3f7341af",
+          "recorded_at": "2026-11-26T19:16:21Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "id": "clause.2",
-        "status": "pending",
+        "status": "completed",
         "title": "Commit version-stamped Antigravity observation + PreToolUse fixtures with unobservedReason for any unobserved surface",
         "narrative": {
           "Acceptance": "Commit version-stamped Antigravity observation + PreToolUse fixtures with unobservedReason for any unobserved surface"
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9dedfd379916b1fc8c0bf3d10e4044ca3f7341af",
+          "recorded_at": "2026-11-26T19:16:21Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "id": "clause.3",
-        "status": "pending",
+        "status": "completed",
         "title": "Commit machine-readable pass/fail admission verdict on non-weakenable denial, final executed argument integrity, and selected runtime-failure boundary",
         "narrative": {
           "Acceptance": "Commit machine-readable pass/fail admission verdict on non-weakenable denial, final executed argument integrity, and selected runtime-failure boundary"
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "9dedfd379916b1fc8c0bf3d10e4044ca3f7341af",
+          "recorded_at": "2026-11-26T19:16:21Z",
+          "recorded_by": "scope:complete"
         }
       }
     ],
@@ -131,9 +152,40 @@
           "Prefer-A Bound slice #7345 shipped"
         ],
         "model_tier": "standard"
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "74c5ab85c5b5decc6d5bab61cf6db4c727ba0528",
+        "prNumber": 7400,
+        "prBase": "master",
+        "mergeCommit": "9dedfd379916b1fc8c0bf3d10e4044ca3f7341af",
+        "deliveryBranch": "master",
+        "deliveryCommit": "9dedfd379916b1fc8c0bf3d10e4044ca3f7341af",
+        "verifiedAt": "2026-11-26T19:16:21Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:YTQ2NTZlZmEtNzdjMy00ZTZhLWEyYmMtNjYxNjdkYTg5NDA4",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          7380,
+          7382,
+          7387
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-26T19:16:21Z",
+      "completedSessionId": "host:claude:v1:YTQ2NTZlZmEtNzdjMy00ZTZhLWEyYmMtNjYxNjdkYTg5NDA4",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-26T19:16:21Z"
       }
     },
     "id": "github.issue.6609698619",
-    "updated": "2026-11-25T18:35:09.553Z"
+    "updated": "2026-11-26T19:16:21Z"
   }
 }
