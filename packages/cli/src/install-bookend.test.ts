@@ -6,10 +6,10 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { hostHookRepairOptOutDisclosureBullet as coreHostHookRepairOptOutDisclosureBullet } from "@deftai/directive-core/dist/init-deposit/host-hook-outer.js";
 import { afterEach, describe, expect, it } from "vitest";
 import { runInstall } from "./bookends.js";
 import { classifyPinVersion, type ProjectInstallState, readProjectInstallState } from "./pin.js";
-import { hostHookRepairOptOutDisclosureBullet as coreHostHookRepairOptOutDisclosureBullet } from "@deftai/directive-core/dist/init-deposit/host-hook-outer.js";
 import {
   HUMAN_GIT_HOOKS_INACTIVE_LINE,
   hostHookRepairOptOutDisclosureBullet,
