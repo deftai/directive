@@ -130,7 +130,8 @@
           "packages/core/src/hooks/hook-hosts.ts",
           "packages/core/src/init-deposit/agent-hooks.ts",
           "packages/core/src/session/host-session-owner.ts",
-          "packages/core/src/policy/host-hooks.ts"
+          "packages/core/src/policy/host-hooks.ts",
+          "packages/core/src/hooks/dispatcher.ts"
         ],
         "file_scope_confidence": "medium",
         "depends_on": [
