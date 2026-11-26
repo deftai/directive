@@ -272,7 +272,7 @@ describe("HOOK-ID pin≠installed fail-closed (AC14.8 / AC14.65)", () => {
 });
 
 describe("SEC-WT real linked worktree payload (AC9.5)", () => {
-  it("main launching checkout + worktree payload root fails closed", () => {
+  it("main launching checkout + same-repo worktree payload admits past root mismatch then ritual-denies (#7351)", () => {
     const base = tempDir("sec-wt-git");
     const primary = join(base, "primary");
     mkdirSync(primary);
@@ -294,11 +294,11 @@ describe("SEC-WT real linked worktree payload (AC9.5)", () => {
     expect(result.code).toBe(0);
     expect(result.body.decision).toBe("deny");
     const msg = String(result.body.reason ?? "");
-    expect(msg).toContain(HOOK_ROOT_MISMATCH_RECOVERY_GUIDANCE);
+    // #7351: same-repo linked worktree passes root-mismatch; fail-closed shifts to ritual
+    expect(msg).not.toContain(HOOK_ROOT_MISMATCH_RECOVERY_GUIDANCE);
     expect(msg).not.toContain(INSTALLATION_RECOVERY_GUIDANCE);
-    expect(msg.toLowerCase()).not.toContain("ritual");
-    expect(msg.toLowerCase()).toContain(resolve(primary).toLowerCase());
-    expect(existsSync(join(wt, ".deft-cache"))).toBe(false);
+    expect(msg.toLowerCase()).toContain("ritual");
+    expect(existsSync(join(wt, ".deft-cache"))).toBe(true);
   });
 });
 
