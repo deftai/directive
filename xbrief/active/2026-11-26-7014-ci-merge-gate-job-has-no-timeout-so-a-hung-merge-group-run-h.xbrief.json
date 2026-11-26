@@ -1,0 +1,699 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #7014",
+    "updated": "2026-11-26T23:09:46Z"
+  },
+  "plan": {
+    "title": "ci: merge-gate job has no timeout, so a hung merge-group run holds the queue for 6 hours",
+    "status": "running",
+    "narratives": {
+      "Description": "ci: merge-gate job has no timeout, so a hung merge-group run holds the queue for 6 hours",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/7014",
+      "Overview": "\n\n1. Bound the merge-gate lanes: in `.github/workflows/ci.yml`, give the `task check:merge` step in `merge-gate-primary` and `merge-gate-failover` a step `timeout-minutes`, and each of those jobs a slightly larger job `timeout-minutes` as a backstop, both well above the normal run (about 5 minutes primary), with a comment giving the reason for each value.\n2. Make an ordinary cancel take: change the job `if:` on `merge-gate-primary`, `merge-gate-failover` and the `merge-gate` aggregator from `always() && ...` to `${{ !cancelled() && ... }}` (the expression wrapper keeps the leading `!` valid YAML), keeping every other conjunct unchanged; the TypeScript, capacity and Windows jobs keep `always()`.\n3. Bound the resolver: in `.github/scripts/resolve-ci-authoritative-lane.mjs`, add an optional observation budget that `ci.yml` sets only on the `merge-gate` aggregator (counted from resolver start; capacity stall budget plus the primary job timeout plus a small startup margin); when it is unset, as on the `ts` aggregator, the existing deadline stays. For both callers, give each `gh api` call a subprocess timeout and retry transient failures (HTTP 5xx, call timeout) with backoff inside the deadline in force. The queue-reuse and failover short circuits still run before any API read or budget check; budget exhaustion or exhausted retries exit 1 with an error that names the cause; only a primary `success` passes.\n4. Lock with tests: resolver unit tests through the existing `deps` injection (primary concluded `cancelled` or `failure` after a timeout fails; missing or nonterminal primary past the budget fails; one 502 then success passes; retries exhausted fails; no budget set keeps the old deadline; queue-reuse and failover short circuits unchanged), and `ci_lifecycle_lane.test.ts` updates its `always()` assertions on the merge-gate primary and aggregator to `!cancelled()`, keeps the artifact-only and queue-reuse conjunct checks, and asserts the step and job timeouts.\n5. Record platform evidence after items 1 to 3 land, using a throwaway pull request (closed unmerged) whose only change makes the `task check:merge` step, when `github.event_name == 'merge_group'`, sleep past a short test step timeout, while its pull-request run keeps the normal step and passes: (a) once its pull-request checks pass, its merge-group run, with that pull request alone in the queue, shows the step timing out, \"Merge gate (Blacksmith primary)\" ending non-success, \"Merge gate (task check)\" failing, and the group leaving the queue; (b) an ordinary run cancel of its merge-group run while the step sleeps (a second queue entry), by someone with cancel permission, stops the primary, failover and aggregator jobs, and the run reaches a completed state without force-cancel. Link both runs on this issue and state for each part whether it held.\n\n## Acceptance Criteria\n\n\n1. Both merge-gate lanes set a step `timeout-minutes` on `task check:merge` and a larger job `timeout-minutes`, each well above the normal run; a hung step fails at its step timeout and the job log shows that step as the one that timed out.\n2. \"Merge gate (task check)\" exits within its observation budget when the primary job is timed out, cancelled, failed, missing, or never completes; no merge-gate path waits 6 hours, and the TypeScript check keeps its current deadline.\n3. One transient 5xx or call timeout from the jobs API is retried and does not fail a run whose primary passes; exhausted retries fail with an error that names the API failure.\n4. An ordinary run cancel stops the merge-gate primary, failover and aggregator jobs, and the run reaches a completed state without force-cancel (jobs this Bound does not change may finish first), as shown by the run linked under Bound item 5(b).\n5. Resolver unit tests and the CI workflow content-contract test cover criteria 1 to 3, and the merge-group run linked under Bound item 5(a) shows the timed-out group leaving the queue.\n\n\n",
+      "Constraint": "- Automatic force-cancel, or a wider token permission so agents can cancel runs.\n- Changing the merge-queue status-check timeout or other branch-protection settings on GitHub (outside the repo; Stop 1 keep-out).\n- Naming the exact hung test in the log (test-level attribution); step-level attribution only.\n- Root-causing the hang (#6862, #7181 fixed; #6841, #6851, #6854 open).\n- Changing capacity-watchdog or capacity-arm failover logic, or giving the TypeScript check its own budget.",
+      "Labels": "design-critique:ingest-ready, framework-gap"
+    },
+    "items": [
+      {
+        "title": "Bound the merge-gate lanes: in `.github/workflows/ci.yml`, give the `task check:merge` step in `merge-gate-primary` and `merge-gate-failover` a step `timeout-minutes`, and each of those jobs a slightly larger job `timeout-minutes` as a backstop, both well above the normal run (about 5 minutes primary), with a comment giving the reason for each value.",
+        "status": "proposed",
+        "id": "clause.1"
+      },
+      {
+        "title": "Make an ordinary cancel take: change the job `if:` on `merge-gate-primary`, `merge-gate-failover` and the `merge-gate` aggregator from `always() && ...` to `${{ !cancelled() && ... }}` (the expression wrapper keeps the leading `!` valid YAML), keeping every other conjunct unchanged; the TypeScript, capacity and Windows jobs keep `always()`.",
+        "status": "proposed",
+        "id": "clause.2"
+      },
+      {
+        "title": "Bound the resolver: in `.github/scripts/resolve-ci-authoritative-lane.mjs`, add an optional observation budget that `ci.yml` sets only on the `merge-gate` aggregator (counted from resolver start; capacity stall budget plus the primary job timeout plus a small startup margin); when it is unset, as on the `ts` aggregator, the existing deadline stays. For both callers, give each `gh api` call a subprocess timeout and retry transient failures (HTTP 5xx, call timeout) with backoff inside the deadline in force. The queue-reuse and failover short circuits still run before any API read or budget check; budget exhaustion or exhausted retries exit 1 with an error that names the cause; only a primary `success` passes.",
+        "status": "proposed",
+        "id": "clause.3"
+      },
+      {
+        "title": "Lock with tests: resolver unit tests through the existing `deps` injection (primary concluded `cancelled` or `failure` after a timeout fails; missing or nonterminal primary past the budget fails; one 502 then success passes; retries exhausted fails; no budget set keeps the old deadline; queue-reuse and failover short circuits unchanged), and `ci_lifecycle_lane.test.ts` updates its `always()` assertions on the merge-gate primary and aggregator to `!cancelled()`, keeps the artifact-only and queue-reuse conjunct checks, and asserts the step and job timeouts.",
+        "status": "proposed",
+        "id": "clause.4"
+      },
+      {
+        "title": "Record platform evidence after items 1 to 3 land, using a throwaway pull request (closed unmerged) whose only change makes the `task check:merge` step, when `github.event_name == 'merge_group'`, sleep past a short test step timeout, while its pull-request run keeps the normal step and passes: (a) once its pull-request checks pass, its merge-group run, with that pull request alone in the queue, shows the step timing out, \"Merge gate (Blacksmith primary)\" ending non-success, \"Merge gate (task check)\" failing, and the group leaving the queue; (b) an ordinary run cancel of its merge-group run while the step sleeps (a second queue entry), by someone with cancel permission, stops the primary, failover and aggregator jobs, and the run reaches a completed state without force-cancel. Link both runs on this issue and state for each part whether it held.",
+        "status": "proposed",
+        "id": "clause.5"
+      },
+      {
+        "title": "Both merge-gate lanes set a step `timeout-minutes` on `task check:merge` and a larger job `timeout-minutes`, each well above the normal run; a hung step fails at its step timeout and the job log shows that step as the one that timed out.",
+        "status": "proposed",
+        "id": "clause.6"
+      },
+      {
+        "title": "\"Merge gate (task check)\" exits within its observation budget when the primary job is timed out, cancelled, failed, missing, or never completes; no merge-gate path waits 6 hours, and the TypeScript check keeps its current deadline.",
+        "status": "proposed",
+        "id": "clause.7"
+      },
+      {
+        "title": "One transient 5xx or call timeout from the jobs API is retried and does not fail a run whose primary passes; exhausted retries fail with an error that names the API failure.",
+        "status": "proposed",
+        "id": "clause.8"
+      },
+      {
+        "title": "An ordinary run cancel stops the merge-gate primary, failover and aggregator jobs, and the run reaches a completed state without force-cancel (jobs this Bound does not change may finish first), as shown by the run linked under Bound item 5(b).",
+        "status": "proposed",
+        "id": "clause.9"
+      },
+      {
+        "title": "Resolver unit tests and the CI workflow content-contract test cover criteria 1 to 3, and the merge-group run linked under Bound item 5(a) shows the timed-out group leaving the queue.",
+        "status": "proposed",
+        "id": "clause.10"
+      }
+    ],
+    "tags": [
+      "design-critique:ingest-ready",
+      "framework-gap"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/7014",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #7014: ci: merge-gate job has no timeout, so a hung merge-group run holds the queue for 6 hours"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/6862",
+        "type": "x-xbrief/refs",
+        "title": "Issue #6862"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "task check:merge",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L5"
+        },
+        {
+          "command": "gh api",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L7"
+        },
+        {
+          "command": "github.event_name == 'merge_group'",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L9"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": false,
+        "conflict_group": "ci-merge-gate-workflow",
+        "size": "M",
+        "file_scope": [
+          ".github/workflows/ci.yml",
+          ".github/scripts/resolve-ci-authoritative-lane.mjs",
+          "packages/core/src/init-deposit/ci-watchdog.test.ts",
+          "packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts",
+          "packages/core/src/content-contracts/standards/ci_queue_reuse.test.ts",
+          "changelog.d/7014-merge-gate-timeouts.md"
+        ],
+        "file_scope_confidence": "medium",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/init-deposit/ci-watchdog.test.ts --reporter=dot",
+          "pnpm exec vitest run packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts packages/core/src/content-contracts/standards/ci_queue_reuse.test.ts --reporter=dot"
+        ],
+        "expected_outputs": [
+          "merge-gate step timeout 20 min and job timeout 30 min, each a named constant with a reason; merge-gate if: uses !cancelled(); resolver merge-gate observation budget 35 min with per-call gh api timeout and 5xx retry",
+          "post-landing platform evidence (throwaway queue PR step timeout; ordinary cancel) is operator-run after merge and is not an agent pre-merge gate"
+        ],
+        "model_tier": "standard"
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "Recurred twice on 2026-11-23:\n\n- #7139: merge-gate run 45094444502 stayed in progress about 40 minutes. The operator removed the PR from the queue at 02:05Z and re-queued it.\n- #7168: merge-gate run 45106573427 hung from 03:32Z until the operator cancelled it.\n\nEach time the queue head held every PR behind it, and agents cannot cancel runs. The resolver also waits up to 6 hours for the job, so `timeout-minutes` on the primary job is the only bound that would help.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\n",
+          "id": 7092131899,
+          "html_url": "https://github.com/deftai/directive/issues/7014#issuecomment-7092131899",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-23T05:07:01Z",
+          "updated_at": "2026-11-23T05:07:01Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because the merge-gate jobs in ci.yml carry no timeout-minutes and the authoritative-lane resolver polls for up to 6 hours, so one hung merge-group run holds the queue head for hours; it recurred on 2026-11-26 (run 45891798429, PR #7403) after the fixes in #6862 and #7181.\n\nmechanism-shaped: true\nrefutation-target: A job-level timeout-minutes on the merge-gate primary and failover jobs is, by itself, enough to release the merge queue when a merge-group run hangs in task check:merge.\ncharter: refutation\nspend-recommend: N=1\nspend: N=1\nspend-ask: resolved\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\ndispatch-sha: 343a1a803d7dd3454c9168ada10254e34ab2aae9\nverification-path: pin-read git show 343a1a803d7dd3454c9168ada10254e34ab2aae9:\n\npain: P1, P2, P3\n- P1: The jobs \"Merge gate (Blacksmith primary)\" and \"Merge gate (GH-hosted failover)\" set no timeout-minutes, so a hung `task check:merge` step runs until the 360-minute GitHub default while the group holds queue position 1.\n- P2: The resolver behind \"Merge gate (task check)\" (.github/scripts/resolve-ci-authoritative-lane.mjs) polls the primary job against a fixed 6-hour deadline that is not tied to any primary timeout, and one 5xx from the jobs API ends it with no retry, so its verdict depends on API luck instead of the primary job's state.\n- P3: On run 45891798429 a normal run cancel (`gh run cancel`) did not stop the hung job; only `POST .../force-cancel` did, so an ordinary operator cancel does not release the queue.\n\nRecurrence facts (2026-11-26, run 45891798429, merge_group for PR #7403), from the jobs API for that run:\n- \"Merge gate (Blacksmith primary)\": step `task check:merge` started 20:33:29Z, still running at about 90 minutes, conclusion cancelled at 22:11Z after force-cancel.\n- \"Merge gate (task check)\": the resolver step ran 20:33:23Z to 21:46:57Z (about 73 minutes), then failed on an HTTP 502 from `gh api repos/deftai/directive/actions/runs/<id>/jobs`.\n- \"Merge gate (GH-hosted failover)\": skipped (capacity-arm did not arm failover).\n- The re-queued run for the same PR passed.\nEarlier occurrences: issue body (run 44988820906, 2026-11-22) and comment 7092131899 (runs 45094444502 and 45106573427, 2026-11-23).\n\nKeep-outs (not relieved by this arc):\n- Root-causing why `task check:merge` hangs. Earlier causes were fixed in #6862 and #7181; open related work is #6841 (bin-identity pin-check test timeout), #6851 (larger merge-gate runner) and #6854 (check:merge fail-fast).\n- Blacksmith capacity, failover routing, and capacity-watchdog/capacity-arm logic, except where a timeout must compose with them.\n- Merge-queue settings on GitHub (group size, check timeout in branch protection).\n- Agent permission to cancel runs.\n\nRelated: #6862, #7181, #6841, #6851, #6854, #6921.\n\n",
+          "id": 7204624074,
+          "html_url": "https://github.com/deftai/directive/issues/7014#issuecomment-7204624074",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-26T22:22:49Z",
+          "updated_at": "2026-11-26T22:22:49Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\n\nissue: deftai/directive#7014\ncharter: refutation\nspend: N=1\nround: 1 critic\nseat: codex\nlauncher: codex\nid-ceiling: 7204624074\ndispatch-sha: 343a1a803d7dd3454c9168ada10254e34ab2aae9\narc-mode: no-ingest\nmateriality-bar: open\n\naudit-targets: none\n\nVerdict: The refutation target survives for the ordinary case where a timeout produces an observable terminal job result; it does not survive as an unconditional guarantee covering all three recorded pains. The existing resolver already rejects completed non-success primaries, but the proposed timeout fields neither bound its observation path nor establish recovery from the reported cancellation failure. AC1 addresses the missing bounds in `P1`; AC2 requires an outcome without establishing it for `P2` or `P3`; AC3 provides step identification, not necessarily test identification. Census: 2 blocks-the-design, 1 sharpens-framing, 1 footnote.\n\nVerification: Read the supplied thread through comment 7204624074 and used only `git show 343a1a803d7dd3454c9168ada10254e34ab2aae9:<path>` for repository evidence. Inspected `content/contracts/design-critique.md`, `.github/workflows/ci.yml`, `.github/scripts/resolve-ci-authoritative-lane.mjs`, `.github/scripts/cancel-queued-ci-primary.mjs`, `Taskfile.yml`, and `packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts`. These were static pin reads; no tests or live Actions experiments ran. Incident durations, cancellation outcomes, live required-check settings, and GitHub timeout/queue behavior remain asserted, not measured here.\n\n### B1 — blocks-the-design: Lane timeouts do not bound the required check’s observation path\n\n**Evidence.** In `ci.yml`, the required-name aggregator `merge-gate` depends on changes, capacity-arm, and failover—not primary completion—and runs the resolver. The resolver sets a six-hour deadline, polls every 15 seconds, and continues when no matching job appears or its status remains nonterminal. Its synchronous `gh api` invocation has no explicit subprocess timeout, and API exceptions have no retry handling. Both timeout omissions alleged in `P1` are present.\n\nThere is also an existing success/failure mechanism: once a primary is observed as completed, only `success` returns zero. A completed `timed_out` result therefore already returns failure; failover likewise accepts only `success`. No new timeout-conclusion classifier is needed.\n\n**Failure mode.** Adding primary/failover timeout fields leaves a missing or persistently nonterminal API observation polling against six hours. A stuck API subprocess can prevent the loop from checking even that deadline. A transient API error instead aborts immediately, potentially rejecting healthy work. These are different failures: the reported 502 explains an unreliable verdict, not an additional six-hour wait.\n\n**Disposition consequence.** The design cannot claim coverage of `P2` from lane timeout fields alone. Minimal mechanisms:\n\n- Add explicit primary and failover execution budgets.\n- Bound required-check observation and each API call; fit limited transient-error retries inside that same observation budget.\n- Preserve existing non-success rejection and test terminal timeout, missing/nonterminal observations, transient recovery, and exhausted retries.\n\nDefine the observation budget’s start point and allowance for lane startup; merely assigning the same number to independently starting jobs is not sufficient.\n\n### B2 — blocks-the-design: The cancellation pain has no demonstrated relief path\n\n**Evidence.** Stop 1 reports that ordinary cancellation did not terminate run 45891798429 and force-cancel did. The workflow uses `always()` conditions on the primary, failover, and aggregator. Its capacity machinery deliberately does not fail over claimed runners. `cancel-queued-ci-primary.mjs` explicitly refuses cancellation when `runner_name` is present. Thus the existing capacity recovery is not a recovery mechanism for the claimed, hung job described in `P3`.\n\n**Failure mode.** The issue assumes a newly configured job timeout will produce the terminal state needed to release this class of stuck group. Neither the repository nor the supplied incident establishes that transition. Conversely, ordinary cancellation failing does **not** prove that a job timeout will fail: those mechanisms must not be conflated.\n\nGitHub’s handling of job timeout, cancellation under `always()`, and queue advancement after the required check fails is **asserted, not measured** in this review.\n\n**Disposition consequence.** Do not bind a claim that the current ACs cover `P3`. Require a controlled merge-group timeout demonstration recording the lane result, required aggregator result, and queue advancement. A bounded required-check failure is the minimal candidate for queue release independent of primary termination; its effect must be validated. Terminating the stuck run itself remains a separate outcome unless demonstrated.\n\nI would not add automatic force-cancel or broaden token permissions on this evidence. That would expand authority without establishing that it is necessary.\n\n### S1 — sharpens-framing: A workflow step name does not identify the hung test\n\n**Evidence.** Both lanes already name the step `task check:merge`. `Taskfile.yml` makes that task an alias for `check:framework-source`, which has numerous dependencies, including `ts:check-lane` and verification tasks. The resolver logs job status, conclusion, start time, and runner—not the executing test.\n\n**Failure mode.** AC3 can be satisfied by identifying `task check:merge` while leaving the specific hanging task or test unknown.\n\n**Disposition consequence.** The timeout design can proceed, but AC3 should distinguish step attribution from test attribution. Keep step-level evidence as the narrow requirement, or explicitly require flushed task/test start-and-finish identifiers if test attribution is intended. Finding the cause of the hang remains outside this arc.\n\n### F1 — footnote: The narrow two-field fix has a credible ordinary-case argument\n\nThe strongest case for the original proposal is that normal platform timeout handling supplies a completed non-success result, which the resolver already rejects on its next successful poll. Its six-hour deadline is a maximum, not a mandatory wait. The inspected lifecycle tests preserve required-check naming and non-success rejection, but do not demonstrate live timeout-to-queue advancement.\n\nThis supports keeping the remedy small. A controlled demonstration covering the reported cancellation class, together with explicit handling or separate disposition of `P2`, would materially strengthen the sufficiency claim. This footnote adds no independent blocking obligation.",
+          "id": 7204688262,
+          "html_url": "https://github.com/deftai/directive/issues/7014#issuecomment-7204688262",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-26T22:27:03Z",
+          "updated_at": "2026-11-26T22:27:03Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** Prefer-A Bound. The issue's proposal survives in a wider form: a job timeout alone is not enough, so the Bound adds a bounded resolver and a cancel that takes. This map is the bind.\n\n## In plain English\n\nWhen a merge-group run hangs in `task check:merge`, nothing stops it for 6 hours, and the merge queue waits behind it. The issue proposed a job timeout. The critic agreed the timeout is needed but showed it is not enough on its own: the required check \"Merge gate (task check)\" is a separate job whose script polls for up to 6 hours, crashes on one API error, and has no limit on a stuck API call; and on 2026-11-26 an ordinary cancel did not stop the hung run at all.\n\nThe accepted remedy has three parts. First, the `task check:merge` step and its job get time limits well above the normal 5-minute run, so a hang fails in minutes and the log shows which step timed out. Second, the resolver script gets a time budget tied to those limits, a timeout on each API call, and a few retries for transient 5xx errors, so it fails or passes for a real reason and never waits 6 hours. Third, the merge-gate jobs stop using the `always()` condition that lets them ignore an ordinary cancel. Tests lock all of this, and one throwaway draft-PR run records that a step timeout and an ordinary cancel behave as assumed. Finding why the step hangs stays out of scope, and so does naming the exact test that hung.\n\nIf confirmed, the synthesis would assert that the issue binds to this five-item Bound with no leftover pain.\n\nSpec-path: Bound-remedy\nTarget-digest: sha256:fb38528acbb9c34af0af62aa4e1edb3beff17f9dc08bd1b7f55c60a05c38ff96\n\nsiblings: 1\nround: 1\nsupersedes: 7204624074\nresidual: none\n\nTakes on critic 7204688262 (round 1, one sibling):\n- B1 (lane timeouts do not bound the required check's observation path): accept-into-contract. Bound items 3 and 4.\n- B2 (the cancellation pain has no demonstrated relief path): accept-into-contract. Bound items 2 and 5.\n- S1 (a step name does not identify the hung test): accept-into-contract. Attribution is step-level only; test-level attribution is not proposed.\n- F1 (the narrow fix has a credible ordinary-case argument): accept-into-contract as a footnote. The resolver's existing rule that only primary `success` passes is kept.\n\nParent premises introduced while adjudicating B1 and B2 (unaudited until a later critic targets them):\naudit:dc7014-cancel sha=343a1a803d7dd3454c9168ada10254e34ab2aae9 pointer=.github/workflows/ci.yml:228-232 reading=asserted\naudit:dc7014-steptimeout sha=343a1a803d7dd3454c9168ada10254e34ab2aae9 pointer=.github/workflows/ci.yml:271-279 reading=asserted\naudit:dc7014-queue sha=343a1a803d7dd3454c9168ada10254e34ab2aae9 pointer=.github/workflows/ci.yml:564-583 reading=asserted\n\nWhat the three premises say, in order: (1) an ordinary run cancel does not stop a job whose `if:` evaluates `always()`, and `!cancelled()` keeps the run-on-failed-needs behaviour while letting cancel take (GitHub REST docs for the force-cancel endpoint say it bypasses conditions \"such as an always() condition on a job\"); (2) a step `timeout-minutes` kills that step's process, so the step and its job end with a non-success conclusion even when a run cancel would not take (GitHub workflow-syntax docs: \"The maximum number of minutes to run the step before killing the process\"); (3) when the required check \"Merge gate (task check)\" fails, the merge queue removes that group and moves on (GitHub merge-queue docs: failed required checks remove the pull request from the queue).\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\n## Bound remedy\n\n1. Bound the merge-gate lanes: in `.github/workflows/ci.yml`, give the `task check:merge` step in `merge-gate-primary` and `merge-gate-failover` a step `timeout-minutes`, and each of those jobs a slightly larger job `timeout-minutes` as a backstop, both well above the normal run (about 5 minutes primary), with a comment giving the reason for each value.\n2. Make an ordinary cancel take: change the job `if:` on `merge-gate-primary`, `merge-gate-failover` and the `merge-gate` aggregator from `always() && ...` to `!cancelled() && ...`, keeping every other conjunct unchanged.\n3. Bound the resolver: in `.github/scripts/resolve-ci-authoritative-lane.mjs`, replace the fixed 6-hour deadline with an observation budget passed from `ci.yml` (counted from resolver start; capacity stall budget plus the primary job timeout plus a small startup margin), give each `gh api` call a subprocess timeout, and retry transient failures (HTTP 5xx, call timeout) with backoff inside that budget; budget exhaustion or exhausted retries exit 1 with an error that names the cause. Keep the rule that only a primary `success` passes.\n4. Lock with tests: resolver unit tests through the existing `deps` injection (primary concluded `cancelled` or `failure` after a timeout fails; missing or nonterminal primary past the budget fails; one 502 then success passes; retries exhausted fails), and the CI workflow content-contract test asserts the step and job timeouts and the `!cancelled()` conditions.\n5. Record one demonstration: a throwaway draft-PR workflow run (closed unmerged) showing that a step `timeout-minutes` ends a sleeping step in a `!cancelled()` job with a non-success job conclusion, and that an ordinary run cancel stops a `!cancelled()` job; link the run on this issue.\n\n## Acceptance Criteria\n\n1. Both merge-gate lanes set a step `timeout-minutes` on `task check:merge` and a larger job `timeout-minutes`, each well above the normal run; a hung step fails at its step timeout and the job log shows that step as the one that timed out.\n2. \"Merge gate (task check)\" exits within its observation budget when the primary job is timed out, cancelled, failed, missing, or never completes; no path waits 6 hours.\n3. One transient 5xx or call timeout from the jobs API is retried and does not fail a run whose primary passes; exhausted retries fail with an error that names the API failure.\n4. An ordinary run cancel stops the merge-gate primary, failover and aggregator jobs without force-cancel.\n5. Resolver unit tests and the CI workflow content-contract test cover criteria 1 to 4, and the demonstration run from Bound item 5 is linked on this issue.\n\n## Reject\n\n- Automatic force-cancel, or a wider token permission so agents can cancel runs.\n- Changing the merge-queue status-check timeout or other branch-protection settings on GitHub (outside the repo; Stop 1 keep-out).\n- Naming the exact hung test in the log (test-level attribution); step-level attribution only.\n- Root-causing the hang (#6862, #7181 fixed; #6841, #6851, #6854 open).\n- Changing capacity-watchdog or capacity-arm failover logic.\n\nImplementation note (not a Bound item): the timeout and budget values are new named constants; keep each one owned by this gate with a reason comment, and do not reuse a same-valued constant from another action.\n\n",
+          "id": 7204725248,
+          "html_url": "https://github.com/deftai/directive/issues/7014#issuecomment-7204725248",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-26T22:29:30Z",
+          "updated_at": "2026-11-26T22:29:30Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\n\nissue: deftai/directive#7014\ncharter: refutation\nspend: N=1\nround: 4 Pass-4 audit\nseat: codex\nlauncher: codex\nid-ceiling: 7204725248\ndispatch-sha: 343a1a803d7dd3454c9168ada10254e34ab2aae9\narc-mode: no-ingest\naudit-targets: pain-P1, pain-P2, pain-P3, dc7014-cancel, dc7014-steptimeout, dc7014-queue\nharvest-digest: sha256:18d157e81fafd030a72a639bfe7d2958d6326e45655e7ec29d7531ee58758bf3\nharvest-changed: true\nfinding-classes: blocking, sharpening, footnote\n\nVerdict: The lean cannot bind with its unconditional no-leftover-pain claim. `pain-P1` holds for the missing execution limits, but queue release remains unverified. `pain-P2` holds at mechanism level, subject to preserving the shared resolver’s other caller. `pain-P3` does not yet hold for the reported hung-run/queue outcome: the proposed demonstration tests a simpler job. `dc7014-cancel` and `dc7014-steptimeout` remain plausible platform premises, with partial demonstration obligations already present; static repository evidence cannot establish them. `dc7014-queue` is not established by the proposed draft-PR demonstration. Census: 1 blocks-the-design, 1 sharpens-framing, 2 footnotes.\n\nVerification: Read the supplied thread through comment 7204725248. Repository evidence was read with `git show 343a1a803d7dd3454c9168ada10254e34ab2aae9:<path>`: `content/contracts/design-critique.md`, `.github/workflows/ci.yml`, `.github/workflows/ci-lane.yml`, `.github/scripts/resolve-ci-authoritative-lane.mjs`, `.github/scripts/cancel-queued-ci-primary.mjs`, and `packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts`. No files changed, tests executed, network accessed, or live platform behavior measured. The parent’s documentation quotations and incident account remain supplied assertions.\n\n### PA1 — blocks-the-design: The demonstration does not establish queue release or cancellation of the affected graph\n\n**Evidence.** Bound item 5 requires a draft-PR workflow demonstration of a sleeping step timing out and ordinary cancellation stopping a `!cancelled()` job. It does not require a merge-group run, the actual required aggregator, queue advancement, or the three affected jobs in their dependency graph. AC4 nevertheless claims ordinary cancellation stops all three, and the lean claims complete coverage of `P3`.\n\nAt the pin, the aggregator waits on `capacity-arm` and `merge-gate-failover` before its resolver starts. Capacity jobs and TypeScript jobs retain `always()`. A resolver budget counted from resolver start does not bound that preceding wait or establish termination of the whole workflow.\n\n**Failure mode.** The demonstration can pass while the operational outcome remains untested: a synthetic job terminates, but the required merge-group check or queue does not make the transition asserted by `dc7014-queue`. Likewise, stopping one cooperative sleeping job does not establish ordinary cancellation of the reported hung-run class. This is an evidence gap, not proof that the proposed mechanisms fail.\n\n**Disposition consequence.** Amend Bound item 5 and the corresponding acceptance criterion to require controlled evidence of the actual transition: lane timeout/non-success → required aggregator terminal result → affected group leaving the queue and subsequent work progressing. Separately record ordinary cancellation results for the affected graph, distinguishing job termination, whole-run termination, and queue release. Keep configuration changes and automatic force-cancel out of scope.\n\nThe existing demonstration does partially test `dc7014-steptimeout` and `dc7014-cancel`; it does not test `dc7014-queue`. If representative evidence cannot be obtained, narrow the relief claim and explicitly dispose the remaining operational pain rather than asserting none.\n\n### PA2 — sharpens-framing: The resolver budget must preserve its TypeScript caller\n\n**Evidence.** Both `ts` and `merge-gate` invoke `resolve-ci-authoritative-lane.mjs`. The TypeScript reusable lane has no job timeout at the pin. Bound item 3 replaces the script’s fixed deadline with a budget derived from the merge-gate primary timeout, but does not specify the other caller’s configuration or default.\n\nThe script also already has two successful short circuits: verified queue-run reuse and an authoritative successful failover.\n\n**Failure mode.** Making the new budget mandatory without wiring TypeScript can reject its required check as misconfigured. Applying the merge-gate budget globally can prematurely fail a healthy TypeScript primary. Moving validation ahead of the existing short circuits can also introduce unnecessary failures on paths that never poll.\n\n**Disposition consequence.** Clarify Bound item 3 and its regression coverage: scope the new observation budget to merge-gate, preserve the TypeScript caller’s existing behavior unless separately specified, and retain queue-reuse and failover authority. This is a small compatibility constraint, not a request to redesign TypeScript CI. It changes the harvested list, so `harvest-changed` is true.\n\n### PA3 — footnote: Preserve failed-needs recovery while changing cancellation policy\n\nThe pin explicitly uses `always()` to permit downstream evaluation after dependency failure or cancellation. The capacity cancellation helper targets individual unclaimed primary jobs, and the aggregator intentionally does not depend on primary completion. A cancelled primary therefore must still permit an armed successful failover to supply the authoritative result.\n\nThe proposed `!cancelled()` replacement is a credible candidate for distinguishing workflow cancellation from ordinary dependency failure. Repository text alone cannot verify GitHub’s evaluation in each dependency state. Useful demonstration cases are failed `changes`, failed watchdog with successful reclassification, and cancelled unclaimed primary with successful failover, alongside explicit whole-run cancellation.\n\nExisting content-contract assertions literally require `always()` in the merge-primary and aggregator conditions. Bound item 4 already authorizes updating those assertions. Preserve their artifact-only and queue-reuse conjunct checks, and leave unrelated Windows and TypeScript assertions intact. No additional mechanism or blocking obligation follows from this footnote.\n\n### PA4 — footnote: The remedy remains thin and retains the right terminal-result rule\n\nFive items covering execution limits, cancellation conditions, bounded observation, tests, and evidence remain a short mechanism list. The resolver already accepts only primary `success`; cancelled, failed, timed-out, and other completed non-success results need no new classifier. Successful armed failover remains independently authoritative.\n\nThe strongest case for the lean is that ordinary platform timeout handling supplies a terminal result and the bounded resolver promptly rejects it. The proposed step-timeout demonstration supports that ordinary case without root-causing the hang. Representative queue and cancellation evidence would resolve PA1; adding automatic force-cancel or broader permissions is not justified by the supplied evidence.",
+          "id": 7204778789,
+          "html_url": "https://github.com/deftai/directive/issues/7014#issuecomment-7204778789",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-26T22:33:04Z",
+          "updated_at": "2026-11-26T22:33:04Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** retraction map. The bind lean 7204725248 is retracted and does not bind; this map is not meant to bind either.\n\n## In plain English\n\nThe pain-audit (comment 7204778789) found one blocking gap in the bound lean: its demonstration step tests a simple sleeping job in a draft-PR run, so it cannot show that a timed-out merge gate actually fails the required check and moves the merge queue on, or that an ordinary cancel stops the real set of merge-gate jobs. Until a lean requires that evidence, the lean's claim to relieve every named pain is not supported, so that harvest is withdrawn. A recut lean follows after the Handoff.\n\nSpec-path: Bound-remedy\nTarget-digest: sha256:fb38528acbb9c34af0af62aa4e1edb3beff17f9dc08bd1b7f55c60a05c38ff96\n\nsupersedes: 7204725248\nretracts harvest: sha256:18d157e81fafd030a72a639bfe7d2958d6326e45655e7ec29d7531ee58758bf3\nblocking audit: 7204778789 (PA1)\n\ndoes-not-relieve: P1\ndoes-not-relieve: P2\ndoes-not-relieve: P3\n\n",
+          "id": 7204810564,
+          "html_url": "https://github.com/deftai/directive/issues/7014#issuecomment-7204810564",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-26T22:35:13Z",
+          "updated_at": "2026-11-26T22:35:13Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\nHandoff after the retraction map. The blocking pain-audit 7204778789 (PA1) retired harvest sha256:18d157e8; PA2 asks that the resolver budget be scoped to the merge gate. The parent will post a recut lean whose demonstration item requires a real merge-group run and an ordinary cancel of the affected job set, then dispatch a fresh pain-audit against it.\n\nopen-question: Does a recut that requires a throwaway-PR merge-group run (timed-out step, failed required check, group leaving the queue) and an ordinary cancel of that PR's whole run, with the resolver budget scoped to the merge-gate caller only, relieve all three Stop 1 pains?\n\n",
+          "id": 7204811536,
+          "html_url": "https://github.com/deftai/directive/issues/7014#issuecomment-7204811536",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-26T22:35:17Z",
+          "updated_at": "2026-11-26T22:35:17Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** Prefer-A Bound, recut after the blocking pain-audit. Same three mechanisms; the resolver budget is now scoped to the merge gate, and the evidence item now requires a real merge-group run and an ordinary cancel of the affected jobs. This map is the bind.\n\n## In plain English\n\nWhen a merge-group run hangs in `task check:merge`, nothing stops it for 6 hours, and the merge queue waits behind it. A job timeout alone is not enough: the required check \"Merge gate (task check)\" is a separate job whose script polls for up to 6 hours, crashes on one API error, and has no limit on a stuck API call; and on 2026-11-26 an ordinary cancel did not stop the hung run at all.\n\nThe remedy has three parts. First, the `task check:merge` step and its job get time limits well above the normal 5-minute run, so a hang fails in minutes and the log shows which step timed out. Second, the resolver script gets a time budget, but only for the merge-gate check; the TypeScript check that shares the script keeps its current deadline. Both checks get a timeout on each API call and a few retries for transient 5xx errors. Third, the merge-gate jobs stop using the `always()` condition that lets them ignore an ordinary cancel.\n\nThe pain-audit showed that the first version's proof step was too weak. This version requires real evidence after the change lands: a throwaway pull request whose merge-gate step deliberately sleeps past a short timeout goes through the merge queue alone, and the record must show the step timing out, the required check failing, and the group leaving the queue; then an ordinary cancel of one of that pull request's runs must stop every job in it. Finding why the step hangs stays out of scope, and so does naming the exact test that hung.\n\nIf confirmed, the synthesis would assert that the issue binds to this five-item Bound with no leftover pain.\n\nSpec-path: Bound-remedy\nTarget-digest: sha256:fb38528acbb9c34af0af62aa4e1edb3beff17f9dc08bd1b7f55c60a05c38ff96\n\nsiblings: 1\nround: 1\nsupersedes: 7204810564\nresidual: none\n\nRecut-supersedes the retraction map 7204810564, which retracted lean 7204725248.\n\nTakes on critic 7204688262 (round 1) are unchanged from lean 7204725248: B1, B2, S1 accept-into-contract; F1 accept-into-contract as a footnote.\n\nTakes on pain-audit 7204778789 (harvest-changing):\n- PA1 (the demonstration does not establish queue release or cancellation of the affected graph): accept-into-contract. Bound item 5 and Acceptance Criteria 4 and 5 now require a merge-group run of the real workflow and an ordinary cancel of a whole run.\n- PA2 (the resolver budget must preserve its TypeScript caller): accept-into-contract. Bound item 3 scopes the budget to the merge-gate caller and keeps the short circuits first.\n- PA3 (preserve failed-needs recovery while changing cancellation policy): accept-into-contract as a footnote. Bound item 4 names the existing `always()` assertions to update and the conjuncts to keep.\n- PA4 (the remedy remains thin): accept-into-contract as a footnote.\n\nThe three parent premises recorded on lean 7204725248 (`dc7014-cancel`, `dc7014-steptimeout`, `dc7014-queue`) were targeted by audit 7204778789. Its finding that they are not established by the old evidence item is disposed by the recut Bound item 5, which requires the platform evidence directly.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\n## Bound remedy\n\n1. Bound the merge-gate lanes: in `.github/workflows/ci.yml`, give the `task check:merge` step in `merge-gate-primary` and `merge-gate-failover` a step `timeout-minutes`, and each of those jobs a slightly larger job `timeout-minutes` as a backstop, both well above the normal run (about 5 minutes primary), with a comment giving the reason for each value.\n2. Make an ordinary cancel take: change the job `if:` on `merge-gate-primary`, `merge-gate-failover` and the `merge-gate` aggregator from `always() && ...` to `!cancelled() && ...`, keeping every other conjunct unchanged.\n3. Bound the resolver: in `.github/scripts/resolve-ci-authoritative-lane.mjs`, add an optional observation budget that `ci.yml` sets only on the `merge-gate` aggregator (counted from resolver start; capacity stall budget plus the primary job timeout plus a small startup margin); when it is unset, as on the `ts` aggregator, the existing deadline stays. For both callers, give each `gh api` call a subprocess timeout and retry transient failures (HTTP 5xx, call timeout) with backoff inside the deadline in force. The queue-reuse and failover short circuits still run before any API read or budget check; budget exhaustion or exhausted retries exit 1 with an error that names the cause; only a primary `success` passes.\n4. Lock with tests: resolver unit tests through the existing `deps` injection (primary concluded `cancelled` or `failure` after a timeout fails; missing or nonterminal primary past the budget fails; one 502 then success passes; retries exhausted fails; no budget set keeps the old deadline; queue-reuse and failover short circuits unchanged), and `ci_lifecycle_lane.test.ts` updates its `always()` assertions on the merge-gate primary and aggregator to `!cancelled()`, keeps the artifact-only and queue-reuse conjunct checks, and asserts the step and job timeouts.\n5. Record platform evidence after items 1 to 3 land, using a throwaway pull request (closed unmerged) whose only change makes the `task check:merge` step sleep past a short test step timeout: (a) its merge-group run, with that pull request alone in the queue, shows the step timing out, \"Merge gate (Blacksmith primary)\" ending non-success, \"Merge gate (task check)\" failing, and the group leaving the queue; (b) an ordinary run cancel of one of its runs, by someone with cancel permission, stops the primary, failover and aggregator jobs and ends the run without force-cancel. Link both runs on this issue and state for each part whether it held.\n\n## Acceptance Criteria\n\n1. Both merge-gate lanes set a step `timeout-minutes` on `task check:merge` and a larger job `timeout-minutes`, each well above the normal run; a hung step fails at its step timeout and the job log shows that step as the one that timed out.\n2. \"Merge gate (task check)\" exits within its observation budget when the primary job is timed out, cancelled, failed, missing, or never completes; no merge-gate path waits 6 hours, and the TypeScript check keeps its current deadline.\n3. One transient 5xx or call timeout from the jobs API is retried and does not fail a run whose primary passes; exhausted retries fail with an error that names the API failure.\n4. An ordinary run cancel stops the merge-gate primary, failover and aggregator jobs and ends the run without force-cancel, as shown by the run linked under Bound item 5(b).\n5. Resolver unit tests and the CI workflow content-contract test cover criteria 1 to 3, and the merge-group run linked under Bound item 5(a) shows the timed-out group leaving the queue.\n\n## Reject\n\n- Automatic force-cancel, or a wider token permission so agents can cancel runs.\n- Changing the merge-queue status-check timeout or other branch-protection settings on GitHub (outside the repo; Stop 1 keep-out).\n- Naming the exact hung test in the log (test-level attribution); step-level attribution only.\n- Root-causing the hang (#6862, #7181 fixed; #6841, #6851, #6854 open).\n- Changing capacity-watchdog or capacity-arm failover logic, or giving the TypeScript check its own budget.\n\nImplementation note (not a Bound item): the timeout and budget values are new named constants; keep each one owned by this gate with a reason comment, and do not reuse a same-valued constant from another action. A sleeping step is a cooperative stand-in for the real hang; the evidence in item 5 shows the platform transitions, not that every hung process exits on the first signal.\n\n",
+          "id": 7204814445,
+          "html_url": "https://github.com/deftai/directive/issues/7014#issuecomment-7204814445",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-26T22:35:29Z",
+          "updated_at": "2026-11-26T22:35:29Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\n\nissue: deftai/directive#7014\ncharter: refutation\nspend: N=1\nround: 4 Pass-4 audit\nseat: codex\nlauncher: codex\nid-ceiling: 7204814445\ndispatch-sha: 343a1a803d7dd3454c9168ada10254e34ab2aae9\narc-mode: no-ingest\naudit-targets: pain-P1, pain-P2, pain-P3\nharvest-digest: sha256:3c7c144c27387b0b5c143653a199dca1a3bfab3b73b49e828cca147a9bb93d59\nharvest-changed: true\nfinding-classes: blocking, footnote\n\nVerdict: `pain-P1` holds at mechanism level, but its queue-release evidence has an execution gap. `pain-P2` holds: the recut bounds observation and API calls while preserving the TypeScript deadline and existing authority paths. `pain-P3` now has an explicit whole-run cancellation acceptance obligation; its satisfaction remains unmeasured. The recut addresses the earlier audit’s substantive requests, but the newly specified throwaway-PR experiment needs a viable queue-admission path before the no-leftover-pain claim can bind. Census: 1 blocks-the-design, 1 footnote.\n\nVerification: Read the supplied thread through comment 7204814445. Used `git show 343a1a803d7dd3454c9168ada10254e34ab2aae9:<path>` to inspect `main.md`, `content/contracts/design-critique.md`, `.github/workflows/ci.yml`, `.github/workflows/ci-lane.yml`, `.github/scripts/resolve-ci-authoritative-lane.mjs`, `.github/scripts/cancel-queued-ci-primary.mjs`, and `packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts`. These were static reads; no tests, network requests, mutations, or platform experiments ran. Live branch protection and incident behavior remain supplied assertions. USER.md access was denied by the sandbox.\n\n### PA1 — blocks-the-design: The timeout fixture needs a passing PR path before queue admission\n\n**Evidence.** Bound item 5 specifies a throwaway PR “whose only change makes the `task check:merge` step sleep past a short test step timeout,” then requires that PR’s merge-group run. At the pin, `ci.yml` runs on both `pull_request` and `merge_group`; both use the same merge-gate step. Workflow changes take the full-stack path, and the workflow’s check-name map identifies “Merge gate (task check)” as required. The recut does not restrict the injected timeout to the merge-group event.\n\n**Failure mode.** A literal implementation times out during PR validation as well. Under the repository’s stated required-check configuration, the PR fails the prerequisite check for ordinary queue admission, so the experiment cannot reach the merge-group transition it is intended to demonstrate. This is a new defect in the recut’s concrete experiment, not a repetition of the earlier objection that a draft-PR demonstration cannot establish queue behavior. Live admission settings were not measured here; no bypass should be presumed.\n\n**Disposition consequence.** Amend Bound item 5 to preserve normal PR validation and inject the sleep and short timeout only for the controlled `merge_group` experiment. Require the PR checks to pass before enqueueing, then retain the existing terminal-lane, failed-aggregator, and queue-removal observations. This needs no branch-protection change, permission expansion, or additional production mechanism. With that small correction, the experiment has a concrete route to the requested evidence.\n\n### PA2 — footnote: The remaining dispositions preserve the narrow design\n\nThe earlier PA2 is disposed: Bound item 3 leaves the TypeScript deadline unchanged and keeps queue reuse and authoritative failover ahead of polling and budget checks. The pinned resolver already rejects every completed primary conclusion other than `success`; a separate timeout-result classifier is unnecessary.\n\nThe earlier PA3 is addressed at the stated contract level: Bound item 4 targets the merge-primary and aggregator assertions while retaining artifact-only and queue-reuse conjuncts. The existing Windows and TypeScript `always()` assertions should remain intact. When implementing `!cancelled()`, use valid GitHub expression syntax, including the expression wrapper needed for a leading YAML `!`.\n\nThe earlier PA1’s requested graph and queue observations are now explicitly required, subject to the fixture correction above. Whole-run cancellation must be observed rather than inferred from termination of the three edited jobs: capacity and TypeScript jobs retain `always()` at the pin. A failed demonstration would fail acceptance, not establish relief.\n\nThe earlier PA4 remains sound. Three mechanisms plus tests and platform evidence constitute a short Bound remedy. No automatic force-cancel, broader token authority, or hang root-cause investigation is justified by this audit.",
+          "id": 7204857846,
+          "html_url": "https://github.com/deftai/directive/issues/7014#issuecomment-7204857846",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-26T22:38:28Z",
+          "updated_at": "2026-11-26T22:38:28Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** retraction map. The recut bind lean 7204814445 is retracted and does not bind; this map is not meant to bind either.\n\n## In plain English\n\nThe second pain-audit (comment 7204857846) found one new blocking gap in the recut: its evidence step tells the throwaway pull request to make the merge-gate step sleep past its timeout on every run, so the pull request's own checks fail too and it can never enter the merge queue. The step must sleep only in the merge-group run. Until a lean says so, the lean's claim to relieve every named pain is not supported, so that harvest is withdrawn. A recut lean follows after the Handoff.\n\nSpec-path: Bound-remedy\nTarget-digest: sha256:fb38528acbb9c34af0af62aa4e1edb3beff17f9dc08bd1b7f55c60a05c38ff96\n\nsupersedes: 7204814445\nretracts harvest: sha256:3c7c144c27387b0b5c143653a199dca1a3bfab3b73b49e828cca147a9bb93d59\nblocking audit: 7204857846 (PA1)\n\ndoes-not-relieve: P1\ndoes-not-relieve: P2\ndoes-not-relieve: P3\n\n",
+          "id": 7204872101,
+          "html_url": "https://github.com/deftai/directive/issues/7014#issuecomment-7204872101",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-26T22:39:28Z",
+          "updated_at": "2026-11-26T22:39:28Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\nHandoff after the retraction map. The blocking pain-audit 7204857846 (PA1, a new finding, not a repeat of 7204778789 PA1) retired harvest sha256:3c7c144c. The parent will post a recut lean whose evidence item injects the sleep and short timeout only on the merge_group event, requires the pull request's checks to pass before it is queued, and spells the condition with the expression wrapper; then dispatch a fresh pain-audit against it.\n\nopen-question: Does a recut that injects the sleep only for the merge_group event, requires passing pull-request checks before queueing, and observes whole-run cancel directly relieve all three Stop 1 pains?\n\n",
+          "id": 7204873161,
+          "html_url": "https://github.com/deftai/directive/issues/7014#issuecomment-7204873161",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-26T22:39:32Z",
+          "updated_at": "2026-11-26T22:39:32Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** Prefer-A Bound, second recut after the second blocking pain-audit. Same three mechanisms; the evidence item now makes the throwaway pull request sleep only in its merge-group run, so it can enter the queue. This map is the bind.\n\n## In plain English\n\nWhen a merge-group run hangs in `task check:merge`, nothing stops it for 6 hours, and the merge queue waits behind it. A job timeout alone is not enough: the required check \"Merge gate (task check)\" is a separate job whose script polls for up to 6 hours, crashes on one API error, and has no limit on a stuck API call; and on 2026-11-26 an ordinary cancel did not stop the hung run at all.\n\nThe remedy has three parts. First, the `task check:merge` step and its job get time limits well above the normal 5-minute run, so a hang fails in minutes and the log shows which step timed out. Second, the resolver script gets a time budget, but only for the merge-gate check; the TypeScript check that shares the script keeps its current deadline. Both checks get a timeout on each API call and a few retries for transient 5xx errors. Third, the merge-gate jobs stop using the `always()` condition that lets them ignore an ordinary cancel.\n\nTwo pain-audits tightened the proof step. This version requires real evidence after the change lands: a throwaway pull request passes its normal checks, then enters the merge queue alone, and only in that merge-group run does its merge-gate step deliberately sleep past a short timeout. The record must show the step timing out, the required check failing, and the group leaving the queue. Then an ordinary cancel of one of that pull request's runs must stop the merge-gate jobs and let the run end without force-cancel. Finding why the step hangs stays out of scope, and so does naming the exact test that hung.\n\nIf confirmed, the synthesis would assert that the issue binds to this five-item Bound with no leftover pain.\n\nSpec-path: Bound-remedy\nTarget-digest: sha256:fb38528acbb9c34af0af62aa4e1edb3beff17f9dc08bd1b7f55c60a05c38ff96\n\nsiblings: 1\nround: 1\nsupersedes: 7204872101\nresidual: none\n\nRecut-supersedes the retraction map 7204872101, which retracted lean 7204814445; that lean recut lean 7204725248 after retraction map 7204810564.\n\nTakes on critic 7204688262 (round 1) are unchanged from lean 7204725248: B1, B2, S1 accept-into-contract; F1 accept-into-contract as a footnote.\n\nTakes on pain-audit 7204778789 (harvest-changing), unchanged from lean 7204814445:\n- PA1 (the demonstration does not establish queue release or cancellation of the affected graph): accept-into-contract. Bound item 5 and Acceptance Criteria 4 and 5 now require a merge-group run of the real workflow and an ordinary cancel of a whole run.\n- PA2 (the resolver budget must preserve its TypeScript caller): accept-into-contract. Bound item 3 scopes the budget to the merge-gate caller and keeps the short circuits first.\n- PA3 (preserve failed-needs recovery while changing cancellation policy): accept-into-contract as a footnote. Bound item 4 names the existing `always()` assertions to update and the conjuncts to keep.\n- PA4 (the remedy remains thin): accept-into-contract as a footnote.\n\nTakes on pain-audit 7204857846 (harvest-changing):\n- PA1 (the timeout fixture needs a passing PR path before queue admission): accept-into-contract. Bound item 5 injects the sleep and short timeout only when `github.event_name == 'merge_group'` and requires the pull request's checks to pass before it is queued.\n- PA2 (the remaining dispositions preserve the narrow design): accept-into-contract as a footnote. Bound item 2 now names the expression wrapper for `!cancelled()`, and Acceptance Criterion 4 observes whole-run cancel directly, allowing jobs this Bound does not change to finish first.\n\nThe three parent premises recorded on lean 7204725248 (`dc7014-cancel`, `dc7014-steptimeout`, `dc7014-queue`) were targeted by audit 7204778789. Its finding that they are not established by the old evidence item is disposed by the recut Bound item 5, which requires the platform evidence directly.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\n## Bound remedy\n\n1. Bound the merge-gate lanes: in `.github/workflows/ci.yml`, give the `task check:merge` step in `merge-gate-primary` and `merge-gate-failover` a step `timeout-minutes`, and each of those jobs a slightly larger job `timeout-minutes` as a backstop, both well above the normal run (about 5 minutes primary), with a comment giving the reason for each value.\n2. Make an ordinary cancel take: change the job `if:` on `merge-gate-primary`, `merge-gate-failover` and the `merge-gate` aggregator from `always() && ...` to `${{ !cancelled() && ... }}` (the expression wrapper keeps the leading `!` valid YAML), keeping every other conjunct unchanged; the TypeScript, capacity and Windows jobs keep `always()`.\n3. Bound the resolver: in `.github/scripts/resolve-ci-authoritative-lane.mjs`, add an optional observation budget that `ci.yml` sets only on the `merge-gate` aggregator (counted from resolver start; capacity stall budget plus the primary job timeout plus a small startup margin); when it is unset, as on the `ts` aggregator, the existing deadline stays. For both callers, give each `gh api` call a subprocess timeout and retry transient failures (HTTP 5xx, call timeout) with backoff inside the deadline in force. The queue-reuse and failover short circuits still run before any API read or budget check; budget exhaustion or exhausted retries exit 1 with an error that names the cause; only a primary `success` passes.\n4. Lock with tests: resolver unit tests through the existing `deps` injection (primary concluded `cancelled` or `failure` after a timeout fails; missing or nonterminal primary past the budget fails; one 502 then success passes; retries exhausted fails; no budget set keeps the old deadline; queue-reuse and failover short circuits unchanged), and `ci_lifecycle_lane.test.ts` updates its `always()` assertions on the merge-gate primary and aggregator to `!cancelled()`, keeps the artifact-only and queue-reuse conjunct checks, and asserts the step and job timeouts.\n5. Record platform evidence after items 1 to 3 land, using a throwaway pull request (closed unmerged) whose only change makes the `task check:merge` step, when `github.event_name == 'merge_group'`, sleep past a short test step timeout, while its pull-request run keeps the normal step and passes: (a) once its pull-request checks pass, its merge-group run, with that pull request alone in the queue, shows the step timing out, \"Merge gate (Blacksmith primary)\" ending non-success, \"Merge gate (task check)\" failing, and the group leaving the queue; (b) an ordinary run cancel of its merge-group run while the step sleeps (a second queue entry), by someone with cancel permission, stops the primary, failover and aggregator jobs, and the run reaches a completed state without force-cancel. Link both runs on this issue and state for each part whether it held.\n\n## Acceptance Criteria\n\n1. Both merge-gate lanes set a step `timeout-minutes` on `task check:merge` and a larger job `timeout-minutes`, each well above the normal run; a hung step fails at its step timeout and the job log shows that step as the one that timed out.\n2. \"Merge gate (task check)\" exits within its observation budget when the primary job is timed out, cancelled, failed, missing, or never completes; no merge-gate path waits 6 hours, and the TypeScript check keeps its current deadline.\n3. One transient 5xx or call timeout from the jobs API is retried and does not fail a run whose primary passes; exhausted retries fail with an error that names the API failure.\n4. An ordinary run cancel stops the merge-gate primary, failover and aggregator jobs, and the run reaches a completed state without force-cancel (jobs this Bound does not change may finish first), as shown by the run linked under Bound item 5(b).\n5. Resolver unit tests and the CI workflow content-contract test cover criteria 1 to 3, and the merge-group run linked under Bound item 5(a) shows the timed-out group leaving the queue.\n\n## Reject\n\n- Automatic force-cancel, or a wider token permission so agents can cancel runs.\n- Changing the merge-queue status-check timeout or other branch-protection settings on GitHub (outside the repo; Stop 1 keep-out).\n- Naming the exact hung test in the log (test-level attribution); step-level attribution only.\n- Root-causing the hang (#6862, #7181 fixed; #6841, #6851, #6854 open).\n- Changing capacity-watchdog or capacity-arm failover logic, or giving the TypeScript check its own budget.\n\nImplementation note (not a Bound item): the timeout and budget values are new named constants; keep each one owned by this gate with a reason comment, and do not reuse a same-valued constant from another action. A sleeping step is a cooperative stand-in for the real hang; the evidence in item 5 shows the platform transitions, not that every hung process exits on the first signal.\n\n",
+          "id": 7204875609,
+          "html_url": "https://github.com/deftai/directive/issues/7014#issuecomment-7204875609",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-26T22:39:42Z",
+          "updated_at": "2026-11-26T22:39:42Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\n\nissue: deftai/directive#7014\ncharter: refutation\nspend: N=1\nround: 4 Pass-4 audit\nseat: codex\nlauncher: codex\nid-ceiling: 7204875609\ndispatch-sha: 343a1a803d7dd3454c9168ada10254e34ab2aae9\narc-mode: no-ingest\naudit-targets: pain-P1, pain-P2, pain-P3\nharvest-digest: sha256:e36e1ee095fe89187ff7d9496bd30664beea1fa66e5aa8e688e75ad416ed6d43\nharvest-changed: false\nfinding-classes: footnote\n\nVerdict: The recut holds as a design contract for all three targets: `pain-P1` has execution bounds and an explicit queue-release demonstration; `pain-P2` has bounded observation, bounded API calls, and transient retries while preserving existing authority paths; `pain-P3` has cancellation-aware conditions and a whole-run completion acceptance obligation. The earlier findings are disposed at contract level, and the corrected experiment has a concrete queue-admission path. Actual platform relief remains subject to the required demonstrations. No new evidence requires changing the Bound remedy or Acceptance Criteria. Census: 0 blocks-the-design, 0 sharpens-framing, 3 footnotes.\n\nVerification: Read the supplied snapshot through comment 7204875609, including Stop 1 and both earlier pain-audits. Used only `git show 343a1a803d7dd3454c9168ada10254e34ab2aae9:<path>` for repository evidence: `main.md`, `content/contracts/design-critique.md`, `.github/workflows/ci.yml`, `.github/scripts/resolve-ci-authoritative-lane.mjs`, `.github/scripts/cancel-queued-ci-primary.mjs`, and `packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts`. No files changed, tests executed, network accessed, or platform experiments performed. Incident facts and live queue settings remain supplied assertions. USER.md access was denied by the sandbox.\n\n### PA1 — footnote: The experiment now has a viable admission and observation path\n\nEarlier audit 7204857846 PA1 identified a fixture that would fail its own prerequisite PR checks. Bound item 5 now confines the injected sleep and short timeout to `merge_group`, requires passing PR checks before enqueueing, and uses a second queue entry for cancellation. This resolves that defect without assuming a protection bypass.\n\nThe pinned workflow has separate primary and required aggregator jobs, so observing only the sleeping step would remain insufficient. The recut explicitly requires primary non-success, required-check failure, and group removal, addressing 7204778789 PA1. Its cancellation experiment separately requires the whole run to complete without force-cancel.\n\nThese are achievable acceptance experiments under the stated operator permissions, not evidence already obtained. A skipped failover must be reported as skipped; it does not demonstrate termination of an executing failover. Likewise, the cooperative sleep does not establish termination of every possible hung process. The recut already states that limitation. No additional harvested obligation follows.\n\n### PA2 — footnote: Resolver compatibility and failed-needs intent remain preserved\n\nThe pinned resolver accepts only completed primary `success`, with queue-reuse and authoritative failover short circuits ahead of polling. Bound item 3 preserves those paths and leaves the TypeScript caller’s existing deadline intact. This disposes 7204778789 PA2; a separate timeout-result classifier is unnecessary.\n\nThe workflow’s capacity recovery deliberately handles failed watchdogs and cancelled unclaimed primaries. The recut retains every routing conjunct while replacing `always()` with the wrapped `!cancelled()` expression on the three named jobs. It therefore preserves the intended distinction between dependency failure and whole-workflow cancellation at design level. Static reads cannot prove GitHub’s runtime evaluation.\n\nBound item 4 also explicitly updates the merge-primary and aggregator assertions while retaining artifact-only and queue-reuse checks. The unrelated Windows and TypeScript assertions remain applicable. This addresses 7204778789 PA3 and 7204857846 PA2 without introducing a new mechanism.\n\n### PA3 — footnote: The Bound remains thin\n\nThe five items comprise three production mechanisms—execution limits, cancellation conditions, and bounded observation—plus tests and platform evidence. This retains the Thin Fail-Closed shape identified in 7204778789 PA4.\n\nThe strongest case for the remedy remains the existing non-success rejection path: a terminal timeout already fails the resolver, while the added budget covers missing or persistently nonterminal observations. No evidence here justifies automatic force-cancel, broader cancellation authority, capacity-routing changes, or hang root-cause work. Failure of the required demonstrations would invalidate acceptance; this audit does not predeclare those demonstrations successful.",
+          "id": 7204915057,
+          "html_url": "https://github.com/deftai/directive/issues/7014#issuecomment-7204915057",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-26T22:42:25Z",
+          "updated_at": "2026-11-26T22:42:25Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Claim | Class | Take | Cite | Method |\n| --- | --- | --- | --- | --- |\n| Merge-gate primary and failover jobs set no `timeout-minutes` | blocks-the-design | accept-into-contract | 7204688262 B1 | Parent pin-read `.github/workflows/ci.yml` at 343a1a80: `timeout-minutes` occurs only on two OVPR jobs (lines 1162, 1205). Bound item 1. |\n| Resolver polls against a fixed 6-hour deadline, every 15 s, with no per-call timeout and no retry on API errors | blocks-the-design | accept-into-contract | 7204688262 B1 | Parent pin-read `.github/scripts/resolve-ci-authoritative-lane.mjs` at 343a1a80 (`6 * 60 * 60 * 1000`; `execFileSync(\"gh\", ...)` with no timeout or catch). Recurrence run 45891798429 jobs API: resolver step 20:33:23Z to 21:46:57Z, conclusion failure. Bound item 3. |\n| Only a primary `success` passes; a timed-out or cancelled primary already fails | footnote | accept-into-contract | 7204688262 F1; 7204915057 PA2 | Parent pin-read of the same resolver: every completed non-success returns 1. Kept unchanged by Bound item 3. |\n| Ordinary cancel did not stop run 45891798429; the merge-gate jobs use `always()` | blocks-the-design | accept-into-contract | 7204688262 B2 | Jobs API for run 45891798429: `task check:merge` step cancelled at 22:11Z, after force-cancel per the operator account. Pin-read ci.yml lines 231, 484, 567 (`always() && ...`). GitHub REST docs: force-cancel \"bypasses conditions ... such as an always() condition on a job\" (asserted platform behaviour; Bound item 5(b) measures it). Bound item 2. |\n| A step name does not identify the hung test | sharpens-framing | accept-into-contract | 7204688262 S1 | Pin-read `Taskfile.yml`: `check:merge` aliases a task with many dependencies. Step-level attribution only (Reject list). |\n| A draft-PR demonstration cannot show queue release | blocks-the-design | accept-into-contract | 7204778789 PA1 | Recut: Bound item 5(a) requires a merge-group run, failed required check and group removal. Platform transition asserted until that run is linked. |\n| The budget must not break the TypeScript caller | sharpens-framing | accept-into-contract | 7204778789 PA2 | Pin-read ci.yml lines 543-562: `ts` aggregator runs the same script. Bound item 3 scopes the budget to `merge-gate`. |\n| The fixture must pass its PR checks before it can be queued | blocks-the-design | accept-into-contract | 7204857846 PA1 | Pin-read ci.yml: `pull_request` and `merge_group` run the same merge-gate step. Bound item 5 gates the sleep on `github.event_name == 'merge_group'`. |\n| Asserted coverage of P1, P2, P3 on lean 7204875609 | footnote | harvest unchanged | 7204915057 | Pain-audit with `harvest-digest: sha256:e36e1ee095fe89187ff7d9496bd30664beea1fa66e5aa8e688e75ad416ed6d43`, `finding-classes: footnote`, `harvest-changed: false`. |\n\nDisagreement set: empty.\n\nDecorrelation and disclosure: every critic seat in this arc was one family (Codex CLI, read-only sandbox, no network), launched by the parent; the parent posted each critic output verbatim. Rows marked by pin-read or jobs-API reads were re-derived by the parent from primary sources, not from critic agreement. The parent (claude-opus-5-5) authored the Stop 1 write-back, both retraction maps and all three leans, and was not a critic. Rows that rest on GitHub platform behaviour stay asserted until the Bound item 5 runs are linked on this issue.\n\n",
+          "id": 7204926760,
+          "html_url": "https://github.com/deftai/directive/issues/7014#issuecomment-7204926760",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-26T22:43:14Z",
+          "updated_at": "2026-11-26T22:43:14Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nWhen a merge-group run hangs in `task check:merge`, nothing stops it for 6 hours and the merge queue waits behind it. A job timeout alone is not enough: the required check \"Merge gate (task check)\" is a separate job whose script polls for up to 6 hours, fails on a single API error, and can block on a stuck API call; and on 2026-11-26 an ordinary cancel did not stop the hung run.\n\nThe accepted remedy gives the merge-gate step and jobs time limits well above the normal 5-minute run, so a hang fails in minutes and the log names the timed-out step. It gives the resolver script a time budget for the merge-gate check only, a timeout on each API call, and a few retries for transient 5xx errors. It replaces the `always()` condition on the three merge-gate jobs with a cancel-aware one so an ordinary cancel takes. Tests lock these changes, and a throwaway pull request, sleeping only in its merge-group run, must show on this issue that a timed-out group fails the required check and leaves the queue, and that an ordinary cancel ends such a run. Why the step hangs, and which test hung, stay out of scope. There is no leftover next-build.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 7204875609.\nTable: verified-claims table 7204926760.\n\nYolo standing (default on, recorded on Stop 1 7204624074) is the confirm of the all-accept map on that lean. Run posture stays no-ingest; ingest is a separate later verb.\n\n",
+          "id": 7204933506,
+          "html_url": "https://github.com/deftai/directive/issues/7014#issuecomment-7204933506",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-26T22:43:42Z",
+          "updated_at": "2026-11-26T22:43:42Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Problem\n\nThe \"Merge gate (Blacksmith primary)\" job has no `timeout-minutes`. When a merge-group run hangs at `task check:merge`, it holds the merge queue until GitHub's 360-minute default. On 2026-11-22, run 44988820906 (group for #7002) hung from 05:18 UTC and blocked #7002, #7003, #7006 and #7010, while a later group with the same commit passed in about 5 minutes. Agents cannot cancel runs, so an overnight hang stalls every merge until morning. Earlier hangs: #6861 and #6909 on 2026-11-20.\n\n## Acceptance Criteria\n\n- [ ] The merge-gate jobs (primary and failover) set a `timeout-minutes` well above the normal run time (normal is about 5 minutes).\n- [ ] A timed-out merge-group run fails the group so the queue moves on, instead of holding position 1.\n- [ ] The job log names the step that was running when the timeout fired, so the hang can be traced to a test.\n\nRefs #6862, #6921.\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6539225501,
+        "origin": "deftai/directive#7014",
+        "id": "github.issue.6539225501"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "fb38528acbb9c34af0af62aa4e1edb3beff17f9dc08bd1b7f55c60a05c38ff96"
+      },
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 7014,
+        "leanCommentId": 7204875609,
+        "harvestDigest": "e36e1ee095fe89187ff7d9496bd30664beea1fa66e5aa8e688e75ad416ed6d43",
+        "slice": null
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per harvested lean item (10), in list order (#6333)",
+      "sentences": [
+        "Bound the merge-gate lanes: in `.github/workflows/ci.yml`, give the `task check:merge` step in `merge-gate-primary` and `merge-gate-failover` a step `timeout-minutes`, and each of those jobs a slightly larger job `timeout-minutes` as a backstop, both well above the normal run (about 5 minutes primary), with a comment giving the reason for each value.",
+        "Make an ordinary cancel take: change the job `if:` on `merge-gate-primary`, `merge-gate-failover` and the `merge-gate` aggregator from `always() && ...` to `${{ !cancelled() && ... }}` (the expression wrapper keeps the leading `!` valid YAML), keeping every other conjunct unchanged; the TypeScript, capacity and Windows jobs keep `always()`.",
+        "Bound the resolver: in `.github/scripts/resolve-ci-authoritative-lane.mjs`, add an optional observation budget that `ci.yml` sets only on the `merge-gate` aggregator (counted from resolver start; capacity stall budget plus the primary job timeout plus a small startup margin); when it is unset, as on the `ts` aggregator, the existing deadline stays. For both callers, give each `gh api` call a subprocess timeout and retry transient failures (HTTP 5xx, call timeout) with backoff inside the deadline in force. The queue-reuse and failover short circuits still run before any API read or budget check; budget exhaustion or exhausted retries exit 1 with an error that names the cause; only a primary `success` passes.",
+        "Lock with tests: resolver unit tests through the existing `deps` injection (primary concluded `cancelled` or `failure` after a timeout fails; missing or nonterminal primary past the budget fails; one 502 then success passes; retries exhausted fails; no budget set keeps the old deadline; queue-reuse and failover short circuits unchanged), and `ci_lifecycle_lane.test.ts` updates its `always()` assertions on the merge-gate primary and aggregator to `!cancelled()`, keeps the artifact-only and queue-reuse conjunct checks, and asserts the step and job timeouts.",
+        "Record platform evidence after items 1 to 3 land, using a throwaway pull request (closed unmerged) whose only change makes the `task check:merge` step, when `github.event_name == 'merge_group'`, sleep past a short test step timeout, while its pull-request run keeps the normal step and passes: (a) once its pull-request checks pass, its merge-group run, with that pull request alone in the queue, shows the step timing out, \"Merge gate (Blacksmith primary)\" ending non-success, \"Merge gate (task check)\" failing, and the group leaving the queue; (b) an ordinary run cancel of its merge-group run while the step sleeps (a second queue entry), by someone with cancel permission, stops the primary, failover and aggregator jobs, and the run reaches a completed state without force-cancel. Link both runs on this issue and state for each part whether it held.",
+        "Both merge-gate lanes set a step `timeout-minutes` on `task check:merge` and a larger job `timeout-minutes`, each well above the normal run; a hung step fails at its step timeout and the job log shows that step as the one that timed out.",
+        "\"Merge gate (task check)\" exits within its observation budget when the primary job is timed out, cancelled, failed, missing, or never completes; no merge-gate path waits 6 hours, and the TypeScript check keeps its current deadline.",
+        "One transient 5xx or call timeout from the jobs API is retried and does not fail a run whose primary passes; exhausted retries fail with an error that names the API failure.",
+        "An ordinary run cancel stops the merge-gate primary, failover and aggregator jobs, and the run reaches a completed state without force-cancel (jobs this Bound does not change may finish first), as shown by the run linked under Bound item 5(b).",
+        "Resolver unit tests and the CI workflow content-contract test cover criteria 1 to 3, and the merge-group run linked under Bound item 5(a) shows the timed-out group leaving the queue."
+      ],
+      "admitted_source_sentences": [
+        "Bound the merge-gate lanes: in `.github/workflows/ci.yml`, give the `task check:merge` step in `merge-gate-primary` and `merge-gate-failover` a step `timeout-minutes`, and each of those jobs a slightly larger job `timeout-minutes` as a backstop, both well above the normal run (about 5 minutes primary), with a comment giving the reason for each value.",
+        "Make an ordinary cancel take: change the job `if:` on `merge-gate-primary`, `merge-gate-failover` and the `merge-gate` aggregator from `always() && ...` to `${{ !cancelled() && ... }}` (the expression wrapper keeps the leading `!` valid YAML), keeping every other conjunct unchanged; the TypeScript, capacity and Windows jobs keep `always()`.",
+        "Bound the resolver: in `.github/scripts/resolve-ci-authoritative-lane.mjs`, add an optional observation budget that `ci.yml` sets only on the `merge-gate` aggregator (counted from resolver start; capacity stall budget plus the primary job timeout plus a small startup margin); when it is unset, as on the `ts` aggregator, the existing deadline stays. For both callers, give each `gh api` call a subprocess timeout and retry transient failures (HTTP 5xx, call timeout) with backoff inside the deadline in force. The queue-reuse and failover short circuits still run before any API read or budget check; budget exhaustion or exhausted retries exit 1 with an error that names the cause; only a primary `success` passes.",
+        "Lock with tests: resolver unit tests through the existing `deps` injection (primary concluded `cancelled` or `failure` after a timeout fails; missing or nonterminal primary past the budget fails; one 502 then success passes; retries exhausted fails; no budget set keeps the old deadline; queue-reuse and failover short circuits unchanged), and `ci_lifecycle_lane.test.ts` updates its `always()` assertions on the merge-gate primary and aggregator to `!cancelled()`, keeps the artifact-only and queue-reuse conjunct checks, and asserts the step and job timeouts.",
+        "Record platform evidence after items 1 to 3 land, using a throwaway pull request (closed unmerged) whose only change makes the `task check:merge` step, when `github.event_name == 'merge_group'`, sleep past a short test step timeout, while its pull-request run keeps the normal step and passes: (a) once its pull-request checks pass, its merge-group run, with that pull request alone in the queue, shows the step timing out, \"Merge gate (Blacksmith primary)\" ending non-success, \"Merge gate (task check)\" failing, and the group leaving the queue; (b) an ordinary run cancel of its merge-group run while the step sleeps (a second queue entry), by someone with cancel permission, stops the primary, failover and aggregator jobs, and the run reaches a completed state without force-cancel. Link both runs on this issue and state for each part whether it held.",
+        "Both merge-gate lanes set a step `timeout-minutes` on `task check:merge` and a larger job `timeout-minutes`, each well above the normal run; a hung step fails at its step timeout and the job log shows that step as the one that timed out.",
+        "\"Merge gate (task check)\" exits within its observation budget when the primary job is timed out, cancelled, failed, missing, or never completes; no merge-gate path waits 6 hours, and the TypeScript check keeps its current deadline.",
+        "One transient 5xx or call timeout from the jobs API is retried and does not fail a run whose primary passes; exhausted retries fail with an error that names the API failure.",
+        "An ordinary run cancel stops the merge-gate primary, failover and aggregator jobs, and the run reaches a completed state without force-cancel (jobs this Bound does not change may finish first), as shown by the run linked under Bound item 5(b).",
+        "Resolver unit tests and the CI workflow content-contract test cover criteria 1 to 3, and the merge-group run linked under Bound item 5(a) shows the timed-out group leaving the queue."
+      ],
+      "admitted_source_digest": "ffb9d340ca50c06b321c26443562ee32f1b79c4ddc4257d9bcc13b3db6aad8fd",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Bound the merge-gate lanes: in `.github/workflows/ci.yml`, give the `task check:merge` step in `merge-gate-primary` and `merge-gate-failover` a step `timeout-minutes`, and each of those jobs a slightly larger job `timeout-minutes` as a backstop, both well above the normal run (about 5 minutes primary), with a comment giving the reason for each value.",
+          "artifact_path": ".github/workflows/ci.yml",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Make an ordinary cancel take: change the job `if:` on `merge-gate-primary`, `merge-gate-failover` and the `merge-gate` aggregator from `always() && ...` to `${{ !cancelled() && ... }}` (the expression wrapper keeps the leading `!` valid YAML), keeping every other conjunct unchanged; the TypeScript, capacity and Windows jobs keep `always()`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Bound the resolver: in `.github/scripts/resolve-ci-authoritative-lane.mjs`, add an optional observation budget that `ci.yml` sets only on the `merge-gate` aggregator (counted from resolver start; capacity stall budget plus the primary job timeout plus a small startup margin); when it is unset, as on the `ts` aggregator, the existing deadline stays. For both callers, give each `gh api` call a subprocess timeout and retry transient failures (HTTP 5xx, call timeout) with backoff inside the deadline in force. The queue-reuse and failover short circuits still run before any API read or budget check; budget exhaustion or exhausted retries exit 1 with an error that names the cause; only a primary `success` passes.",
+          "artifact_path": ".github/scripts/resolve-ci-authoritative-lane.mjs",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Lock with tests: resolver unit tests through the existing `deps` injection (primary concluded `cancelled` or `failure` after a timeout fails; missing or nonterminal primary past the budget fails; one 502 then success passes; retries exhausted fails; no budget set keeps the old deadline; queue-reuse and failover short circuits unchanged), and `ci_lifecycle_lane.test.ts` updates its `always()` assertions on the merge-gate primary and aggregator to `!cancelled()`, keeps the artifact-only and queue-reuse conjunct checks, and asserts the step and job timeouts.",
+          "artifact_path": "packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Record platform evidence after items 1 to 3 land, using a throwaway pull request (closed unmerged) whose only change makes the `task check:merge` step, when `github.event_name == 'merge_group'`, sleep past a short test step timeout, while its pull-request run keeps the normal step and passes: (a) once its pull-request checks pass, its merge-group run, with that pull request alone in the queue, shows the step timing out, \"Merge gate (Blacksmith primary)\" ending non-success, \"Merge gate (task check)\" failing, and the group leaving the queue; (b) an ordinary run cancel of its merge-group run while the step sleeps (a second queue entry), by someone with cancel permission, stops the primary, failover and aggregator jobs, and the run reaches a completed state without force-cancel. Link both runs on this issue and state for each part whether it held.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Both merge-gate lanes set a step `timeout-minutes` on `task check:merge` and a larger job `timeout-minutes`, each well above the normal run; a hung step fails at its step timeout and the job log shows that step as the one that timed out.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "\"Merge gate (task check)\" exits within its observation budget when the primary job is timed out, cancelled, failed, missing, or never completes; no merge-gate path waits 6 hours, and the TypeScript check keeps its current deadline.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "One transient 5xx or call timeout from the jobs API is retried and does not fail a run whose primary passes; exhausted retries fail with an error that names the API failure.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "An ordinary run cancel stops the merge-gate primary, failover and aggregator jobs, and the run reaches a completed state without force-cancel (jobs this Bound does not change may finish first), as shown by the run linked under Bound item 5(b).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Resolver unit tests and the CI workflow content-contract test cover criteria 1 to 3, and the merge-group run linked under Bound item 5(a) shows the timed-out group leaving the queue.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.6539225501",
+    "updated": "2026-11-26T23:09:46Z"
+  }
+}
