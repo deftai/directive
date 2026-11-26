@@ -9,6 +9,10 @@
  *   QUEUE_PASSED, QUEUE_RUN_ID, QUEUE_RUN_ATTEMPT (optional, #6584): when
  *   QUEUE_PASSED=true with an id and attempt, exit 0 citing that queue run and
  *   make no API read.
+ *   OBSERVATION_BUDGET_MINUTES (optional, #7014): polling budget counted from
+ *   resolver start; unset keeps the 6-hour deadline. Each `gh api` call has a
+ *   subprocess timeout and transient failures (HTTP 5xx, call timeout) are
+ *   retried with backoff inside the deadline.
  *
  * When WANT_FAILOVER=true, the GH-hosted failover job result is authoritative.
  * When WANT_FAILOVER=false, the Blacksmith primary is polled until completed.
@@ -17,6 +21,21 @@
  */
 
 import { execFileSync } from "node:child_process";
+
+/** Deadline when no observation budget is set (the TypeScript aggregator). */
+const DEFAULT_OBSERVATION_DEADLINE_MS = 6 * 60 * 60 * 1000;
+
+/**
+ * Per `gh api` call subprocess timeout (#7014). A hung call must not outlive the
+ * deadline by more than one call; well above a normal sub-second jobs read.
+ */
+const GH_API_CALL_TIMEOUT_MS = 60_000;
+
+/** Retries after the first failed `gh api` call on HTTP 5xx or call timeout (#7014). */
+const GH_API_MAX_RETRIES = 4;
+
+/** First backoff before a retry; doubles each retry (2s, 4s, 8s, 16s) (#7014). */
+const GH_API_RETRY_BASE_MS = 2_000;
 
 /**
  * @param {Record<string, unknown> | null | undefined} job
@@ -63,14 +82,69 @@ export function isCapacityDeath(job) {
  * @returns {Record<string, unknown>}
  */
 export function ghApi(path) {
-  const out = execFileSync("gh", ["api", path], { encoding: "utf8" });
+  const out = execFileSync("gh", ["api", path], {
+    encoding: "utf8",
+    timeout: GH_API_CALL_TIMEOUT_MS,
+    killSignal: "SIGKILL",
+  });
   return JSON.parse(out);
+}
+
+/**
+ * Transient API failure: HTTP 5xx or a call timeout (#7014).
+ * @param {unknown} err
+ * @returns {boolean}
+ */
+export function isTransientApiError(err) {
+  const e = /** @type {{ code?: unknown, killed?: unknown, stderr?: unknown, message?: unknown }} */ (
+    err ?? {}
+  );
+  if (e.code === "ETIMEDOUT" || e.killed === true) return true;
+  const text = `${String(e.stderr ?? "")} ${String(e.message ?? "")}`;
+  return /\bHTTP 5\d\d\b/.test(text) || /\b(timed out|ETIMEDOUT)\b/i.test(text);
 }
 
 function sleepSync(ms) {
   const end = Date.now() + ms;
   while (Date.now() < end) {
     /* poll interval */
+  }
+}
+
+/**
+ * Jobs-API read with backoff retries on transient failures, inside the deadline.
+ * Returns the payload, or `{ error }` naming the API failure (#7014).
+ * @param {(path: string) => Record<string, unknown>} api
+ * @param {string} path
+ * @param {number} deadline
+ * @param {() => number} now
+ * @param {(ms: number) => void} sleep
+ * @returns {{ payload: Record<string, unknown> } | { error: string }}
+ */
+function readWithRetry(api, path, deadline, now, sleep) {
+  let attempt = 0;
+  for (;;) {
+    try {
+      return { payload: api(path) };
+    } catch (err) {
+      const reason = String(
+        /** @type {{ message?: unknown }} */ (err ?? {}).message ?? err,
+      ).split("\n")[0];
+      if (!isTransientApiError(err)) {
+        return { error: `jobs API call failed (not retryable): ${reason}` };
+      }
+      attempt += 1;
+      const backoff = GH_API_RETRY_BASE_MS * 2 ** (attempt - 1);
+      if (attempt > GH_API_MAX_RETRIES || now() + backoff >= deadline) {
+        return {
+          error:
+            `jobs API call failed after ${attempt} attempt(s) ` +
+            `(transient 5xx or timeout, retries exhausted or deadline reached): ${reason}`,
+        };
+      }
+      console.error(`jobs API transient failure (attempt ${attempt}); retrying in ${backoff}ms: ${reason}`);
+      sleep(backoff);
+    }
   }
 }
 
@@ -118,9 +192,32 @@ export function resolveAuthoritativeLane(env, deps = {}) {
     return 1;
   }
 
-  const deadline = now() + 6 * 60 * 60 * 1000;
+  // #7014: optional budget, set by ci.yml on the merge-gate aggregator only.
+  let deadlineMs = DEFAULT_OBSERVATION_DEADLINE_MS;
+  const budgetRaw = env.OBSERVATION_BUDGET_MINUTES;
+  const budgeted = budgetRaw != null && budgetRaw !== "";
+  if (budgeted) {
+    const minutes = Number(budgetRaw);
+    if (!Number.isFinite(minutes) || minutes <= 0) {
+      console.error(`::error::OBSERVATION_BUDGET_MINUTES must be a positive number, got ${budgetRaw}`);
+      return 2;
+    }
+    deadlineMs = minutes * 60 * 1000;
+  }
+  const deadline = now() + deadlineMs;
   while (now() < deadline) {
-    const payload = api(`repos/${repo}/actions/runs/${runId}/jobs?per_page=100`);
+    const read = readWithRetry(
+      api,
+      `repos/${repo}/actions/runs/${runId}/jobs?per_page=100`,
+      deadline,
+      now,
+      sleep,
+    );
+    if ("error" in read) {
+      console.error(`::error::${label} ${read.error}`);
+      return 1;
+    }
+    const payload = read.payload;
     const match = selectPrimaryJob(needle, payload);
     if (match == null) {
       sleep(15_000);
@@ -152,7 +249,11 @@ export function resolveAuthoritativeLane(env, deps = {}) {
     sleep(15_000);
   }
 
-  console.error(`::error::Timed out waiting for Blacksmith ${label} primary`);
+  console.error(
+    budgeted
+      ? `::error::Observation budget of ${budgetRaw} minutes exhausted waiting for Blacksmith ${label} primary to complete (timed out, hung or missing)`
+      : `::error::Timed out waiting for Blacksmith ${label} primary`,
+  );
   return 1;
 }
 

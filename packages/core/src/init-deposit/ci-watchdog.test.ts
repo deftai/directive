@@ -10,6 +10,7 @@ import {
 } from "../../../../.github/scripts/classify-ci-job-state.mjs";
 import {
   isCapacityDeath,
+  isTransientApiError,
   resolveAuthoritativeLane,
   runnerClaimed,
   selectPrimaryJob,
@@ -526,5 +527,239 @@ describe("resolve-ci-authoritative-lane helpers (#3340)", () => {
     expect(String(err.mock.calls.at(-1)?.[0])).toContain("WANT_FAILOVER");
     err.mockRestore();
     vi.restoreAllMocks();
+  });
+});
+
+describe("resolve-ci-authoritative-lane observation budget and retry (#7014)", () => {
+  const BASE = {
+    REPO: "deftai/directive",
+    RUN_ID: "9",
+    WANT_FAILOVER: "false",
+    PRIMARY_NEEDLE: "merge gate (blacksmith primary)",
+    SUITE_LABEL: "Merge-gate",
+  };
+  const MIN = 60_000;
+
+  function primary(status: string, conclusion: string | null) {
+    return {
+      jobs: [
+        {
+          name: "Merge gate (Blacksmith primary)",
+          status,
+          conclusion,
+          runner_name: "blacksmith-abc",
+        },
+      ],
+    };
+  }
+
+  /** Fake clock: `sleep` advances `now`. */
+  function clock() {
+    let t = 0;
+    return {
+      now: () => t,
+      sleep: (ms: number) => {
+        t += ms;
+      },
+      at: () => t,
+    };
+  }
+
+  function quiet() {
+    const err = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    vi.spyOn(console, "log").mockImplementation(() => undefined);
+    return err;
+  }
+
+  function lastError(err: ReturnType<typeof quiet>): string {
+    return String(err.mock.calls.at(-1)?.[0]);
+  }
+
+  it.each(["cancelled", "failure"])("primary concluded %s after a timeout fails", (conclusion) => {
+    const err = quiet();
+    const c = clock();
+    const code = resolveAuthoritativeLane(
+      { ...BASE, OBSERVATION_BUDGET_MINUTES: "35" },
+      { ghApi: () => primary("completed", conclusion), now: c.now, sleep: c.sleep },
+    );
+    expect(code).toBe(1);
+    expect(lastError(err)).toContain(`concluded ${conclusion}`);
+    vi.restoreAllMocks();
+  });
+
+  it.each([
+    ["missing", { jobs: [] }],
+    ["nonterminal", primary("in_progress", null)],
+  ])("%s primary past the budget fails within the budget", (_label, payload) => {
+    const err = quiet();
+    const c = clock();
+    const code = resolveAuthoritativeLane(
+      { ...BASE, OBSERVATION_BUDGET_MINUTES: "35" },
+      { ghApi: () => payload, now: c.now, sleep: c.sleep },
+    );
+    expect(code).toBe(1);
+    expect(lastError(err)).toContain("Observation budget of 35 minutes exhausted");
+    expect(c.at()).toBeGreaterThanOrEqual(35 * MIN);
+    expect(c.at()).toBeLessThan(36 * MIN);
+    vi.restoreAllMocks();
+  });
+
+  it("no budget set keeps the 6-hour deadline", () => {
+    const err = quiet();
+    const c = clock();
+    const code = resolveAuthoritativeLane(BASE, {
+      ghApi: () => primary("in_progress", null),
+      now: c.now,
+      sleep: c.sleep,
+    });
+    expect(code).toBe(1);
+    expect(lastError(err)).toContain("Timed out waiting for Blacksmith Merge-gate primary");
+    expect(c.at()).toBeGreaterThanOrEqual(6 * 60 * MIN);
+    vi.restoreAllMocks();
+  });
+
+  it.each(["0", "-5", "abc"])("invalid budget %s is a config error", (bad) => {
+    const err = quiet();
+    const api = vi.fn();
+    const code = resolveAuthoritativeLane(
+      { ...BASE, OBSERVATION_BUDGET_MINUTES: bad },
+      { ghApi: api },
+    );
+    expect(code).toBe(2);
+    expect(api).not.toHaveBeenCalled();
+    expect(lastError(err)).toContain("OBSERVATION_BUDGET_MINUTES");
+    vi.restoreAllMocks();
+  });
+
+  it("one 502 then success passes", () => {
+    quiet();
+    const c = clock();
+    let calls = 0;
+    const code = resolveAuthoritativeLane(
+      { ...BASE, OBSERVATION_BUDGET_MINUTES: "35" },
+      {
+        ghApi: () => {
+          calls += 1;
+          if (calls === 1) throw Object.assign(new Error("gh: HTTP 502"), { stderr: "HTTP 502" });
+          return primary("completed", "success");
+        },
+        now: c.now,
+        sleep: c.sleep,
+      },
+    );
+    expect(code).toBe(0);
+    expect(calls).toBe(2);
+    expect(c.at()).toBe(2_000);
+    vi.restoreAllMocks();
+  });
+
+  it("one call timeout then success passes", () => {
+    quiet();
+    const c = clock();
+    let calls = 0;
+    const code = resolveAuthoritativeLane(BASE, {
+      ghApi: () => {
+        calls += 1;
+        if (calls === 1) throw Object.assign(new Error("spawnSync gh ETIMEDOUT"), { code: "ETIMEDOUT" });
+        return primary("completed", "success");
+      },
+      now: c.now,
+      sleep: c.sleep,
+    });
+    expect(code).toBe(0);
+    vi.restoreAllMocks();
+  });
+
+  it("retries exhausted fails with an error naming the API failure", () => {
+    const err = quiet();
+    const c = clock();
+    let calls = 0;
+    const code = resolveAuthoritativeLane(
+      { ...BASE, OBSERVATION_BUDGET_MINUTES: "35" },
+      {
+        ghApi: () => {
+          calls += 1;
+          throw Object.assign(new Error("gh: HTTP 503"), { stderr: "HTTP 503" });
+        },
+        now: c.now,
+        sleep: c.sleep,
+      },
+    );
+    expect(code).toBe(1);
+    expect(calls).toBe(5);
+    expect(lastError(err)).toContain("jobs API call failed after 5 attempt(s)");
+    expect(lastError(err)).toContain("HTTP 503");
+    vi.restoreAllMocks();
+  });
+
+  it("a non-transient API failure is not retried", () => {
+    const err = quiet();
+    let calls = 0;
+    const code = resolveAuthoritativeLane(BASE, {
+      ghApi: () => {
+        calls += 1;
+        throw Object.assign(new Error("gh: HTTP 404"), { stderr: "HTTP 404" });
+      },
+    });
+    expect(code).toBe(1);
+    expect(calls).toBe(1);
+    expect(lastError(err)).toContain("not retryable");
+    vi.restoreAllMocks();
+  });
+
+  it("retries stop at the deadline in force", () => {
+    const err = quiet();
+    const c = clock();
+    let calls = 0;
+    const code = resolveAuthoritativeLane(
+      { ...BASE, OBSERVATION_BUDGET_MINUTES: "0.05" },
+      {
+        ghApi: () => {
+          calls += 1;
+          throw Object.assign(new Error("gh: HTTP 500"), { stderr: "HTTP 500" });
+        },
+        now: c.now,
+        sleep: c.sleep,
+      },
+    );
+    expect(code).toBe(1);
+    expect(calls).toBeLessThan(5);
+    expect(c.at()).toBeLessThan(3_000);
+    expect(lastError(err)).toContain("jobs API call failed");
+    vi.restoreAllMocks();
+  });
+
+  it("queue-reuse and failover short circuits make no API read and ignore the budget", () => {
+    quiet();
+    const api = vi.fn();
+    const budget = { OBSERVATION_BUDGET_MINUTES: "35" };
+    expect(
+      resolveAuthoritativeLane(
+        { ...BASE, ...budget, QUEUE_PASSED: "true", QUEUE_RUN_ID: "5", QUEUE_RUN_ATTEMPT: "1" },
+        { ghApi: api },
+      ),
+    ).toBe(0);
+    expect(
+      resolveAuthoritativeLane(
+        { ...BASE, ...budget, WANT_FAILOVER: "true", FAILOVER_RESULT: "success" },
+        { ghApi: api },
+      ),
+    ).toBe(0);
+    expect(
+      resolveAuthoritativeLane(
+        { ...BASE, ...budget, WANT_FAILOVER: "true", FAILOVER_RESULT: "failure" },
+        { ghApi: api },
+      ),
+    ).toBe(1);
+    expect(api).not.toHaveBeenCalled();
+    vi.restoreAllMocks();
+  });
+
+  it("isTransientApiError recognises 5xx and timeouts only", () => {
+    expect(isTransientApiError(Object.assign(new Error("x"), { stderr: "gh: HTTP 504" }))).toBe(true);
+    expect(isTransientApiError(Object.assign(new Error("x"), { code: "ETIMEDOUT" }))).toBe(true);
+    expect(isTransientApiError(Object.assign(new Error("x"), { killed: true }))).toBe(true);
+    expect(isTransientApiError(new Error("gh: HTTP 403"))).toBe(false);
+    expect(isTransientApiError(new Error("boom"))).toBe(false);
   });
 });

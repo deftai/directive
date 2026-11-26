@@ -169,9 +169,11 @@ describe("ci.yml queue reuse wiring (#6584)", () => {
     "capacity-arm",
     "ts-failover",
     "merge-gate-failover",
-  ])("%s skips when queue_passed is true and keeps always()", (id) => {
+  ])("%s skips when queue_passed is true and keeps its if guard", (id) => {
     const block = jobBlock(ci, id);
-    expect(block).toContain("if: always() &&");
+    // #7014: the merge-gate lanes use `!cancelled()` so an ordinary cancel takes.
+    const guard = id.startsWith("merge-gate") ? "if: ${{ !cancelled() &&" : "if: always() &&";
+    expect(block).toContain(guard);
     expect(block).toContain(skip);
     expect(block).toMatch(/needs:\s*\[changes/);
   });
