@@ -1,0 +1,717 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #7378",
+    "updated": "2026-11-26T17:15:12Z"
+  },
+  "plan": {
+    "title": "feat(harness): admit agy hook activation under sort-last + doctor integrity mitigation (#7332)",
+    "status": "running",
+    "narratives": {
+      "Description": "feat(harness): admit agy hook activation under sort-last + doctor integrity mitigation (#7332)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/7378",
+      "Overview": "\n\n1. Directive's agy hook entry name is one constant chosen to run after ordinary names. The name is a convenience; the ordering predicate carries the safety claim. Admission rests on observations of the actual chosen name against representative adversarial neighbors (earlier, later, equal, prefix-extending, out-of-alphabet) on the observed agy version, not on a claim that the name dominates the namespace.\n2. One pure ordering predicate reads the effective agy hook set and reports every foreign `PreToolUse` entry that runs at or after Directive's entry. It counts as at-or-after any name outside the observed alphabet, any name that equals, starts with or extends Directive's name, and any entry whose order it cannot determine. It never filters by `matcher`. An unparseable config is a finding.\n3. Directive's agy `PreToolUse` path runs that predicate on every call (config resolved from the payload `workspacePaths`) and denies on any finding, with one remediation (rename or remove the named foreign hook, or `deft policy:disable-host-hooks --host agy --confirm`). `directive doctor` reports the same finding read-only. Doctor does not self-repair.\n4. The observe verdict may record final executed argument integrity as `mitigated`, naming this mitigation and the observed agy version. `mitigated` is admissible only when the observation record also covers the hook sources the predicate does not read (user scope `~/.gemini`, plugin hooks) and mid-session reload of `.agents/hooks.json`, and those outcomes show the predicate sees every hook that can run after Directive. If any of those is unobserved, or shows a later-running source the predicate cannot read, the verdict stays `fail` and activation halts.\n5. The per-call path reads the agy version from a source the observation record shows is tied to the executing host, and denies when that version is unavailable, invalid, or differs from the `mitigated` record. Caching per `conversationId` is allowed only where the observed session lifetime makes that association stable. Doctor reports the same mismatch.\n6. The agy hook outer validates child stdout as exactly one agy decision object and denies on empty or invalid output. Every intentional allow on agy, including the kill-record and install-admit `quietAllow` branches, prints an explicit allow decision. Kill-switch and recovery semantics are unchanged.\n7. The #7347 activation contract test admits `pass`, or `mitigated` only when the deposited name equals the predicate's constant, the per-call path calls the predicate, and a behavioral fixture shows a later-running foreign rewrite is denied. It fails closed on `fail` or an absent verdict. This is one gate: it replaces #7347 clauses 2 and 3, not a second gate beside them.\n8. Agent writes to the agy hook config and the deletion or renaming of Directive's own entry by a hostile agent stay a stated limit (no incumbent host guards its hook config today).\n\n## Acceptance Criteria\n\n\n- [ ] Directive's agy hook entry name is one constant; the observation record shows its run order against representative adversarial neighbor names on the observed agy version, and predicate fixtures reject later, equal, prefix-extending and unknown-order names.\n- [ ] One pure ordering predicate reports every foreign `PreToolUse` entry at or after Directive's entry, treats out-of-alphabet, equal, prefix-extending and undeterminable names as at-or-after, ignores `matcher`, and reports an unparseable config.\n- [ ] Directive's agy `PreToolUse` path denies on every call where the predicate reports a finding, or the executing agy version (from an observation-validated source) is unavailable, invalid or differs from the `mitigated` record, with one remediation; fixtures cover unknown and mismatched versions; `directive doctor` reports the same findings read-only.\n- [ ] The observe verdict record can hold `mitigated` with the mitigation and agy version named, and holds it only when user-scope, plugin and mid-session reload observations show the predicate sees every later-running hook; otherwise it records `fail`.\n- [ ] The agy hook outer denies on empty or invalid child stdout, every intentional agy allow prints an explicit allow decision, and a contract test covers every outer exit path.\n- [ ] The #7347 activation contract test admits `pass`, or `mitigated` only with the wiring and a behavioral later-rewrite-denied fixture, and fails closed on `fail` or an absent verdict.\n- [ ] The agy host docs state the hostile self-edit limit.\n\n",
+      "Labels": "enhancement, design-critique:ingest-ready"
+    },
+    "items": [
+      {
+        "title": "Directive's agy hook entry name is one constant chosen to run after ordinary names. The name is a convenience; the ordering predicate carries the safety claim. Admission rests on observations of the actual chosen name against representative adversarial neighbors (earlier, later, equal, prefix-extending, out-of-alphabet) on the observed agy version, not on a claim that the name dominates the namespace.",
+        "status": "proposed",
+        "id": "clause.1"
+      },
+      {
+        "title": "One pure ordering predicate reads the effective agy hook set and reports every foreign `PreToolUse` entry that runs at or after Directive's entry. It counts as at-or-after any name outside the observed alphabet, any name that equals, starts with or extends Directive's name, and any entry whose order it cannot determine. It never filters by `matcher`. An unparseable config is a finding.",
+        "status": "proposed",
+        "id": "clause.2"
+      },
+      {
+        "title": "Directive's agy `PreToolUse` path runs that predicate on every call (config resolved from the payload `workspacePaths`) and denies on any finding, with one remediation (rename or remove the named foreign hook, or `deft policy:disable-host-hooks --host agy --confirm`). `directive doctor` reports the same finding read-only. Doctor does not self-repair.",
+        "status": "proposed",
+        "id": "clause.3"
+      },
+      {
+        "title": "The observe verdict may record final executed argument integrity as `mitigated`, naming this mitigation and the observed agy version. `mitigated` is admissible only when the observation record also covers the hook sources the predicate does not read (user scope `~/.gemini`, plugin hooks) and mid-session reload of `.agents/hooks.json`, and those outcomes show the predicate sees every hook that can run after Directive. If any of those is unobserved, or shows a later-running source the predicate cannot read, the verdict stays `fail` and activation halts.",
+        "status": "proposed",
+        "id": "clause.4"
+      },
+      {
+        "title": "The per-call path reads the agy version from a source the observation record shows is tied to the executing host, and denies when that version is unavailable, invalid, or differs from the `mitigated` record. Caching per `conversationId` is allowed only where the observed session lifetime makes that association stable. Doctor reports the same mismatch.",
+        "status": "proposed",
+        "id": "clause.5"
+      },
+      {
+        "title": "The agy hook outer validates child stdout as exactly one agy decision object and denies on empty or invalid output. Every intentional allow on agy, including the kill-record and install-admit `quietAllow` branches, prints an explicit allow decision. Kill-switch and recovery semantics are unchanged.",
+        "status": "proposed",
+        "id": "clause.6"
+      },
+      {
+        "title": "The #7347 activation contract test admits `pass`, or `mitigated` only when the deposited name equals the predicate's constant, the per-call path calls the predicate, and a behavioral fixture shows a later-running foreign rewrite is denied. It fails closed on `fail` or an absent verdict. This is one gate: it replaces #7347 clauses 2 and 3, not a second gate beside them.",
+        "status": "proposed",
+        "id": "clause.7"
+      },
+      {
+        "title": "Agent writes to the agy hook config and the deletion or renaming of Directive's own entry by a hostile agent stay a stated limit (no incumbent host guards its hook config today).",
+        "status": "proposed",
+        "id": "clause.8"
+      },
+      {
+        "title": "Directive's agy hook entry name is one constant; the observation record shows its run order against representative adversarial neighbor names on the observed agy version, and predicate fixtures reject later, equal, prefix-extending and unknown-order names.",
+        "status": "proposed",
+        "id": "clause.9"
+      },
+      {
+        "title": "One pure ordering predicate reports every foreign `PreToolUse` entry at or after Directive's entry, treats out-of-alphabet, equal, prefix-extending and undeterminable names as at-or-after, ignores `matcher`, and reports an unparseable config.",
+        "status": "proposed",
+        "id": "clause.10"
+      },
+      {
+        "title": "Directive's agy `PreToolUse` path denies on every call where the predicate reports a finding, or the executing agy version (from an observation-validated source) is unavailable, invalid or differs from the `mitigated` record, with one remediation; fixtures cover unknown and mismatched versions; `directive doctor` reports the same findings read-only.",
+        "status": "proposed",
+        "id": "clause.11"
+      },
+      {
+        "title": "The observe verdict record can hold `mitigated` with the mitigation and agy version named, and holds it only when user-scope, plugin and mid-session reload observations show the predicate sees every later-running hook; otherwise it records `fail`.",
+        "status": "proposed",
+        "id": "clause.12"
+      },
+      {
+        "title": "The agy hook outer denies on empty or invalid child stdout, every intentional agy allow prints an explicit allow decision, and a contract test covers every outer exit path.",
+        "status": "proposed",
+        "id": "clause.13"
+      },
+      {
+        "title": "The #7347 activation contract test admits `pass`, or `mitigated` only with the wiring and a behavioral later-rewrite-denied fixture, and fails closed on `fail` or an absent verdict.",
+        "status": "proposed",
+        "id": "clause.14"
+      },
+      {
+        "title": "The agy host docs state the hostile self-edit limit.",
+        "status": "proposed",
+        "id": "clause.15"
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/7378",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #7378: feat(harness): admit agy hook activation under sort-last + doctor integrity mitigation (#7332)"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per harvested lean item (15), in list order (#6333)",
+      "sentences": [
+        "Directive's agy hook entry name is one constant chosen to run after ordinary names. The name is a convenience; the ordering predicate carries the safety claim. Admission rests on observations of the actual chosen name against representative adversarial neighbors (earlier, later, equal, prefix-extending, out-of-alphabet) on the observed agy version, not on a claim that the name dominates the namespace.",
+        "One pure ordering predicate reads the effective agy hook set and reports every foreign `PreToolUse` entry that runs at or after Directive's entry. It counts as at-or-after any name outside the observed alphabet, any name that equals, starts with or extends Directive's name, and any entry whose order it cannot determine. It never filters by `matcher`. An unparseable config is a finding.",
+        "Directive's agy `PreToolUse` path runs that predicate on every call (config resolved from the payload `workspacePaths`) and denies on any finding, with one remediation (rename or remove the named foreign hook, or `deft policy:disable-host-hooks --host agy --confirm`). `directive doctor` reports the same finding read-only. Doctor does not self-repair.",
+        "The observe verdict may record final executed argument integrity as `mitigated`, naming this mitigation and the observed agy version. `mitigated` is admissible only when the observation record also covers the hook sources the predicate does not read (user scope `~/.gemini`, plugin hooks) and mid-session reload of `.agents/hooks.json`, and those outcomes show the predicate sees every hook that can run after Directive. If any of those is unobserved, or shows a later-running source the predicate cannot read, the verdict stays `fail` and activation halts.",
+        "The per-call path reads the agy version from a source the observation record shows is tied to the executing host, and denies when that version is unavailable, invalid, or differs from the `mitigated` record. Caching per `conversationId` is allowed only where the observed session lifetime makes that association stable. Doctor reports the same mismatch.",
+        "The agy hook outer validates child stdout as exactly one agy decision object and denies on empty or invalid output. Every intentional allow on agy, including the kill-record and install-admit `quietAllow` branches, prints an explicit allow decision. Kill-switch and recovery semantics are unchanged.",
+        "The #7347 activation contract test admits `pass`, or `mitigated` only when the deposited name equals the predicate's constant, the per-call path calls the predicate, and a behavioral fixture shows a later-running foreign rewrite is denied. It fails closed on `fail` or an absent verdict. This is one gate: it replaces #7347 clauses 2 and 3, not a second gate beside them.",
+        "Agent writes to the agy hook config and the deletion or renaming of Directive's own entry by a hostile agent stay a stated limit (no incumbent host guards its hook config today).",
+        "Directive's agy hook entry name is one constant; the observation record shows its run order against representative adversarial neighbor names on the observed agy version, and predicate fixtures reject later, equal, prefix-extending and unknown-order names.",
+        "One pure ordering predicate reports every foreign `PreToolUse` entry at or after Directive's entry, treats out-of-alphabet, equal, prefix-extending and undeterminable names as at-or-after, ignores `matcher`, and reports an unparseable config.",
+        "Directive's agy `PreToolUse` path denies on every call where the predicate reports a finding, or the executing agy version (from an observation-validated source) is unavailable, invalid or differs from the `mitigated` record, with one remediation; fixtures cover unknown and mismatched versions; `directive doctor` reports the same findings read-only.",
+        "The observe verdict record can hold `mitigated` with the mitigation and agy version named, and holds it only when user-scope, plugin and mid-session reload observations show the predicate sees every later-running hook; otherwise it records `fail`.",
+        "The agy hook outer denies on empty or invalid child stdout, every intentional agy allow prints an explicit allow decision, and a contract test covers every outer exit path.",
+        "The #7347 activation contract test admits `pass`, or `mitigated` only with the wiring and a behavioral later-rewrite-denied fixture, and fails closed on `fail` or an absent verdict.",
+        "The agy host docs state the hostile self-edit limit."
+      ],
+      "admitted_source_sentences": [
+        "Directive's agy hook entry name is one constant chosen to run after ordinary names. The name is a convenience; the ordering predicate carries the safety claim. Admission rests on observations of the actual chosen name against representative adversarial neighbors (earlier, later, equal, prefix-extending, out-of-alphabet) on the observed agy version, not on a claim that the name dominates the namespace.",
+        "One pure ordering predicate reads the effective agy hook set and reports every foreign `PreToolUse` entry that runs at or after Directive's entry. It counts as at-or-after any name outside the observed alphabet, any name that equals, starts with or extends Directive's name, and any entry whose order it cannot determine. It never filters by `matcher`. An unparseable config is a finding.",
+        "Directive's agy `PreToolUse` path runs that predicate on every call (config resolved from the payload `workspacePaths`) and denies on any finding, with one remediation (rename or remove the named foreign hook, or `deft policy:disable-host-hooks --host agy --confirm`). `directive doctor` reports the same finding read-only. Doctor does not self-repair.",
+        "The observe verdict may record final executed argument integrity as `mitigated`, naming this mitigation and the observed agy version. `mitigated` is admissible only when the observation record also covers the hook sources the predicate does not read (user scope `~/.gemini`, plugin hooks) and mid-session reload of `.agents/hooks.json`, and those outcomes show the predicate sees every hook that can run after Directive. If any of those is unobserved, or shows a later-running source the predicate cannot read, the verdict stays `fail` and activation halts.",
+        "The per-call path reads the agy version from a source the observation record shows is tied to the executing host, and denies when that version is unavailable, invalid, or differs from the `mitigated` record. Caching per `conversationId` is allowed only where the observed session lifetime makes that association stable. Doctor reports the same mismatch.",
+        "The agy hook outer validates child stdout as exactly one agy decision object and denies on empty or invalid output. Every intentional allow on agy, including the kill-record and install-admit `quietAllow` branches, prints an explicit allow decision. Kill-switch and recovery semantics are unchanged.",
+        "The #7347 activation contract test admits `pass`, or `mitigated` only when the deposited name equals the predicate's constant, the per-call path calls the predicate, and a behavioral fixture shows a later-running foreign rewrite is denied. It fails closed on `fail` or an absent verdict. This is one gate: it replaces #7347 clauses 2 and 3, not a second gate beside them.",
+        "Agent writes to the agy hook config and the deletion or renaming of Directive's own entry by a hostile agent stay a stated limit (no incumbent host guards its hook config today).",
+        "Directive's agy hook entry name is one constant; the observation record shows its run order against representative adversarial neighbor names on the observed agy version, and predicate fixtures reject later, equal, prefix-extending and unknown-order names.",
+        "One pure ordering predicate reports every foreign `PreToolUse` entry at or after Directive's entry, treats out-of-alphabet, equal, prefix-extending and undeterminable names as at-or-after, ignores `matcher`, and reports an unparseable config.",
+        "Directive's agy `PreToolUse` path denies on every call where the predicate reports a finding, or the executing agy version (from an observation-validated source) is unavailable, invalid or differs from the `mitigated` record, with one remediation; fixtures cover unknown and mismatched versions; `directive doctor` reports the same findings read-only.",
+        "The observe verdict record can hold `mitigated` with the mitigation and agy version named, and holds it only when user-scope, plugin and mid-session reload observations show the predicate sees every later-running hook; otherwise it records `fail`.",
+        "The agy hook outer denies on empty or invalid child stdout, every intentional agy allow prints an explicit allow decision, and a contract test covers every outer exit path.",
+        "The #7347 activation contract test admits `pass`, or `mitigated` only with the wiring and a behavioral later-rewrite-denied fixture, and fails closed on `fail` or an absent verdict.",
+        "The agy host docs state the hostile self-edit limit."
+      ],
+      "admitted_source_digest": "be4a1f65937d3c4fda63c9ac59c2088b68330149243457804dc88e132f6fece6",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Directive's agy hook entry name is one constant chosen to run after ordinary names. The name is a convenience; the ordering predicate carries the safety claim. Admission rests on observations of the actual chosen name against representative adversarial neighbors (earlier, later, equal, prefix-extending, out-of-alphabet) on the observed agy version, not on a claim that the name dominates the namespace.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "One pure ordering predicate reads the effective agy hook set and reports every foreign `PreToolUse` entry that runs at or after Directive's entry. It counts as at-or-after any name outside the observed alphabet, any name that equals, starts with or extends Directive's name, and any entry whose order it cannot determine. It never filters by `matcher`. An unparseable config is a finding.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Directive's agy `PreToolUse` path runs that predicate on every call (config resolved from the payload `workspacePaths`) and denies on any finding, with one remediation (rename or remove the named foreign hook, or `deft policy:disable-host-hooks --host agy --confirm`). `directive doctor` reports the same finding read-only. Doctor does not self-repair.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "The observe verdict may record final executed argument integrity as `mitigated`, naming this mitigation and the observed agy version. `mitigated` is admissible only when the observation record also covers the hook sources the predicate does not read (user scope `~/.gemini`, plugin hooks) and mid-session reload of `.agents/hooks.json`, and those outcomes show the predicate sees every hook that can run after Directive. If any of those is unobserved, or shows a later-running source the predicate cannot read, the verdict stays `fail` and activation halts.",
+          "artifact_path": ".agents/hooks.json",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "The per-call path reads the agy version from a source the observation record shows is tied to the executing host, and denies when that version is unavailable, invalid, or differs from the `mitigated` record. Caching per `conversationId` is allowed only where the observed session lifetime makes that association stable. Doctor reports the same mismatch.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "The agy hook outer validates child stdout as exactly one agy decision object and denies on empty or invalid output. Every intentional allow on agy, including the kill-record and install-admit `quietAllow` branches, prints an explicit allow decision. Kill-switch and recovery semantics are unchanged.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "The #7347 activation contract test admits `pass`, or `mitigated` only when the deposited name equals the predicate's constant, the per-call path calls the predicate, and a behavioral fixture shows a later-running foreign rewrite is denied. It fails closed on `fail` or an absent verdict. This is one gate: it replaces #7347 clauses 2 and 3, not a second gate beside them.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Agent writes to the agy hook config and the deletion or renaming of Directive's own entry by a hostile agent stay a stated limit (no incumbent host guards its hook config today).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "Directive's agy hook entry name is one constant; the observation record shows its run order against representative adversarial neighbor names on the observed agy version, and predicate fixtures reject later, equal, prefix-extending and unknown-order names.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "One pure ordering predicate reports every foreign `PreToolUse` entry at or after Directive's entry, treats out-of-alphabet, equal, prefix-extending and undeterminable names as at-or-after, ignores `matcher`, and reports an unparseable config.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "Directive's agy `PreToolUse` path denies on every call where the predicate reports a finding, or the executing agy version (from an observation-validated source) is unavailable, invalid or differs from the `mitigated` record, with one remediation; fixtures cover unknown and mismatched versions; `directive doctor` reports the same findings read-only.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "The observe verdict record can hold `mitigated` with the mitigation and agy version named, and holds it only when user-scope, plugin and mid-session reload observations show the predicate sees every later-running hook; otherwise it records `fail`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "The agy hook outer denies on empty or invalid child stdout, every intentional agy allow prints an explicit allow decision, and a contract test covers every outer exit path.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "The #7347 activation contract test admits `pass`, or `mitigated` only with the wiring and a behavioral later-rewrite-denied fixture, and fails closed on `fail` or an absent verdict.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "The agy host docs state the hostile self-edit limit.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/hooks/classify/agy-hook-order.ts",
+          "packages/core/src/hooks/classify/agy-hook-order.test.ts",
+          "packages/core/src/hooks/classify/agy-observation.ts",
+          "packages/core/src/hooks/classify/agy-observation.test.ts",
+          "packages/core/src/hooks/classify/classify.ts",
+          "packages/core/src/init-deposit/host-hook-outer.ts",
+          "packages/core/src/init-deposit/host-hook-outer.test.ts",
+          "packages/core/src/doctor/checks.ts",
+          "packages/core/src/doctor/agy-hook-order.test.ts",
+          "content/docs/agy-host.md",
+          "changelog.d/7378-agy-sort-last-hook-order.md",
+          ".agents/hooks.json",
+          "docs/RULE-MAP.md",
+          "xbrief/evaluator-surface-disposition.json",
+          "xbrief/PROJECT-DEFINITION.xbrief.json"
+        ],
+        "module_boundary": "packages/core/src/hooks",
+        "cohesion_exemption": "Ordering predicate, observation verdict, hook outer, doctor report, host doc and changelog fragment travel together as one agy mitigation"
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because #7378 changes the hook-integrity admission rule for a new host (agy): it decides whether Directive enforcement may activate when the host cannot guarantee that Directive's check covers the arguments that actually run, which is security-relevant and has an open mechanism space (ordering, per-call vs doctor-time detection, warn vs fail closed).\n\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nspend-recommend: N≥3\nspend: N≥3\nspend-ask: resolved\ncharter: refutation\nrefutation-target: Naming Directive's `.agents/hooks.json` entry so it sorts last, plus an ordering check reported by `directive doctor`, restores final executed argument integrity well enough to admit agy hook activation (#7347) on agy 1.5.16.\nstop-2-why: refutation (the body asserts one defensible mechanism, sort-last + doctor, against an observed host verdict); N≥3 panel permission applies because the target decides whether a security gate may activate on a host that cannot pin hook order, and the detection-timing and fail-mode space is open.\ndest: C:\\Repos\\deft\\directive\\.deft-scratch\\worktrees\\arc-7378\norigin-ref: origin/HEAD\ndispatch-sha: eff773c530cf0462b7417e11202f78c458369b9c\nverification-path: pin-read git show eff773c530cf0462b7417e11202f78c458369b9c:; dest cwd-without-occupy; plus the parent-supplied #7345 raw agy 1.5.16 observation summary in the envelope\ndual-stop-reserved: first post-lean pain-audit of asserted coverage in-cap via evaluateDualStopParentPath; raise after reserved spent\n\npain: P1, P2\n\n- **P1**: On agy 1.5.16 the observed verdict fails final executed argument integrity (hooks run in hook-name order, the last `overwrite` wins, and agy cannot pin a hook last), so the accepted #7332 gate halts #7347 activation and agy sessions keep running with no Directive hook enforcement.\n- **P2**: agy treats a hook that exits 0 with empty stdout as allow, so any Directive agy hook path that exits 0 without printing a decision fails open.\n\n",
+          "id": 7197517515,
+          "html_url": "https://github.com/deftai/directive/issues/7378#issuecomment-7197517515",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-26T16:20:40Z",
+          "updated_at": "2026-11-26T16:20:40Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 3\ninput-ceiling: this comment (round-start snapshot taken after POST; the envelope id ceiling is authoritative)\nfamilies: grok, claude, codex\nseat: grok launcher: grok\nseat: claude launcher: spawn_subagent\nseat: codex launcher: codex\nverification-path: pin-read git show eff773c530cf0462b7417e11202f78c458369b9c:; dest cwd-without-occupy; plus the parent-supplied #7345 raw agy 1.5.16 observation summary in the envelope\nlaunch-probe: pass (codex exec --sandbox read-only -C dest, grok --cwd dest --permission-mode auto, and a native Claude Code opus subagent all replied pong at rc 0, stdin closed). The Claude Code parent runs in auto mode, so the read-only launcher forms stand in for the bypass argv; disclosed here.\n\n",
+          "id": 7197627580,
+          "html_url": "https://github.com/deftai/directive/issues/7378#issuecomment-7197627580",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-26T16:25:30Z",
+          "updated_at": "2026-11-26T16:25:30Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\n\nThe target does not establish final executed argument integrity as written. Sort-last can support a conditional safety argument, but a doctor finding does not enforce that condition, and the supplied observations do not establish the complete hook chain against which it must hold.\n\n### F1 — blocks-the-design — Doctor-time ordering does not constrain execution\n\n**Evidence:** The proposed mechanism makes per-call enforcement optional; its acceptance criteria require only doctor reporting and a contract test proving that the name and ordering check are wired. Observation s12 demonstrates the failure directly: an earlier hook allows the original command, then a later hook rewrites the command that executes. At the pinned SHA, `inspectAgentHookDeposit` is explicitly a read-only registration probe (`packages/core/src/init-deposit/agent-hooks.ts:1081`); inspection is separate from runtime decisions.\n\n**Failure mode:** A project already contains an enabled matching hook ordered after Directive. Doctor reports it, but activation remains admitted because both required components are wired. Directive approves harmless arguments, and the later hook substitutes a forbidden command. This requires neither a reload race nor a malicious configuration edit. A warning, or an ignored doctor failure, leaves the bypass intact.\n\n**Disposition consequence:** Reject doctor-only admission. The mitigation must make an unsafe ordering condition prevent the affected tool call. Reuse one pure predicate for reporting and enforcement; require behavioral evidence that a later rewrite is blocked, rather than a wiring-presence test. A per-call check is necessary for the proposed mutable-file arrangement, but F2 explains why it is not sufficient by itself.\n\n### F2 — blocks-the-design — The checked file is not yet proven to describe the executing chain\n\n**Evidence:** The snapshot expressly leaves global/plugin hook scopes and mid-session reload behavior unobserved. The proposed predicate reads only `.agents/hooks.json`. Observations s22/s23 establish local ordering and rewritten-input visibility for the tested entries; they do not establish ordering across every source the host may execute.\n\n**Failure mode:** Either of these configurations defeats the proposed predicate:\n\n- A global or plugin hook executes after Directive and changes its approved arguments, while the project file passes.\n- The host retains a previously loaded later hook, but the disk file inspected by Directive no longer contains it. The predicate approves a different chain from the one executing.\n\nThese are conditional counterexamples, not claims that the unobserved host behavior has been demonstrated. Their unresolved status matters because the admission argument requires their exclusion. Concurrent sessions or workers editing shared configuration make file-versus-loaded-state divergence relevant even without hostile hooks.\n\n**Disposition consequence:** Recording these gaps as limits with a follow-up issue cannot simultaneously establish final executed argument integrity. Keep activation unadmitted until observation establishes a complete effective-chain boundary and its configuration lifetime, or restrict admission to an arrangement whose exclusions are enforceable. Merely adding a per-call disk read does not close this finding.\n\nThe thin remedy is an admission refusal when effective-chain integrity is unestablished, with one explanation. It does not require inventing a cross-scope registry or configuration-locking subsystem.\n\n### F3 — sharpens-framing — “Sorts last” must be a tested condition, not a universal property of the name\n\n**Evidence:** The supplied name-order experiments compare `a` and `z`. They do not identify the comparator for case, punctuation, Unicode, equal names across scopes, or generated hook identifiers. Nevertheless, the first acceptance criterion asks for a fixed name with a fixture showing that it sorts after every foreign name in the observed order.\n\n**Failure mode:** An implementation uses JavaScript locale sorting or another assumed comparator that disagrees with agy. Its predicate classifies a foreign hook as earlier, while the host executes it later. A passing fixture containing only familiar names would conceal that mismatch. No ordinary fixed name inherently dominates an unrestricted future namespace.\n\n**Disposition consequence:** State the guarantee as conditional: the chosen name is a convenience; the verified ordering predicate carries the safety claim. Test the actual candidate name and adversarial neighboring names against agy 1.5.16, and use a comparator supported by that evidence. Unknown ordering cases must not count as safe. Do not describe the `a`/`z` observation as evidence of stability across versions.\n\nThis sharpens the mechanism without demanding that this issue solve the previously deferred general host-upgrade policy.\n\n### F4 — sharpens-framing — Empty-output protection belongs at the deposited outer boundary too\n\n**Evidence:** The existing implementation already has an outer that captures the pin process’s output and rejects runtime failures:\n\n- `packages/core/src/init-deposit/host-hook-outer.ts:824–850` captures child stdout, checks process failure, and forwards successful output.\n- `quietAllow()` at line 631 exits successfully without output; the valid kill-record and admitted missing-pin-install branches call it.\n- `grokOutputIsDecision` at line 661 deliberately accepts empty output for Grok.\n- `renderHostDecision` in `packages/core/src/hooks/dispatcher.ts:6182` is a separate host-output layer.\n- `hook-runtime-travel.ts:44–53` explicitly warns that adding a host to `FAIL_CLOSED_HOOK_HOSTS` is not itself denial authority.\n\nObservation s05 establishes that successful empty output allows execution on agy.\n\n**Failure mode:** Updating only the dispatcher’s normal agy allow/deny paths leaves successful empty child output passing through the outer. Reusing Grok’s validation would explicitly accept it. Early intentional allows also contradict an unconditional “never exits 0 with empty stdout” criterion unless they emit an agy decision.\n\n**Disposition consequence:** Bind the existing empty-stdout criterion to the complete deposited invocation path. For agy, unexpected empty successful child output must become denial at the outer boundary; intentional authorized allows must emit explicit native JSON. Cover those branches, malformed output, and process failures through the generated outer, not solely renderer fixtures. Preserve the existing kill-switch and recovery semantics.\n\nThis is a clarification of the proposed guard, using the existing wrapper seam—not a second runtime implementation.\n\n**Mechanism inventory and choice:** The pinned tree already provides deposit/inspection separation, a content-hashed Node outer, child-output validation, host-specific decision rendering, and runtime-travel reporting. None of the inspected mechanisms establishes agy’s complete effective hook order. Doctor should remain read-only, and deposit should retain its existing ownership boundary.\n\nThe strongest case for sort-last is real: s23 shows that a later checker receives the earlier rewrite, and s14 shows that denial then blocks execution. In a complete, stable, verified chain, final placement could therefore work. I reject doctor-only certification because it observes configuration without binding execution. Evidence that a runtime guard checks the actual complete chain and blocks every unsafe arrangement would change that conclusion; a mitigation identifier alone would not.\n\n**Verification:** Read the supplied snapshot through comment `7197627580`, the observation summary, and the specified contract sections and OVPR primer. Re-verified implementation anchors using `git show` and `git grep` exclusively at `eff773c530cf0462b7417e11202f78c458369b9c`. I did not rerun agy, inspect the optional raw observation files, run tests, access the live thread, mutate files, post comments, or spawn agents. USER.md access was denied by the sandbox; no addressing preference was inferred from the primer.",
+          "id": 7197848063,
+          "html_url": "https://github.com/deftai/directive/issues/7378#issuecomment-7197848063",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-26T16:35:39Z",
+          "updated_at": "2026-11-26T16:35:39Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: critic\n```\n\n## Verdict on the refutation target\n\nPartly refuted. Sort-last plus an ordering check is a sound core, but the target as written does not restore final executed argument integrity well enough to admit activation. Three gaps carry it: hooks from other scopes are unobserved and decide whether the mitigation holds (F1); a doctor-only report cannot see what agy actually runs mid-session (F2); and \"a fixed name that sorts after every foreign name\" rests on a collation observed only for lowercase ASCII (F3). F1 blocks. The rest sharpen.\n\n## What I verified and how\n\n- Raw driver `agy7345/driver.mjs`: hook names are `obs-a`, `obs-b`, `obs-z` (JSON object keys). Only `s22` separates file order from name order (z listed first, a ran first). `s10`-`s14` and `s23` have file order equal to name order. So name order rests on one discriminating trial, plus 7/7 runs where the name-first hook ran first (this rules out random map order at about 1/128).\n- `s09` / `s15`: a deny stops later hooks. `s11` / `s13` / `s14` / `s23`: the later hook gets the rewritten `CommandLine`. `s05`: exit 0 with empty stdout ran the command.\n- Pin-read at `eff773c530`, `host-hook-outer.ts` lines 631-653 and 775-850: `quietAllow()` is a bare `process.exit(0)`, used on a valid kill record and on the #7275 missing-pin install admit. A child exit 0 output is passed through as-is; for Grok, empty text exits 0 (line 848; `grokOutputIsDecision` accepts empty, line 662).\n- `hook-runtime-travel.ts:53`: `FAIL_CLOSED_HOOK_HOSTS` has no agy. `dispatcher.ts:4124`: `UPDATED_INPUT_WIRE_HOSTS` has no agy.\n- `authz/classify.ts`: no hook-config path (`.claude/settings`, `.cursor/hooks`, `.agents/hooks`) is classified as `settings`. Agent writes to host hook configs have no special guard on any host today.\n- Repo grep (docs, contracts, init-deposit, doctor): no recorded composition admission for the incumbent hosts.\n- Not run: no agy, no tests, no fixtures. I did not look at agy's own source for its sort key or scope merge.\n\n## Findings\n\n### F1 — blocks-the-design: \"mitigated\" is admitted with the deciding factor unobserved\n\nEvidence: the body lists user-scope (`~/.gemini`) and plugin hooks as \"not observed\", both for their existence and for where they fall in the order. Sort-last protects only if Directive's hook runs after every hook that can `overwrite`, in every scope. The bound #7332 B8 / A7 says the verdict is \"never cleared by an observation record, `unobservedReason` ...\".\n\nFailure mode: agy merges user-scope hooks after workspace hooks, or sorts all scopes together by name. A user-scope hook (a formatter, a path rewriter, or a malicious one in a shared profile) rewrites `CommandLine` after Directive allowed it. The workspace-only ordering check reports clean, doctor says healthy, and the contract test admits `mitigated`. Item 5 (\"stated limit\") turns an unobserved surface into an admission. That is the `unobservedReason`-clears-verdict path that B8 forbids.\n\nDisposition consequence: the lean cannot bind as written. Thin remedy, pick one: (a) add two driver scenarios to #7345 before `mitigated` is admissible: one user-scope hook and one plugin hook, each named to sort before and after Directive's name, with the run order logged; or (b) `mitigated` also requires the ordering check to fail closed when any non-workspace agy hook config exists at a known path. Option (a) is cheap (the driver already exists) and turns an unknown into a fact. Under (b), plugin hooks have no known path, so (a) is better.\n\n### F2 — sharpens-framing: doctor-only detection does not cover what runs; decide per call, fail closed\n\nEvidence: doctor is read-only and runs only when someone runs it (`doctor/main.ts`; OVPR seam). The activation contract test runs in this repo, not on consumer machines. Whether agy re-reads `.agents/hooks.json` during a session is unobserved. `classify.ts` does not guard agent writes to hook configs, so the governed agent can add `.agents/hooks.json` entries with `write_file`.\n\nFailure mode: an MCP tool's installer, or a prompt-injected agent, adds a later-sorting rewrite hook mid-session. Doctor ran yesterday and was clean. Every later tool call is checked by Directive on arguments that do not run.\n\nDisposition consequence: answer the body's open question as \"per call\". Directive's agy `PreToolUse` path (cwd `.agents/`) runs the same pure ordering function and denies on a finding, with one remediation: rename or remove the named foreign hook, or `deft policy:disable-host-hooks --host agy --confirm`. Doctor reports the same finding. Two limits must be stated, not claimed closed. (1) The file on disk can differ from agy's loaded set if agy does not reload. Deny when the file can't be parsed. (2) An adversarial agent can delete or rename Directive's own entry. That is the same gap as on every incumbent host (no hook-config guard), so this design covers foreign hooks that are not adversarial, not a hostile self-edit.\n\nSteelman for warn-only: a later foreign rewrite with Directive active is no worse at blocking than no activation, and per-call deny bricks a session over a harmless later hook that only reads. What would flip it: if the ordering check could tell \"this foreign hook only reads\" from \"this one rewrites\". It can't (the hook is an opaque command), so fail closed wins.\n\n### F3 — sharpens-framing: AC1 cannot be met as written; the check must fail closed on names outside the observed collation\n\nEvidence: the observed order covers only `obs-[abz]`. The collation is unknown: byte order, case-folded, locale, or sorted on the internal id `jsonhook__<name>_PreToolUse_0_0`. The id key and the name key disagree on names that extend a prefix. Example: `zz-directive` vs `zz-directive-x`. By name, `zz-directive` < `zz-directive-x`. By id, `-` (0x2D) < `_` (0x5F), so `zz-directive-x_...` sorts first.\n\nFailure mode: a fixed constant cannot sort after \"every foreign name\". `~x`, a non-ASCII name, or an uppercase name under a collation that is not byte order can beat it. If the check uses byte order and agy does not, the check misses names that run later.\n\nDisposition consequence: reword AC1 to \"sorts after every name in the observed alphabet\". The ordering check treats as at-or-after every foreign name that (i) uses characters outside the observed set (`[a-z0-9-]`), (ii) starts with or extends Directive's name, or (iii) is equal to it (a JSON duplicate key; Go keeps the last). Pick the constant inside the observed alphabet (for example `zzzz-directive`), not a high code point that relies on an unobserved collation.\n\n### F4 — sharpens-framing: the empty-stdout guard belongs in the outer, not only in \"Directive's path\"\n\nEvidence: the outer has three exit-0, empty-stdout exits today: the valid kill record `quietAllow`, the #7275 install admit `quietAllow`, and child stdout passed through unchecked (Grok accepts empty). On agy, empty means allow.\n\nFailure mode: the pin hook-bin crashes after writing nothing but exits 0 (a swallowed error, a code path that forgets to emit). The outer passes the empty output through, and agy runs the call. AC5's contract test on the inner path does not catch an outer passthrough.\n\nDisposition consequence: AC5 covers the agy outer. Every exit, allow included, prints `{\"decision\":\"allow\"}` or a deny. The outer validates the child output as exactly one agy decision object, and denies when the output is empty or invalid (unlike the Grok rule at line 662). Name `quietAllow` on agy as an explicit allow print.\n\n### F5 — sharpens-framing: `mitigated` must pin the agy version\n\nEvidence: name order is observed on 1.5.16 only. #7332 left the version-skew check after Antigravity upgrades as a post-v1 leftover. That was fine while admission needed a version-free `pass`.\n\nFailure mode: agy auto-updates to a build that runs hooks in file order. Sort-last silently stops working. The ordering check still computes name order and reports clean.\n\nDisposition consequence: the `mitigated` record holds the observed agy version. The per-call check (F2) treats a different agy version as unobserved, so it fails closed or reports (decide in the arc). The version is in the payload or on `agy --version`; confirm it is cheap to read per call before binding.\n\n## Footnotes\n\n- Shallow merge: only `CommandLine` was rewritten in the trials. Whether an earlier hook can `overwrite` other args (`Cwd`, `Path`) and whether the last hook sees them merged is unobserved. Directive's check must read the full `toolCall.args`, not only `CommandLine`.\n- The ordering check must not filter foreign entries by `matcher`. Regex overlap is not decidable in the general case, and `s17` shows `\"\"` matches everything.\n- \"Wired\" in the activation test should be mechanical: the deposit constant equals the constant the check uses, and the per-call path calls the check.\n- Hook cwd is `.agents/`. The per-call read must resolve `hooks.json` from the payload's `workspacePaths`, not from cwd guesswork, for linked worktrees.\n- Sequencing: amend #7347 clauses 2 and 3 (the admit set grows from `pass` to `pass | mitigated(wired)`) rather than landing #7378 first with a separate gate. One gate, not two.\n\n## Road not taken\n\nExclusive mode: Directive refuses activation (per call) when any foreign `PreToolUse` entry exists in any observed scope. It does not depend on collation or version. I rejected it as the default because it bans every co-installed agy hook. It is the right fallback if F1 or F3 observation shows the scope merge or the collation cannot be pinned.\n\n",
+          "id": 7197849559,
+          "html_url": "https://github.com/deftai/directive/issues/7378#issuecomment-7197849559",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-26T16:35:43Z",
+          "updated_at": "2026-11-26T16:35:43Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\n# Round-1 refutation — #7378 (agy sort-last + doctor)\n\n## Verdict\n\nThe stated mechanism does **not** restore `finalExecutedArgumentIntegrity` well enough to admit #7347 activation on agy 1.5.16. Sort-last naming can be a necessary piece of a workspace arrangement; a doctor-reported ordering finding cannot carry the integrity property on the tool path. The observe record already called that arrangement “not enforceable.”\n\n## Verified\n\nPin-read at `eff773c530cf0462b7417e11202f78c458369b9c` (cwd arc-7378): `content/contracts/design-critique.md` Critic method / Security context; `packages/core/src/init-deposit/agent-hooks.ts` (`mergeNestedConfig` appends Directive after foreign PreToolUse; `writeAgentHookDeposit` `definitions` = claude/grok/cursor/codex only); `hook-hosts.ts` / `policy/host-hooks.ts` (no `agy`); `hook-runtime-travel.ts` `FAIL_CLOSED_HOOK_HOSTS`; `doctor/main.ts` `runAgentHooksHealthCheck` (registration faults → `severity: \"warning\"`); OVPR `docs/installer-refactor-ovpr/LLM-CONTEXT.md` (doctor read-only, never self-repairs); #7347 active brief halt-on-fail/absent. Read envelope snapshot through ceiling `7197627580`, observation summary, `agy7345/driver.mjs`, `results2.json` s22/s23, `out-agy-observation.ts` `AGY_ADMISSION_VERDICT`. Did not run agy, doctor, or tests. No mutations.\n\n## Inventory (existing, before new)\n\n- Nested hosts already place Directive **after** preserved foreign groups in array order (`agent-hooks.ts` `hooks.PreToolUse = [...preTool, ...NESTED_…]`). agy observed order is **hook-name**, not file/array order (`driver.mjs` s22 lists `z` before `a`; log runs `a` then `z`; stdout executes `REWRITTEN-z`).\n- Deposit activation boundary is the `definitions` list + policy flip + observe-gated contract test (#7332 Bound B8/A7; #7347 halt clause). Pin has no agy deposit path yet.\n- Doctor agent-hook health is warn-shaped and read-only (OVPR). It cannot deny a PreToolUse.\n- Outer / `FAIL_CLOSED_HOOK_HOSTS` pattern is call-path fail-closed for missing/non-decision runtimes — the right *class* of control for integrity, unused by “doctor reports.”\n\n## Injection / swarm lens\n\nActivating agy hooks makes Directive allow/deny/overwrite authority over untrusted tool calls. Last-wins `overwrite.CommandLine` after Directive’s allow is a checked-command bypass (same class as #7332 sequential-composition finding). A read-only doctor row is not that authority.\n\n---\n\n### F1 — `blocks-the-design`\n\n**Evidence.** Observation: last overwrite wins; later hooks see earlier rewrites (s11/s12/s13/s22/s23; `results2.json` s22). Draft observe verdict: only “Directive entry sorts last by name” preserves integrity, “and it is not enforceable,” with hazard “A foreign hook named to sort after the Directive entry can replace the executed command” (`out-agy-observation.ts` `finalExecutedArgumentIntegrity`). Body mechanism #2 leaves doctor/session-start vs per-call open; mid-session `hooks.json` reload unobserved. Doctor is read-only (OVPR); existing `agent-hooks-registration` findings are warnings.\n\n**Failure mode.** Doctor green, then a foreign PreToolUse whose name sorts after Directive’s constant is present (user/plugin/edit, or later reload if the host re-reads). Directive allows on the args it saw; the later hook overwrites `CommandLine`; the executed command was never covered. Warn-only doctor leaves sessions running with a known later-named foreign hook.\n\n**Disposition.** Sort-last + **doctor-reported** ordering check cannot bind as the integrity restoration that admits #7347. Either keep integrity `fail` and halt activation per Bound B8/A7 / #7347, or replace the doctor-as-enforcement limb with a **per-call** fail-closed deny when any foreign workspace PreToolUse sorts at/after Directive’s name (doctor may still *report*).\n\n---\n\n### F2 — `blocks-the-design`\n\n**Evidence.** Same observe hazards: “Hook scopes other than the project `.agents/hooks.json` (user config, plugins) were not observed.” Body AC records other scopes as an unobserved limit with a follow-up while still admitting activation under `mitigated`. #7332 Bound B7 preserves foreign hooks only under an observe-demonstrated safe composition; B8/A7 fail closed unless properties are `pass`.\n\n**Failure mode.** Workspace sort-last can be perfect while an unobserved `~/.gemini` / plugin hook still runs after Directive and rewrites `CommandLine`. Marking integrity `mitigated` and flipping deposit/`DEFAULT_HOST_HOOKS_POLICY.agy` activates enforcement under a composition surface the observe slice explicitly did not demonstrate — the inverse of the Bound gate that made observation an admission condition.\n\n**Disposition.** Other-scope order/overwrite must be observed (or host-documented as non-participating) before `mitigated` may admit activation. “Recorded unobserved limit + activate anyway” leaves the cited fail hazard live.\n\n---\n\n### F3 — `sharpens-framing`\n\n**Evidence.** #7332 A7 / #7347 brief admit on `pass` and halt on `fail`/absent. Body introduces `mitigated` and asks whether #7378 amends #7347. Name-order is version-stamped observation (1.5.16), not a host pin-last API; body asks stability across versions. Empty-stdout fail-open (s05) is a separate property; body empty-stdout guard is the right Thin Fail-Closed patch for that path.\n\n**Failure mode.** Without an explicit #7347/A7 amendment limb, a `mitigated` record never opens the deposit gate (pass-only consumer). Without version-binding the name-order comparator to the observe stamp, a host order change can make the doctor/per-call check green while last-wins integrity is wrong.\n\n**Disposition.** If F1/F2 are closed (per-call deny + other-scope observation), bind `mitigated` only as a named, version-keyed amendment of the #7347 activation contract; keep empty-stdout as its own wired guard. Doctor stays report-only.\n\n---\n\n### F4 — `footnote`\n\nUnicode/locale sort beyond ASCII `a`/`z`, and whether agy re-reads hooks mid-session, stay unobserved edges once F1’s per-call deny exists. Nested-host array-append is a useful inventory parallel, not an agy order proof.\n\n## Road-not-taken / steelman\n\nChose **halt (integrity remains `fail`)** or **sort-last + per-call deny + other-scope observe** over the stated **sort-last + doctor report**. Steelmanning doctor-only: a session-start doctor pass catches static workspace foreign names. Flip condition would be a host API that pins Directive last or freezes args after Directive — agy 1.5.16 has neither — or proof that doctor runs on every PreToolUse (contradicts OVPR read-only doctor).\n\n",
+          "id": 7197953773,
+          "html_url": "https://github.com/deftai/directive/issues/7378#issuecomment-7197953773",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-26T16:40:36Z",
+          "updated_at": "2026-11-26T16:40:36Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nAntigravity (agy) runs every hook in hook-name order, the last hook's argument rewrite wins, and agy cannot pin a hook to run last. So under the accepted #7332 gate, the observed agy 1.5.16 verdict fails \"final executed argument integrity\" and #7347 activation halts: agy sessions keep running with no Directive enforcement. agy also treats a hook that exits 0 with no output as allow. #7378 proposed to admit activation anyway by naming Directive's hook so it sorts last and having `directive doctor` report foreign hooks that sort after it.\n\nAll three critics refuted that as written, and agreed on why. A doctor report does not stop a tool call, so a later-sorting foreign hook can rewrite a command Directive already allowed. Hooks from other scopes (user `~/.gemini` config, plugins) and mid-session reload were never observed, so nobody knows whether something still runs after Directive. A fixed name cannot out-sort every possible name, and name order was seen on one agy version only. And the empty-output gap sits in the deposited hook outer, not only in Directive's inner path.\n\nThe updated design keeps sort-last but moves the safety claim to a check that runs on every call and fails closed. Directive's agy hook name is a constant inside the observed name alphabet. One pure ordering check reads the effective hook set and treats anything it cannot order (odd characters, names that extend Directive's, unparseable config) as running after Directive. Directive's own agy `PreToolUse` path runs that check on every call and denies on any finding or on an agy version other than the one observed; doctor reports the same findings read-only. The verdict may say `mitigated` only after new observations show the check sees every hook that can run after Directive, including user-scope, plugin and reload cases; otherwise it stays `fail` and activation halts as today. The agy hook outer denies empty or invalid output, and every intentional allow prints an explicit decision. The #7347 activation test admits `pass`, or `mitigated` only with the wiring and a fixture that shows a later foreign rewrite is denied. That is one gate replacing #7347 clauses 2 and 3, so #7347's brief needs an amendment rather than building unchanged. A hostile agent editing the hook config stays a stated limit, as on every current host.\n\nForward verdict and disposition: all 12 classified findings (Codex `7197848063` F1-F4, Claude `7197849559` F1-F5, Grok `7197953773` F1-F3) are accepted into the contract; zero disagree, zero defer. Non-self-arbitration disclosure: this parent authored the Stop 1 write-back `7197517515` and the takes below, and every take is a reading of a critic finding; no new premise is introduced. This arc does not ingest, does not edit #7332 or #7345-#7347, and does not decide implementation order beyond the #7347 amendment.\n\n**Lean:** Accept all Round-1 findings from the `siblings: 3` panel and recut #7378 into the sort-last + per-call fail-closed predicate below.\n\nSupersedes Stop 1 write-back 7197517515.\nSpec-path: harvest `## Bound remedy` and `## Acceptance Criteria` below (supersedes the unamended #7378 body).\nTarget-digest: sha256:0a6949fc0ac5ae66b10326af5f36afa2d27a14ecfb64397f969ea88c8f607673\n\nrelieves: P1\nrelieves: P2\n\nP1 is relieved on the branch where the extended observation shows the predicate sees every later-running hook; on any other outcome the verdict stays `fail`, activation halts, and P1 stays unmet under the existing #7347 fail route. P2 is relieved by B6.\n\n## Per-heading takes (Round 1, `siblings: 3`)\n\nDispatched Round-1 siblings: 3 — Codex `7197848063` (`gpt-6`), Claude `7197849559` (`claude-opus-5-5`), Grok `7197953773` (`grok-4.5`). Input ceiling `7197627580`.\n\n- `7197848063` F1 (`blocks-the-design` — doctor-time ordering does not constrain execution): `accept-into-contract` (B3, B7, A3, A6).\n- `7197848063` F2 (`blocks-the-design` — the checked file is not proven to describe the executing chain): `accept-into-contract` (B4, A4).\n- `7197848063` F3 (`sharpens-framing` — sorts-last must be a tested condition): `accept-into-contract` (B1, B2, A1, A2).\n- `7197848063` F4 (`sharpens-framing` — empty-output protection belongs at the outer): `accept-into-contract` (B6, A5).\n- `7197849559` F1 (`blocks-the-design` — `mitigated` admitted with the deciding factor unobserved): `accept-into-contract` (B4, A4).\n- `7197849559` F2 (`sharpens-framing` — decide per call, fail closed; state the reload and self-edit limits): `accept-into-contract` (B2, B3, B8, A2, A3, A7).\n- `7197849559` F3 (`sharpens-framing` — collation outside the observed alphabet): `accept-into-contract` (B1, B2, A1, A2).\n- `7197849559` F4 (`sharpens-framing` — empty-stdout guard in the outer): `accept-into-contract` (B6, A5).\n- `7197849559` F5 (`sharpens-framing` — `mitigated` must pin the agy version): `accept-into-contract` (B4, B5, A3, A4).\n- `7197953773` F1 (`blocks-the-design` — doctor-reported ordering cannot carry integrity): `accept-into-contract` (B3, A3).\n- `7197953773` F2 (`blocks-the-design` — other-scope order must be observed before `mitigated` admits): `accept-into-contract` (B4, A4).\n- `7197953773` F3 (`sharpens-framing` — explicit #7347 amendment and version binding): `accept-into-contract` (B5, B7, A3, A6).\n\nStill-open residual: none (`disagree`: 0, `defer`: 0).\n\nFootnotes recorded (non-denominator census): `7197849559` footnotes (full `toolCall.args` read, not only `CommandLine`; no `matcher` filtering; mechanical \"wired\"; `workspacePaths` resolution; one gate not two — folded into B2, B3, B7); `7197953773` F4 (Unicode/locale and reload edges once per-call deny exists).\n\n## Bound remedy\n\n1. Directive's agy hook entry name is one constant inside the observed name alphabet (`[a-z0-9-]`) that sorts after ordinary names under the observed agy 1.5.16 order. The name is a convenience; the ordering predicate carries the safety claim.\n2. One pure ordering predicate reads the effective agy hook set and reports every foreign `PreToolUse` entry that runs at or after Directive's entry. It counts as at-or-after any name outside the observed alphabet, any name that equals, starts with or extends Directive's name, and any entry whose order it cannot determine. It never filters by `matcher`. An unparseable config is a finding.\n3. Directive's agy `PreToolUse` path runs that predicate on every call (config resolved from the payload `workspacePaths`) and denies on any finding, with one remediation (rename or remove the named foreign hook, or `deft policy:disable-host-hooks --host agy --confirm`). `directive doctor` reports the same finding read-only. Doctor does not self-repair.\n4. The observe verdict may record final executed argument integrity as `mitigated`, naming this mitigation and the observed agy version. `mitigated` is admissible only when the observation record also covers the hook sources the predicate does not read (user scope `~/.gemini`, plugin hooks) and mid-session reload of `.agents/hooks.json`, and those outcomes show the predicate sees every hook that can run after Directive. If any of those is unobserved, or shows a later-running source the predicate cannot read, the verdict stays `fail` and activation halts.\n5. The per-call path denies when the running agy version differs from the version in the `mitigated` record (the probe may be cached per `conversationId`). Doctor reports the same mismatch.\n6. The agy hook outer validates child stdout as exactly one agy decision object and denies on empty or invalid output. Every intentional allow on agy, including the kill-record and install-admit `quietAllow` branches, prints an explicit allow decision. Kill-switch and recovery semantics are unchanged.\n7. The #7347 activation contract test admits `pass`, or `mitigated` only when the deposited name equals the predicate's constant, the per-call path calls the predicate, and a behavioral fixture shows a later-running foreign rewrite is denied. It fails closed on `fail` or an absent verdict. This is one gate: it replaces #7347 clauses 2 and 3, not a second gate beside them.\n8. Agent writes to the agy hook config and the deletion or renaming of Directive's own entry by a hostile agent stay a stated limit (no incumbent host guards its hook config today).\n\n## Acceptance Criteria\n\n- [ ] Directive's agy hook entry name is one constant inside `[a-z0-9-]`, and a fixture shows it sorts after every name in that alphabet under the observed agy 1.5.16 order.\n- [ ] One pure ordering predicate reports every foreign `PreToolUse` entry at or after Directive's entry, treats out-of-alphabet, equal, prefix-extending and undeterminable names as at-or-after, ignores `matcher`, and reports an unparseable config.\n- [ ] Directive's agy `PreToolUse` path denies on every call where the predicate reports a finding or the running agy version differs from the `mitigated` record, with one remediation; `directive doctor` reports the same findings read-only.\n- [ ] The observe verdict record can hold `mitigated` with the mitigation and agy version named, and holds it only when user-scope, plugin and mid-session reload observations show the predicate sees every later-running hook; otherwise it records `fail`.\n- [ ] The agy hook outer denies on empty or invalid child stdout, every intentional agy allow prints an explicit allow decision, and a contract test covers every outer exit path.\n- [ ] The #7347 activation contract test admits `pass`, or `mitigated` only with the wiring and a behavioral later-rewrite-denied fixture, and fails closed on `fail` or an absent verdict.\n- [ ] The agy host docs state the hostile self-edit limit.\n\n",
+          "id": 7197972066,
+          "html_url": "https://github.com/deftai/directive/issues/7378#issuecomment-7197972066",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-26T16:41:28Z",
+          "updated_at": "2026-11-26T16:41:28Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1, pain-P2\nharvest-digest: sha256:17622f453c9b51a84bc4230cac4d51f48376c031782e0401a6c017a8cb7c82f2\nfinding-classes: sharpening, footnote\nharvest-changed: true\n\nThe revised mechanism supports conditional P1 relief and addresses P2 at the correct boundary. Doctor no longer carries enforcement authority. B4/A4 now withhold admission when effective-chain or reload observations are missing or adverse. That closes the original proposal’s “record the unknown and activate anyway” defect.\n\nThe harvest still needs the two sharpenings below. Neither requires another enforcement subsystem.\n\n### F1 — sharpens-framing — A1 retains the universal-name claim the panel rejected\n\n**Evidence:** Successor `7197972066` B1 correctly calls the name a convenience and assigns safety to the predicate. But A1 requires a fixture showing the constant “sorts after every name in that alphabet.” Restricting characters to `[a-z0-9-]` does not bound the set of names or establish its collation. The supplied observations distinguish `a`/`z` execution order; they do not establish ordering for every string in that alphabet. Accepted Codex F3 and Claude F3 specifically address this problem.\n\n**Failure mode:** Under ordinary lexical ordering, a foreign name extending the chosen constant is still in the alphabet and sorts later. B2 intentionally rejects such names, so the mechanism handles a case that A1 declares cannot exist. A finite fixture can pass while falsely appearing to prove A1’s universal claim. Calling the entire alphabet “observed” also overstates the supplied experiments.\n\n**Disposition consequence:** Keep B2’s conservative denial. Change B1/A1 to require observations of the actual chosen name and representative adversarial neighbors, plus predicate fixtures rejecting later, equal, prefix-extending and unknown-order names. The obligation is that admitted configurations have proven safe order, not that the constant dominates the namespace. This changes the harvested acceptance criterion and completes the accepted comparator findings without blocking the underlying design.\n\n### F2 — sharpens-framing — Version binding lacks the accepted running-host probe requirement\n\n**Evidence:** Accepted Claude `7197849559` F5 required confirming a practical per-call source for the running agy version before binding. B5/A3 require mismatch denial and permit caching by `conversationId`, but neither identifies how the probe distinguishes the executing host from an installed executable, nor states the outcome when its version cannot be determined. B4’s observation prerequisites cover sources and reload, not that probe.\n\n**Failure mode:** A helper resolves `agy --version` through PATH and gets the observed version while the session is served by another installation or an already-running different version. The equality check passes without establishing the version whose ordering behavior matters. A missing or unparsable version could also be treated as “no mismatch” unless the implementation makes the unknown case explicit. These are conditional counterexamples, not observed agy behavior.\n\n**Disposition consequence:** Add one narrow requirement to B5/A3: obtain the version from an observation-validated source tied to the executing host; deny when it is unavailable, invalid or mismatched. Permit conversation caching only where the observed session lifetime makes that association stable. Cover unknown and mismatched versions in fixtures. This completes the accepted version-binding finding; it does not require a general host-upgrade policy.\n\n### F3 — footnote — Pain claims and carry-through accounting\n\nI compared all 12 accepted blocking/sharpening findings against the actual B/A text:\n\n| Round-1 findings | Harvest coverage |\n|---|---|\n| Codex F1; Claude F2; Grok F1 | B2/B3, A2/A3 replace doctor-only detection with per-call denial; B8/A7 state hostile self-edit limits. |\n| Codex F2; Claude F1; Grok F2 | B4/A4 require effective-chain and reload evidence and retain `fail` when it is absent or adverse. |\n| Codex F3; Claude F3 | B1/B2, A1/A2 carry conservative ordering, subject to F1 above. |\n| Codex F4; Claude F4 | B6/A5 cover the outer, unexpected empty/invalid child output, and intentional explicit allows. |\n| Claude F5; Grok F3 | B4/B5/B7, A3/A4/A6 carry version binding and the single #7347 gate amendment, subject to F2 above. |\n\n**P1:** Its branch statement is honest as a design commitment: relief depends on extended observations establishing the effective-chain condition; otherwise activation remains halted and P1 unmet. The supplied evidence does not establish that the successful branch is available today. In particular, merely observing reload behavior would not suffice if the per-call read can still differ from the loaded chain; B4’s outcome requirement must be applied literally.\n\n**P2:** B6/A5 directly address the observed empty-success failure. I independently confirmed at the pinned SHA that `quietAllow()` exits 0 without output, that Grok’s validator accepts empty output, and that successful child stdout is otherwise forwarded. The harvest explicitly changes those agy outer paths while preserving authorized kill-switch/recovery allows. This is credible design coverage, not evidence of implemented relief. Live protection still depends on activation.\n\nOne bookkeeping overclaim remains: the parent says the full-`toolCall.args` footnote was folded into B2/B3/B7, but those clauses do not explicitly require it. That was a footnote, outside the 12-finding denominator; it does not create another blocker here.\n\n### Verification and scope\n\nRead the supplied snapshot through ceiling `7197972066`, both included references, and the parent-generated observation summary. Used `git show eff773c530cf0462b7417e11202f78c458369b9c:<path>` to read the specified design-critique contract sections and independently inspect the existing outer’s decision validation, process-failure handling and successful-output forwarding. Existing outer validation and the revised shared predicate are sufficient seams for these changes.\n\nThe injection/shared-state concern is addressed conditionally by B4: a later foreign rewrite or disk-versus-loaded-chain divergence must not be admitted merely because doctor is green. I do not recommend reverting to doctor-only admission or inventing configuration locking.\n\nI did not run agy, tests, fixtures, doctor or session mutations; access the live thread or optional raw driver files; edit files; post comments; or spawn agents. USER.md access was denied, so no personal preferences were inferred.",
+          "id": 7198045053,
+          "html_url": "https://github.com/deftai/directive/issues/7378#issuecomment-7198045053",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-26T16:44:56Z",
+          "updated_at": "2026-11-26T16:44:56Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\ndesign-critique: halted, because the Dual-stop budget is spent (N≥3 panel: three Round-1 posts plus the reserved pain-audit `7198045053`), and that audit returned two harvest-changing sharpenings (F1: A1 still claims the constant out-sorts every name in the alphabet; F2: the version check needs an executing-host source and must deny on an unknown version) with no blocking finding. Binding needs a recut lean with a changed Bound-remedy digest and one more independent pain-audit, which is one post over the cap. The standing one-raise rule covers a single narrow blocking finding, not two sharpenings, so the raise is the operator's call.\n\nResume needs one operator verb: a cap raise of one post for this arc. The recut is drafted (both sharpenings applied to B1, B5, A1 and A3); no other change to the mechanism.\n\n",
+          "id": 7198059481,
+          "html_url": "https://github.com/deftai/directive/issues/7378#issuecomment-7198059481",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-26T16:45:36Z",
+          "updated_at": "2026-11-26T16:45:36Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\nOperator resume after halt `7198059481`. The operator raised the Dual-stop cap for this arc by one post, in his words (2026-11-26): \"Yes, raise one\". That is one post only: one fresh independent pain-audit of the recut lean that follows. Next: recut lean superseding `7197972066`, then that audit.\n\n",
+          "id": 7198388394,
+          "html_url": "https://github.com/deftai/directive/issues/7378#issuecomment-7198388394",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-26T17:01:18Z",
+          "updated_at": "2026-11-26T17:01:18Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nAntigravity (agy) runs every hook in hook-name order, the last hook's argument rewrite wins, and agy cannot pin a hook to run last. So under the accepted #7332 gate, the observed agy 1.5.16 verdict fails \"final executed argument integrity\" and #7347 activation halts: agy sessions keep running with no Directive enforcement. agy also treats a hook that exits 0 with no output as allow. #7378 proposed to admit activation anyway by naming Directive's hook so it sorts last and having `directive doctor` report foreign hooks that sort after it.\n\nAll three critics refuted that as written, and agreed on why. A doctor report does not stop a tool call, so a later-sorting foreign hook can rewrite a command Directive already allowed. Hooks from other scopes (user `~/.gemini` config, plugins) and mid-session reload were never observed, so nobody knows whether something still runs after Directive. A fixed name cannot out-sort every possible name, and name order was seen on one agy version only. And the empty-output gap sits in the deposited hook outer, not only in Directive's inner path.\n\nThe reserved pain-audit then confirmed the pain coverage and asked for two narrow fixes: drop the claim that Directive's name sorts after every possible name, and say where the agy version comes from and what happens when it is unknown.\n\nThe updated design keeps sort-last but moves the safety claim to a check that runs on every call and fails closed. Directive's agy hook name is a constant chosen to run late; the guarantee is only that its observed run order against chosen neighbor names is recorded, and the check rejects anything it cannot prove runs earlier. One pure ordering check reads the effective hook set and treats anything it cannot order (odd characters, names that extend Directive's, unparseable config) as running after Directive. Directive's own agy `PreToolUse` path runs that check on every call and denies on any finding, or when the running agy version (read from a source the observation shows is tied to the running agy) is unknown or differs from the observed one; doctor reports the same findings read-only. The verdict may say `mitigated` only after new observations show the check sees every hook that can run after Directive, including user-scope, plugin and reload cases; otherwise it stays `fail` and activation halts as today. The agy hook outer denies empty or invalid output, and every intentional allow prints an explicit decision. The #7347 activation test admits `pass`, or `mitigated` only with the wiring and a fixture that shows a later foreign rewrite is denied. That is one gate replacing #7347 clauses 2 and 3, so #7347's brief needs an amendment rather than building unchanged. A hostile agent editing the hook config stays a stated limit, as on every current host.\n\nForward verdict and disposition: all 14 classified findings (Codex `7197848063` F1-F4, Claude `7197849559` F1-F5, Grok `7197953773` F1-F3, pain-audit `7198045053` F1-F2) are accepted into the contract; zero disagree, zero defer. Non-self-arbitration disclosure: this parent authored the Stop 1 write-back `7197517515` and the takes below, and every take is a reading of a critic finding; no new premise is introduced. This arc does not ingest, does not edit #7332 or #7345-#7347, and does not decide implementation order beyond the #7347 amendment.\n\n**Lean:** Accept both sharpenings from pain-audit `7198045053` alongside all Round-1 findings, supersede successor lean `7197972066` (`harvest-changed: true` follow-through after halt `7198059481` and operator resume `7198388394`), and recut #7378 into the sort-last + per-call fail-closed predicate below.\n\nSupersedes successor lean 7197972066.\nSpec-path: harvest `## Bound remedy` and `## Acceptance Criteria` below (supersedes the unamended #7378 body).\nTarget-digest: sha256:0a6949fc0ac5ae66b10326af5f36afa2d27a14ecfb64397f969ea88c8f607673\ndual-stop-cap-raise: +1 (operator confirmed \"Yes, raise one\" in resume 7198388394; authorizes 1 fresh pain-audit critic against this harvest)\n\nrelieves: P1\nrelieves: P2\n\nP1 is relieved on the branch where the extended observation shows the predicate sees every later-running hook; on any other outcome the verdict stays `fail`, activation halts, and P1 stays unmet under the existing #7347 fail route. P2 is relieved by B6.\n\n## Per-heading takes (Round 1 `siblings: 3` + pain-audit `7198045053`)\n\n- `7198045053` F1 (`sharpens-framing` — A1 keeps the universal-name claim the panel rejected): `accept-into-contract` — B1 and A1 drop the claim that the constant out-sorts the namespace; the guarantee is recorded run order of the chosen name against representative adversarial neighbors on the observed agy version, plus predicate fixtures rejecting later, equal, prefix-extending and unknown-order names (B1, B2, A1, A2).\n- `7198045053` F2 (`sharpens-framing` — version binding lacks a running-host probe): `accept-into-contract` — B5 and A3 read the version from an observation-validated source tied to the executing agy, deny when it is unavailable, invalid or mismatched, allow `conversationId` caching only where the observed session lifetime makes it stable, and cover unknown and mismatched versions in fixtures (B5, A3).\n\nDispatched Round-1 siblings: 3 — Codex `7197848063` (`gpt-6`), Claude `7197849559` (`claude-opus-5-5`), Grok `7197953773` (`grok-4.5`). Input ceiling `7197627580`.\n\n- `7197848063` F1 (`blocks-the-design` — doctor-time ordering does not constrain execution): `accept-into-contract` (B3, B7, A3, A6).\n- `7197848063` F2 (`blocks-the-design` — the checked file is not proven to describe the executing chain): `accept-into-contract` (B4, A4).\n- `7197848063` F3 (`sharpens-framing` — sorts-last must be a tested condition): `accept-into-contract` (B1, B2, A1, A2).\n- `7197848063` F4 (`sharpens-framing` — empty-output protection belongs at the outer): `accept-into-contract` (B6, A5).\n- `7197849559` F1 (`blocks-the-design` — `mitigated` admitted with the deciding factor unobserved): `accept-into-contract` (B4, A4).\n- `7197849559` F2 (`sharpens-framing` — decide per call, fail closed; state the reload and self-edit limits): `accept-into-contract` (B2, B3, B8, A2, A3, A7).\n- `7197849559` F3 (`sharpens-framing` — collation outside the observed alphabet): `accept-into-contract` (B1, B2, A1, A2).\n- `7197849559` F4 (`sharpens-framing` — empty-stdout guard in the outer): `accept-into-contract` (B6, A5).\n- `7197849559` F5 (`sharpens-framing` — `mitigated` must pin the agy version): `accept-into-contract` (B4, B5, A3, A4).\n- `7197953773` F1 (`blocks-the-design` — doctor-reported ordering cannot carry integrity): `accept-into-contract` (B3, A3).\n- `7197953773` F2 (`blocks-the-design` — other-scope order must be observed before `mitigated` admits): `accept-into-contract` (B4, A4).\n- `7197953773` F3 (`sharpens-framing` — explicit #7347 amendment and version binding): `accept-into-contract` (B5, B7, A3, A6).\n\nStill-open residual: none (`disagree`: 0, `defer`: 0).\n\nFootnotes recorded (non-denominator census): `7197849559` footnotes (no `matcher` filtering and `workspacePaths` resolution are in B2/B3; mechanical \"wired\" and one gate not two are in B7; the full `toolCall.args` read stays an implementation note, not a harvest item, correcting the overclaim on `7197972066` that `7198045053` F3 noted); `7198045053` F3 (carry-through table and P1/P2 reading); `7197953773` F4 (Unicode/locale and reload edges once per-call deny exists).\n\n## Bound remedy\n\n1. Directive's agy hook entry name is one constant chosen to run after ordinary names. The name is a convenience; the ordering predicate carries the safety claim. Admission rests on observations of the actual chosen name against representative adversarial neighbors (earlier, later, equal, prefix-extending, out-of-alphabet) on the observed agy version, not on a claim that the name dominates the namespace.\n2. One pure ordering predicate reads the effective agy hook set and reports every foreign `PreToolUse` entry that runs at or after Directive's entry. It counts as at-or-after any name outside the observed alphabet, any name that equals, starts with or extends Directive's name, and any entry whose order it cannot determine. It never filters by `matcher`. An unparseable config is a finding.\n3. Directive's agy `PreToolUse` path runs that predicate on every call (config resolved from the payload `workspacePaths`) and denies on any finding, with one remediation (rename or remove the named foreign hook, or `deft policy:disable-host-hooks --host agy --confirm`). `directive doctor` reports the same finding read-only. Doctor does not self-repair.\n4. The observe verdict may record final executed argument integrity as `mitigated`, naming this mitigation and the observed agy version. `mitigated` is admissible only when the observation record also covers the hook sources the predicate does not read (user scope `~/.gemini`, plugin hooks) and mid-session reload of `.agents/hooks.json`, and those outcomes show the predicate sees every hook that can run after Directive. If any of those is unobserved, or shows a later-running source the predicate cannot read, the verdict stays `fail` and activation halts.\n5. The per-call path reads the agy version from a source the observation record shows is tied to the executing host, and denies when that version is unavailable, invalid, or differs from the `mitigated` record. Caching per `conversationId` is allowed only where the observed session lifetime makes that association stable. Doctor reports the same mismatch.\n6. The agy hook outer validates child stdout as exactly one agy decision object and denies on empty or invalid output. Every intentional allow on agy, including the kill-record and install-admit `quietAllow` branches, prints an explicit allow decision. Kill-switch and recovery semantics are unchanged.\n7. The #7347 activation contract test admits `pass`, or `mitigated` only when the deposited name equals the predicate's constant, the per-call path calls the predicate, and a behavioral fixture shows a later-running foreign rewrite is denied. It fails closed on `fail` or an absent verdict. This is one gate: it replaces #7347 clauses 2 and 3, not a second gate beside them.\n8. Agent writes to the agy hook config and the deletion or renaming of Directive's own entry by a hostile agent stay a stated limit (no incumbent host guards its hook config today).\n\n## Acceptance Criteria\n\n- [ ] Directive's agy hook entry name is one constant; the observation record shows its run order against representative adversarial neighbor names on the observed agy version, and predicate fixtures reject later, equal, prefix-extending and unknown-order names.\n- [ ] One pure ordering predicate reports every foreign `PreToolUse` entry at or after Directive's entry, treats out-of-alphabet, equal, prefix-extending and undeterminable names as at-or-after, ignores `matcher`, and reports an unparseable config.\n- [ ] Directive's agy `PreToolUse` path denies on every call where the predicate reports a finding, or the executing agy version (from an observation-validated source) is unavailable, invalid or differs from the `mitigated` record, with one remediation; fixtures cover unknown and mismatched versions; `directive doctor` reports the same findings read-only.\n- [ ] The observe verdict record can hold `mitigated` with the mitigation and agy version named, and holds it only when user-scope, plugin and mid-session reload observations show the predicate sees every later-running hook; otherwise it records `fail`.\n- [ ] The agy hook outer denies on empty or invalid child stdout, every intentional agy allow prints an explicit allow decision, and a contract test covers every outer exit path.\n- [ ] The #7347 activation contract test admits `pass`, or `mitigated` only with the wiring and a behavioral later-rewrite-denied fixture, and fails closed on `fail` or an absent verdict.\n- [ ] The agy host docs state the hostile self-edit limit.\n\n",
+          "id": 7198405903,
+          "html_url": "https://github.com/deftai/directive/issues/7378#issuecomment-7198405903",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-26T17:02:08Z",
+          "updated_at": "2026-11-26T17:02:08Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\n\naudit-targets: pain-P1, pain-P2\nharvest-digest: sha256:7b420cfe5e9a74a7d49139ebc3a18c46ac77327d2abcf845bcb4d90a08c1cf5d\nfinding-classes: footnote\nharvest-changed: false\n\nSuccessor `7198405903` carries all 14 accepted blocking and sharpening findings into its harvested requirements. I found no remaining blocking or sharpening defect. Both findings from pain-audit `7198045053` are addressed in the actual B/A text, not merely in the disposition map.\n\nP1 coverage remains conditional, as the lean explicitly states. P2 has credible design coverage at the deposited outer boundary. Neither claim establishes that activation is available or protection implemented today.\n\n### F1 — footnote — The accepted findings are carried through\n\nI compared each original finding with the numbered Bound remedy clauses (B) and Acceptance Criteria (A), counting 4 Codex + 5 Claude + 3 Grok + 2 prior-audit findings.\n\n| Accepted findings | Harvest coverage |\n|---|---|\n| `7197848063` F1; `7197849559` F2; `7197953773` F1 | B2/B3 and A2/A3 require per-call denial rather than doctor-only reporting. B8/A7 retain the hostile self-edit limit. |\n| `7197848063` F2; `7197849559` F1; `7197953773` F2 | B4/A4 require source and reload observations establishing that the predicate sees every later-running hook; missing or adverse evidence retains `fail`. |\n| `7197848063` F3; `7197849559` F3; `7198045053` F1 | B1/B2 and A1/A2 replace namespace domination with observations of the actual constant and adversarial neighbors, plus rejection of later, equal, prefix-extending and unknown-order names. |\n| `7197848063` F4; `7197849559` F4 | B6/A5 require outer-boundary validation, denial of empty/invalid child output, explicit intentional allows and coverage of every outer exit path. |\n| `7197849559` F5; `7197953773` F3; `7198045053` F2 | B4/B5/B7 and A3/A4/A6 bind mitigation to the observed version, require an observation-validated executing-host version source, deny unknown/invalid/mismatched versions, and amend the single #7347 activation gate. |\n\nThe two previous audit defects are closed as design requirements:\n\n- B1/A1 no longer claim that a finite fixture proves the constant sorts after every name in an alphabet. B2 still conservatively rejects configurations whose order cannot be determined.\n- B5/A3 no longer permit “no detected mismatch” to substitute for a known executing-host version. B5 also makes conversation caching conditional on observed lifetime stability.\n\nThe parent has corrected the earlier accounting overclaim about full `toolCall.args`: it now labels that footnote an implementation note rather than claiming it appears in the harvest.\n\n### F2 — footnote — P1 relief depends on satisfying the observation gate\n\nThe supplied observations support the mechanism’s conditional argument: s23 shows a later hook receiving rewritten arguments; s14 shows a later denial stopping execution; s12 demonstrates why an unchecked later rewrite defeats an earlier approval.\n\nB3 supplies the missing call-path enforcement. B4/A4 require the predicate’s view to cover every later-running hook, including the consequences of cross-scope composition and reload behavior. B5 prevents an unknown or different executing version from borrowing the observed version’s ordering evidence.\n\nThis addresses the injection and shared-state counterexamples: a foreign rewrite, concurrent configuration change or retained loaded hook cannot be accepted merely because the current workspace file looks safe. Observing reload behavior alone is insufficient; its outcome must establish B4’s effective-chain condition. If that condition cannot be established, the harvest requires failure and halted activation.\n\nThe strongest alternative remains refusing activation outright. That is justified by the evidence available today, but the revised design already retains that outcome unless its additional evidence requirements succeed. No additional refusal mechanism is needed.\n\nAccordingly, the P1 branch statement is honest as a design commitment. It does not claim that sort-last naming itself restores integrity or that the successful branch has already been demonstrated.\n\n### F3 — footnote — P2 is addressed at the correct execution boundary\n\nAt the pinned SHA, `host-hook-outer.ts` contains:\n\n- `quietAllow()` exiting successfully without output;\n- a Grok validator explicitly accepting empty output;\n- successful child stdout forwarded after process-status checks.\n\nThose are concrete paths relevant to observation s05, where empty successful hook output allowed execution.\n\nB6/A5 directly address these paths for agy: exactly one native decision object, denial for empty or invalid child output, explicit intentional allows, and tests through every outer exit. This uses the existing wrapper and validation seam while preserving authorized kill-switch and recovery behavior.\n\nP2 therefore has adequate design coverage. Live protection still depends on implementing and activating that path; the audit does not establish operational relief.\n\n### Verification and limits\n\nRead the supplied snapshot through ceiling `7198405903`, both included references, and the parent-generated observation summary. Used `git show eff773c530cf0462b7417e11202f78c458369b9c:<path>` to inspect the specified design-critique contract sections and independently verify the outer’s empty-output, validation and forwarding behavior. Compared the original findings against the successor’s actual harvested clauses rather than relying on its acceptance labels.\n\nI did not run agy, tests, fixtures, doctor or session mutations; access the live thread or raw observation driver; edit files; post comments; or spawn agents. USER.md access was denied by the sandbox, so no personal preferences were inferred.",
+          "id": 7198529966,
+          "html_url": "https://github.com/deftai/directive/issues/7378#issuecomment-7198529966",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-26T17:07:16Z",
+          "updated_at": "2026-11-26T17:07:16Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nNon-self-arbitration disclosure: this parent authored Stop 1 `7197517515` and the leans. Code rows were re-derived by the parent with `git show eff773c530cf0462b7417e11202f78c458369b9c:<path>` and independently by the critics; observation rows come from the #7345 agy 1.5.16 driver results (parent-generated summary, raw files read by Claude `7197849559` and Grok `7197953773`).\n\n| Claim / Seam | Verdict | Evidence | Method |\n|---|---|---|---|\n| agy runs hooks in hook-name order, not file order | Verified (1.5.16, one discriminating trial) | s22: `z` listed first, `a` ran first; 7/7 name-first runs | Raw driver results + Claude `7197849559` |\n| A later hook receives earlier rewrites and the last `overwrite` wins | Verified (1.5.16) | s11/s13/s14/s23 later hook stdin shows `REWRITTEN-a`; s12 executes the later rewrite | Raw results + all three Round-1 critics |\n| A `deny` anywhere blocks the call | Verified (1.5.16) | s02/s09/s10/s15 | Raw results |\n| Exit 0 with empty stdout allows the call | Verified (1.5.16) | s05 runs the command | Raw results + Codex `7197848063` F4 |\n| User-scope, plugin hooks and mid-session reload are unobserved | Verified (absence) | no driver scenario covers them | Driver source read by Claude `7197849559` |\n| The outer has exit-0 empty-stdout paths and forwards child stdout | Verified | `host-hook-outer.ts:631-632,644,650` `quietAllow` / `process.exit(0)`; `:661` `grokOutputIsDecision`; `:845-848` empty Grok text exits 0 | Parent pin-read + Codex `7197848063`, Claude `7197849559`, Codex `7198529966` |\n| Doctor agent-hook health is a read-only probe | Verified | `agent-hooks.ts:1081` read-only `inspectAgentHookDeposit`; `doctor/main.ts:1223,1285` `agent-hooks-registration` | Parent pin-read + Codex `7197848063` F1, Grok `7197953773` |\n| agy is not yet a fail-closed or rewrite-wire host | Verified | `hook-runtime-travel.ts:53` `FAIL_CLOSED_HOOK_HOSTS`; `dispatcher.ts:4124` `UPDATED_INPUT_WIRE_HOSTS` | Parent pin-read + Claude `7197849559` |\n| Recut harvest carries all 14 accepted findings and honestly covers P1 (conditional branch) and P2 | Verified | Pain-audit `7198529966`: `finding-classes: footnote`, `harvest-changed: false`, `harvest-digest: sha256:7b420cfe5e9a74a7d49139ebc3a18c46ac77327d2abcf845bcb4d90a08c1cf5d` | Independent pain-audit after operator raise `7198388394` |\n\n",
+          "id": 7198561308,
+          "html_url": "https://github.com/deftai/directive/issues/7378#issuecomment-7198561308",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-26T17:08:36Z",
+          "updated_at": "2026-11-26T17:08:36Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nAntigravity (agy) runs hooks in hook-name order, lets the last hook's argument rewrite win, cannot pin a hook last, and treats a hook that exits 0 with no output as allow. Under the accepted #7332 gate that verdict halts agy activation (#7347), so agy sessions keep running with no Directive enforcement. #7378 proposed admitting activation by naming Directive's hook to sort last and having doctor report later-sorting foreign hooks. The panel refuted doctor-only detection, the unobserved user-scope, plugin and reload cases, the claim that one name can out-sort every name, and an empty-output gap in the hook outer.\n\nThe accepted design keeps sort-last but puts the safety claim on a check that runs on every call and fails closed. Directive's agy hook name is a constant chosen to run late, with its observed run order against adversarial neighbor names recorded; a pure ordering check treats any foreign hook it cannot prove runs earlier as running later. Directive's own agy PreToolUse path runs that check on every call and denies on any finding, or when the running agy version (from a source tied to the running agy) is unknown or differs from the observed one; doctor reports the same findings read-only. The verdict may say `mitigated` only after new observations show the check sees every hook that can run after Directive, including user-scope, plugin and reload cases; otherwise it stays `fail` and activation halts. The agy hook outer denies empty or invalid output and every intentional allow prints an explicit decision. The #7347 activation test admits `pass`, or `mitigated` only with that wiring and a fixture showing a later foreign rewrite is denied, as one gate replacing #7347 clauses 2 and 3. A hostile agent editing the hook config stays a stated limit. Leftover next-build is this harvest plus an amendment of the #7347 brief; the extra agy observations are part of it.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 7198405903 and verified-claims table 7198561308.\n\n",
+          "id": 7198568752,
+          "html_url": "https://github.com/deftai/directive/issues/7378#issuecomment-7198568752",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-26T17:08:57Z",
+          "updated_at": "2026-11-26T17:08:57Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Problem\n\nThe accepted #7332 design admits Antigravity (`agy`) hook activation (#7347) only when the committed observe verdict (#7345) passes three properties: non-weakenable denial, final executed argument integrity, and the runtime-failure boundary. On a fail or absent verdict, #7347 halts and the work routes to a leftover issue.\n\nThe #7345 observation on real agy 1.5.16 (win32) fails one property. Under the accepted design, agy activation halts. The operator decided to recut instead of halt: admit activation under a mitigation (operator words: \"Recut: sort-last + doctor\").\n\n## Observed verdict (agy 1.5.16, win32)\n\n- **nonWeakenableDenial: PASS.** A `deny` from any hook, in any position, blocks the call. A later `allow` does not undo it.\n- **runtimeFailureBoundary: PASS, with one gap.** Non-zero exit, timeout, malformed JSON and missing `node` all block the call. **Exit 0 with empty stdout is treated as allow (fail-open).**\n- **finalExecutedArgumentIntegrity: FAIL as a general property.**\n  - `overwrite` is a shallow merge and the last `overwrite` wins.\n  - Hooks run in hook-**name** order, not file order (a hook named `z` listed first in the file ran after `a`).\n  - A later hook receives the args as already rewritten by earlier hooks.\n  - agy has no setting to pin a hook to run last.\n- **Not observed:** hooks from other scopes (`~/.gemini` config, plugin hooks) and where they fall in the order; whether agy re-reads `.agents/hooks.json` during a session.\n- Other facts: hook cwd is `.agents/`; the `matcher` is a case-sensitive regex.\n\n## Proposed mechanism\n\n1. **Sort-last name.** Directive's `.agents/hooks.json` entry uses a fixed name that sorts after ordinary hook names under the observed agy order. Because the last hook sees the final args and has the last `overwrite`, Directive's check then covers the args that actually run, as long as no other hook sorts after it.\n2. **Ordering check.** One pure function reads `.agents/hooks.json` and reports every foreign `PreToolUse` entry that sorts at or after Directive's entry. `directive doctor` reports that finding (read-only, no self-repair). Open for the arc: whether Directive's own `PreToolUse` hook also runs this check on each call (its cwd is `.agents/`) and denies when it fails, since doctor runs only when someone runs it.\n3. **Mitigated verdict.** The observe verdict records final executed argument integrity as `mitigated` (with the mitigation named), not `pass`. The #7347 activation contract test admits `pass`, or `mitigated` only when the named mitigation is wired. A `fail` or absent verdict still fails closed.\n4. **Empty-stdout guard.** Directive's own agy hook path never exits 0 with empty stdout. Every outcome, allow included, prints an explicit JSON decision.\n5. **Stated limit.** Hooks from other scopes stay a recorded unobserved limit, with a follow-up issue to observe them.\n\nQuestions for the arc: Is name-order sorting stable across agy versions? Is a check that runs only at doctor or session start enough, or must it run per call? Can a foreign hook be added mid-session? Must the ordering finding fail closed, or is a warning enough?\n\n## Relation to #7345 / #7346 / #7347\n\n- #7345 (observe) records the verdict. This issue adds the `mitigated` value and the mitigation id to that verdict record.\n- #7346 (classify-identity) is unchanged.\n- #7347 (deposit-doctor) owns deposit, doctor registration and the activation contract test. Its brief says activation halts on a fail verdict. The arc decides whether this issue amends what #7347 builds (its activation gate and halt clause) or lands first so #7347 builds on top of it.\n- Stays inside OVPR seams: deposit only through `install` / `install --repair`; `doctor` stays read-only.\n\n## Acceptance Criteria\n\n- [ ] Directive's `.agents/hooks.json` entry name is one fixed constant, and a fixture shows it sorts after every foreign name in the observed agy 1.5.16 order.\n- [ ] One pure ordering check reports every foreign `PreToolUse` entry that sorts at or after Directive's entry, and `directive doctor` reports that finding read-only, naming the foreign entry.\n- [ ] The observe verdict record can hold `mitigated` for final executed argument integrity, with the mitigation named.\n- [ ] The activation contract test admits `pass`, or `mitigated` only when the sort-last name and the ordering check are both wired, and fails closed on `fail` or an absent verdict.\n- [ ] Directive's agy `PreToolUse` path never exits 0 with empty stdout, and a contract test covers every exit path.\n- [ ] Hooks from other scopes are recorded as an unobserved limit in the observation record and the agy host docs, with a follow-up issue linked.\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6630733270,
+        "origin": "deftai/directive#7378",
+        "id": "github.issue.6630733270"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "0a6949fc0ac5ae66b10326af5f36afa2d27a14ecfb64397f969ea88c8f607673"
+      },
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 7378,
+        "leanCommentId": 7198405903,
+        "harvestDigest": "7b420cfe5e9a74a7d49139ebc3a18c46ac77327d2abcf845bcb4d90a08c1cf5d",
+        "slice": null
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": false,
+        "conflict_group": "agy-host-deposit-doctor-activation-gate",
+        "size": "L",
+        "file_scope": [
+          "packages/core/src/hooks/classify/agy-hook-order.ts",
+          "packages/core/src/hooks/classify/agy-hook-order.test.ts",
+          "packages/core/src/hooks/classify/agy-observation.ts",
+          "packages/core/src/hooks/classify/agy-observation.test.ts",
+          "packages/core/src/hooks/classify/classify.ts",
+          "packages/core/src/init-deposit/host-hook-outer.ts",
+          "packages/core/src/init-deposit/host-hook-outer.test.ts",
+          "packages/core/src/doctor/checks.ts",
+          "packages/core/src/doctor/agy-hook-order.test.ts",
+          "content/docs/agy-host.md",
+          "changelog.d/7378-agy-sort-last-hook-order.md",
+          ".agents/hooks.json",
+          "docs/RULE-MAP.md",
+          "xbrief/evaluator-surface-disposition.json",
+          "xbrief/PROJECT-DEFINITION.xbrief.json"
+        ],
+        "file_scope_confidence": "medium",
+        "depends_on": [
+          "github.issue.6609698619"
+        ],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/hooks/classify/agy-hook-order.test.ts packages/core/src/hooks/classify/agy-observation.test.ts --reporter=dot",
+          "pnpm exec vitest run packages/core/src/init-deposit/host-hook-outer.test.ts packages/core/src/doctor/agy-hook-order.test.ts --reporter=dot"
+        ],
+        "expected_outputs": [
+          "ordering predicate treats unknown, equal, prefix-extending and out-of-alphabet foreign PreToolUse names as at-or-after Directive's entry",
+          "agy hook outer denies empty or invalid child stdout; doctor reports the same ordering findings read-only"
+        ],
+        "model_tier": "standard"
+      }
+    },
+    "id": "github.issue.6630733270",
+    "updated": "2026-11-26T17:15:12Z"
+  }
+}
