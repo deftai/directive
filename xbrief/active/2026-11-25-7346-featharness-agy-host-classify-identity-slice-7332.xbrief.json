@@ -132,7 +132,7 @@
           "github.issue.6609698619"
         ],
         "verify_commands": [
-          "pnpm exec vitest run --reporter=dot"
+          "pnpm exec vitest run --reporter=dot packages/core/src/hooks/classify/classify.test.ts packages/core/src/hooks/classify/host-session-identity.test.ts packages/core/src/hooks/classify/paths.test.ts packages/core/src/policy/one-pr-scope-proof.test.ts packages/core/src/init-deposit/agent-hooks.test.ts packages/core/src/session/host-session-owner.test.ts packages/core/src/policy/host-hooks.test.ts"
         ],
         "expected_outputs": [
           "Prefer-A Bound slice #7346 shipped"

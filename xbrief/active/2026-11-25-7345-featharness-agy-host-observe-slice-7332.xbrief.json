@@ -120,7 +120,7 @@
         "file_scope_confidence": "medium",
         "depends_on": [],
         "verify_commands": [
-          "pnpm exec vitest run --reporter=dot"
+          "pnpm exec vitest run --reporter=dot packages/core/src/hooks/classify/agy-observation.test.ts packages/core/src/hooks/classify/classify.test.ts packages/core/src/hooks/classify/payload.test.ts packages/core/src/hooks/classify/types.test.ts packages/core/src/hooks/tools.test.ts"
         ],
         "expected_outputs": [
           "Prefer-A Bound slice #7345 shipped"
