@@ -1,5 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, lstatSync, readdirSync, readlinkSync, statSync } from "node:fs";
+import { homedir } from "node:os";
 import { dirname, isAbsolute, join, relative, resolve as resolvePath } from "node:path";
 import { VBRIEF_VERSION } from "@deftai/directive-types";
 import { isAgentScratchWorktreePath } from "../fs/non-product-dirs.js";
@@ -8,6 +9,7 @@ import {
   AGY_HOOKS_JSON_REL,
   agyConfigHasDirectiveEntry,
   agyHookOrderFindings,
+  collectAgyHookOrderFindings,
   formatAgyHookOrderDenial,
 } from "../hooks/classify/agy-hook-order.js";
 import { CANONICAL_GITIGNORE_BASELINE } from "../init-deposit/gitignore.js";
@@ -163,6 +165,8 @@ export interface CheckSeams {
    * `null` means git is unavailable or the root is not a repository.
    */
   readonly isPathTracked?: (projectRoot: string, rel: string) => boolean | null;
+  /** Home folder for user-scope agy hook files (#7378); defaults to the OS home. */
+  readonly homeDir?: string;
 }
 
 /** Dirent-like entry for the bounded dangling-link walk (#3749). */
@@ -2151,7 +2155,30 @@ export function checkAgyHookOrder(projectRoot: string, seams: CheckSeams = {}): 
       data: { applicable: false },
     };
   }
-  if (findings.length === 0) {
+  // Applicable: read every hook file agy merges (workspace, workspace plugins, user
+  // scope, user plugins), the same set the per-call outer path reads.
+  const all = collectAgyHookOrderFindings([projectRoot], seams.homeDir ?? homedir(), {
+    readText: (path) => {
+      const read = readText(path, seams);
+      if (read !== null) return read;
+      if (seams.readText !== undefined || !existsSync(path)) return null;
+      throw new Error(`unreadable: ${path}`);
+    },
+    listDirs: (path) => {
+      if (seams.readdir !== undefined) {
+        try {
+          return seams.readdir(path);
+        } catch {
+          return [];
+        }
+      }
+      if (!existsSync(path)) return [];
+      return readdirSync(path, { withFileTypes: true })
+        .filter((entry) => entry.isDirectory())
+        .map((entry) => entry.name);
+    },
+  });
+  if (all.length === 0) {
     return {
       name,
       status: "pass",
@@ -2162,8 +2189,8 @@ export function checkAgyHookOrder(projectRoot: string, seams: CheckSeams = {}): 
   return {
     name,
     status: "fail",
-    detail: formatAgyHookOrderDenial(findings),
-    data: { applicable: true, findings: findings.map((finding) => ({ ...finding })) },
+    detail: formatAgyHookOrderDenial(all),
+    data: { applicable: true, findings: all.map((finding) => ({ ...finding })) },
   };
 }
 

@@ -20,7 +20,7 @@ export const AGY_HOOKS_JSON_REL = ".agents/hooks.json";
 
 /** The one remediation named by every finding (#7378). */
 export const AGY_HOOK_ORDER_REMEDIATION =
-  "Rename or remove the named foreign hook in .agents/hooks.json, or run `deft policy:disable-host-hooks --host agy --confirm`.";
+  "Rename or remove the named foreign hook in the file named, or run `deft policy:disable-host-hooks --host agy --confirm`.";
 
 export type AgyHookOrderFindingKind =
   | "sorts-at-or-after"
@@ -49,6 +49,8 @@ export interface AgyHookOrderFinding {
 export function agyHookOrderFindingsFromText(
   configText: string,
   directiveName: string,
+  source: string = AGY_HOOKS_JSON_REL,
+  ownFile = true,
 ): AgyHookOrderFinding[] {
   const findings: AgyHookOrderFinding[] = [];
   let parsed: unknown;
@@ -59,7 +61,7 @@ export function agyHookOrderFindingsFromText(
       {
         name: "",
         kind: "unparseable-config",
-        detail: `.agents/hooks.json is not valid JSON (${String((error as Error).message)}).`,
+        detail: `${source} is not valid JSON (${String((error as Error).message)}).`,
       },
     ];
   }
@@ -68,18 +70,19 @@ export function agyHookOrderFindingsFromText(
       {
         name: "",
         kind: "unparseable-config",
-        detail: ".agents/hooks.json is not a JSON object keyed by hook name.",
+        detail: `${source} is not a JSON object keyed by hook name.`,
       },
     ];
   }
   const own = Buffer.from(directiveName, "utf8");
+  const where = source === AGY_HOOKS_JSON_REL ? "" : ` (in ${source})`;
   for (const [name, entry] of Object.entries(parsed as Record<string, unknown>)) {
-    if (name === directiveName) continue;
+    if (ownFile && name === directiveName) continue;
     if (entry === null || typeof entry !== "object" || Array.isArray(entry)) {
       findings.push({
         name,
         kind: "undeterminable-entry",
-        detail: `Hook "${name}" is not an object, so its events cannot be read.`,
+        detail: `Hook "${name}"${where} is not an object, so its events cannot be read.`,
       });
       continue;
     }
@@ -91,7 +94,7 @@ export function agyHookOrderFindingsFromText(
       findings.push({
         name,
         kind: "undeterminable-entry",
-        detail: `Hook "${name}" has a PreToolUse value that is not a list.`,
+        detail: `Hook "${name}"${where} has a PreToolUse value that is not a list.`,
       });
       continue;
     }
@@ -100,20 +103,126 @@ export function agyHookOrderFindingsFromText(
       findings.push({
         name,
         kind: "out-of-observed-alphabet",
-        detail: `Hook "${name}" uses characters whose order was not observed, so it counts as running at or after Directive's entry.`,
+        detail: `Hook "${name}"${where} uses characters whose order was not observed, so it counts as running at or after Directive's entry.`,
+      });
+    } else if (name === directiveName) {
+      findings.push({
+        name,
+        kind: "equal-name",
+        detail: `Hook "${name}"${where} has Directive's name, so its order against Directive's entry is not defined.`,
       });
     } else if (name.startsWith(directiveName)) {
       findings.push({
         name,
         kind: "extends-directive-name",
-        detail: `Hook "${name}" extends Directive's name "${directiveName}", so it runs after it.`,
+        detail: `Hook "${name}"${where} extends Directive's name "${directiveName}", so it runs after it.`,
       });
     } else if (Buffer.compare(Buffer.from(name, "utf8"), own) >= 0) {
       findings.push({
         name,
         kind: "sorts-at-or-after",
-        detail: `Hook "${name}" sorts at or after Directive's "${directiveName}", so it can rewrite arguments Directive already checked.`,
+        detail: `Hook "${name}"${where} sorts at or after Directive's "${directiveName}", so it can rewrite arguments Directive already checked.`,
       });
+    }
+  }
+  return findings;
+}
+
+/** Hook-file access for the collectors (a seam so doctor and tests can stub it). */
+export interface AgyHookFileSeams {
+  /** File text, or null when the file does not exist; throws on any other read error. */
+  readonly readText: (path: string) => string | null;
+  /** Child directory names, or [] when the directory does not exist; throws on other errors. */
+  readonly listDirs: (path: string) => string[];
+}
+
+function joinPath(base: string, ...parts: string[]): string {
+  return [base.replace(/[\\/]+$/, ""), ...parts].join("/");
+}
+
+/**
+ * Every hook file agy read for a workspace and the user on 1.5.18 (#7378, n02 to
+ * n05): `<ws>/.agents/hooks.json` (Directive's own), `<ws>/.agents/plugins/<name>/hooks.json`,
+ * `<home>/.gemini/config/hooks.json` and `<home>/.gemini/config/plugins/<name>/hooks.json`.
+ * All merge into one hook-name order and are re-read before the next call.
+ * Locations not observed stay a stated limit.
+ */
+export function agyHookOrderFilePaths(
+  workspace: string,
+  home: string | null,
+  seams: AgyHookFileSeams,
+): { path: string; own: boolean }[] {
+  const out: { path: string; own: boolean }[] = [
+    { path: joinPath(workspace, AGY_HOOKS_JSON_REL), own: true },
+  ];
+  const roots: string[] = [joinPath(workspace, ".agents", "plugins")];
+  if (home !== null) {
+    out.push({ path: joinPath(home, ".gemini", "config", "hooks.json"), own: false });
+    roots.push(joinPath(home, ".gemini", "config", "plugins"));
+  }
+  for (const root of roots) {
+    for (const dir of [...seams.listDirs(root)].sort()) {
+      out.push({ path: joinPath(root, dir, "hooks.json"), own: false });
+    }
+  }
+  return out;
+}
+
+/**
+ * Findings across every observed hook file for the given workspaces. An
+ * unreadable file or folder, or an empty workspace list, is a finding.
+ */
+export function collectAgyHookOrderFindings(
+  workspaces: readonly string[],
+  home: string | null,
+  seams: AgyHookFileSeams,
+): AgyHookOrderFinding[] {
+  if (workspaces.length === 0 || workspaces.some((w) => w.length === 0)) {
+    return [
+      {
+        name: "",
+        kind: "unresolvable-workspace",
+        detail: "The hook payload names no workspace, so the hook config cannot be read.",
+      },
+    ];
+  }
+  const findings: AgyHookOrderFinding[] = [];
+  const seen = new Set<string>();
+  for (const workspace of workspaces) {
+    let files: { path: string; own: boolean }[];
+    try {
+      files = agyHookOrderFilePaths(workspace, home, seams);
+    } catch {
+      findings.push({
+        name: "",
+        kind: "unparseable-config",
+        detail: `A hook plugin folder could not be listed for ${workspace}.`,
+      });
+      continue;
+    }
+    for (const file of files) {
+      if (seen.has(file.path)) continue;
+      seen.add(file.path);
+      let text: string | null;
+      try {
+        text = seams.readText(file.path);
+      } catch {
+        findings.push({
+          name: "",
+          kind: "unparseable-config",
+          detail: `${file.path} could not be read.`,
+        });
+        continue;
+      }
+      if (text === null) continue;
+      findings.push(
+        ...agyHookOrderFindingsFromText(
+          text,
+          AGY_DIRECTIVE_HOOK_NAME,
+          file.own ? AGY_HOOKS_JSON_REL : file.path,
+          file.own,
+        ),
+      );
     }
   }
   return findings;
@@ -149,38 +258,41 @@ export function formatAgyHookOrderDenial(findings: readonly AgyHookOrderFinding[
  * Plain-JavaScript copy of {@link agyHookOrderFindingsFromText} for the outer.
  * Keep the two in step; the conformance test fails on any divergence.
  */
-export const AGY_HOOK_ORDER_OUTER_FINDINGS_SOURCE = `function agyHookOrderFindingsFromText(configText, directiveName) {
+export const AGY_HOOK_ORDER_OUTER_FINDINGS_SOURCE = `function agyHookOrderFindingsFromText(configText, directiveName, source = ".agents/hooks.json", ownFile = true) {
   const findings = [];
   let parsed;
   try {
     parsed = JSON.parse(configText);
   } catch (error) {
-    return [{ name: "", kind: "unparseable-config", detail: ".agents/hooks.json is not valid JSON (" + String(error.message) + ")." }];
+    return [{ name: "", kind: "unparseable-config", detail: source + " is not valid JSON (" + String(error.message) + ")." }];
   }
   if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
-    return [{ name: "", kind: "unparseable-config", detail: ".agents/hooks.json is not a JSON object keyed by hook name." }];
+    return [{ name: "", kind: "unparseable-config", detail: source + " is not a JSON object keyed by hook name." }];
   }
   const own = Buffer.from(directiveName, "utf8");
+  const where = source === ".agents/hooks.json" ? "" : " (in " + source + ")";
   for (const [name, entry] of Object.entries(parsed)) {
-    if (name === directiveName) continue;
+    if (ownFile && name === directiveName) continue;
     if (entry === null || typeof entry !== "object" || Array.isArray(entry)) {
-      findings.push({ name, kind: "undeterminable-entry", detail: "Hook \\"" + name + "\\" is not an object, so its events cannot be read." });
+      findings.push({ name, kind: "undeterminable-entry", detail: "Hook \\"" + name + "\\"" + where + " is not an object, so its events cannot be read." });
       continue;
     }
     if (entry.enabled === false) continue;
     if (!("PreToolUse" in entry)) continue;
     const groups = entry.PreToolUse;
     if (!Array.isArray(groups)) {
-      findings.push({ name, kind: "undeterminable-entry", detail: "Hook \\"" + name + "\\" has a PreToolUse value that is not a list." });
+      findings.push({ name, kind: "undeterminable-entry", detail: "Hook \\"" + name + "\\"" + where + " has a PreToolUse value that is not a list." });
       continue;
     }
     if (groups.length === 0) continue;
     if (!/^[A-Za-z0-9._~-]+$/.test(name)) {
-      findings.push({ name, kind: "out-of-observed-alphabet", detail: "Hook \\"" + name + "\\" uses characters whose order was not observed, so it counts as running at or after Directive's entry." });
+      findings.push({ name, kind: "out-of-observed-alphabet", detail: "Hook \\"" + name + "\\"" + where + " uses characters whose order was not observed, so it counts as running at or after Directive's entry." });
+    } else if (name === directiveName) {
+      findings.push({ name, kind: "equal-name", detail: "Hook \\"" + name + "\\"" + where + " has Directive's name, so its order against Directive's entry is not defined." });
     } else if (name.startsWith(directiveName)) {
-      findings.push({ name, kind: "extends-directive-name", detail: "Hook \\"" + name + "\\" extends Directive's name \\"" + directiveName + "\\", so it runs after it." });
+      findings.push({ name, kind: "extends-directive-name", detail: "Hook \\"" + name + "\\"" + where + " extends Directive's name \\"" + directiveName + "\\", so it runs after it." });
     } else if (Buffer.compare(Buffer.from(name, "utf8"), own) >= 0) {
-      findings.push({ name, kind: "sorts-at-or-after", detail: "Hook \\"" + name + "\\" sorts at or after Directive's \\"" + directiveName + "\\", so it can rewrite arguments Directive already checked." });
+      findings.push({ name, kind: "sorts-at-or-after", detail: "Hook \\"" + name + "\\"" + where + " sorts at or after Directive's \\"" + directiveName + "\\", so it can rewrite arguments Directive already checked." });
     }
   }
   return findings;
@@ -204,16 +316,41 @@ export function agyHookOrderOuterSource(): string {
     return [{ name: "", kind: "unresolvable-workspace", detail: "The hook payload names no workspace, so the hook config cannot be read." }];
   }
   const findings = [];
-  for (const workspace of paths) {
-    let text;
+  const home = homedir();
+  const seen = new Set();
+  const listDirs = (root) => {
     try {
-      text = readFileSync(join(workspace, AGY_HOOKS_JSON_REL), "utf8");
+      return readdirSync(root, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name).sort();
     } catch (error) {
-      if (error && error.code === "ENOENT") continue;
-      findings.push({ name: "", kind: "unparseable-config", detail: ".agents/hooks.json could not be read in " + workspace + "." });
-      continue;
+      if (error && error.code === "ENOENT") return [];
+      throw error;
     }
-    findings.push(...agyHookOrderFindingsFromText(text, AGY_DIRECTIVE_HOOK_NAME));
+  };
+  for (const workspace of paths) {
+    const files = [{ path: join(workspace, AGY_HOOKS_JSON_REL), own: true }];
+    const roots = [join(workspace, ".agents", "plugins")];
+    files.push({ path: join(home, ".gemini", "config", "hooks.json"), own: false });
+    roots.push(join(home, ".gemini", "config", "plugins"));
+    for (const root of roots) {
+      try {
+        for (const dir of listDirs(root)) files.push({ path: join(root, dir, "hooks.json"), own: false });
+      } catch {
+        findings.push({ name: "", kind: "unparseable-config", detail: "A hook plugin folder could not be listed: " + root + "." });
+      }
+    }
+    for (const file of files) {
+      if (seen.has(file.path)) continue;
+      seen.add(file.path);
+      let text;
+      try {
+        text = readFileSync(file.path, "utf8");
+      } catch (error) {
+        if (error && error.code === "ENOENT") continue;
+        findings.push({ name: "", kind: "unparseable-config", detail: file.path + " could not be read." });
+        continue;
+      }
+      findings.push(...agyHookOrderFindingsFromText(text, AGY_DIRECTIVE_HOOK_NAME, file.own ? AGY_HOOKS_JSON_REL : file.path, file.own));
+    }
   }
   return findings;
 }`,

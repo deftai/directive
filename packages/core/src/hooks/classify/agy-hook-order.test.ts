@@ -3,10 +3,12 @@ import {
   AGY_DIRECTIVE_HOOK_NAME,
   AGY_HOOK_ORDER_OUTER_FINDINGS_SOURCE,
   AGY_HOOK_ORDER_REMEDIATION,
+  type AgyHookFileSeams,
   agyConfigHasDirectiveEntry,
   agyHookOrderFindings,
   agyHookOrderFindingsFromText,
   agyHookOrderOuterSource,
+  collectAgyHookOrderFindings,
   formatAgyHookOrderDenial,
 } from "./agy-hook-order.js";
 
@@ -17,6 +19,97 @@ function hooks(names: Record<string, unknown>): string {
 }
 
 const PRE = { PreToolUse: [{ matcher: "*", hooks: [{ command: "x" }] }] };
+
+/** In-memory hook files: path to text, plus folders that exist. */
+function memory(files: Record<string, string>, dirs: Record<string, string[]>): AgyHookFileSeams {
+  return {
+    readText: (path) => {
+      if (path in files) return files[path] as string;
+      return null;
+    },
+    listDirs: (path) => dirs[path] ?? [],
+  };
+}
+
+describe("agy hook files across scopes (#7378 n02 to n05)", () => {
+  const WS = "/w";
+  const HOME = "/h";
+  const OWN = `${WS}/.agents/hooks.json`;
+
+  it("reads workspace, workspace plugins, user scope and user plugins", () => {
+    const seams = memory(
+      {
+        [OWN]: hooks({ [AGY_DIRECTIVE_HOOK_NAME]: PRE }),
+        [`${HOME}/.gemini/config/hooks.json`]: hooks({ "zzzzz-user": PRE }),
+        [`${HOME}/.gemini/config/plugins/p1/hooks.json`]: hooks({ "zzzzz-plug": PRE }),
+        [`${WS}/.agents/plugins/w1/hooks.json`]: hooks({ "zzzzz-wsplug": PRE }),
+      },
+      {
+        [`${HOME}/.gemini/config/plugins`]: ["p1"],
+        [`${WS}/.agents/plugins`]: ["w1"],
+      },
+    );
+    const findings = collectAgyHookOrderFindings([WS], HOME, seams);
+    expect(findings.map((f) => f.name).sort()).toEqual([
+      "zzzzz-plug",
+      "zzzzz-user",
+      "zzzzz-wsplug",
+    ]);
+    expect(findings.find((f) => f.name === "zzzzz-user")?.detail).toContain(
+      `${HOME}/.gemini/config/hooks.json`,
+    );
+  });
+
+  it("passes when every file is earlier or absent, and ignores earlier user hooks", () => {
+    const seams = memory(
+      {
+        [OWN]: hooks({ [AGY_DIRECTIVE_HOOK_NAME]: PRE }),
+        [`${HOME}/.gemini/config/hooks.json`]: hooks({ "aaaa-user": PRE }),
+      },
+      {},
+    );
+    expect(collectAgyHookOrderFindings([WS], HOME, seams)).toEqual([]);
+  });
+
+  it("treats Directive's name in a foreign file as an equal-name finding", () => {
+    const seams = memory(
+      { [`${HOME}/.gemini/config/hooks.json`]: hooks({ [AGY_DIRECTIVE_HOOK_NAME]: PRE }) },
+      {},
+    );
+    expect(collectAgyHookOrderFindings([WS], HOME, seams).map((f) => f.kind)).toEqual([
+      "equal-name",
+    ]);
+  });
+
+  it("fails closed on an unreadable file, an unreadable folder and an empty workspace list", () => {
+    const throwingRead: AgyHookFileSeams = {
+      readText: () => {
+        throw new Error("EACCES");
+      },
+      listDirs: () => [],
+    };
+    expect(collectAgyHookOrderFindings([WS], HOME, throwingRead).map((f) => f.kind)).toContain(
+      "unparseable-config",
+    );
+    const throwingList: AgyHookFileSeams = {
+      readText: () => null,
+      listDirs: () => {
+        throw new Error("EACCES");
+      },
+    };
+    expect(collectAgyHookOrderFindings([WS], HOME, throwingList)[0]?.kind).toBe(
+      "unparseable-config",
+    );
+    expect(collectAgyHookOrderFindings([], HOME, memory({}, {}))[0]?.kind).toBe(
+      "unresolvable-workspace",
+    );
+  });
+
+  it("skips user scope when no home is known and does not read a file twice", () => {
+    const seams = memory({ [OWN]: hooks({ [AGY_DIRECTIVE_HOOK_NAME]: PRE }) }, {});
+    expect(collectAgyHookOrderFindings([WS, WS], null, seams)).toEqual([]);
+  });
+});
 
 describe("agy hook ordering predicate (#7378)", () => {
   it("keeps the entry name one constant", () => {
@@ -133,7 +226,7 @@ describe("agy hook ordering predicate (#7378)", () => {
     const outerCopy = new Function(
       "Buffer",
       `${AGY_HOOK_ORDER_OUTER_FINDINGS_SOURCE}; return agyHookOrderFindingsFromText;`,
-    )(Buffer) as (text: string, name: string) => unknown;
+    )(Buffer) as (text: string, name: string, source?: string, ownFile?: boolean) => unknown;
     const names = [
       "0-first",
       "Aaa",
@@ -162,9 +255,13 @@ describe("agy hook ordering predicate (#7378)", () => {
       corpus.push(hooks({ [name]: { PreToolUse: [] } }));
       corpus.push(hooks({ [name]: { SessionStart: [{ command: "x" }] } }));
     }
+    corpus.push(hooks({ [AGY_DIRECTIVE_HOOK_NAME]: PRE }));
     for (const text of corpus) {
       expect(outerCopy(text, AGY_DIRECTIVE_HOOK_NAME), text).toEqual(
         agyHookOrderFindingsFromText(text, AGY_DIRECTIVE_HOOK_NAME),
+      );
+      expect(outerCopy(text, AGY_DIRECTIVE_HOOK_NAME, "/u/h.json", false), text).toEqual(
+        agyHookOrderFindingsFromText(text, AGY_DIRECTIVE_HOOK_NAME, "/u/h.json", false),
       );
     }
   });

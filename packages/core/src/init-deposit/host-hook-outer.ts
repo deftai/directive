@@ -527,7 +527,8 @@ export function hostHookOuterSource(): string {
  * A bare root flag file turns nothing off; it gets one warning.
  * Any failure on tool.before blocks the tool call in the host's own form.
  */
-import { existsSync, lstatSync, readFileSync, realpathSync } from "node:fs";
+import { existsSync, lstatSync, readdirSync, readFileSync, realpathSync } from "node:fs";
+import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";

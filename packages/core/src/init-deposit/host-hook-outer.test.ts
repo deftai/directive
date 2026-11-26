@@ -417,8 +417,9 @@ describe("host-hook-outer bytes stay put (#6613)", () => {
     // #7275 changed them on purpose (missing-runtime admits the named project
     // install; refusal names that exception): 665df6a9 -> bc294904.
     // #7378 changed them on purpose (agy: explicit allow, one-decision check,
-    // per-call hook-order check): bc294904 -> a5d39c9f.
-    expect(hostHookOuterSha8()).toBe("a5d39c9f");
+    // per-call hook-order check over workspace, plugin and user-scope hook files):
+    // bc294904 -> eb73f41c.
+    expect(hostHookOuterSha8()).toBe("eb73f41c");
   });
 });
 
@@ -916,7 +917,7 @@ describe("host-hook-outer agy exit paths and hook ordering (#7378)", () => {
     return spawnSync(process.execPath, [abs, "--host", "agy", "--event", event], {
       cwd: root,
       encoding: "utf8",
-      env: { ...process.env, ...env },
+      env: { ...process.env, HOME: homeOf(root), USERPROFILE: homeOf(root), ...env },
       input: stdin,
     });
   }
@@ -989,6 +990,70 @@ describe("host-hook-outer agy exit paths and hook ordering (#7378)", () => {
         "deft policy:disable-host-hooks --host agy --confirm",
       );
       expect(String(r.stderr)).not.toContain("RUNTIME_REACHED");
+    });
+  });
+
+  /** Per-test home folder, so user-scope files never touch the real one. */
+  function homeOf(root: string): string {
+    return join(root, "home");
+  }
+
+  function writeHome(root: string, rel: string, hooksObject: Record<string, unknown>): void {
+    const file = join(homeOf(root), ".gemini", "config", rel);
+    mkdirSync(join(file, ".."), { recursive: true });
+    writeFileSync(file, JSON.stringify(hooksObject));
+  }
+
+  it("denies a later user-scope hook, which agy merges into the same order (n02)", () => {
+    withRoot((root) => {
+      writeHooks(root, { "zzzz-directive": PRE });
+      writeHome(root, "hooks.json", { "zzzzz-user": PRE });
+      writeEchoRuntime(root, '{"decision":"allow"}');
+      const decision = decisionOf(runAgy(root, agyPayload(root)));
+      expect(decision.decision).toBe("deny");
+      expect(String(decision.reason)).toContain('Hook "zzzzz-user"');
+      expect(String(decision.reason)).toContain(join(".gemini", "config", "hooks.json"));
+    });
+  });
+
+  it("denies a later plugin hook in user and workspace plugin folders (n03, n04)", () => {
+    withRoot((root) => {
+      writeHooks(root, { "zzzz-directive": PRE });
+      writeEchoRuntime(root, '{"decision":"allow"}');
+      writeHome(root, "plugins/obsplug/hooks.json", { "zzzzz-plug": PRE });
+      expect(String(decisionOf(runAgy(root, agyPayload(root))).reason)).toContain("zzzzz-plug");
+      writeHome(root, "plugins/obsplug/hooks.json", {});
+      mkdirSync(join(root, ".agents", "plugins", "w1"), { recursive: true });
+      writeFileSync(
+        join(root, ".agents", "plugins", "w1", "hooks.json"),
+        JSON.stringify({ "zzzzz-wsplug": PRE }),
+      );
+      expect(String(decisionOf(runAgy(root, agyPayload(root))).reason)).toContain("zzzzz-wsplug");
+    });
+  });
+
+  it("reads the hook files again on every call, so a hook added later is caught (n05)", () => {
+    withRoot((root) => {
+      writeHooks(root, { "zzzz-directive": PRE });
+      writeEchoRuntime(root, '{"decision":"allow"}');
+      expect(decisionOf(runAgy(root, agyPayload(root))).decision).toBe("allow");
+      writeHooks(root, { "zzzz-directive": PRE, "zzzzz-late-ws": PRE });
+      expect(String(decisionOf(runAgy(root, agyPayload(root))).reason)).toContain("zzzzz-late-ws");
+      writeHooks(root, { "zzzz-directive": PRE });
+      writeHome(root, "hooks.json", { "zzzzz-late-user": PRE });
+      expect(String(decisionOf(runAgy(root, agyPayload(root))).reason)).toContain(
+        "zzzzz-late-user",
+      );
+    });
+  });
+
+  it("allows earlier user and plugin hooks", () => {
+    withRoot((root) => {
+      writeHooks(root, { "zzzz-directive": PRE });
+      writeHome(root, "hooks.json", { "aaaa-user": PRE });
+      writeHome(root, "plugins/p/hooks.json", { "aaaa-plug": PRE });
+      writeEchoRuntime(root, '{"decision":"allow"}');
+      expect(decisionOf(runAgy(root, agyPayload(root))).decision).toBe("allow");
     });
   });
 

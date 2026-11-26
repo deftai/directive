@@ -4,6 +4,7 @@ import { AGY_DIRECTIVE_HOOK_NAME } from "./agy-hook-order.js";
 import {
   AGY_ADMISSION_VERDICT,
   AGY_MITIGATION_COVERAGE,
+  AGY_MITIGATION_OBSERVED_VERSION,
   AGY_OBSERVED_BEHAVIORS,
   AGY_OBSERVED_HOST_VERSION,
   AGY_PRETOOLUSE_FIXTURES,
@@ -53,11 +54,14 @@ describe("agy host observation and admission verdict (#7345)", () => {
   });
 
   it("derives overall from the properties and never fabricates a pass", () => {
-    const anyFail = Object.values(AGY_ADMISSION_VERDICT.properties).some(
-      (p) => p.status === "fail",
-    );
-    expect(AGY_ADMISSION_VERDICT.overall).toBe(anyFail ? "fail" : "pass");
-    expect(agyAdmissionPasses()).toBe(!anyFail);
+    const statuses = Object.values(AGY_ADMISSION_VERDICT.properties).map((p) => p.status);
+    const expected = statuses.includes("fail")
+      ? "fail"
+      : statuses.includes("mitigated")
+        ? "mitigated"
+        : "pass";
+    expect(AGY_ADMISSION_VERDICT.overall).toBe(expected);
+    expect(agyAdmissionPasses()).toBe(expected === "pass");
     const props = Object.fromEntries(
       Object.entries(AGY_ADMISSION_VERDICT.properties).map(([k, v]) => [
         k,
@@ -85,7 +89,7 @@ describe("agy mitigated verdict and the one activation gate (#7378)", () => {
       finalExecutedArgumentIntegrity: {
         ...props.finalExecutedArgumentIntegrity,
         status: "mitigated",
-        mitigation: { id: "sort-last-hook-order", hostVersion: AGY_ADMISSION_VERDICT.hostVersion },
+        mitigation: { id: "sort-last-hook-order", hostVersion: AGY_MITIGATION_OBSERVED_VERSION },
       },
     },
   };
@@ -97,15 +101,26 @@ describe("agy mitigated verdict and the one activation gate (#7378)", () => {
     ) as AgyAdmissionVerdict["properties"],
   };
 
-  it("keeps integrity at fail while user-scope, plugin and reload are unobserved", () => {
-    expect(agyMitigationAdmissible()).toBe(false);
+  it("records mitigated exactly when every observed source is covered", () => {
+    expect(agyMitigationAdmissible()).toBe(true);
     expect(props.finalExecutedArgumentIntegrity.status).toBe(
       agyMitigationAdmissible() ? "mitigated" : "fail",
     );
-    expect(AGY_ADMISSION_VERDICT.overall).toBe("fail");
+    expect(props.finalExecutedArgumentIntegrity.mitigation).toEqual({
+      id: "sort-last-hook-order",
+      hostVersion: AGY_MITIGATION_OBSERVED_VERSION,
+    });
+    expect(AGY_ADMISSION_VERDICT.overall).toBe("mitigated");
     expect(agyActivationAdmitted(AGY_ADMISSION_VERDICT, WIRING, AGY_DIRECTIVE_HOOK_NAME)).toBe(
-      false,
+      true,
     );
+    expect(
+      agyActivationAdmitted(
+        AGY_ADMISSION_VERDICT,
+        { ...WIRING, laterRewriteDenied: false },
+        AGY_DIRECTIVE_HOOK_NAME,
+      ),
+    ).toBe(false);
   });
 
   it("admits mitigated only when every hook source shows the predicate sees all", () => {
@@ -153,9 +168,19 @@ describe("agy mitigated verdict and the one activation gate (#7378)", () => {
 
   it("fails closed on fail, an absent verdict, an unnamed mitigation and a version mismatch", () => {
     expect(agyActivationAdmitted(undefined, WIRING, AGY_DIRECTIVE_HOOK_NAME)).toBe(false);
-    expect(agyActivationAdmitted(AGY_ADMISSION_VERDICT, WIRING, AGY_DIRECTIVE_HOOK_NAME)).toBe(
-      false,
-    );
+    const failed: AgyAdmissionVerdict = {
+      ...AGY_ADMISSION_VERDICT,
+      overall: "fail",
+      properties: {
+        ...props,
+        finalExecutedArgumentIntegrity: {
+          ...props.finalExecutedArgumentIntegrity,
+          status: "fail",
+          mitigation: undefined,
+        },
+      },
+    };
+    expect(agyActivationAdmitted(failed, WIRING, AGY_DIRECTIVE_HOOK_NAME)).toBe(false);
     const unnamed: AgyAdmissionVerdict = {
       ...mitigated,
       properties: {
@@ -169,7 +194,13 @@ describe("agy mitigated verdict and the one activation gate (#7378)", () => {
     expect(agyActivationAdmitted(unnamed, WIRING, AGY_DIRECTIVE_HOOK_NAME)).toBe(false);
     const stale: AgyAdmissionVerdict = {
       ...mitigated,
-      hostVersion: "9.9.9",
+      properties: {
+        ...mitigated.properties,
+        finalExecutedArgumentIntegrity: {
+          ...mitigated.properties.finalExecutedArgumentIntegrity,
+          mitigation: { id: "sort-last-hook-order", hostVersion: "9.9.9" },
+        },
+      },
     };
     expect(agyActivationAdmitted(stale, WIRING, AGY_DIRECTIVE_HOOK_NAME)).toBe(false);
     const stillFailing: AgyAdmissionVerdict = {
