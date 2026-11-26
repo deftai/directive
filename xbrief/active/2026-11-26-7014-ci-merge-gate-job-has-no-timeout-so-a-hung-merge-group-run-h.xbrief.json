@@ -120,7 +120,7 @@
           "pnpm exec vitest run packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts packages/core/src/content-contracts/standards/ci_queue_reuse.test.ts --reporter=dot"
         ],
         "expected_outputs": [
-          "merge-gate step timeout 20 min and job timeout 30 min, each a named constant with a reason; merge-gate if: uses !cancelled(); resolver merge-gate observation budget 35 min with per-call gh api timeout and 5xx retry",
+          "merge-gate step timeout 20 min and job timeout 30 min, each a named constant with a reason; merge-gate if: uses !cancelled(); resolver merge-gate observation budget as its own named constant with per-call gh api timeout and 5xx retry; operator-confirmed value 35 min conflicts with clause 3 formula (capacity stall 20 min + job timeout 30 min + margin exceeds 50 min), so the build worker MUST stop and ask the operator before choosing the budget",
           "post-landing platform evidence (throwaway queue PR step timeout; ordinary cancel) is operator-run after merge and is not an agent pre-merge gate"
         ],
         "model_tier": "standard"
