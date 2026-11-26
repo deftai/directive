@@ -282,6 +282,33 @@ describe("hostHooks policy (#2752)", () => {
     expect(content).not.toContain("deft hook:dispatch");
   });
 
+  it("discloses live-strip failure when Claude settings JSON is invalid (#7349 / #5574)", () => {
+    const root = project();
+    writeProjectDefinition(root, {});
+    mkdirSync(join(root, ".claude"), { recursive: true });
+    writeFileSync(join(root, ".claude/settings.json"), "{not-json\n", "utf8");
+
+    const result = disableHostHooks(root, { host: "claude", confirm: true, actor: "test" });
+    expect(result.exitCode).toBe(2);
+    expect(result.stdout).toContain("Live strip failed after policy save");
+    expect(result.stdout).toContain("not valid JSON");
+    expect(result.stdout).toContain(".claude/settings.json");
+    expect(loadHostHooksPolicyFromProject(root).claude).toBe(false);
+  });
+
+  it("discloses live-strip failure when Claude settings is a non-object (#7349 / #5574)", () => {
+    const root = project();
+    writeProjectDefinition(root, {});
+    mkdirSync(join(root, ".claude"), { recursive: true });
+    writeFileSync(join(root, ".claude/settings.json"), '"string-config"\n', "utf8");
+
+    const result = disableHostHooks(root, { host: "claude", confirm: true, actor: "test" });
+    expect(result.exitCode).toBe(2);
+    expect(result.stdout).toContain("Live strip failed after policy save");
+    expect(result.stdout).toContain("must contain a JSON object");
+    expect(loadHostHooksPolicyFromProject(root).claude).toBe(false);
+  });
+
   it("names launch-checkout repair in root-mismatch recovery (#7349 P2)", () => {
     expect(HOOK_ROOT_MISMATCH_RECOVERY_GUIDANCE).toContain("launch checkout");
     expect(HOOK_ROOT_MISMATCH_RECOVERY_GUIDANCE).toContain("directive install --repair");

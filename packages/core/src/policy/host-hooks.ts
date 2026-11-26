@@ -259,15 +259,9 @@ export function disableHostHooks(
       return { changed: changedFlag };
     });
 
-    let live: { stripped: boolean; touchedPaths: string[] };
-    let stripError: string | null = null;
-    try {
-      live = stripHostHookRegistrationInPlace(projectRoot, options.host);
-    } catch (stripErr: unknown) {
-      // Policy/audit already saved — disclose both (#7349 Greptile P2).
-      stripError = stripErr instanceof Error ? stripErr.message : String(stripErr);
-      live = { stripped: false, touchedPaths: [] };
-    }
+    // Policy/audit already saved — live strip returns operational error (#7349 / #5574).
+    const live = stripHostHookRegistrationInPlace(projectRoot, options.host);
+    const stripError = live.error ?? null;
     const registration = hostHookRegistrationRelPath(options.host);
     const disclosure = hostHookRepairDisclosurePaths(options.host);
     const lines = [

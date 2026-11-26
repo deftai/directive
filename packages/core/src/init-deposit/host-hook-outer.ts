@@ -239,12 +239,13 @@ function stripCursorHostHookConfig(config: Record<string, unknown>): Record<stri
   return { ...config, version: 1, hooks: nextHooks };
 }
 
+/** Operational write outcome — I/O deny stays returned-failure (#5574 Prefer-A). */
 function writeJsonAtomic(
   projectRoot: string,
   absPath: string,
   relPath: string,
   payload: unknown,
-): void {
+): { ok: true } | { ok: false; error: string } {
   const next = `${JSON.stringify(payload, null, 2)}\n`;
   const parent = dirname(absPath);
   const temporary = join(parent, `${basename(absPath)}.deft-${process.pid}.tmp`);
@@ -262,25 +263,37 @@ function writeJsonAtomic(
       to: absPath,
       mutation: false,
     });
+    return { ok: true };
   } catch (err) {
     try {
       containedRemove({ root: resolve(projectRoot), target: temporary, mutation: false });
     } catch {
       /* best-effort cleanup */
     }
-    throw err;
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : String(err),
+    };
   }
 }
+
+export type StripHostHookRegistrationResult = {
+  touchedPaths: string[];
+  stripped: boolean;
+  /** Set when registration JSON is unusable or the atomic write fails (operational). */
+  error?: string;
+};
 
 /**
  * Strip Directive-managed hook registration for one host in the current project
  * root and remove leftover outer modules (#7349 Prefer-A Bound P1). Does not
- * touch other hosts' deposits.
+ * touch other hosts' deposits. Malformed registration JSON and write I/O
+ * denials are returned as `error` (operational; no throw-site).
  */
 export function stripHostHookRegistrationInPlace(
   projectRoot: string,
   host: HookHost,
-): { touchedPaths: string[]; stripped: boolean } {
+): StripHostHookRegistrationResult {
   const touched: string[] = [];
   let stripped = false;
   const regRel = hostHookRegistrationRelPath(host);
@@ -291,15 +304,19 @@ export function stripHostHookRegistrationInPlace(
     try {
       parsed = JSON.parse(before) as unknown;
     } catch (cause) {
-      throw new Error(
-        `${regRel} is not valid JSON; refusing to overwrite user configuration: ${cause}`,
-      );
+      return {
+        touchedPaths: [],
+        stripped: false,
+        error: `${regRel} is not valid JSON; refusing to overwrite user configuration: ${cause}`,
+      };
     }
     const config = objectRecord(parsed);
     if (config === null) {
-      throw new Error(
-        `${regRel} must contain a JSON object; refusing to overwrite user configuration.`,
-      );
+      return {
+        touchedPaths: [],
+        stripped: false,
+        error: `${regRel} must contain a JSON object; refusing to overwrite user configuration.`,
+      };
     }
     const next =
       host === "cursor"
@@ -307,7 +324,10 @@ export function stripHostHookRegistrationInPlace(
         : stripNestedHostHookConfig(config, host);
     const after = `${JSON.stringify(next, null, 2)}\n`;
     if (after !== before) {
-      writeJsonAtomic(projectRoot, regAbs, regRel, next);
+      const wrote = writeJsonAtomic(projectRoot, regAbs, regRel, next);
+      if (!wrote.ok) {
+        return { touchedPaths: [], stripped: false, error: wrote.error };
+      }
       touched.push(regRel);
       stripped = true;
     }
