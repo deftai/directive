@@ -87,15 +87,15 @@ export function evaluatePanelSeatComposition(input: {
 /** Existing Verification pong prompt. Launch probe reuses it with critic bypass flags. */
 export const BENIGN_PONG_PROMPT = "Do not use tools. Reply with the single word: pong";
 
-/** Prefer-A #7245: published agy critic model. Claude / GPT / Hydrogen slugs do not discharge. */
-export const AGY_CRITIC_MODEL = "gemini-3.8-flash-high";
+/** Prefer-A #7245: published agy critic model. Claude / GPT / other Gemini slugs (including retiring gemini-3.8-flash-high) do not discharge. */
+export const AGY_CRITIC_MODEL = "gemini-4-hydrogen-high";
 
 /** Published agy launch-probe argv (stdin closed; cwd = arc dest). */
-export const AGY_PONG_ARGV = `agy -p "${BENIGN_PONG_PROMPT}" --model gemini-3.8-flash-high --output-format json --print-timeout 2m --sandbox`;
+export const AGY_PONG_ARGV = `agy -p "${BENIGN_PONG_PROMPT}" --model gemini-4-hydrogen-high --output-format json --print-timeout 2m --sandbox`;
 
 /** Published agy short-pointer critic argv (stdin closed; cwd = arc dest). */
 export const AGY_SHORT_POINTER_ARGV =
-  'agy -p "Read and follow <envelope-path>" --model gemini-3.8-flash-high --output-format json --print-timeout 2m --sandbox';
+  'agy -p "Read and follow <envelope-path>" --model gemini-4-hydrogen-high --output-format json --print-timeout 2m --sandbox';
 
 export function agyModelDischargesSeat(model: string): boolean {
   return model.trim().toLowerCase() === AGY_CRITIC_MODEL;
