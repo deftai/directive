@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  AGY_CRITIC_MODEL,
+  AGY_PONG_ARGV,
+  AGY_SHORT_POINTER_ARGV,
+  agyModelDischargesSeat,
   BENIGN_PONG_PROMPT,
   type ClaimedSeat,
   evaluateN3LaunchProbe,
@@ -243,5 +247,20 @@ describe("evaluateN3LaunchProbe (#4432)", () => {
     expect(halt.recovery).toBe("dispatch-fail");
     expect(halt.haltToken).toBe("dispatch-fail");
     expect(halt.haltToken).not.toBe("unreachable-launcher");
+  });
+});
+
+describe("agy critic pin (#7358)", () => {
+  it("pins the constant, pong argv and short-pointer argv to hydrogen-high", () => {
+    expect(AGY_CRITIC_MODEL).toBe("gemini-4-hydrogen-high");
+    expect(AGY_PONG_ARGV).toContain("--model gemini-4-hydrogen-high");
+    expect(AGY_SHORT_POINTER_ARGV).toContain("--model gemini-4-hydrogen-high");
+    expect(AGY_PONG_ARGV).not.toContain("gemini-3.8-flash-high");
+    expect(AGY_SHORT_POINTER_ARGV).not.toContain("gemini-3.8-flash-high");
+  });
+
+  it("discharges only the pinned model; the retiring 3.8 slug misses", () => {
+    expect(agyModelDischargesSeat("gemini-4-hydrogen-high")).toBe(true);
+    expect(agyModelDischargesSeat("gemini-3.8-flash-high")).toBe(false);
   });
 });

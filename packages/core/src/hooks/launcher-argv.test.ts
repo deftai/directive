@@ -234,7 +234,7 @@ describe("classifyLauncherFamilyArgv (#4219)", () => {
   it("classifies agy -p worker argv; dest from payload cwd (#7245)", () => {
     expect(
       classifyLauncherFamilyArgv(
-        'agy -p "Read and follow /e.md" --model gemini-3.8-flash-high --output-format json --print-timeout 2m --sandbox',
+        'agy -p "Read and follow /e.md" --model gemini-4-hydrogen-high --output-format json --print-timeout 2m --sandbox',
         { payloadCwd: "/wt" },
       ),
     ).toEqual({ kind: "launcher", family: "agy", dest: "/wt" });
@@ -243,7 +243,7 @@ describe("classifyLauncherFamilyArgv (#4219)", () => {
   it("classifies dest-absent agy worker argv (#7245)", () => {
     expect(
       classifyLauncherFamilyArgv(
-        'agy -p "Do not use tools. Reply with the single word: pong" --model gemini-3.8-flash-high --output-format json --print-timeout 2m --sandbox',
+        'agy -p "Do not use tools. Reply with the single word: pong" --model gemini-4-hydrogen-high --output-format json --print-timeout 2m --sandbox',
       ),
     ).toEqual({ kind: "launcher", family: "agy", dest: null });
   });
@@ -258,7 +258,7 @@ describe("classifyLauncherFamilyArgv (#4219)", () => {
   it("classifies path-prefixed agy.exe print argv (#7245)", () => {
     expect(
       classifyLauncherFamilyArgv(
-        'C:\\\\agy\\\\bin\\\\agy.exe --print "pong" --model gemini-3.8-flash-high --sandbox',
+        'C:\\\\agy\\\\bin\\\\agy.exe --print "pong" --model gemini-4-hydrogen-high --sandbox',
         { payloadCwd: "C:\\wt" },
       ),
     ).toEqual({ kind: "launcher", family: "agy", dest: "C:\\wt" });
@@ -274,13 +274,13 @@ describe("classifyLauncherFamilyArgv (#4219)", () => {
 });
 
 describe("agy critic seat (#7245)", () => {
-  it("publishes pong and short-pointer argv pinned to gemini-3.8-flash-high", () => {
-    expect(AGY_CRITIC_MODEL).toBe("gemini-3.8-flash-high");
-    expect(AGY_PONG_ARGV).toContain("--model gemini-3.8-flash-high");
+  it("publishes pong and short-pointer argv pinned to gemini-4-hydrogen-high", () => {
+    expect(AGY_CRITIC_MODEL).toBe("gemini-4-hydrogen-high");
+    expect(AGY_PONG_ARGV).toContain("--model gemini-4-hydrogen-high");
     expect(AGY_PONG_ARGV).toContain("--print-timeout 2m");
     expect(AGY_PONG_ARGV).toContain("--sandbox");
     expect(AGY_SHORT_POINTER_ARGV).toContain("Read and follow <envelope-path>");
-    expect(AGY_SHORT_POINTER_ARGV).toContain("--model gemini-3.8-flash-high");
+    expect(AGY_SHORT_POINTER_ARGV).toContain("--model gemini-4-hydrogen-high");
     expect(classifyLauncherFamilyArgv(AGY_PONG_ARGV, { payloadCwd: "/wt" })).toEqual({
       kind: "launcher",
       family: "agy",
@@ -315,20 +315,21 @@ describe("agy critic seat (#7245)", () => {
     expect(otherFamilyUnchanged).toEqual({ ok: true });
   });
 
-  it("treats Claude, GPT, and Hydrogen slugs as model misses; completion needs a comment URL", () => {
-    expect(agyModelDischargesSeat("gemini-3.8-flash-high")).toBe(true);
+  it("treats Claude, GPT, retiring 3.8, and non-pinned Hydrogen slugs as model misses; completion needs a comment URL", () => {
+    expect(agyModelDischargesSeat("gemini-4-hydrogen-high")).toBe(true);
     expect(agyModelDischargesSeat("claude-sonnet-4-6")).toBe(false);
     expect(agyModelDischargesSeat("gpt-oss-120b-medium")).toBe(false);
     expect(agyModelDischargesSeat("gemini-4-hydrogen-medium")).toBe(false);
+    expect(agyModelDischargesSeat("gemini-3.8-flash-high")).toBe(false);
     expect(
       evaluateAgySeatCompletion({
-        model: "gemini-3.8-flash-high",
+        model: "gemini-4-hydrogen-high",
         commentUrl: "https://github.com/deftai/directive/issues/7245#issuecomment-1",
       }),
     ).toEqual({ ok: true });
-    expect(evaluateAgySeatCompletion({ model: "gemini-3.8-flash-high", commentUrl: null })).toEqual(
-      { ok: false, reason: "missing-comment-url" },
-    );
+    expect(
+      evaluateAgySeatCompletion({ model: "gemini-4-hydrogen-high", commentUrl: null }),
+    ).toEqual({ ok: false, reason: "missing-comment-url" });
     expect(
       evaluateAgySeatCompletion({
         model: "gemini-4-hydrogen-medium",
