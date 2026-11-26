@@ -204,7 +204,8 @@ describe("artifact-only lifecycle CI lane (#3678)", () => {
     for (const id of ["merge-gate-primary", "merge-gate-failover"]) {
       const block = jobBlock(ci, id);
       expect(block).toMatch(/\n {4}timeout-minutes: 30\n/);
-      const step = /- name: task check:merge[^\n]*\n {8}timeout-minutes: 20\n {8}run: task check:merge\n/;
+      const step =
+        /- name: task check:merge[^\n]*\n {8}timeout-minutes: 20\n {8}run: task check:merge\n/;
       expect(block).toMatch(step);
       expect(block).not.toMatch(/\n {4}if: always\(\)/);
     }

@@ -660,7 +660,8 @@ describe("resolve-ci-authoritative-lane observation budget and retry (#7014)", (
     const code = resolveAuthoritativeLane(BASE, {
       ghApi: () => {
         calls += 1;
-        if (calls === 1) throw Object.assign(new Error("spawnSync gh ETIMEDOUT"), { code: "ETIMEDOUT" });
+        if (calls === 1)
+          throw Object.assign(new Error("spawnSync gh ETIMEDOUT"), { code: "ETIMEDOUT" });
         return primary("completed", "success");
       },
       now: c.now,
@@ -756,7 +757,9 @@ describe("resolve-ci-authoritative-lane observation budget and retry (#7014)", (
   });
 
   it("isTransientApiError recognises 5xx and timeouts only", () => {
-    expect(isTransientApiError(Object.assign(new Error("x"), { stderr: "gh: HTTP 504" }))).toBe(true);
+    expect(isTransientApiError(Object.assign(new Error("x"), { stderr: "gh: HTTP 504" }))).toBe(
+      true,
+    );
     expect(isTransientApiError(Object.assign(new Error("x"), { code: "ETIMEDOUT" }))).toBe(true);
     expect(isTransientApiError(Object.assign(new Error("x"), { killed: true }))).toBe(true);
     expect(isTransientApiError(new Error("gh: HTTP 403"))).toBe(false);
