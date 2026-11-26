@@ -143,7 +143,13 @@ function rangePrNumbers(
   for (const c of rec.commits) {
     const message = asRecord(asRecord(c)?.commit)?.message;
     const n = typeof message === "string" ? prNumberFromCommitMessage(message) : null;
-    if (n !== null) numbers.push(n);
+    if (n === null) {
+      const sha = asRecord(c)?.sha;
+      return {
+        error: `compare commit ${typeof sha === "string" ? sha : "?"} has no PR number in its title; cannot establish queue group membership`,
+      };
+    }
+    numbers.push(n);
   }
   return { numbers };
 }

@@ -198,6 +198,17 @@ describe("merge-queue constituent discovery (#6424)", () => {
     );
   });
 
+  it("fails closed on a range commit whose title names no PR", () => {
+    const range = squash(7001);
+    range.commits.unshift({ sha: "cX", commit: { message: "chore: untitled" } });
+    const result = runMergeGroupCheckFromEvent(event(), {
+      store: new InProcessAppStore(),
+      runGh: ghFixture({ compare: range }),
+    });
+    expect(result.conclusion).toBe("failure");
+    expect(result.summary).toMatch(/commit cX has no PR number/);
+  });
+
   it("fails on a truncated compare range", () => {
     const result = runMergeGroupCheckFromEvent(event(), {
       store: new InProcessAppStore(),

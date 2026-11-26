@@ -133,6 +133,7 @@ Turn strict mode back on only if you want rebases enforced again. `pr:wait-merge
 Open on 0.129.11:
 
 - `--resume` reads the PR once and returns at once; it does not wait (#6423). Run it again about every 30 seconds until it reports `merged` or a failure.
+- `one-pr-unit-merge-group` failed on every queue run before the fix for #6424 (releases after 0.131.5 carry it). It is not a required check and did not block the merge.
 - After each release, master's `Merge gate (task check)` stays red until the pin PR lands (#6296). Queue runs fail in that window, so land the pin PR first.
 - On 0.129.11 a PR that conflicts with its base shows its required checks as `absent-required`, not as a conflict (#6467). From the release with #6467 the merge verb reports `base-conflict` instead, with the base branch and the fix: merge or rebase the base branch into the PR branch, push, and run the merge verb again.
 
