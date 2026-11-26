@@ -1,0 +1,498 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6424",
+    "updated": "2026-11-26T06:06:25Z"
+  },
+  "plan": {
+    "title": "bug(ci): one-pr-unit-merge-group fails on every merge-queue run with \"missing constituent PR\"",
+    "status": "running",
+    "narratives": {
+      "Description": "bug(ci): one-pr-unit-merge-group fails on every merge-queue run with \"missing constituent PR\"",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6424",
+      "Overview": "## Problem\n\nThe `one-pr-unit-merge-group` workflow fails on every merge-queue run. It is not a required check, so merges still land, but the check is always red.\n\n`.github/workflows/one-pr-unit-merge-group.yml` (origin/master e32e58147) runs on `merge_group: checks_requested`. The failing step is \"Evaluate merge_group one-PR-unit census\" (`node packages/core/dist/one-pr-unit/merge-group-cli.js`, lines 39-43). The log shows:\n\n```\nfailure <merge_group head sha> one-pr-unit\nmissing constituent PR on merge_group.checks_requested\n##[error]Process completed with exit code 1.\n```\n\nThe message comes from `packages/core/src/one-pr-unit/merge-group.ts` 51-55, when the constituent list is empty. `merge-group-cli.ts` 88-124 builds that list from `gh api repos/<repo>/commits/<merge_group.head_sha>/pulls` and returns `[]` on any error. The cause of the empty list is not confirmed. One candidate: the merge-group head is a temporary `gh-readonly-queue/...` commit that GitHub may not associate with any PR.\n\n## Evidence\n\n- All 25 runs of the workflow since 2026-11-16T04:04Z concluded `failure`.\n- Run 43840047487 (queue entry for PR #6396), run 43903238823 (PR #6403) and run 43916606043 (PR #6418) show the message above.\n\n## Acceptance Criteria\n\n- Given a merge-queue entry for one PR, when the workflow runs, then it finds that PR as a constituent and does not report \"missing constituent PR\".\n- Given a lookup error from the GitHub API, when the workflow runs, then the failure names the API error, not an empty constituent list.\n\n",
+      "Labels": "bug, ci-cd, agent-experience, process, harness, source-of-truth, scm, urgent, dogfood, design-critique:ingest-ready, framework-gap, core-capabilities, promise:tickets, promise:gates"
+    },
+    "items": [
+      {
+        "title": "Given a merge-queue entry for one PR, when the workflow runs, then it finds that PR as a constituent and does not report \"missing constituent PR\".",
+        "status": "proposed",
+        "id": "clause.1"
+      },
+      {
+        "title": "Given a lookup error from the GitHub API, when the workflow runs, then the failure names the API error, not an empty constituent list.",
+        "status": "proposed",
+        "id": "clause.2"
+      }
+    ],
+    "tags": [
+      "bug",
+      "ci-cd",
+      "agent-experience",
+      "process",
+      "harness",
+      "source-of-truth",
+      "scm",
+      "urgent",
+      "dogfood",
+      "design-critique:ingest-ready",
+      "framework-gap",
+      "core-capabilities",
+      "promise:tickets",
+      "promise:gates"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6424",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6424: bug(ci): one-pr-unit-merge-group fails on every merge-queue run with \"missing constituent PR\""
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "missing constituent PR on merge_group.checks_requested",
+          "reason": "first token \"missing\" is not in the literal-AC allowlist (accepted: bun, deft, directive, node, npm, npx, pnpm, py, python, python3, task, vitest, yarn)",
+          "sourceSpan": "fence@L9"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "conflict_group": "merge-group-constituent-from-head-ref",
+        "size": "M",
+        "file_scope": [
+          "packages/core/src/one-pr-unit/merge-group-cli.ts",
+          "packages/core/src/one-pr-unit/merge-group.ts",
+          "packages/core/src/one-pr-unit/merge-group-cli.test.ts",
+          "packages/core/src/one-pr-unit/merge-group.test.ts",
+          "content/docs/github-merge-queue-setup.md",
+          "changelog.d/6424-merge-group-constituents-from-head-ref.md"
+        ],
+        "file_scope_confidence": "high",
+        "depends_on": [],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/one-pr-unit/merge-group-cli.test.ts --reporter=dot",
+          "pnpm exec vitest run packages/core/src/one-pr-unit/merge-group.test.ts --reporter=dot"
+        ],
+        "expected_outputs": [
+          "merge-group census finds every constituent PR from head_ref plus the base..head range",
+          "a gh or decode failure is named in the failure summary, not collapsed to an empty list"
+        ],
+        "model_tier": "standard"
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/one-pr-unit/merge-group-cli.ts",
+          "packages/core/src/one-pr-unit/merge-group.ts",
+          "packages/core/src/one-pr-unit/merge-group-cli.test.ts",
+          "packages/core/src/one-pr-unit/merge-group.test.ts",
+          "content/docs/github-merge-queue-setup.md",
+          "changelog.d/6424-merge-group-constituents-from-head-ref.md"
+        ],
+        "module_boundary": "packages/core/src/one-pr-unit",
+        "cohesion_exemption": "Merge-group loader, evaluator, their tests, the setup doc line and the changelog fragment travel together"
+      },
+      "issueCommentThread": [
+        {
+          "body": "## Session update 2026-11-26\n\nStill failing on every merge-queue entry this session. Same message; still not blocking required-check land.\n\n### Fresh repro\n- PR #7372 widen: run with `missing constituent PR on merge_group.checks_requested` (still merged after Merge gate)\n- PR #7373 leftover: https://github.com/deftai/directive/actions/runs/45760804945\n- PR #7374 leftover: https://github.com/deftai/directive/actions/runs/45761216556\n\n### Cause confirmation\n`loadConstituentsFromGithub` (`packages/core/src/one-pr-unit/merge-group-cli.ts`) calls `repos/<repo>/commits/<merge_group.head_sha>/pulls`. Merge-group SHAs are synthetic `gh-readonly-queue/master/pr-N-…` commits; that REST association returns empty → `constituentPrs.length === 0` → fail-closed in `evaluateMergeGroupCheck`.\n\n### Suggested fix direction\nResolve the constituent PR from the merge_group event / queue branch (`pr-NNNN`) (or GraphQL merge group fields), not from `commits/{merge_group_sha}/pulls`. On API miss, surface the API error instead of collapsing to an empty list.\n\nRefs #4494\r\n\n",
+          "id": 7183536161,
+          "html_url": "https://github.com/deftai/directive/issues/6424#issuecomment-7183536161",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-26T05:29:45Z",
+          "updated_at": "2026-11-26T05:29:45Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because tip loadConstituentsFromGithub resolves constituents only via repos/<repo>/commits/<merge_group.head_sha>/pulls, and merge-queue synthetic gh-readonly-queue/... SHAs return an empty list, so every merge_group.checks_requested run fails closed with missing constituent PR even when a single queued PR is present.\n\nrefutation-target: commits/{merge_group.head_sha}/pulls is a sufficient constituent loader for merge_group.checks_requested, and an empty list is an adequate failure summary when that call fails or returns nothing.\n\npain: P1, P2, P3, P4\n- P1: Production loader keys only on merge_group.head_sha to commits/.../pulls; queue synthetic SHAs associate with no PR, so constituentPrs is always [] on live merge-queue entries.\n- P2: On gh API non-zero or unreadable JSON, the loader returns [] instead of naming the API error, so evaluateMergeGroupCheck collapses every miss into the same missing constituent PR summary.\n- P3: MergeGroupEventLike / CLI read only merge_group.head_sha and ignore merge_group.head_ref (refs/heads/gh-readonly-queue/<base>/pr-<N>-...), which already encodes the constituent PR number.\n- P4: Unit coverage does not feed a real merge_group.checks_requested payload shape with head_ref, so the empty-list path stays green in CI while every live queue run is red.\n\nKeep-outs: closed #4494 (one-pr-unit feature parent; deploy gaps App store / ruleset stay out); open #6921 is a later same-primary refile of this residual (dispose as duplicate of #6424 after Prefer-A lands, do not dual-implement); do not promote this check to required-status in this arc; GraphQL mergeGroup fields are optional fallback only if head_ref parse + REST pulls/<N> cannot close P1-P3.\n\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nspend-recommend: N≥3\nspend: N≥3\nspend-ask: resolved\ncharter: refutation\nTarget-digest: sha256:f201b94b38c24109d23c68d4965ba0d35e798df2204111ad6502745416757975\ndispatch-sha: 2f899c570558722fcb0147b0b5cac1bc18085685\nverification-path: pin-read git show 2f899c570558722fcb0147b0b5cac1bc18085685: ; dest .deft-scratch/worktrees/arc-6424 cwd-without-occupy\ndual-stop-reserved: 1\nseat-families: codex, claude, grok\n\nFiled for @MScottAdams\n\n",
+          "id": 7183623490,
+          "html_url": "https://github.com/deftai/directive/issues/6424#issuecomment-7183623490",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-26T05:35:22Z",
+          "updated_at": "2026-11-26T05:35:22Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\nPrefer-A draft (pre-Bound; open for Round-1)\n\n## In plain English\nEvery merge-queue run paints the one-pr-unit check red because the tool looks up the PR by a temporary queue commit that GitHub does not associate with any PR. Prefer-A reads the PR number from the queue branch name already on the event, loads that PR over REST, and when the API fails it prints the real error instead of pretending no PR existed.\n\n## Approaches\n- A (Prefer): Primary loader parses merge_group.head_ref for pr-<N>, fetches repos/<repo>/pulls/<N> for node_id/body, then keeps today's closing-refs + commit-messages census; keep commits/{sha}/pulls only as fallback after head_ref parse fails; on gh miss, surface stderr/exit in the check summary (never collapse to []).\n- B: Pass github.event.pull_request / constituent list from the workflow YAML into the CLI via env, and skip event-file head_ref parse.\n- C: Switch the loader to GraphQL mergeGroup / pullRequests fields as the sole path.\n\n## Reject\n- Leaving commits/{sha}/pulls as the only loader\n- Treating empty [] as success or soft-skip for the check\n- Dual-implementing #6921 beside #6424\n- Making one-pr-unit a required status check in this arc\n- Inventing a second App-store deploy path (#4494 remaining deploy gaps)\n\n## Tentative Bound sketch (not yet Prefer-A Bound)\n1. Extend MergeGroupEventLike with head_ref; parse pr-<N> from gh-readonly-queue/<base>/pr-<N>-<sha>.\n2. loadConstituentsFromGithub (or sibling) loads pulls/<N> first; commits/{sha}/pulls is fallback only.\n3. Non-zero gh / unreadable JSON returns a typed failure summary naming the API error, not [].\n4. Add a fixture test with a real merge_group.checks_requested payload shape including head_ref.\n\nconflict_group: merge-group-constituent-from-head-ref\nTarget-digest: sha256:f201b94b38c24109d23c68d4965ba0d35e798df2204111ad6502745416757975\n\nFiled for @MScottAdams\n\n",
+          "id": 7183627090,
+          "html_url": "https://github.com/deftai/directive/issues/6424#issuecomment-7183627090",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-26T05:35:37Z",
+          "updated_at": "2026-11-26T05:35:37Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 3\ninput-ceiling: 7183643853\nfamilies: grok, claude, codex\nspend: N≥3\nspend-ask: resolved\ncharter: refutation\narc-mode: no-ingest\nyolo-standing: on\ndispatch-sha: 2f899c570558722fcb0147b0b5cac1bc18085685\nverification-path: pin-read git show 2f899c570558722fcb0147b0b5cac1bc18085685: ; dest .deft-scratch/worktrees/arc-6424 cwd-without-occupy\nTarget-digest: sha256:f201b94b38c24109d23c68d4965ba0d35e798df2204111ad6502745416757975\nStop 1: 7183623490\nPrefer-A draft: 7183627090\nseat: grok launcher: spawn_subagent\nseat: claude launcher: claude\nseat: codex launcher: codex\n\nLaunch-probe: claude pong rc0; codex pong rc0; grok native spawn_subagent (CLI shell denied; native first).\n\nRound-1 critics refute or cannot-refute the Stop 1 refutation-target. Post model/role lead. Do not read sibling posts. Ceiling inclusive of this deposit id 7183643853.\n\nFiled for @MScottAdams\n\n",
+          "id": 7183643853,
+          "html_url": "https://github.com/deftai/directive/issues/6424#issuecomment-7183643853",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-26T05:36:42Z",
+          "updated_at": "2026-11-26T05:37:58Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\n\nRound 1; charter: refutation; ceiling: 7183643853 inclusive; dispatch SHA: 2f899c570558722fcb0147b0b5cac1bc18085685. No sibling critic posts read. Verification used the specified read-only pin path; no tests executed.\n\nVerdict: refuted. The empty-list failure-summary premise is directly contradicted by the implementation: a nonzero API response, invalid JSON, and a successful empty response all become the identical missing-constituent summary. The separate claim that synthetic queue SHAs always return no associations is reported in the bounded thread, but is not independently established by these source reads. Prefer-A is a reasonable repair direction, with the refinements below.\n\nExisting mechanisms checked: merge-group-cli.ts has injected runGh and loadConstituents seams, event-file loading, and a production loader; merge-group.ts already rejects empty or unreadable census data and evaluates every supplied constituent. The existing gh result carries returncode/stdout/stderr. Reuse these boundaries rather than adding another policy engine.\n\n### C1 — sharpens-framing — Separate observed failure from the asserted API cause\n\nEvidence: [pinned loader](https://github.com/deftai/directive/blob/2f899c570558722fcb0147b0b5cac1bc18085685/packages/core/src/one-pr-unit/merge-group-cli.ts) returns [] both on nonzero exit and JSON parse failure; [pinned evaluator](https://github.com/deftai/directive/blob/2f899c570558722fcb0147b0b5cac1bc18085685/packages/core/src/one-pr-unit/merge-group.ts) gives every empty list the same summary. The issue body explicitly says the cause is unconfirmed; comment 7183536161 asserts an empty association but supplies no captured API response.\n\nFailure mode: treating the summary as proof of a successful empty association can misdiagnose a permission, transport, or payload error, and a head_ref change alone will not resolve those failures.\n\nDisposition: retain Prefer-A, but state the proven defect as loss of lookup outcome and inadequate discovery evidence. Distinguish successful-empty, API failure, and invalid payload in diagnostics. Do not claim that all synthetic SHAs always have zero associations without response evidence. This does not require delaying the repair for a live reproduction.\n\n### C2 — sharpens-framing — Valid JSON can still silently erase constituent evidence\n\nEvidence: parsePullsPayload returns [] for a non-array and silently skips malformed entries; parseCommitMessages returns [] for a non-array and skips entries without messages. Both are in the pinned loader above. The draft promises handling for nonzero exit and unreadable JSON, but does not explicitly cover syntactically valid wrong-shape JSON or partial records. pulls/N also returns a single object, whereas the existing parser expects an array.\n\nFailure mode: reusing the list parser for pulls/N recreates the empty-list failure. A partially malformed fallback list can omit one PR while allowing the remaining PRs to pass; an unexpected commit payload can become an apparently readable empty commit census. The evaluator cannot detect an omitted constituent or message.\n\nDisposition: refine the typed failure contract to include wrong-shape and partial payloads, with a dedicated single-PR response decoder and no silent dropping of required census records. Preserve the existing evaluator's fail-closed behavior. This is a boundary-validation refinement, not a new subsystem.\n\n### C3 — sharpens-framing — The regression fixture must exercise production discovery\n\nEvidence: [pinned CLI tests](https://github.com/deftai/directive/blob/2f899c570558722fcb0147b0b5cac1bc18085685/packages/core/src/one-pr-unit/merge-group-cli.test.ts) either override loadConstituents or mock commits/abc/pulls as already containing the desired PR. Neither tests head_ref discovery. The draft asks for a real event-shaped fixture but does not constrain which seam the test bypasses.\n\nFailure mode: a realistic event fixture still passes with a broken production loader if loadConstituents supplies the answer. A generic pr-N search can also select text in the base branch rather than the terminal queue-ref component.\n\nDisposition: drive runMergeGroupCheckFromEvent using only runGh injection, assert pulls/N is the primary request, and assert the result retains merge_group.head_sha. Cover a base branch containing slashes and pr-N text, malformed/absent head_ref fallback, successful-empty fallback, nonzero API response, invalid JSON, and wrong-shape JSON. Anchor parsing to the complete expected queue-ref structure and a positive safe-integer PR number. These deterministic tests cover the new untrusted-input-to-PR-identity boundary.\n\n### C4 — footnote — One parsed PR is not by itself a completeness proof\n\nThe draft yields one PR from the branch name, while evaluateMergeGroupCheck is explicitly an each-constituent evaluator. The bounded evidence establishes a one-PR acceptance case; it does not establish a general guarantee that every supported merge group contains exactly that one PR. I have not verified a multi-PR counterexample in this envelope, so this is not a blocker. State the supported group scope rather than treating the branch token as proof of complete membership.\n\nRoad not taken: keeping commit association as the sole discovery source has the strongest simplicity argument and can return multiple PRs without a queue-ref parser. It would become preferable if verified payload/API evidence established reliable, complete membership for supported queue events. The current tests assume that premise; they do not establish it. A wholesale GraphQL replacement adds machinery without addressing the independently proven error-collapse defect. Prefer the narrow head_ref/REST repair with explicit decoder and diagnostic tests.\n\nCritic exit: one comment posted; return to parent synthesis. No ingest or implementation.\r\n\n",
+          "id": 7183694961,
+          "html_url": "https://github.com/deftai/directive/issues/6424#issuecomment-7183694961",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-26T05:40:03Z",
+          "updated_at": "2026-11-26T05:40:03Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: critic\n```\n\nVerdict: **refuted** (both halves of the refutation-target). Read set: issue body + comments <= 7183643853; pin-read at 2f899c570558722fcb0147b0b5cac1bc18085685.\n\n## Findings\n\n1. **`commits/{merge_group.head_sha}/pulls` is not a sufficient loader.** `merge-group-cli.ts:93` is the only path to the constituent list. The merge-group head is a synthetic `gh-readonly-queue/<base>/pr-<N>-<sha>` commit. It is not the head of any PR and it is not yet merged, so the REST association is empty. Evidence: 25/25 runs red (body), plus #7373 / #7374 runs (7183536161). No other branch of `runMergeGroupCheckFromEvent` can produce a constituent. Refuted.\n\n2. **Empty list is not an adequate failure summary.** Three different causes all collapse to `missing constituent PR on merge_group.checks_requested` (`merge-group.ts:51-55`):\n   - gh non-zero exit (`merge-group-cli.ts:94-96`): stderr dropped;\n   - unparseable JSON (`:100-102`): parse error dropped;\n   - empty `repository.full_name` (`:144`): loader never called, silently `[]`.\n   An operator cannot tell an auth/rate-limit fault from a bad payload from a real \"no PR\" result. This is AC2 of the issue. Refuted.\n\n3. Unit coverage hides the bug, as Stop 1 P4 says.\n   The merge-group CLI unit test stubs commits/abc/pulls to return a PR, and its event has only head_sha. The live API returns no PR for a queue SHA, so CI stays green while every live run is red.\n\n## Critique of the Prefer-A draft (7183627090)\n\nA is the right direction. Points for Bound:\n\n- **Parse anchor.** `base_ref` can contain `/` (e.g. `release/1.x`). Anchor the parse on the tail: `/pr-(\\d+)-[0-9a-f]{40}$` on `merge_group.head_ref`. Do not split by a fixed segment index. A non-match must be a named failure (`unparseable merge_group.head_ref: <value>`), not a silent fall into the fallback with no trace.\n- **One constituent per entry is a claim; state it.** `pr-wait-mergeable/merge-group-skip.ts` notes the group commit also holds every PR queued ahead. head_ref names only the entry's own PR. That is correct if each queued PR gets its own `checks_requested` (ahead PRs were checked on their own entries). Bound should say this explicitly and test it, so a later reader does not \"fix\" it to census all ahead PRs.\n- **Fallback value is low.** For queue SHAs `commits/{sha}/pulls` is known-empty. Keeping it as a fallback is fine, but its empty result must keep the specific reason (`head_ref parse failed; commits/{sha}/pulls empty`), not the generic message.\n- **Typed loader result.** Change `loadConstituents` to return `{ ok: true, prs } | { ok: false, reason }` (or similar) so `evaluateMergeGroupCheck` can print the API error. Bound step 3 should also cover the empty-repo path at `:144`.\n- **Per-PR GraphQL call.** `fetchClosingIssuesReferences` uses `gh pr view --json` (GraphQL). Not the cause of this bug, and errors already surface as \"unreadable closer source\". Out of scope; note only.\n- **Fixture.** Bound step 4 should use a real `merge_group` payload shape (`head_sha`, `head_ref`, `base_ref`, `base_sha`, `head_commit`), with one slashed-base_ref case and one gh non-zero-exit case that asserts the stderr appears in the summary.\n\nB (pass constituent from YAML) does not work: `github.event.pull_request` is absent on `merge_group`. Reject B. C (GraphQL-only) adds bucket pressure for no gain over A. Keep C as fallback only, per Stop 1 keep-outs.\n\nNo new keep-outs. Agrees with Stop 1 pains P1-P4.\n\n",
+          "id": 7183716756,
+          "html_url": "https://github.com/deftai/directive/issues/6424#issuecomment-7183716756",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-26T05:41:29Z",
+          "updated_at": "2026-11-26T05:41:29Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gemini-4-hydrogen-high\n```quarantined\nrole: critic\n```\n\n## Refutation verdict\n**Refuted.** At dispatch-sha `2f899c570558722fcb0147b0b5cac1bc18085685`, `loadConstituentsFromGithub` (`packages/core/src/one-pr-unit/merge-group-cli.ts:88-124`) resolves constituents exclusively via `repos/${repo}/commits/${sha}/pulls` and returns `[]` on `pulls.returncode !== 0` or JSON parse failure, which `evaluateMergeGroupCheck` (`packages/core/src/one-pr-unit/merge-group.ts:51-58`) turns into `\"missing constituent PR on merge_group.checks_requested\"`. Live queue runs `45760804945` (`gh-readonly-queue/master/pr-7373-...`) and `45761216556` (job `139711414630`, `gh-readonly-queue/master/pr-7374-...`) both failed with that exact summary during `merge_group.checks_requested` (the SHA only associated with PR #7374 after merge once `merge_commit_sha` bound).\n\n## Findings on Prefer-A draft (7183627090)\n\n### blocks-the-design: Single-PR `head_ref` parse drops earlier constituents in batched merge groups\n- **Evidence:** Active ruleset `27349290` (\"Merge queue on master\") configures `max_entries_to_build: 3`, `max_entries_to_merge: 3`, `grouping_strategy: \"ALLGREEN\"`, `merge_method: \"SQUASH\"`. GitHub's `merge_group.head_ref` (`refs/heads/gh-readonly-queue/<base>/pr-<N>-<sha>`) names only one PR (`pr-<N>`), while `evaluateMergeGroupCheck` (`merge-group.ts:50-124`) is multi-PR by contract (`constituentPrs`).\n- **Failure mode:** When 2-3 PRs batch in one merge group and `pr-<N>` is a single-origin no-grant PR while an earlier queued PR carries an unbound multi-origin closer set, Prefer-A reads only `pulls/<N>`, skips `commits/{sha}/pulls` (\"fallback only\"), and returns `conclusion: \"success\"` — silently passing an unbound multi-origin PR.\n- **Disposition consequence:** Prefer-A cannot bind as written with `head_ref` as the sole constituent source. Enumerate all PRs between `merge_group.base_sha` and `merge_group.head_sha` (e.g., `repos/{repo}/compare/{base_sha}...{head_sha}` / squash commit `(#N)` or commit->PR lookup, or fail closed if >1 commit/PR cannot be resolved) with `head_ref` used only when verified single-entry. (Road-not-taken / steelman: keeping `head_ref`-only is simpler if the repo guarantees `max_entries_to_merge: 1`, which flips this to `sharpens-framing`, but live ruleset `27349290` sets `3`.)\n\n### blocks-the-design: Loader, parser, and `MergeGroupCliSeams` collapse API errors and reject single-PR REST payloads\n- **Evidence:** `merge-group-cli.ts:27-31, 50-68, 88-145` and `packages/core/src/pr-protected-issues/gh.ts:105-150`:\n  1. `MergeGroupCliSeams.loadConstituents` has signature `(sha: string) => ConstituentPrCensus[]` — it neither receives `head_ref`/`event` nor returns an error variant.\n  2. `runMergeGroupCheckFromEvent` (`line 144`) passes `[]` directly when `repository.full_name` is empty (`\"missing constituent PR\"` instead of missing repo).\n  3. `parsePullsPayload` (`line 53`) returns `[]` on non-array JSON, whereas `GET repos/{repo}/pulls/{N}` returns a single JSON object.\n  4. `fetchClosingIssuesReferences` (`gh.ts`) logs `gh pr view` errors to stderr and returns `null`, and `pulls/${pr.number}/commits` (`merge-group-cli.ts:109-118`) sets `commitMessages = null` on non-zero exit or parse error, both collapsing into `\"unreadable closer source\"` without the API error.\n- **Failure mode:** Prefer-A's AC2 fix (\"surface stderr/exit in the check summary\") only covers the top-level lookup unless the loader return/seam type carries structured errors, `pulls/<N>` uses an object parser, and sub-call errors (`closingIssuesReferences`, `pulls/{N}/commits`, missing `repository.full_name`) propagate into the check summary.\n- **Disposition consequence:** Require a typed loader result (or structured error propagation) in `MergeGroupCliSeams` / `loadConstituentsFromGithub`, a single-PR parser for `pulls/<N>`, and API error surfacing across all three `gh` calls before bind.\n\n### sharpens-framing: `head_ref` parser must handle `refs/heads/` prefix and slash-containing `<base>`\n- **Evidence:** Webhook `merge_group.head_ref` carries `refs/heads/gh-readonly-queue/<base>/pr-<N>-<sha>`, whereas Actions `head_branch` (run `45761216556`) omits `refs/heads/`, and `<base>` may contain `/`.\n- **Failure mode:** Naive path-segment splitting breaks on `refs/heads/` or multi-segment base branch names, falling back unnecessarily to `commits/{sha}/pulls`.\n- **Disposition consequence:** Anchor on `^(?:refs\\/heads\\/)?gh-readonly-queue\\/.+\\/pr-(\\d+)-[0-9a-f]+$/i` and cover both `refs/heads/...` and slash-containing base branches in the Prefer-A fixture test.\n\n### footnote: `pulls/{N}/commits` pagination and `ghx` cache routing\n- `merge-group-cli.ts:109` calls `gh api repos/${repo}/pulls/${pr.number}/commits` without `--paginate` (default 30 commits per page); single-positional `gh api` calls also route through `ghx` when present (`packages/core/src/scm/call-shape.ts:15-36`, though CI runners only have `gh`).\r\n\n",
+          "id": 7183782161,
+          "html_url": "https://github.com/deftai/directive/issues/6424#issuecomment-7183782161",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-26T05:45:45Z",
+          "updated_at": "2026-11-26T05:45:45Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\nPrefer-A Bound\n\n## In plain English\nThe merge-queue check looks up the PR by a temporary queue commit that has no PR association, so every run is red. Prefer-A finds every PR that belongs in that queue entry (not only the tip name on the branch), loads each over REST, and when GitHub errors it prints the real error.\n\n## Bound remedy\n1. Extend MergeGroupEventLike with head_ref / base_sha / base_ref. Parse tip PR from head_ref with a slash-safe regex that allows an optional refs/heads/ prefix and a multi-segment base (anchor on /pr-(N)-hex at the end of a gh-readonly-queue ref).\n2. Enumerate all merge-group constituents for the one-pr-unit census: tip from head_ref plus every other PR present between merge_group.base_sha and merge_group.head_sha (compare / commit-to-PR / closing (#N) extraction as needed). Live ruleset 27349290 allows max_entries_to_merge=3, so head_ref alone is not a complete census. If multi-entry membership cannot be resolved, fail closed with a named summary (do not soft-pass).\n3. Replace empty-array collapse with a typed loader result: success with ConstituentPrCensus[] or failure naming API exit/stderr / wrong-shape / missing repository.full_name / unparseable head_ref. Wire that through MergeGroupCliSeams so evaluateMergeGroupCheck can print the concrete reason (AC2).\n4. Decode GET pulls/N as a single object (not array-only parsePullsPayload). Propagate closing-refs and pulls/N/commits lookup failures into the typed failure or unreadable-closer summary with stderr retained.\n5. Keep commits/{sha}/pulls only as a secondary discovery aid after head_ref plus range enumeration; its empty success must not erase a prior typed failure reason.\n6. Tests: real merge_group.checks_requested payload shape (head_sha, head_ref, base_sha, base_ref); slash-containing base; refs/heads present/absent; single-entry success via pulls/N; multi-entry (2-3) census completeness; nonzero gh; invalid JSON; wrong-shape JSON; empty repository.full_name. Drive through runMergeGroupCheckFromEvent with runGh injection (do not stub loadConstituents for the discovery path).\n\n## Takes on Round-1\n- accept Codex 7183694961 C1-C3 (typed failures, object decoder, production-discovery fixture); footnote C4 absorbed by Bound remedy 2\n- accept Claude 7183716756 (refute both halves; slash-safe parse; reject YAML B; GraphQL-only stay keep-out)\n- accept agy 7183782161 blocks (multi-entry census; typed seams / object parser); accept sharpens head_ref regex; footnote pagination/ghx stay footnote\n\nconflict_group: merge-group-constituent-from-head-ref\nTarget-digest: sha256:742807cdd754c4263211ccc163614fa7e2c0d6e76699597e0b8fdf6c2d5e5079\nRound-1 siblings: 7183694961, 7183716756, 7183782161\npanel-deposit: 7183643853\ndispatch-sha: 2f899c570558722fcb0147b0b5cac1bc18085685\nyolo-standing: on\narc-mode: no-ingest\nmove-forward: pending-pain-audit\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\nrelieves: P4\nFiled for @MScottAdams\n\n",
+          "id": 7183841904,
+          "html_url": "https://github.com/deftai/directive/issues/6424#issuecomment-7183841904",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-26T05:49:43Z",
+          "updated_at": "2026-11-26T05:59:17Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3, pain-P4\nfinding-classes: footnote\nharvest-changed: false\n\nPain-audit of [Prefer-A Bound](https://github.com/deftai/directive/issues/6424#issuecomment-7183841904) against [Stop 1](https://github.com/deftai/directive/issues/6424#issuecomment-7183623490):\n\n- pain-P1: relieves; harvest-changed: false. Steps 1-2 and 5 replace sole synthetic-SHA association with tip discovery plus complete range membership; unresolved membership fails explicitly.\n- pain-P2: relieves; harvest-changed: false. Steps 3-4 retain concrete lookup/decoder failures through the loader seam and summary, including downstream census calls.\n- pain-P3: relieves; harvest-changed: false. Step 1 consumes head_ref with prefix/slashed-base handling; step 2 avoids mistaking its tip PR for the whole group.\n- pain-P4: relieves; harvest-changed: false. Step 6 exercises event-shaped input through production discovery using only runGh injection, including single/multiple entries and failure cases.\n\nFootnote; harvest-changed: false: these are design-level relief judgments, not implementation verification. Bound's opening still overstates the proven cause: the identical red summary cannot establish that every lookup succeeded with zero associations. Keep the diagnosis as failed discovery with collapsed errors; this does not change the remedy.\n\nRead ceiling: 7183841904. No ingest or implementation. Critic exit.",
+          "id": 7183880872,
+          "html_url": "https://github.com/deftai/directive/issues/6424#issuecomment-7183880872",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-26T05:52:19Z",
+          "updated_at": "2026-11-26T05:58:56Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Verified claims table\n\n| id | claim | status | cite |\n|---|---|---|---|\n| V1 | tip loadConstituentsFromGithub keys only on commits/{merge_group.head_sha}/pulls and collapses API/parse miss to [] | verified | pin merge-group-cli.ts @ 2f899c570558; Stop 1 7183623490; Round-1 7183694961 / 7183716756 / 7183782161 |\n| V2 | empty constituentPrs always yields summary \"missing constituent PR on merge_group.checks_requested\" | verified | pin merge-group.ts:51-55; live runs 45760804945 / 45761216556 |\n| V3 | merge_group.head_ref encodes tip pr-N on gh-readonly-queue refs and is unread by MergeGroupEventLike today | verified | event shape + merge-group-cli.ts MergeGroupEventLike; Claude 7183716756 |\n| V4 | live ruleset 27349290 max_entries_to_merge=3 so tip-only census is incomplete for batched groups | verified | ruleset REST; agy 7183782161 |\n| V5 | Prefer-A Bound 7183841904 relieves Stop 1 P1–P4 at design level (harvest-changed: false) | verified | pain-audit 7183880872 |\n\nFiled for @MScottAdams\n\n",
+          "id": 7183910435,
+          "html_url": "https://github.com/deftai/directive/issues/6424#issuecomment-7183910435",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-26T05:54:18Z",
+          "updated_at": "2026-11-26T05:54:18Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| id | claim | status | cite |\n|---|---|---|---|\n| V1 | tip loadConstituentsFromGithub keys only on commits/{merge_group.head_sha}/pulls and collapses API/parse miss to [] | verified | pin merge-group-cli.ts @ 2f899c570558; Stop 1 7183623490; Round-1 7183694961 / 7183716756 / 7183782161 |\n| V2 | empty constituentPrs always yields summary \"missing constituent PR on merge_group.checks_requested\" | verified | pin merge-group.ts:51-55; live runs 45760804945 / 45761216556 |\n| V3 | merge_group.head_ref encodes tip pr-N on gh-readonly-queue refs and is unread by MergeGroupEventLike today | verified | event shape + merge-group-cli.ts MergeGroupEventLike; Claude 7183716756 |\n| V4 | live ruleset 27349290 max_entries_to_merge=3 so tip-only census is incomplete for batched groups | verified | ruleset REST; agy 7183782161 |\n| V5 | Prefer-A Bound 7183841904 relieves Stop 1 P1–P4 at design level (harvest-changed: false) | verified | pain-audit 7183880872 |\n\nFiled for @MScottAdams\n\n",
+          "id": 7183914218,
+          "html_url": "https://github.com/deftai/directive/issues/6424#issuecomment-7183914218",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-26T05:54:33Z",
+          "updated_at": "2026-11-26T05:56:07Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nEvery merge-queue run of one-pr-unit fails because the tool asks GitHub which PR owns a temporary queue commit, and the answer is always none. The accepted design finds every PR in that queue entry from the queue branch name plus the base..head range, loads each PR over REST, and prints real API errors instead of a fake empty list. #6921 was closed as a duplicate of this issue.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 7183841904.\nverified-claims table 7183914218\npain-audit 7183880872\n\nRound-1 siblings: 7183694961 (codex), 7183716756 (claude), 7183782161 (agy)\npanel-deposit: 7183643853\nStop 1: 7183623490\ndispatch-sha: 2f899c570558722fcb0147b0b5cac1bc18085685\nconflict_group: merge-group-constituent-from-head-ref\narc-mode: no-ingest\nyolo-standing: on\nspend: N≥3\nspend-ask: resolved\n\nNext operator verb when wanted: task issue:ingest (ingest remains separate).\n\nFiled for @MScottAdams\n\n",
+          "id": 7183914522,
+          "html_url": "https://github.com/deftai/directive/issues/6424#issuecomment-7183914522",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-26T05:54:34Z",
+          "updated_at": "2026-11-26T05:57:54Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6426916059,
+        "origin": "deftai/directive#6424",
+        "id": "github.issue.6426916059"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "742807cdd754c4263211ccc163614fa7e2c0d6e76699597e0b8fdf6c2d5e5079"
+      },
+      "kind": "story"
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per sentence-list entry (2), in order (#6333)",
+      "sentences": [
+        "Given a merge-queue entry for one PR, when the workflow runs, then it finds that PR as a constituent and does not report \"missing constituent PR\".",
+        "Given a lookup error from the GitHub API, when the workflow runs, then the failure names the API error, not an empty constituent list."
+      ],
+      "admitted_source_sentences": [
+        "Given a merge-queue entry for one PR, when the workflow runs, then it finds that PR as a constituent and does not report \"missing constituent PR\".",
+        "Given a lookup error from the GitHub API, when the workflow runs, then the failure names the API error, not an empty constituent list."
+      ],
+      "admitted_source_digest": "e5bb87ed30d3060238b7b07cf6f7c8db301ab0fc7fa579b973e5e8e2ba60131d",
+      "admitted_source_extractor": 2,
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Given a merge-queue entry for one PR, when the workflow runs, then it finds that PR as a constituent and does not report \"missing constituent PR\".",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Given a lookup error from the GitHub API, when the workflow runs, then the failure names the API error, not an empty constituent list.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.6426916059",
+    "updated": "2026-11-26T06:06:25Z"
+  }
+}
