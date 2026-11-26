@@ -81,7 +81,12 @@
           "provenance": "statement"
         }
       ],
-      "ambiguity_attestation": "none_found"
+      "ambiguity_attestation": "none_found",
+      "confessions": [
+        "feat(harness): agy host deposit-doctor slice (#7332)",
+        "Activate Prefer-A Bound #7347 so gated Antigravity hook deposit and doctor repair can ship after the observe and classify-identity slices.",
+        "Deposit activation stays gated on the committed observe verdict."
+      ]
     },
     "metadata": {
       "intended_placement": {
