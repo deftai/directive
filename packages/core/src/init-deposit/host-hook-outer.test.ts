@@ -416,7 +416,9 @@ describe("host-hook-outer bytes stay put (#6613)", () => {
     // `--kill-switch-reader v1` passed to hook-bin): 8149fb11 -> 665df6a9.
     // #7275 changed them on purpose (missing-runtime admits the named project
     // install; refusal names that exception): 665df6a9 -> bc294904.
-    expect(hostHookOuterSha8()).toBe("bc294904");
+    // #7378 changed them on purpose (agy: explicit allow, one-decision check,
+    // per-call hook-order check): bc294904 -> a5d39c9f.
+    expect(hostHookOuterSha8()).toBe("a5d39c9f");
   });
 });
 
@@ -871,5 +873,199 @@ describe("host-hook-outer missing-runtime project-install admit (#7275)", () => 
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
+  });
+});
+
+describe("host-hook-outer agy exit paths and hook ordering (#7378)", () => {
+  const PRE = { PreToolUse: [{ matcher: "*", hooks: [{ command: "x" }] }] };
+
+  function withRoot(run: (root: string) => void): void {
+    const root = mkdtempSync(join(tmpdir(), "outer-7378-"));
+    try {
+      writeFileSync(join(root, "package.json"), "{}\n");
+      run(root);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  }
+
+  function writeHooks(root: string, hooks: Record<string, unknown>): void {
+    mkdirSync(join(root, ".agents"), { recursive: true });
+    writeFileSync(join(root, ".agents", "hooks.json"), JSON.stringify(hooks));
+  }
+
+  function agyPayload(root: string, extra: Record<string, unknown> = {}): string {
+    return JSON.stringify({
+      hookEventName: "PreToolUse",
+      workspacePaths: [root],
+      cwd: root,
+      toolCall: { id: "c1", name: "run_command", args: { CommandLine: "echo hi" } },
+      ...extra,
+    });
+  }
+
+  function runAgy(
+    root: string,
+    stdin: string,
+    event = "tool.before",
+    env: NodeJS.ProcessEnv = {},
+  ): ReturnType<typeof spawnSync> {
+    const abs = join(root, ".agents", "deft-hook-test.mjs");
+    mkdirSync(join(root, ".agents"), { recursive: true });
+    writeFileSync(abs, hostHookOuterSource());
+    return spawnSync(process.execPath, [abs, "--host", "agy", "--event", event], {
+      cwd: root,
+      encoding: "utf8",
+      env: { ...process.env, ...env },
+      input: stdin,
+    });
+  }
+
+  function decisionOf(r: ReturnType<typeof spawnSync>): Record<string, unknown> {
+    expect(r.status).toBe(0);
+    const parsed = JSON.parse(String(r.stdout)) as Record<string, unknown>;
+    expect(String(r.stdout).trim().split("\n")).toHaveLength(1);
+    return parsed;
+  }
+
+  function writeEchoRuntime(root: string, output: string): void {
+    writeRuntime(
+      root,
+      [
+        "import { readFileSync } from 'node:fs';",
+        "let raw = ''; try { raw = readFileSync(0, 'utf8'); } catch {}",
+        `process.stdout.write(${JSON.stringify(output)}.replace('{raw}', () => JSON.stringify(raw)));`,
+      ].join("\n"),
+    );
+  }
+
+  it("allows a valid kill record with one explicit allow decision", () => {
+    withRoot((root) => {
+      gitInit(root);
+      writeValidKillRecord(root);
+      const r = runAgy(root, agyPayload(root));
+      expect(decisionOf(r)).toEqual({ decision: "allow" });
+    });
+  });
+
+  it("keeps the kill record silent on non-tool events", () => {
+    withRoot((root) => {
+      gitInit(root);
+      writeValidKillRecord(root);
+      const r = runAgy(root, "{}", "session.start");
+      expect(r.status).toBe(0);
+      expect(String(r.stdout)).toBe("");
+    });
+  });
+
+  it("denies with one deny decision when the runtime is missing", () => {
+    withRoot((root) => {
+      const decision = decisionOf(runAgy(root, agyPayload(root)));
+      expect(decision.decision).toBe("deny");
+      expect(String(decision.reason)).toContain(MISSING_NO_LOCKFILE);
+    });
+  });
+
+  it("prints an explicit allow for the missing-runtime project install admit", () => {
+    withRoot((root) => {
+      const payload = JSON.stringify({
+        tool_name: "Bash",
+        tool_input: { command: "npm install", cwd: root },
+        cwd: root,
+      });
+      expect(decisionOf(runAgy(root, payload))).toEqual({ decision: "allow" });
+    });
+  });
+
+  it("denies a later-running foreign hook and never reaches the runtime", () => {
+    withRoot((root) => {
+      writeHooks(root, { "zzzz-directive": PRE, zzzzz: PRE });
+      writeRuntime(root, 'process.stderr.write("RUNTIME_REACHED\\n"); process.stdout.write("{}");');
+      const r = runAgy(root, agyPayload(root));
+      const decision = decisionOf(r);
+      expect(decision.decision).toBe("deny");
+      expect(String(decision.reason)).toContain('Hook "zzzzz"');
+      expect(String(decision.reason)).toContain(
+        "deft policy:disable-host-hooks --host agy --confirm",
+      );
+      expect(String(r.stderr)).not.toContain("RUNTIME_REACHED");
+    });
+  });
+
+  it("denies on an unparseable hook config and on an unresolvable workspace", () => {
+    withRoot((root) => {
+      mkdirSync(join(root, ".agents"), { recursive: true });
+      writeFileSync(join(root, ".agents", "hooks.json"), "{bad");
+      writeEchoRuntime(root, '{"decision":"allow"}');
+      expect(decisionOf(runAgy(root, agyPayload(root))).decision).toBe("deny");
+      rmSync(join(root, ".agents", "hooks.json"));
+      expect(decisionOf(runAgy(root, agyPayload(root, { workspacePaths: [] }))).decision).toBe(
+        "deny",
+      );
+      expect(decisionOf(runAgy(root, "not json")).decision).toBe("deny");
+    });
+  });
+
+  it("forwards stdin and one valid child decision when ordering is clean", () => {
+    withRoot((root) => {
+      writeHooks(root, { "zzzz-directive": PRE, "obs-a": PRE });
+      writeEchoRuntime(root, '{"decision":"ask","echo":{raw}}');
+      const payload = agyPayload(root);
+      const decision = decisionOf(runAgy(root, payload));
+      expect(decision.decision).toBe("ask");
+      expect(decision.echo).toBe(payload);
+    });
+  });
+
+  it("allows when there is no project hook file and the child decides allow", () => {
+    withRoot((root) => {
+      writeEchoRuntime(root, '{"decision":"allow"}');
+      expect(decisionOf(runAgy(root, agyPayload(root)))).toEqual({ decision: "allow" });
+    });
+  });
+
+  it.each([
+    ["empty stdout", "", "exit 0"],
+    ["whitespace only", "  \n", "exit 0"],
+    ["invalid JSON", "not json", "exit 0"],
+    ["two objects", '{"decision":"allow"}\n{"decision":"allow"}', "exit 0"],
+    ["an array", '[{"decision":"allow"}]', "exit 0"],
+    ["a non-decision object", '{"ok":true}', "exit 0"],
+    ["an unknown decision", '{"decision":"maybe"}', "exit 0"],
+  ])("denies when the child prints %s", (_label, output) => {
+    withRoot((root) => {
+      writeEchoRuntime(root, output);
+      const decision = decisionOf(runAgy(root, agyPayload(root)));
+      expect(decision.decision).toBe("deny");
+      expect(String(decision.reason)).toContain(HOST_HOOK_NONDECISION_REASON);
+    });
+  });
+
+  it("denies when the child exits non-zero or cannot run", () => {
+    withRoot((root) => {
+      writeRuntime(root, "process.exit(2);");
+      expect(decisionOf(runAgy(root, agyPayload(root))).decision).toBe("deny");
+      writeRuntime(root, "throw new Error('boom');");
+      expect(decisionOf(runAgy(root, agyPayload(root))).decision).toBe("deny");
+    });
+  });
+
+  it("leaves non-tool agy events on today's pass-through", () => {
+    withRoot((root) => {
+      writeRuntime(root, 'process.stdout.write("");');
+      const r = runAgy(root, "{}", "session.start");
+      expect(r.status).toBe(0);
+      expect(String(r.stdout)).toBe("");
+    });
+  });
+
+  it("does not change other hosts' outputs", () => {
+    withRoot((root) => {
+      writeHooks(root, { "zzzz-directive": PRE, zzzzz: PRE });
+      writeRuntime(root, 'process.stdout.write("");');
+      const r = runOuter(root, "grok", {}, "tool.before", [], agyPayload(root));
+      expect(r.status).toBe(0);
+      expect(String(r.stdout)).toBe("");
+    });
   });
 });

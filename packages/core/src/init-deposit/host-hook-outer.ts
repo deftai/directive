@@ -23,6 +23,7 @@ import { createHash } from "node:crypto";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import { containedRemove, containedRename, containedWrite } from "../fs/contained-write.js";
+import { agyHookOrderOuterSource } from "../hooks/classify/agy-hook-order.js";
 import type { HookHost } from "../hooks/dispatcher.js";
 import { SHELL_TOOL_NAMES } from "../hooks/tools.js";
 import { ENTRY_GUARD_MESSAGES } from "../install-health/constants.js";
@@ -632,7 +633,14 @@ function installCommand(root) {
   return "\`npm install\` (or \`pnpm install --frozen-lockfile\`)";
 }
 
-function quietAllow() {
+/**
+ * Intentional allow. agy treats exit 0 with empty stdout as allow on a real
+ * call, so on agy tool.before the allow is printed as one decision (#7378).
+ */
+function quietAllow(host, event) {
+  if (host === "agy" && event === "tool.before") {
+    process.stdout.write(JSON.stringify({ decision: "allow" }) + "\\n");
+  }
   process.exit(0);
 }
 
@@ -643,6 +651,10 @@ function quietAllow() {
  * blocks, D-018).
  */
 function blockToolCall(host, event, reason) {
+  if (host === "agy" && event === "tool.before") {
+    process.stdout.write(JSON.stringify({ decision: "deny", reason }) + "\\n");
+    process.exit(0);
+  }
   if (host === "grok") {
     process.stdout.write(JSON.stringify({ decision: "deny", reason }) + "\\n");
     process.exit(0);
@@ -673,6 +685,20 @@ function grokOutputIsDecision(text) {
   if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) return false;
   return parsed.decision === "allow" || parsed.decision === "deny";
 }
+
+/** agy success output: exactly one object with decision allow|deny|ask|force_ask (#7378). */
+function agyOutputIsDecision(text) {
+  let parsed;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    return false;
+  }
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) return false;
+  return ["allow", "deny", "ask", "force_ask"].includes(parsed.decision);
+}
+
+${agyHookOrderOuterSource()}
 
 function readStdinUtf8() {
   try {
@@ -802,7 +828,7 @@ const event = parseArg(argv, "--event");
 
 const verdict = killRecordVerdict(root);
 if (verdict === "valid") {
-  quietAllow();
+  quietAllow(host, event);
 }
 
 const pin = join(root, PIN_REL);
@@ -819,16 +845,33 @@ if (!existsSync(pin)) {
       payload = null;
     }
     if (payload !== null && admitMissingPinInstall(host, event, root, payload)) {
-      quietAllow();
+      quietAllow(host, event);
     }
   }
   blockToolCall(host, event, GUIDANCE.replace("{install}", () => installCommand(root)));
 }
 
+// agy runs hooks in hook-name order and the last overwrite wins (#7378): check on
+// every call that no foreign PreToolUse hook runs at or after Directive's entry.
+const agyToolBefore = host === "agy" && event === "tool.before";
+let agyRaw = "";
+if (agyToolBefore) {
+  agyRaw = readStdinUtf8();
+  let agyPayload = null;
+  try {
+    agyPayload = JSON.parse(agyRaw);
+  } catch {
+    agyPayload = null;
+  }
+  const agyFindings = agyHookOrderPayloadFindings(agyPayload);
+  if (agyFindings.length > 0) blockToolCall(host, event, agyHookOrderDenial(agyFindings));
+}
+
 const child = spawnSync(process.execPath, [pin, ...argv, ...READER_ARGS], {
   cwd: root,
   env: process.env,
-  stdio: ["inherit", "pipe", "inherit"],
+  stdio: [agyToolBefore ? "pipe" : "inherit", "pipe", "inherit"],
+  input: agyToolBefore ? agyRaw : undefined,
   maxBuffer: 16 * 1024 * 1024,
 });
 if (child.error) {
@@ -850,6 +893,9 @@ if (host === "grok") {
     blockToolCall(host, event, nonDecision("pin hook-bin output is not one Grok decision"));
   }
   if (text.trim().length === 0) process.exit(0);
+}
+if (agyToolBefore && !agyOutputIsDecision(text)) {
+  blockToolCall(host, event, nonDecision("pin hook-bin output is not one agy decision"));
 }
 process.stdout.write(child.stdout);
 `;

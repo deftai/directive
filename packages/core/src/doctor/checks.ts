@@ -3,6 +3,13 @@ import { existsSync, lstatSync, readdirSync, readlinkSync, statSync } from "node
 import { dirname, isAbsolute, join, relative, resolve as resolvePath } from "node:path";
 import { VBRIEF_VERSION } from "@deftai/directive-types";
 import { isAgentScratchWorktreePath } from "../fs/non-product-dirs.js";
+import {
+  AGY_DIRECTIVE_HOOK_NAME,
+  AGY_HOOKS_JSON_REL,
+  agyConfigHasDirectiveEntry,
+  agyHookOrderFindings,
+  formatAgyHookOrderDenial,
+} from "../hooks/classify/agy-hook-order.js";
 import { CANONICAL_GITIGNORE_BASELINE } from "../init-deposit/gitignore.js";
 import { bareVersionMarkerTargets } from "../init-deposit/hygiene.js";
 import {
@@ -2122,6 +2129,40 @@ export function checkReviewerPresence(projectRoot: string, seams: CheckSeams = {
 }
 
 /**
+ * #7378 agy hook ordering, read-only. When `.agents/hooks.json` carries Directive's
+ * entry, report every foreign `PreToolUse` hook that runs at or after it (the same
+ * predicate the per-call outer path uses). Doctor never edits the file.
+ */
+export function checkAgyHookOrder(projectRoot: string, seams: CheckSeams = {}): CheckResult {
+  const name = "agy-hook-order";
+  const text = readText(join(projectRoot, AGY_HOOKS_JSON_REL), seams);
+  const findings = text === null ? [] : agyHookOrderFindings(text);
+  const unparseable = findings.some((finding) => finding.kind === "unparseable-config");
+  if (text === null || (!unparseable && !agyConfigHasDirectiveEntry(text))) {
+    return {
+      name,
+      status: "pass",
+      detail: "No Directive agy hook entry in .agents/hooks.json; ordering not applicable.",
+      data: { applicable: false },
+    };
+  }
+  if (findings.length === 0) {
+    return {
+      name,
+      status: "pass",
+      detail: `No foreign PreToolUse hook runs at or after ${AGY_DIRECTIVE_HOOK_NAME}.`,
+      data: { applicable: true, findings: [] },
+    };
+  }
+  return {
+    name,
+    status: "fail",
+    detail: formatAgyHookOrderDenial(findings),
+    data: { applicable: true, findings: findings.map((finding) => ({ ...finding })) },
+  };
+}
+
+/**
  * #1617 WSL root-runtime ownership advisory. Native Windows/macOS skip.
  * Failures stay advisory so doctor/fix remain reachable under mismatch.
  */
@@ -2245,6 +2286,7 @@ export function runChecksImpl(
     checks.push(checkReviewerPresence(projectRoot, seams));
     checks.push(checkCursorSdkAuth());
     checks.push(checkWslOwnershipGuard(projectRoot));
+    checks.push(checkAgyHookOrder(projectRoot, seams));
     checks.push(checkDanglingNodeModulesLinks(projectRoot, seams));
     return {
       projectRoot,
@@ -2273,6 +2315,7 @@ export function runChecksImpl(
   checks.push(checkReviewerPresence(projectRoot, seams));
   checks.push(checkCursorSdkAuth());
   checks.push(checkWslOwnershipGuard(projectRoot));
+  checks.push(checkAgyHookOrder(projectRoot, seams));
   checks.push(checkDanglingNodeModulesLinks(projectRoot, seams));
   return {
     projectRoot,

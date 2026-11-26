@@ -1,12 +1,18 @@
 import { describe, expect, it } from "vitest";
 import { HOST_TOOL_SURFACE_AUDIT } from "../tools.js";
+import { AGY_DIRECTIVE_HOOK_NAME } from "./agy-hook-order.js";
 import {
   AGY_ADMISSION_VERDICT,
+  AGY_MITIGATION_COVERAGE,
   AGY_OBSERVED_BEHAVIORS,
   AGY_OBSERVED_HOST_VERSION,
   AGY_PRETOOLUSE_FIXTURES,
   AGY_SESSION_START_FIXTURE,
+  type AgyAdmissionVerdict,
+  type AgyMitigationCoverage,
+  agyActivationAdmitted,
   agyAdmissionPasses,
+  agyMitigationAdmissible,
 } from "./agy-observation.js";
 import { hookPayloadTopLevelKeys } from "./payload.js";
 import { CLASSIFY_HOOK_HOSTS } from "./types.js";
@@ -38,7 +44,7 @@ describe("agy host observation and admission verdict (#7345)", () => {
       "runtimeFailureBoundary",
     ]);
     for (const verdict of Object.values(AGY_ADMISSION_VERDICT.properties)) {
-      expect(["pass", "fail"]).toContain(verdict.status);
+      expect(["pass", "mitigated", "fail"]).toContain(verdict.status);
       expect(verdict.evidence.length).toBeGreaterThan(0);
       for (const id of verdict.evidence) expect(scenarios.has(id), id).toBe(true);
     }
@@ -61,6 +67,126 @@ describe("agy host observation and admission verdict (#7345)", () => {
     const allPass = { ...AGY_ADMISSION_VERDICT, overall: "pass" as const, properties: props };
     expect(agyAdmissionPasses(allPass)).toBe(true);
     expect(agyAdmissionPasses({ ...allPass, overall: "fail" })).toBe(false);
+  });
+});
+
+describe("agy mitigated verdict and the one activation gate (#7378)", () => {
+  const WIRING = {
+    depositedName: AGY_DIRECTIVE_HOOK_NAME,
+    perCallCallsPredicate: true,
+    laterRewriteDenied: true,
+  };
+  const props = AGY_ADMISSION_VERDICT.properties;
+  const mitigated: AgyAdmissionVerdict = {
+    ...AGY_ADMISSION_VERDICT,
+    overall: "mitigated",
+    properties: {
+      ...props,
+      finalExecutedArgumentIntegrity: {
+        ...props.finalExecutedArgumentIntegrity,
+        status: "mitigated",
+        mitigation: { id: "sort-last-hook-order", hostVersion: AGY_ADMISSION_VERDICT.hostVersion },
+      },
+    },
+  };
+  const passing: AgyAdmissionVerdict = {
+    ...AGY_ADMISSION_VERDICT,
+    overall: "pass",
+    properties: Object.fromEntries(
+      Object.entries(props).map(([key, value]) => [key, { ...value, status: "pass" as const }]),
+    ) as AgyAdmissionVerdict["properties"],
+  };
+
+  it("keeps integrity at fail while user-scope, plugin and reload are unobserved", () => {
+    expect(agyMitigationAdmissible()).toBe(false);
+    expect(props.finalExecutedArgumentIntegrity.status).toBe(
+      agyMitigationAdmissible() ? "mitigated" : "fail",
+    );
+    expect(AGY_ADMISSION_VERDICT.overall).toBe("fail");
+    expect(agyActivationAdmitted(AGY_ADMISSION_VERDICT, WIRING, AGY_DIRECTIVE_HOOK_NAME)).toBe(
+      false,
+    );
+  });
+
+  it("admits mitigated only when every hook source shows the predicate sees all", () => {
+    const seen: AgyMitigationCoverage = {
+      neighbourOrder: "predicate-sees-all",
+      userScopeHooks: "predicate-sees-all",
+      pluginHooks: "predicate-sees-all",
+      midSessionReload: "predicate-sees-all",
+    };
+    expect(agyMitigationAdmissible(seen)).toBe(true);
+    for (const key of Object.keys(seen) as (keyof AgyMitigationCoverage)[]) {
+      expect(agyMitigationAdmissible({ ...seen, [key]: "unobserved" })).toBe(false);
+      expect(agyMitigationAdmissible({ ...seen, [key]: "later-running-source-unreadable" })).toBe(
+        false,
+      );
+    }
+    expect(AGY_MITIGATION_COVERAGE.neighbourOrder).toBe("predicate-sees-all");
+  });
+
+  it("admits pass, and mitigated only with the name, the call and the denied rewrite", () => {
+    expect(agyActivationAdmitted(passing, WIRING, AGY_DIRECTIVE_HOOK_NAME)).toBe(true);
+    expect(agyActivationAdmitted(mitigated, WIRING, AGY_DIRECTIVE_HOOK_NAME)).toBe(true);
+    expect(
+      agyActivationAdmitted(
+        mitigated,
+        { ...WIRING, depositedName: "other" },
+        AGY_DIRECTIVE_HOOK_NAME,
+      ),
+    ).toBe(false);
+    expect(
+      agyActivationAdmitted(
+        mitigated,
+        { ...WIRING, perCallCallsPredicate: false },
+        AGY_DIRECTIVE_HOOK_NAME,
+      ),
+    ).toBe(false);
+    expect(
+      agyActivationAdmitted(
+        mitigated,
+        { ...WIRING, laterRewriteDenied: false },
+        AGY_DIRECTIVE_HOOK_NAME,
+      ),
+    ).toBe(false);
+  });
+
+  it("fails closed on fail, an absent verdict, an unnamed mitigation and a version mismatch", () => {
+    expect(agyActivationAdmitted(undefined, WIRING, AGY_DIRECTIVE_HOOK_NAME)).toBe(false);
+    expect(agyActivationAdmitted(AGY_ADMISSION_VERDICT, WIRING, AGY_DIRECTIVE_HOOK_NAME)).toBe(
+      false,
+    );
+    const unnamed: AgyAdmissionVerdict = {
+      ...mitigated,
+      properties: {
+        ...mitigated.properties,
+        finalExecutedArgumentIntegrity: {
+          ...mitigated.properties.finalExecutedArgumentIntegrity,
+          mitigation: undefined,
+        },
+      },
+    };
+    expect(agyActivationAdmitted(unnamed, WIRING, AGY_DIRECTIVE_HOOK_NAME)).toBe(false);
+    const stale: AgyAdmissionVerdict = {
+      ...mitigated,
+      hostVersion: "9.9.9",
+    };
+    expect(agyActivationAdmitted(stale, WIRING, AGY_DIRECTIVE_HOOK_NAME)).toBe(false);
+    const stillFailing: AgyAdmissionVerdict = {
+      ...mitigated,
+      properties: {
+        ...mitigated.properties,
+        runtimeFailureBoundary: { ...props.runtimeFailureBoundary, status: "fail" },
+      },
+    };
+    expect(agyActivationAdmitted(stillFailing, WIRING, AGY_DIRECTIVE_HOOK_NAME)).toBe(false);
+  });
+
+  it("records the collation neighbour run and the stated limits", () => {
+    expect(AGY_OBSERVED_BEHAVIORS.hookNameCollation.scenarios).toEqual(["n01"]);
+    const unobserved = AGY_ADMISSION_VERDICT.unobserved.join("\n");
+    expect(unobserved).toMatch(/does not check the agy version/);
+    expect(unobserved).toMatch(/Hostile edits to the agy hook config/);
   });
 });
 

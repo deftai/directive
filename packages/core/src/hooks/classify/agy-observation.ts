@@ -209,7 +209,12 @@ export type AgyAdmissionProperty =
   | "finalExecutedArgumentIntegrity"
   | "runtimeFailureBoundary";
 
-export type AgyAdmissionStatus = "pass" | "fail";
+/**
+ * `mitigated` (#7378): the property does not hold in general, but a named,
+ * wired mitigation restores it on the recorded host version. It is admissible
+ * only through {@link agyMitigationAdmissible}.
+ */
+export type AgyAdmissionStatus = "pass" | "mitigated" | "fail";
 
 export interface AgyObservedBehavior {
   /** Scenario ids from the observation run, so a reader can re-run them. */
@@ -217,8 +222,16 @@ export interface AgyObservedBehavior {
   readonly observed: string;
 }
 
+/** The mitigation a `mitigated` property names (#7378). */
+export interface AgyMitigationRecord {
+  readonly id: "sort-last-hook-order";
+  readonly hostVersion: string;
+}
+
 export interface AgyPropertyVerdict {
   readonly status: AgyAdmissionStatus;
+  /** Present exactly when `status` is `mitigated`. */
+  readonly mitigation?: AgyMitigationRecord;
   readonly summary: string;
   readonly evidence: readonly string[];
   /** Hazards the observation exposed even where the status is `pass`. */
@@ -231,7 +244,7 @@ export interface AgyAdmissionVerdict {
   readonly hostVersion: string;
   readonly observedOn: string;
   readonly properties: Readonly<Record<AgyAdmissionProperty, AgyPropertyVerdict>>;
-  /** `pass` only when every property passes. */
+  /** `pass` when every property passes; `mitigated` when none fails and one is mitigated. */
   readonly overall: AgyAdmissionStatus;
   /** What the observation did not establish. Never clears a `fail`. */
   readonly unobserved: readonly string[];
@@ -312,6 +325,17 @@ export const AGY_OBSERVED_BEHAVIORS = {
       "Named hooks run in hook-name order, not file order: `obs-z` listed before `obs-a` in the " +
       "file still ran after it.",
   },
+  hookNameCollation: {
+    scenarios: ["n01"],
+    observed:
+      "Neighbour run on agy 1.5.18 (win32, 2026-11-26), 20 hook names on one PreToolUse event, " +
+      "each ran once in UTF-8 byte order: `0-first`, `Aaa`, `ZZZZ`, `_under`, `obs-a`, " +
+      "`zzz-directive`, `zzzz`, `zzzz-`, `zzzz-Directive`, `zzzz-directivd`, `zzzz-directive`, " +
+      "`zzzz-directive-x`, `zzzz-directive0`, `zzzz-directive_x`, `zzzz-directivf`, `zzzz.dot`, " +
+      "`zzzzz`, `zzzzzzzz`, `~tilde`, then `é-name`. The ordering predicate treats names " +
+      "that extend, equal or compare above Directive's, and names outside `[A-Za-z0-9._~-]`, as " +
+      "at-or-after. The earlier 1.5.16 runs (s22, s23) only separated `obs-a` from `obs-z`.",
+  },
   matcherSemantics: {
     scenarios: ["s16", "s17", "s18", "s19"],
     observed:
@@ -362,7 +386,10 @@ export const AGY_ADMISSION_VERDICT: AgyAdmissionVerdict = {
         "after Directive's can rewrite `CommandLine` after Directive admitted it, and the host " +
         "offers no way to pin Directive last or lock the arguments. Only the arrangement " +
         "'Directive entry sorts last by name' preserves integrity (a later hook sees earlier " +
-        "rewrites: s11, s23), and it is not enforceable.",
+        "rewrites: s11, s23). #7378 builds that mitigation (sort-last name, ordering " +
+        "predicate on every call and in doctor), but `mitigated` is admissible only when " +
+        "user-scope hooks, plugin hooks and mid-session reload are observed " +
+        "(AGY_MITIGATION_COVERAGE); they are not, so the status stays `fail`.",
       evidence: ["s11", "s12", "s13", "s22", "s23"],
       hazards: [
         "A foreign hook named to sort after the Directive entry can replace the executed command.",
@@ -389,9 +416,92 @@ export const AGY_ADMISSION_VERDICT: AgyAdmissionVerdict = {
     "Hook scopes beyond project `.agents/hooks.json`: `~/.gemini/config/` and plugin `hooks.json`.",
     "Tool names `run_workflow`, `swarm`, `define_subagent`, and any delete, rename or move file tool: none was emitted by the observed prompts.",
     "`PostToolUse`, `PreInvocation`, `PostInvocation` and `Stop` payloads (v1 non-goals).",
-    "Behaviour after an Antigravity upgrade past 1.5.16.",
+    "Behaviour after an Antigravity upgrade past 1.5.18. Directive does not check the agy version " +
+      "at run time (operator decision, #7378); a changed hook-name collation would not be noticed.",
+    "Whether agy re-reads `.agents/hooks.json` during a session (#7378 mid-session reload).",
+    "Hostile edits to the agy hook config, including deleting or renaming Directive's own entry: " +
+      "no incumbent host guards its hook config, so this stays a stated limit (#7378).",
   ],
 };
+
+export type AgyMitigationOutcome =
+  | "predicate-sees-all"
+  | "later-running-source-unreadable"
+  | "unobserved";
+
+/**
+ * What the observation covers beyond the project `.agents/hooks.json` (#7378).
+ * `mitigated` is admissible only when every entry is `predicate-sees-all`.
+ */
+export interface AgyMitigationCoverage {
+  readonly neighbourOrder: AgyMitigationOutcome;
+  readonly userScopeHooks: AgyMitigationOutcome;
+  readonly pluginHooks: AgyMitigationOutcome;
+  readonly midSessionReload: AgyMitigationOutcome;
+}
+
+/**
+ * Coverage as observed. Neighbour order was observed (1.5.18, `n01`). User scope
+ * (`~/.gemini`), plugin hooks and mid-session reload of `.agents/hooks.json` were
+ * not, so integrity stays `fail` and activation halts until a later observation
+ * records them (#7378 clause 4).
+ */
+export const AGY_MITIGATION_COVERAGE: AgyMitigationCoverage = {
+  neighbourOrder: "predicate-sees-all",
+  userScopeHooks: "unobserved",
+  pluginHooks: "unobserved",
+  midSessionReload: "unobserved",
+};
+
+/** True only when every hook source shows the predicate sees every later-running hook. */
+export function agyMitigationAdmissible(
+  coverage: AgyMitigationCoverage = AGY_MITIGATION_COVERAGE,
+): boolean {
+  return Object.values(coverage).every((outcome) => outcome === "predicate-sees-all");
+}
+
+/** What the activation contract test learned about the deposited wiring (#7378). */
+export interface AgyActivationWiring {
+  /** Hook entry name the deposit writes. */
+  readonly depositedName: string;
+  /** The per-call path calls the ordering predicate. */
+  readonly perCallCallsPredicate: boolean;
+  /** A behavioural fixture showed a later-running foreign rewrite is denied. */
+  readonly laterRewriteDenied: boolean;
+}
+
+/**
+ * The one activation gate (#7378; replaces #7347 clauses 2 and 3). Admits `pass`;
+ * admits `mitigated` only with the named wiring and a denied later rewrite; fails
+ * closed on `fail`, an absent verdict, or anything else.
+ */
+export function agyActivationAdmitted(
+  verdict: AgyAdmissionVerdict | undefined,
+  wiring: AgyActivationWiring,
+  directiveHookName: string,
+): boolean {
+  if (verdict === undefined) return false;
+  if (verdict.overall === "pass") return agyAdmissionPasses(verdict);
+  if (verdict.overall !== "mitigated") return false;
+  const properties = Object.values(verdict.properties);
+  if (properties.some((property) => property.status === "fail")) return false;
+  const mitigated = properties.filter((property) => property.status === "mitigated");
+  if (
+    mitigated.length === 0 ||
+    mitigated.some(
+      (property) =>
+        property.mitigation?.id !== "sort-last-hook-order" ||
+        property.mitigation.hostVersion !== verdict.hostVersion,
+    )
+  ) {
+    return false;
+  }
+  return (
+    wiring.depositedName === directiveHookName &&
+    wiring.perCallCallsPredicate &&
+    wiring.laterRewriteDenied
+  );
+}
 
 /** True only when the committed verdict passes every property. */
 export function agyAdmissionPasses(verdict: AgyAdmissionVerdict = AGY_ADMISSION_VERDICT): boolean {
