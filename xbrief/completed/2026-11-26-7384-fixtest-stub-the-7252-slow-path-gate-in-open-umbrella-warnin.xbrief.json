@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #7384",
-    "updated": "2026-11-26T18:22:00Z"
+    "updated": "2026-11-26T19:06:14Z"
   },
   "plan": {
     "title": "fix(test): stub the #7252 slow-path gate in open-umbrella-warning test so it stays offline (#7265)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "fix(test): stub the #7252 slow-path gate in open-umbrella-warning test so it stays offline (#7265)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/7384",
@@ -16,23 +16,51 @@
     "items": [
       {
         "title": "open-umbrella-warning.test.ts replaces `slowPathCompleteGateSeam.evaluate` with `{ refuse: false }` for the complete test and restores it in `finally` (same pattern as main.test.ts), so the suite makes zero live `gh` calls.",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4df529b2939c9a27cd157fe0f7c7c300466973b6",
+          "recorded_at": "2026-11-26T19:06:14Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "The test passes with `GH_TOKEN=bad GH_HOST=invalid.example`, and runs in under ~1 s locally.",
-        "status": "proposed",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4df529b2939c9a27cd157fe0f7c7c300466973b6",
+          "recorded_at": "2026-11-26T19:06:14Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "A grep sweep lists other test files that run `lifecycleMain complete` with 2+ active running briefs and no seam stub; each is fixed or confirmed unaffected.",
-        "status": "proposed",
-        "id": "clause.3"
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4df529b2939c9a27cd157fe0f7c7c300466973b6",
+          "recorded_at": "2026-11-26T19:06:14Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "No threshold, workflow or product (main.ts) change.",
-        "status": "proposed",
-        "id": "clause.4"
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4df529b2939c9a27cd157fe0f7c7c300466973b6",
+          "recorded_at": "2026-11-26T19:06:14Z",
+          "recorded_by": "scope:complete"
+        }
       }
     ],
     "tags": [
@@ -96,7 +124,36 @@
         "origin": "deftai/directive#7384",
         "id": "github.issue.6632643532"
       },
-      "kind": "bug"
+      "kind": "bug",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "a95067b42d8eb981439230edef0069d605a71d3d",
+        "prNumber": 7398,
+        "prBase": "master",
+        "mergeCommit": "4df529b2939c9a27cd157fe0f7c7c300466973b6",
+        "deliveryBranch": "master",
+        "deliveryCommit": "e2d54c35dc94d59a6813e504b09f20c8522f8bac",
+        "verifiedAt": "2026-11-26T19:06:14Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:YTQ2NTZlZmEtNzdjMy00ZTZhLWEyYmMtNjYxNjdkYTg5NDA4",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          7385
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-26T19:06:14Z",
+      "completedSessionId": "host:claude:v1:YTQ2NTZlZmEtNzdjMy00ZTZhLWEyYmMtNjYxNjdkYTg5NDA4",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-26T19:06:14Z"
+      }
     },
     "acceptance": {
       "commands": [],
@@ -150,6 +207,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.6632643532",
-    "updated": "2026-11-26T18:22:00Z"
+    "updated": "2026-11-26T19:06:14Z"
   }
 }
