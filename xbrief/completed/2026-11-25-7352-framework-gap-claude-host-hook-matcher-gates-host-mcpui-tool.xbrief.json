@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #7352",
-    "updated": "2026-11-25T22:20:26Z"
+    "updated": "2026-11-26T00:55:45Z"
   },
   "plan": {
     "title": "[framework-gap] Claude host-hook matcher gates host MCP/UI tools (split from #7349)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Claude hard-refuse sessions currently gate host status and UI MCP tools together with Bash, Edit, and Write. This activation records Prefer-A Bound so a later product PR can admit non-gated host MCP under hard-refuse while write-shaped and forge-sensitive MCP stay refused.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/7352",
@@ -22,32 +22,53 @@
     "items": [
       {
         "title": "relieves: P1 — Add pure admitHardRefuseNonGatedMcp({toolName, mcpArgsText}) that ANDs isMcpTool, not isMcpProxyWrapper, classifyMcpTool === null, classifyHookAuthzOps empty, and not isMcpWriteShaped(toolName).",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P1 — Add pure admitHardRefuseNonGatedMcp({toolName, mcpArgsText}) that ANDs isMcpTool, not isMcpProxyWrapper, classifyMcpTool === null, classifyHookAuthzOps empty, and not isMcpWriteShaped(toolName).",
           "Traces": "#7352",
           "Description": "Primary touch: packages/runtime/src/hook-dispatch.ts"
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "eb0acc2fa63123892ea854f73ba20b93530463b7",
+          "recorded_at": "2026-11-26T00:55:45Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "relieves: P2 — On Claude tool.before only, call that admit before each installationIdentityDeny on local root-mismatch and pin/overlay hard-refuse arms; on admit emit host allow with an explicit not-gated message and skip setup/policy.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P2 — On Claude tool.before only, call that admit before each installationIdentityDeny on local root-mismatch and pin/overlay hard-refuse arms; on admit emit host allow with an explicit not-gated message and skip setup/policy.",
           "Traces": "#7352",
           "Description": "Primary touch: packages/runtime/src/hook-dispatch.test.ts"
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "eb0acc2fa63123892ea854f73ba20b93530463b7",
+          "recorded_at": "2026-11-26T00:55:45Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "relieves: P3 — Keep MCP_HOOK_MATCHER broad for #2711; fixtures must admit sanitized observed host UI names (mcp__ccd_turn__* / attested Claude UI spellings) under those arms and must still deny Bash/Edit/Write, CallMcpTool/use_tool, classifiable push/merge MCP, isMcpWriteShaped MCP (including path-bearing edit/create without local markers), and authz-classified MCP.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "Given Prefer-A Bound limbs, when this clause ships, then: relieves: P3 — Keep MCP_HOOK_MATCHER broad for #2711; fixtures must admit sanitized observed host UI names (mcp__ccd_turn__* / attested Claude UI spellings) under those arms and must still deny Bash/Edit/Write, CallMcpTool/use_tool, classifiable push/merge MCP, isMcpWriteShaped MCP (including path-bearing edit/create without local markers), and authz-classified MCP.",
           "Traces": "#7352",
           "Description": "Primary touch: packages/runtime/src/hook-dispatch-root-mismatch-recovery.test.ts"
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "eb0acc2fa63123892ea854f73ba20b93530463b7",
+          "recorded_at": "2026-11-26T00:55:45Z",
+          "recorded_by": "scope:complete"
         }
       }
     ],
@@ -722,9 +743,33 @@
           "host UI MCP admitted; Bash/Edit/Write and write-shaped MCP still denied"
         ],
         "model_tier": "standard"
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "f6933bc1e9f7c9c98c725bd9285324f181548536",
+        "prNumber": 7363,
+        "prBase": "master",
+        "mergeCommit": "eb0acc2fa63123892ea854f73ba20b93530463b7",
+        "deliveryBranch": "master",
+        "deliveryCommit": "eb0acc2fa63123892ea854f73ba20b93530463b7",
+        "verifiedAt": "2026-11-26T00:55:45Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "identityBasis": "merge-time-mark"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-26T00:55:45Z",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-26T00:55:45Z"
       }
     },
     "id": "github.issue.6611317720",
-    "updated": "2026-11-25T22:20:26Z"
+    "updated": "2026-11-26T00:55:45Z"
   }
 }

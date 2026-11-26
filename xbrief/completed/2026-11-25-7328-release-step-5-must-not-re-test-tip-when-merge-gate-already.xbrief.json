@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #7328",
-    "updated": "2026-11-25T18:26:50.312Z"
+    "updated": "2026-11-26T01:03:35Z"
   },
   "plan": {
     "title": "release: Step 5 must not re-test tip when merge-gate already green",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "release: Step 5 must not re-test tip when merge-gate already green",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/7328",
@@ -20,29 +20,50 @@
     "items": [
       {
         "title": "relieves: P1 — Provide one named release-input classifier that returns clean, session-scratch-only, or dirty and is used by readiness Phase 1, pipeline Step 1, and evaluateCiReuse; session-scratch-only means working-tree .gitignore pure additions where every added line is a member of imported DIRECTIVE_GITIGNORE_LINES and/or untracked paths limited to the named constant .deft/GENERATION.json and .deft/directive/ in porcelain collapsed form, with a no-concealment check that the union of untracked paths visible under HEAD ignore rules and candidate working-tree rules still refuses any non-allowlisted path; refuse removals, modified lines, non-member lines, staged .gitignore, and other tracked dirt; print ignored entries; pass readiness and Step 1 without --allow-dirty; fixture the observed 21-line delta plus named ?? entries and a negative case where a member addition would hide non-allowlisted dirt.",
-        "status": "pending",
+        "status": "completed",
         "id": "1",
         "x-directive/artifact_path": "packages/core/src/release/ci-reuse.ts",
         "narrative": {
           "Acceptance": "relieves: P1 — Provide one named release-input classifier that returns clean, session-scratch-only, or dirty and is used by readiness Phase 1, pipeline Step 1, and evaluateCiReuse; session-scratch-only means working-tree .gitignore pure additions where every added line is a member of imported DIRECTIVE_GITIGNORE_LINES and/or untracked paths limited to the named constant .deft/GENERATION.json and .deft/directive/ in porcelain collapsed form, with a no-concealment check that the union of untracked paths visible under HEAD ignore rules and candidate working-tree rules still refuses any non-allowlisted path; refuse removals, modified lines, non-member lines, staged .gitignore, and other tracked dirt; print ignored entries; pass readiness and Step 1 without --allow-dirty; fixture the observed 21-line delta plus named ?? entries and a negative case where a member addition would hide non-allowlisted dirt."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a170b2b075a5b09876fc8d3fc04dec5c6a2eff64",
+          "recorded_at": "2026-11-26T00:53:40Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "relieves: P2 — Admit CI reuse and host-smoke from HEAD tree equals tip tree plus selecting the latest required-check attempt before testing completed/success without a hard nightly-lane success conjunct; amend skill Routine vs hard cut line 247 and the silent soft-pass forbid so tip-green reuse with printed per-lane nightly disposition is an allowed named mode; print truthful per-lane reason and URL and never claim lanes ran when they did not.",
-        "status": "pending",
+        "status": "completed",
         "id": "2",
         "x-directive/artifact_path": "packages/core/src/release/ci-reuse.test.ts",
         "narrative": {
           "Acceptance": "relieves: P2 — Admit CI reuse and host-smoke from HEAD tree equals tip tree plus selecting the latest required-check attempt before testing completed/success without a hard nightly-lane success conjunct; amend skill Routine vs hard cut line 247 and the silent soft-pass forbid so tip-green reuse with printed per-lane nightly disposition is an allowed named mode; print truthful per-lane reason and URL and never claim lanes ran when they did not."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a170b2b075a5b09876fc8d3fc04dec5c6a2eff64",
+          "recorded_at": "2026-11-26T00:53:40Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "relieves: P3 — Make the #5855 untied caller consult resolvePresentedIdentity so occupancyAdmission compares occupant to the host-published presenter and self-lease admits; acceptance proves occupant id equals resolved presenter id; genuinely foreign leases still refuse.",
-        "status": "pending",
+        "status": "completed",
         "id": "3",
         "x-directive/artifact_path": "packages/core/src/release/run-readiness.ts",
         "narrative": {
           "Acceptance": "relieves: P3 — Make the #5855 untied caller consult resolvePresentedIdentity so occupancyAdmission compares occupant to the host-published presenter and self-lease admits; acceptance proves occupant id equals resolved presenter id; genuinely foreign leases still refuse."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a170b2b075a5b09876fc8d3fc04dec5c6a2eff64",
+          "recorded_at": "2026-11-26T00:53:40Z",
+          "recorded_by": "scope:complete"
         }
       }
     ],
@@ -91,7 +112,19 @@
         "relieves: P2 — Admit CI reuse and host-smoke from HEAD tree equals tip tree plus selecting the latest required-check attempt before testing completed/success without a hard nightly-lane success conjunct; amend skill Routine vs hard cut line 247 and the silent soft-pass forbid so tip-green reuse with printed per-lane nightly disposition is an allowed named mode; print truthful per-lane reason and URL and never claim lanes ran when they did not.",
         "relieves: P3 — Make the #5855 untied caller consult resolvePresentedIdentity so occupancyAdmission compares occupant to the host-published presenter and self-lease admits; acceptance proves occupant id equals resolved presenter id; genuinely foreign leases still refuse."
       ],
-      "admitted_source_digest": "4956a30bd81fbaff0793c3ff8a19e98e0cb5ed64758397e518036eb0d07126c7"
+      "admitted_source_digest": "4956a30bd81fbaff0793c3ff8a19e98e0cb5ed64758397e518036eb0d07126c7",
+      "ambiguity_attestation": "none_found",
+      "sentences": [
+        "relieves: P1 — Provide one named release-input classifier that returns clean, session-scratch-only, or dirty and is used by readiness Phase 1, pipeline Step 1, and evaluateCiReuse; session-scratch-only means working-tree .gitignore pure additions where every added line is a member of imported DIRECTIVE_GITIGNORE_LINES and/or untracked paths limited to the named constant .deft/GENERATION.json and .deft/directive/ in porcelain collapsed form, with a no-concealment check that the union of untracked paths visible under HEAD ignore rules and candidate working-tree rules still refuses any non-allowlisted path; refuse removals, modified lines, non-member lines, staged .gitignore, and other tracked dirt; print ignored entries; pass readiness and Step 1 without --allow-dirty; fixture the observed 21-line delta plus named ?? entries and a negative case where a member addition would hide non-allowlisted dirt.",
+        "relieves: P2 — Admit CI reuse and host-smoke from HEAD tree equals tip tree plus selecting the latest required-check attempt before testing completed/success without a hard nightly-lane success conjunct; amend skill Routine vs hard cut line 247 and the silent soft-pass forbid so tip-green reuse with printed per-lane nightly disposition is an allowed named mode; print truthful per-lane reason and URL and never claim lanes ran when they did not.",
+        "relieves: P3 — Make the #5855 untied caller consult resolvePresentedIdentity so occupancyAdmission compares occupant to the host-published presenter and self-lease admits; acceptance proves occupant id equals resolved presenter id; genuinely foreign leases still refuse."
+      ],
+      "source_rung": "derived",
+      "derived_reason": "one clause per harvested lean item (3), in list order (#6333)",
+      "confessions": [
+        "release: Step 5 must not re-test tip when merge-gate already green",
+        "entries and a negative case where a member addition would hide non-allowlisted dirt."
+      ]
     },
     "metadata": {
       "intended_placement": {
@@ -1011,9 +1044,33 @@
           "tip-green CI reuse without hard nightly conjunct"
         ],
         "model_tier": "standard"
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "c4d9ec334c592cece8eade9215216d4cd8c9fbb9",
+        "prNumber": 7333,
+        "prBase": "master",
+        "mergeCommit": "a170b2b075a5b09876fc8d3fc04dec5c6a2eff64",
+        "deliveryBranch": "master",
+        "deliveryCommit": "eb0acc2fa63123892ea854f73ba20b93530463b7",
+        "verifiedAt": "2026-11-26T01:03:35Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "identityBasis": "merge-time-mark"
+      },
+      "completedAt": "2026-11-26T01:03:35Z",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-26T01:03:35Z"
       }
     },
     "id": "github.issue.6596913478",
-    "updated": "2026-11-25T18:26:50.312Z"
+    "updated": "2026-11-26T01:03:35Z"
   }
 }
