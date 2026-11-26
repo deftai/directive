@@ -8,6 +8,33 @@ import { join } from "node:path";
 import type { PackageManager } from "./pm.js";
 import { INSTALL_SCRIPT_POLICY_PLAN_LINE } from "./pm.js";
 
+/**
+ * Repair-plan bullet when host-hook opt-out rewrite/remove may run (#7349 P3).
+ * Kept in sync with core `hostHookRepairOptOutDisclosureBullet` (entry-guard-style
+ * CLI local copy — CLI production sources do not import core package deep paths).
+ */
+export function hostHookRepairOptOutDisclosureBullet(
+  host: "claude" | "cursor" | "codex" | "grok" = "claude",
+): string {
+  const registration =
+    host === "cursor"
+      ? ".cursor/hooks.json"
+      : host === "codex"
+        ? ".codex/hooks.json"
+        : host === "grok"
+          ? ".grok/hooks/deft.json"
+          : ".claude/settings.json";
+  const outerGlob =
+    host === "cursor"
+      ? ".cursor/deft-hook-*.mjs"
+      : host === "codex"
+        ? ".codex/deft-hook-*.mjs"
+        : host === "grok"
+          ? ".grok/hooks/deft-hook-*.mjs"
+          : ".claude/deft-hook-*.mjs";
+  return `rewrite or remove Directive host hooks when plan.policy.hostHooks opts out (${registration}, ${outerGlob})`;
+}
+
 /** Local IO shape (matches bookends BookendIo; avoid circular import). */
 export interface PresentIo {
   writeOut(text: string): void;
@@ -604,6 +631,8 @@ export function presentRepairPlan(io: PresentIo, fields: RepairPlanFields): void
     writeBullet(io, `check this project's Directive-managed files for ${fields.version}`);
     writeBullet(io, "write only what is missing or out of date");
     writeGitHookPlanBullets(io, gitHookPlanFor(fields));
+    // #7349 Prefer-A Bound P3: name host-hook paths before approval when opt-out rewrite may run.
+    writeBullet(io, hostHookRepairOptOutDisclosureBullet());
     writeBullet(io, "leave matching files and your other project files alone");
   } else {
     writeHumanParagraph(
@@ -615,6 +644,7 @@ export function presentRepairPlan(io: PresentIo, fields: RepairPlanFields): void
     writeBullet(io, `reinstall Directive ${fields.version} with ${fields.pm}`);
     writeBullet(io, "rerun project setup");
     writeGitHookPlanBullets(io, gitHookPlanFor(fields));
+    writeBullet(io, hostHookRepairOptOutDisclosureBullet());
     writeBlank(io);
     writeHumanParagraph(io, "Your existing settings and other files stay as they are.");
   }

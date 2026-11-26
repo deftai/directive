@@ -1,7 +1,14 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import {
+  hostHookOuterGlobRel,
+  hostHookRegistrationRelPath,
+  hostHookRepairDisclosurePaths,
+  hostHookRepairOptOutDisclosureBullet,
+} from "../init-deposit/host-hook-outer.js";
+import { HOOK_ROOT_MISMATCH_RECOVERY_GUIDANCE } from "../install-health/constants.js";
 import {
   DEFAULT_HOST_HOOKS_POLICY,
   disableHostHooks,
@@ -113,6 +120,11 @@ describe("hostHooks policy (#2752)", () => {
     expect(result.exitCode).toBe(0);
     expect(result.changed).toBe(true);
     expect(result.stdout).toContain("guardrails removed");
+    expect(result.stdout).toContain(hostHookRegistrationRelPath("cursor"));
+    expect(result.stdout).toContain("launch checkout");
+    expect(result.stdout).not.toContain(
+      "Run `directive install --repair` to strip Directive-managed hook entries",
+    );
     expect(loadHostHooksPolicyFromProject(root)).toMatchObject({
       cursor: false,
       claude: true,
@@ -135,6 +147,185 @@ describe("hostHooks policy (#2752)", () => {
     expect(result.exitCode).toBe(0);
     expect(result.changed).toBe(false);
     expect(result.stdout).toContain("ledger unchanged");
+  });
+
+  it("strips Claude settings and deft-hook module before exit 0 (#7349)", () => {
+    const root = project();
+    writeProjectDefinition(root, {});
+    mkdirSync(join(root, ".claude"), { recursive: true });
+    const outerRel = ".claude/deft-hook-deadbeef.mjs";
+    writeFileSync(join(root, outerRel), "export {}\n", "utf8");
+    writeFileSync(
+      join(root, ".claude/settings.json"),
+      `${JSON.stringify(
+        {
+          hooks: {
+            PreToolUse: [
+              {
+                matcher: "Bash",
+                hooks: [
+                  {
+                    type: "command",
+                    command: `node ${outerRel} --host claude --event tool.before`,
+                  },
+                ],
+              },
+            ],
+          },
+          permissions: { allow: ["Read"] },
+        },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+    mkdirSync(join(root, ".cursor"), { recursive: true });
+    writeFileSync(
+      join(root, ".cursor/hooks.json"),
+      `${JSON.stringify(
+        {
+          version: 1,
+          hooks: {
+            preToolUse: [
+              {
+                command:
+                  "node .cursor/hooks/deft-hook-abcd1234.mjs --host cursor --event tool.before",
+              },
+            ],
+          },
+        },
+        null,
+        2,
+      )}\n`,
+      "utf8",
+    );
+
+    const result = disableHostHooks(root, { host: "claude", confirm: true, actor: "test" });
+    expect(result.exitCode).toBe(0);
+    expect(result.changed).toBe(true);
+    expect(result.stdout).toContain("Cleared live Directive host-hook registration");
+    expect(result.stdout).toContain(".claude/settings.json");
+    expect(result.stdout).toContain(outerRel);
+    expect(result.stdout).toContain(hostHookOuterGlobRel("claude"));
+    expect(result.touchedPaths).toEqual(
+      expect.arrayContaining([".claude/settings.json", outerRel, hostHookOuterGlobRel("claude")]),
+    );
+
+    const settings = JSON.parse(readFileSync(join(root, ".claude/settings.json"), "utf8")) as {
+      hooks?: unknown;
+      permissions?: { allow?: string[] };
+    };
+    expect(settings.hooks).toBeUndefined();
+    expect(settings.permissions?.allow).toEqual(["Read"]);
+    expect(existsSync(join(root, outerRel))).toBe(false);
+    expect(loadHostHooksPolicyFromProject(root).claude).toBe(false);
+    expect(loadHostHooksPolicyFromProject(root).cursor).toBe(true);
+    expect(readFileSync(join(root, ".cursor/hooks.json"), "utf8")).toContain("--host cursor");
+  });
+
+  it("does not delete unrelated --host hooks when disabling Claude (#7349 Greptile)", () => {
+    const root = project();
+    writeProjectDefinition(root, {});
+    mkdirSync(join(root, ".claude"), { recursive: true });
+    writeFileSync(
+      join(root, ".claude/settings.json"),
+      `${JSON.stringify({
+        hooks: {
+          PreToolUse: [
+            { hooks: [{ command: "company-check --host claude" }] },
+            {
+              hooks: [
+                {
+                  command: "node .claude/deft-hook-abcd1234.mjs --host claude --event tool.before",
+                },
+              ],
+            },
+          ],
+        },
+      })}\n`,
+      "utf8",
+    );
+    writeFileSync(join(root, ".claude/deft-hook-abcd1234.mjs"), "export {}\n", "utf8");
+
+    const result = disableHostHooks(root, { host: "claude", confirm: true, actor: "test" });
+    expect(result.exitCode).toBe(0);
+    const content = readFileSync(join(root, ".claude/settings.json"), "utf8");
+    expect(content).toContain("company-check --host claude");
+    expect(content).not.toContain("deft-hook-abcd1234");
+  });
+
+  it("keeps user commands in a shared PreToolUse group when stripping Directive (#7349 Greptile)", () => {
+    const root = project();
+    writeProjectDefinition(root, {});
+    mkdirSync(join(root, ".claude"), { recursive: true });
+    writeFileSync(
+      join(root, ".claude/settings.json"),
+      `${JSON.stringify({
+        hooks: {
+          PreToolUse: [
+            {
+              hooks: [
+                { command: "./user-pretool.sh" },
+                { command: "deft hook:dispatch --host claude --event tool.before" },
+              ],
+            },
+          ],
+        },
+      })}\n`,
+      "utf8",
+    );
+
+    const result = disableHostHooks(root, { host: "claude", confirm: true, actor: "test" });
+    expect(result.exitCode).toBe(0);
+    const content = readFileSync(join(root, ".claude/settings.json"), "utf8");
+    expect(content).toContain("./user-pretool.sh");
+    expect(content).not.toContain("deft hook:dispatch");
+  });
+
+  it("discloses live-strip failure when Claude settings JSON is invalid (#7349 / #5574)", () => {
+    const root = project();
+    writeProjectDefinition(root, {});
+    mkdirSync(join(root, ".claude"), { recursive: true });
+    writeFileSync(join(root, ".claude/settings.json"), "{not-json\n", "utf8");
+
+    const result = disableHostHooks(root, { host: "claude", confirm: true, actor: "test" });
+    expect(result.exitCode).toBe(2);
+    expect(result.stdout).toContain("Live strip failed after policy save");
+    expect(result.stdout).toContain("not valid JSON");
+    expect(result.stdout).toContain(".claude/settings.json");
+    expect(loadHostHooksPolicyFromProject(root).claude).toBe(false);
+  });
+
+  it("discloses live-strip failure when Claude settings is a non-object (#7349 / #5574)", () => {
+    const root = project();
+    writeProjectDefinition(root, {});
+    mkdirSync(join(root, ".claude"), { recursive: true });
+    writeFileSync(join(root, ".claude/settings.json"), '"string-config"\n', "utf8");
+
+    const result = disableHostHooks(root, { host: "claude", confirm: true, actor: "test" });
+    expect(result.exitCode).toBe(2);
+    expect(result.stdout).toContain("Live strip failed after policy save");
+    expect(result.stdout).toContain("must contain a JSON object");
+    expect(loadHostHooksPolicyFromProject(root).claude).toBe(false);
+  });
+
+  it("names launch-checkout disable/strip and opt-out-gated repair (#7349 P2)", () => {
+    expect(HOOK_ROOT_MISMATCH_RECOVERY_GUIDANCE).toContain("launch checkout");
+    expect(HOOK_ROOT_MISMATCH_RECOVERY_GUIDANCE).toContain("disable-host-hooks");
+    expect(HOOK_ROOT_MISMATCH_RECOVERY_GUIDANCE).toContain("strips opted-out hosts only");
+    expect(HOOK_ROOT_MISMATCH_RECOVERY_GUIDANCE).toContain("new session alone is not enough");
+    expect(HOOK_ROOT_MISMATCH_RECOVERY_GUIDANCE).not.toContain(
+      "the disable takes effect in a new session",
+    );
+  });
+
+  it("exposes repair disclosure paths for Claude settings and outers (#7349 P3)", () => {
+    expect(hostHookRepairDisclosurePaths("claude")).toEqual([
+      ".claude/settings.json",
+      ".claude/deft-hook-*.mjs",
+    ]);
+    expect(hostHookRepairOptOutDisclosureBullet("claude")).toContain(".claude/settings.json");
+    expect(hostHookRepairOptOutDisclosureBullet("claude")).toContain(".claude/deft-hook-*.mjs");
   });
 
   it("returns config error when PROJECT-DEFINITION is missing", () => {

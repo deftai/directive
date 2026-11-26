@@ -487,7 +487,9 @@
           "packages/core/src/init-deposit/host-hook-outer.ts",
           "changelog.d/7349-disable-host-hooks-strip-or-repair.md",
           "packages/cli/src/entry-guard.ts",
-          "xbrief/active/2026-11-25-7349-framework-gap-disable-host-hooks-repair-must-clear-claude-ho.xbrief.json"
+          "xbrief/active/2026-11-25-7349-framework-gap-disable-host-hooks-repair-must-clear-claude-ho.xbrief.json",
+          "packages/cli/src/plan-present.ts",
+          "packages/cli/src/install-bookend.test.ts"
         ],
         "file_scope_confidence": "high",
         "depends_on": [],
@@ -500,7 +502,8 @@
         ],
         "model_tier": "standard"
       },
-      "activationPullRequest": 7371
+      "activationPullRequest": 7371,
+      "productPullRequest": 7370
     },
     "id": "github.issue.6610618436",
     "updated": "2026-11-25T19:03:16Z"

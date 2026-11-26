@@ -1,4 +1,9 @@
 import { HOOK_HOSTS, type HookHost } from "../hooks/hook-hosts.js";
+import {
+  hostHookRegistrationRelPath,
+  hostHookRepairDisclosurePaths,
+  stripHostHookRegistrationInPlace,
+} from "../init-deposit/host-hook-outer.js";
 import { withProjectDefinitionMutation } from "../vbrief-build/project-definition-mutation.js";
 import { migrateLegacyPolicyKey, PLAN_POLICY_KEY, readPlanPolicy } from "./plan-extensions.js";
 import { policyColonInvocation } from "./policy-invocation.js";
@@ -180,9 +185,11 @@ export interface DisableHostHooksResult {
   readonly exitCode: 0 | 1 | 2;
   readonly stdout: string;
   readonly changed: boolean;
+  /** Relative paths rewritten or removed while clearing live host hooks (#7349). */
+  readonly touchedPaths?: readonly string[];
 }
 
-/** Persist `hostHooks.<host>=false` after capability-cost disclosure (#3571). */
+/** Persist `hostHooks.<host>=false` and clear live host hooks (#3571 / #7349). */
 export function disableHostHooks(
   projectRoot: string,
   options: DisableHostHooksOptions,
@@ -252,12 +259,40 @@ export function disableHostHooks(
       return { changed: changedFlag };
     });
 
+    // Policy/audit already saved — live strip returns operational error (#7349 / #5574).
+    const live = stripHostHookRegistrationInPlace(projectRoot, options.host);
+    const stripError = live.error ?? null;
+    const registration = hostHookRegistrationRelPath(options.host);
+    const disclosure = hostHookRepairDisclosurePaths(options.host);
     const lines = [
       `\u2713 ${FIELD_HOST_HOOKS}.${options.host}=false (deft-hook guardrails removed for ${options.host}; result is tracked).`,
       changed ? "  audit: meta/policy-changes.log updated." : POLICY_AUDIT_NOOP_STDOUT,
-      "  Run `directive install --repair` to strip Directive-managed hook entries for that host.",
     ];
-    return { exitCode: 0, stdout: `${lines.join("\n")}\n`, changed };
+    if (stripError !== null) {
+      lines.push(`  Live strip failed after policy save: ${stripError}`);
+      lines.push(
+        `  Repair: fix ${registration} JSON then re-run disable-host-hooks, or \`directive install --repair\` in the launch checkout.`,
+      );
+    } else {
+      lines.push(
+        live.stripped
+          ? `  Cleared live Directive host-hook registration in this checkout:`
+          : `  Live Directive host-hook registration already clear in this checkout:`,
+      );
+      lines.push(...live.touchedPaths.map((p) => `    - ${p}`));
+      lines.push(
+        `  Verify: confirm ${registration} has no Directive PreToolUse entries (or is {}) and ${disclosure[1]} is gone.`,
+      );
+      lines.push(
+        `  Hooks bind to the launch checkout; run this verb (or \`directive install --repair\`) there — a new session alone is not enough.`,
+      );
+    }
+    return {
+      exitCode: stripError !== null ? 2 : 0,
+      stdout: `${lines.join("\n")}\n`,
+      changed: changed || live.stripped,
+      touchedPaths: live.touchedPaths,
+    };
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     if (message.includes("ENOENT") || message.includes("PROJECT-DEFINITION not found")) {
