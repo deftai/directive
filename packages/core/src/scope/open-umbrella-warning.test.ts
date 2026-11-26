@@ -40,7 +40,7 @@ vi.mock("../staleness-tickler/run.js", async (importOriginal) => {
   };
 });
 
-import { lifecycleMain } from "./main.js";
+import { lifecycleMain, slowPathCompleteGateSeam } from "./main.js";
 import {
   completedPathForScopeMove,
   findOpenUmbrellaReferences,
@@ -497,23 +497,30 @@ describe("scope complete open umbrella warning", () => {
     writeCachedIssue(root, 1119, { title: "Umbrella tracker", labels: ["epic"] });
     const stdout = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
     const stderr = vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    // #7384: stub the #7252 slow-path gate so the test stays offline.
+    const previousGate = slowPathCompleteGateSeam.evaluate;
+    slowPathCompleteGateSeam.evaluate = () => ({ refuse: false });
 
-    // Code-bearing (github issue ref) needs explicit non-delivery or delivery evidence (#3041).
-    expect(
-      lifecycleMain([
-        "complete",
-        child,
-        "--project-root",
-        root,
-        "--non-delivery",
-        "accepted_not_delivered",
-      ]),
-    ).toBe(0);
+    try {
+      // Code-bearing (github issue ref) needs explicit non-delivery or delivery evidence (#3041).
+      expect(
+        lifecycleMain([
+          "complete",
+          child,
+          "--project-root",
+          root,
+          "--non-delivery",
+          "accepted_not_delivered",
+        ]),
+      ).toBe(0);
 
-    const out = stdout.mock.calls.map(([chunk]) => String(chunk)).join("");
-    const err = stderr.mock.calls.map(([chunk]) => String(chunk)).join("");
-    expect(out).toContain("Completed child.xbrief.json");
-    expect(err).toContain("Warning: scope:complete found open umbrella/tracker reference");
-    expect(err).toContain("#1119");
+      const out = stdout.mock.calls.map(([chunk]) => String(chunk)).join("");
+      const err = stderr.mock.calls.map(([chunk]) => String(chunk)).join("");
+      expect(out).toContain("Completed child.xbrief.json");
+      expect(err).toContain("Warning: scope:complete found open umbrella/tracker reference");
+      expect(err).toContain("#1119");
+    } finally {
+      slowPathCompleteGateSeam.evaluate = previousGate;
+    }
   });
 });
