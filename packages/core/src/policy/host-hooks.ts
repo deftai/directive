@@ -62,6 +62,8 @@ export const DEFAULT_HOST_HOOKS_POLICY: HostHooksPolicy = {
   cursor: true,
   grok: true,
   codex: true,
+  // agy stays off until the deposit-doctor slice passes the admission verdict (#7346).
+  agy: false,
 };
 
 export interface HostHooksPolicyField {
@@ -92,6 +94,7 @@ export function resolveHostHooksPolicy(raw: unknown): HostHooksPolicy {
     cursor: readHostBoolean(rec, "cursor", DEFAULT_HOST_HOOKS_POLICY.cursor),
     grok: readHostBoolean(rec, "grok", DEFAULT_HOST_HOOKS_POLICY.grok),
     codex: readHostBoolean(rec, "codex", DEFAULT_HOST_HOOKS_POLICY.codex),
+    agy: readHostBoolean(rec, "agy", DEFAULT_HOST_HOOKS_POLICY.agy),
   };
 }
 
@@ -260,7 +263,12 @@ export function disableHostHooks(
     });
 
     // Policy/audit already saved — live strip returns operational error (#7349 / #5574).
-    const live = stripHostHookRegistrationInPlace(projectRoot, options.host);
+    // agy has no Directive deposit until the deposit-doctor slice (#7346), and its
+    // `.agents/hooks.json` is a named-object file the nested-hook strip must not rewrite.
+    const live =
+      options.host === "agy"
+        ? { touchedPaths: [] as string[], stripped: false, error: undefined }
+        : stripHostHookRegistrationInPlace(projectRoot, options.host);
     const stripError = live.error ?? null;
     const registration = hostHookRegistrationRelPath(options.host);
     const disclosure = hostHookRepairDisclosurePaths(options.host);

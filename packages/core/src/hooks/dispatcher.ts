@@ -151,6 +151,7 @@ import {
   type RoutingSpawnClass,
 } from "../swarm/routing-honor.js";
 import type { ReadWorkerAuthAssignmentResult } from "../swarm/worker-auth-assignment.js";
+import { renderAgyHostDecision } from "./classify/agy-wire.js";
 import {
   formatLauncherCorrectLifecycleRecovery,
   UNRESOLVED_HOST_OWNER,
@@ -6180,6 +6181,7 @@ export function runSessionEndHook(
 }
 
 export function renderHostDecision(host: HookHost, decision: HookDecision): string {
+  if (host === "agy") return renderAgyHostDecision(decision);
   if (decision.verdict === "allow") {
     const advisory = decision.event === "tool.before" ? allowAdvisoryText(decision) : null;
     if (

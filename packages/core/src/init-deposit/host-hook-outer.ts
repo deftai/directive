@@ -75,6 +75,8 @@ export function hostHookOuterDepositDir(host: HookHost): string {
       return ".claude";
     case "codex":
       return ".codex";
+    case "agy":
+      return ".agents";
     default: {
       const _exhaustive: never = host;
       return _exhaustive;
@@ -93,6 +95,8 @@ export function hostHookRegistrationRelPath(host: HookHost): string {
       return ".cursor/hooks.json";
     case "codex":
       return ".codex/hooks.json";
+    case "agy":
+      return ".agents/hooks.json";
     default: {
       const _exhaustive: never = host;
       return _exhaustive;
