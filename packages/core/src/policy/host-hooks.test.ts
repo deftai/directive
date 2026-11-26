@@ -2,13 +2,13 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { HOOK_ROOT_MISMATCH_RECOVERY_GUIDANCE } from "../install-health/constants.js";
 import {
   hostHookOuterGlobRel,
   hostHookRegistrationRelPath,
   hostHookRepairDisclosurePaths,
   hostHookRepairOptOutDisclosureBullet,
 } from "../init-deposit/host-hook-outer.js";
+import { HOOK_ROOT_MISMATCH_RECOVERY_GUIDANCE } from "../install-health/constants.js";
 import {
   DEFAULT_HOST_HOOKS_POLICY,
   disableHostHooks,
@@ -188,7 +188,8 @@ describe("hostHooks policy (#2752)", () => {
           hooks: {
             preToolUse: [
               {
-                command: "node .cursor/hooks/deft-hook-abcd1234.mjs --host cursor --event tool.before",
+                command:
+                  "node .cursor/hooks/deft-hook-abcd1234.mjs --host cursor --event tool.before",
               },
             ],
           },

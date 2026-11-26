@@ -253,7 +253,12 @@ function stripCursorHostHookConfig(config: Record<string, unknown>): Record<stri
   return { ...config, version: 1, hooks: nextHooks };
 }
 
-function writeJsonAtomic(projectRoot: string, absPath: string, relPath: string, payload: unknown): void {
+function writeJsonAtomic(
+  projectRoot: string,
+  absPath: string,
+  relPath: string,
+  payload: unknown,
+): void {
   const next = `${JSON.stringify(payload, null, 2)}\n`;
   const parent = dirname(absPath);
   const temporary = join(parent, `${basename(absPath)}.deft-${process.pid}.tmp`);
@@ -311,7 +316,9 @@ export function stripHostHookRegistrationInPlace(
       );
     }
     const next =
-      host === "cursor" ? stripCursorHostHookConfig(config) : stripNestedHostHookConfig(config, host);
+      host === "cursor"
+        ? stripCursorHostHookConfig(config)
+        : stripNestedHostHookConfig(config, host);
     const after = `${JSON.stringify(next, null, 2)}\n`;
     if (after !== before) {
       writeJsonAtomic(projectRoot, regAbs, regRel, next);
