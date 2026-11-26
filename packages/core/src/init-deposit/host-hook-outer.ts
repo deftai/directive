@@ -20,6 +20,9 @@
  */
 
 import { createHash } from "node:crypto";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { basename, dirname, join, resolve } from "node:path";
+import { containedRemove, containedRename, containedWrite } from "../fs/contained-write.js";
 import type { HookHost } from "../hooks/dispatcher.js";
 import { SHELL_TOOL_NAMES } from "../hooks/tools.js";
 import { ENTRY_GUARD_MESSAGES } from "../install-health/constants.js";
@@ -61,23 +64,285 @@ export function hostHookOuterFileName(sha8: string): string {
   return `deft-hook-${sha8}.mjs`;
 }
 
-/** Deposit-relative path for the committed outer (per host). */
-export function hostHookOuterRelPath(host: HookHost, sha8: string): string {
-  const name = hostHookOuterFileName(sha8);
+/** Deposit directory that holds `deft-hook-<sha8>.mjs` for `host` (#7349). */
+export function hostHookOuterDepositDir(host: HookHost): string {
   switch (host) {
     case "grok":
-      return `.grok/hooks/${name}`;
+      return ".grok/hooks";
     case "cursor":
-      return `.cursor/hooks/${name}`;
+      return ".cursor/hooks";
     case "claude":
-      return `.claude/${name}`;
+      return ".claude";
     case "codex":
-      return `.codex/${name}`;
+      return ".codex";
     default: {
       const _exhaustive: never = host;
       return _exhaustive;
     }
   }
+}
+
+/** Host registration file that lists Directive PreToolUse entries (#7349). */
+export function hostHookRegistrationRelPath(host: HookHost): string {
+  switch (host) {
+    case "claude":
+      return ".claude/settings.json";
+    case "grok":
+      return ".grok/hooks/deft.json";
+    case "cursor":
+      return ".cursor/hooks.json";
+    case "codex":
+      return ".codex/hooks.json";
+    default: {
+      const _exhaustive: never = host;
+      return _exhaustive;
+    }
+  }
+}
+
+/** Glob operators use when verifying leftover outers for `host` (#7349). */
+export function hostHookOuterGlobRel(host: HookHost): string {
+  return `${hostHookOuterDepositDir(host)}/deft-hook-*.mjs`;
+}
+
+/**
+ * Operator-facing paths repair / disable must name when rewriting host hooks
+ * (#7349 Prefer-A Bound P3): registration file + outer module glob.
+ */
+export function hostHookRepairDisclosurePaths(host: HookHost): readonly string[] {
+  return [hostHookRegistrationRelPath(host), hostHookOuterGlobRel(host)];
+}
+
+/** Repair-plan bullet SoT when host-hook opt-out rewrite/remove may run (#7349). */
+export function hostHookRepairOptOutDisclosureBullet(host: HookHost = "claude"): string {
+  const paths = hostHookRepairDisclosurePaths(host).join(", ");
+  return `rewrite or remove Directive host hooks when plan.policy.hostHooks opts out (${paths})`;
+}
+
+/** Deposit-relative path for the committed outer (per host). */
+export function hostHookOuterRelPath(host: HookHost, sha8: string): string {
+  return `${hostHookOuterDepositDir(host)}/${hostHookOuterFileName(sha8)}`;
+}
+
+/**
+ * Delete every `deft-hook-<sha8>.mjs` under the host deposit dir (#7349).
+ * Returns relative paths that were removed.
+ */
+export function removeHostHookOuterModules(projectRoot: string, host: HookHost): string[] {
+  const dirRel = hostHookOuterDepositDir(host);
+  const dirAbs = join(projectRoot, dirRel);
+  if (!existsSync(dirAbs)) return [];
+  const removed: string[] = [];
+  for (const name of readdirSync(dirAbs)) {
+    if (!/^deft-hook-[a-f0-9]{8}\.mjs$/.test(name)) continue;
+    const rel = `${dirRel}/${name}`;
+    const abs = join(projectRoot, rel);
+    if (
+      containedRemove({
+        root: projectRoot,
+        target: abs,
+        mutation: { path: rel },
+      }).removed
+    ) {
+      removed.push(rel);
+    }
+  }
+  return removed;
+}
+
+const GROK_PRETOOLUSE_WRAPPER_REL = ".grok/hooks/deft-pretooluse-wrapper.sh";
+
+function objectRecord(value: unknown): Record<string, unknown> | null {
+  return value !== null && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+/** True when a registered command is Directive-managed for `host` (#7349). */
+export function isDirectiveManagedHostHookCommand(commandText: string, host: HookHost): boolean {
+  if (isHostHookOuterCommand(commandText)) return true;
+  if (commandText.includes("deft-pretooluse-wrapper.sh")) return host === "grok";
+  if (
+    commandText.includes("deft-hook") ||
+    commandText.includes("deft hook:dispatch") ||
+    commandText.includes("node_modules/@deftai/directive-runtime/dist/hook-bin.js") ||
+    commandText.includes("deft-cursor-hook-adapter.mjs")
+  ) {
+    return true;
+  }
+  return commandText.includes(`--host ${host}`);
+}
+
+function nestedCommands(value: unknown): string[] {
+  const group = objectRecord(value);
+  if (group === null || !Array.isArray(group.hooks)) return [];
+  return group.hooks.flatMap((candidate) => {
+    const text = hostHookEntryText(candidate);
+    return text === null ? [] : [text];
+  });
+}
+
+function withoutManagedNestedHooks(value: unknown, host: HookHost): unknown | null {
+  const group = objectRecord(value);
+  if (group === null || !Array.isArray(group.hooks)) return value;
+  const kept = group.hooks.filter((candidate) => {
+    const commandText = hostHookEntryText(candidate);
+    return !(commandText !== null && isDirectiveManagedHostHookCommand(commandText, host));
+  });
+  if (kept.length === group.hooks.length) return value;
+  return kept.length === 0 ? null : { ...group, hooks: kept };
+}
+
+function stripNestedHostHookConfig(
+  config: Record<string, unknown>,
+  host: HookHost,
+): Record<string, unknown> {
+  const hooks = objectRecord(config.hooks);
+  if (hooks === null) {
+    const { hooks: _hooks, ...rest } = config;
+    return rest;
+  }
+  const nextHooks: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(hooks)) {
+    if (!Array.isArray(value)) {
+      nextHooks[key] = value;
+      continue;
+    }
+    const filtered =
+      key === "SessionEnd"
+        ? value
+            .map((entry) => withoutManagedNestedHooks(entry, host))
+            .filter((entry) => entry !== null)
+        : value.filter((entry) => {
+            const commands = nestedCommands(entry);
+            if (commands.length === 0) return true;
+            return !commands.some((text) => isDirectiveManagedHostHookCommand(text, host));
+          });
+    if (filtered.length > 0) nextHooks[key] = filtered;
+  }
+  if (Object.keys(nextHooks).length === 0) {
+    const { hooks: _hooks, ...rest } = config;
+    return rest;
+  }
+  return { ...config, hooks: nextHooks };
+}
+
+function stripCursorHostHookConfig(config: Record<string, unknown>): Record<string, unknown> {
+  const hooks = objectRecord(config.hooks);
+  if (hooks === null) {
+    const { hooks: _hooks, version: _version, ...rest } = config;
+    return rest;
+  }
+  const nextHooks: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(hooks)) {
+    if (!Array.isArray(value)) {
+      nextHooks[key] = value;
+      continue;
+    }
+    const filtered = value.filter((entry) => {
+      const record = objectRecord(entry);
+      if (typeof record?.command !== "string") return true;
+      return !isDirectiveManagedHostHookCommand(record.command, "cursor");
+    });
+    if (filtered.length > 0) nextHooks[key] = filtered;
+  }
+  if (Object.keys(nextHooks).length === 0) {
+    const { hooks: _hooks, version: _version, ...rest } = config;
+    return rest;
+  }
+  return { ...config, version: 1, hooks: nextHooks };
+}
+
+function writeJsonAtomic(projectRoot: string, absPath: string, relPath: string, payload: unknown): void {
+  const next = `${JSON.stringify(payload, null, 2)}\n`;
+  const parent = dirname(absPath);
+  const temporary = join(parent, `${basename(absPath)}.deft-${process.pid}.tmp`);
+  try {
+    containedWrite({
+      root: resolve(projectRoot),
+      target: temporary,
+      data: next,
+      mode: "replace",
+      mutation: { kind: "stripped", path: relPath },
+    });
+    containedRename({
+      root: resolve(projectRoot),
+      from: temporary,
+      to: absPath,
+      mutation: false,
+    });
+  } catch (err) {
+    try {
+      containedRemove({ root: resolve(projectRoot), target: temporary, mutation: false });
+    } catch {
+      /* best-effort cleanup */
+    }
+    throw err;
+  }
+}
+
+/**
+ * Strip Directive-managed hook registration for one host in the current project
+ * root and remove leftover outer modules (#7349 Prefer-A Bound P1). Does not
+ * touch other hosts' deposits.
+ */
+export function stripHostHookRegistrationInPlace(
+  projectRoot: string,
+  host: HookHost,
+): { touchedPaths: string[]; stripped: boolean } {
+  const touched: string[] = [];
+  let stripped = false;
+  const regRel = hostHookRegistrationRelPath(host);
+  const regAbs = join(projectRoot, regRel);
+  if (existsSync(regAbs)) {
+    const before = readFileSync(regAbs, "utf8");
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(before) as unknown;
+    } catch (cause) {
+      throw new Error(
+        `${regRel} is not valid JSON; refusing to overwrite user configuration: ${cause}`,
+      );
+    }
+    const config = objectRecord(parsed);
+    if (config === null) {
+      throw new Error(
+        `${regRel} must contain a JSON object; refusing to overwrite user configuration.`,
+      );
+    }
+    const next =
+      host === "cursor" ? stripCursorHostHookConfig(config) : stripNestedHostHookConfig(config, host);
+    const after = `${JSON.stringify(next, null, 2)}\n`;
+    if (after !== before) {
+      writeJsonAtomic(projectRoot, regAbs, regRel, next);
+      touched.push(regRel);
+      stripped = true;
+    }
+  }
+
+  for (const rel of removeHostHookOuterModules(projectRoot, host)) {
+    touched.push(rel);
+    stripped = true;
+  }
+
+  if (host === "grok") {
+    const wrapperAbs = join(projectRoot, GROK_PRETOOLUSE_WRAPPER_REL);
+    if (
+      containedRemove({
+        root: projectRoot,
+        target: wrapperAbs,
+        mutation: { path: GROK_PRETOOLUSE_WRAPPER_REL },
+      }).removed
+    ) {
+      touched.push(GROK_PRETOOLUSE_WRAPPER_REL);
+      stripped = true;
+    }
+  }
+
+  for (const path of hostHookRepairDisclosurePaths(host)) {
+    if (!touched.includes(path)) touched.push(path);
+  }
+  return { touchedPaths: touched, stripped };
 }
 
 /** Registered command prefix: `node <rel>` (host/event args appended by callers). */
