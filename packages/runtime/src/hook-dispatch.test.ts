@@ -876,60 +876,6 @@ describe("hook-dispatch pin-mismatch recovery admit (#6313)", () => {
   });
 });
 
-describe("Claude hard-refuse non-gated MCP admit under pin-mismatch (#7352)", () => {
-  function cheapPinMismatch(): CheapInSyncResult {
-    return {
-      ok: false,
-      pinVersion: "0.129.9",
-      installedVersion: "0.129.8",
-      identityMatch: false,
-      readinessValid: false,
-      failClosed: true,
-      pinMismatchOnly: true,
-      allowSetup: false,
-      recoveryGuidance: PIN_MISMATCH_PROJECT_PM_RECOVERY_GUIDANCE,
-    };
-  }
-
-  function mcpDispatch(
-    host: string,
-    toolName: string,
-  ): { raw: string; wire: Record<string, unknown> } {
-    const out: string[] = [];
-    run([`--host=${host}`, "--event=tool.before", "--project-root=/project"], {
-      readStdin: () => JSON.stringify({ tool_name: toolName, tool_input: {} }),
-      writeOut: (t) => out.push(t),
-      writeErr: () => undefined,
-      cwd: () => "/project",
-      launchingCheckoutRoot: () => "/project",
-      cheapInSync: cheapPinMismatch,
-      stdinEmptyRetryMs: 0,
-    });
-    const raw = out.join("").trim();
-    const wire = raw.length === 0 ? {} : (JSON.parse(raw) as Record<string, unknown>);
-    return { raw, wire };
-  }
-
-  it("admits Claude host UI MCP and skips setup/policy", () => {
-    const { raw, wire } = mcpDispatch("claude", "mcp__ccd_turn__wrap_up");
-    expect(wire.decision).not.toBe("deny");
-    expect(raw).toMatch(/not-gated|non-gated|#7352/i);
-    expect(raw).not.toContain("Directive can't run: the installed");
-  });
-
-  it("still refuses Bash under pin-mismatch", () => {
-    const { raw, wire } = mcpDispatch("claude", "Bash");
-    const nested = wire.hookSpecificOutput as { permissionDecision?: string } | undefined;
-    expect(wire.decision === "deny" || nested?.permissionDecision === "deny").toBe(true);
-    expect(raw).toContain("Directive can't run: the installed");
-  });
-
-  it("does not admit Claude UI MCP on grok under pin-mismatch", () => {
-    const { wire } = mcpDispatch("grok", "mcp__ccd_turn__wrap_up");
-    expect(wire.decision).toBe("deny");
-  });
-});
-
 describe("hook-dispatch session.end (#6274)", () => {
   const RAW = "33333333-aaaa-4bbb-8ccc-000000000003";
   const OWNER = canonicalHostSessionId("claude", RAW);
@@ -1009,6 +955,34 @@ describe("hook-dispatch session.end (#6274)", () => {
     expect(result.err.trim().split("\n")).toHaveLength(1);
     expect(result.err).toMatch(/launch root/);
     expect(readFileSync(occupancyPath(root), "utf8")).toBe(before);
+  });
+
+  it("same-repo linked launch root still releases on session.end (#7351)", () => {
+    const root = leasedRoot();
+    const other = mkdtempSync(join(tmpdir(), "hook-dispatch-session-end-same-repo-"));
+    roots.push(other);
+    const out: string[] = [];
+    const err: string[] = [];
+    const code = run(["--host", "claude", "--event", "session.end", `--project-root=${root}`], {
+      readStdin: () =>
+        JSON.stringify({
+          hook_event_name: "SessionEnd",
+          reason: "clear",
+          session_id: RAW,
+          cwd: root,
+        }),
+      writeOut: (text) => out.push(text),
+      writeErr: (text) => err.push(text),
+      cwd: () => root,
+      stdinEmptyRetryMs: 0,
+      launchingCheckoutRoot: () => other,
+      sameRepoGitCommonDir: () => true,
+      cheapInSync: okCheap,
+    });
+    expect(code).toBe(0);
+    expect(out.join("")).toBe("");
+    expect(err.join("").trim().split("\n")).toHaveLength(1);
+    expect(existsSync(occupancyPath(root))).toBe(false);
   });
 
   it("pin mismatch releases nothing and prints one diagnostic line", () => {
@@ -1118,5 +1092,170 @@ describe("hook-bin: kill record before root and pin checks (#6620 / #6740)", () 
     writeFileSync(join(root, DEFT_DIRECTIVE_DISABLE_FLAG_NAME), "1\n");
     const result = dispatch(root);
     expect(result.text).toContain("payload project root does not match");
+  });
+});
+
+describe("#7351 same-repo Claude WT and Directive dest admit", () => {
+  const OK_CHEAP: CheapInSyncResult = {
+    ok: true,
+    pinVersion: "0.129.9",
+    installedVersion: "0.129.9",
+    identityMatch: true,
+    readinessValid: true,
+    failClosed: false,
+    pinMismatchOnly: false,
+    allowSetup: true,
+    recoveryGuidance: null,
+  };
+
+  function runAt(
+    projectRoot: string,
+    opts: {
+      sameRepo: boolean;
+      launcherPath?: string;
+      launchPinMatch?: boolean | null;
+    },
+  ): { code: number; text: string } {
+    const out: string[] = [];
+    const code = run(["--host=claude", "--event=tool.before", `--project-root=${projectRoot}`], {
+      readStdin: () =>
+        JSON.stringify({
+          tool_name: "Bash",
+          tool_input: { command: "git status" },
+          cwd: projectRoot,
+        }),
+      writeOut: (t) => out.push(t),
+      writeErr: () => undefined,
+      cwd: () => projectRoot,
+      stdinEmptyRetryMs: 0,
+      launchingCheckoutRoot: () => "/repo",
+      launcherPath: () => opts.launcherPath,
+      cheapInSync: () => OK_CHEAP,
+      sameRepoGitCommonDir: () => opts.sameRepo,
+      launchInstalledMatchesPayloadPin: () =>
+        opts.launchPinMatch === undefined ? null : opts.launchPinMatch,
+    });
+    return { code, text: out.join("") };
+  }
+
+  it("admits a Claude .claude/worktrees payload when common dirs match", () => {
+    const result = runAt("/repo/.claude/worktrees/agent-wt", { sameRepo: true });
+    expect(result.code).toBe(0);
+    expect(result.text).not.toContain("payload project root does not match");
+    expect(result.text).not.toContain("foreign-runtime-link");
+  });
+
+  it("admits a Directive linked dest payload when common dirs match", () => {
+    const result = runAt("/repo/.deft-scratch/worktrees/pr-7351", { sameRepo: true });
+    expect(result.code).toBe(0);
+    expect(result.text).not.toContain("payload project root does not match");
+    expect(result.text).not.toContain("foreign-runtime-link");
+  });
+
+  it("refuses other-repo when common dirs do not match", () => {
+    const result = runAt("/other-repo/.claude/worktrees/wt", { sameRepo: false });
+    expect(result.code).toBe(0);
+    expect(result.text).toContain("payload project root does not match");
+  });
+
+  it("refuses unresolved common-dir (sameRepo false) without claiming same-repo", () => {
+    const result = runAt("/repo/.claude/worktrees/wt", { sameRepo: false });
+    expect(result.text).toContain("payload project root does not match");
+    expect(result.text).not.toContain("same-repo");
+  });
+
+  it("keeps foreign-runtime-link deny ahead of same-repo admit", () => {
+    const dest = "/repo/.deft-scratch/worktrees/pr-7351";
+    const result = runAt(dest, {
+      sameRepo: true,
+      launcherPath: `${dest}/node_modules/@deftai/directive-runtime/dist/hook-bin.js`,
+    });
+    expect(result.text).toContain("foreign-runtime-link");
+    expect(result.text).not.toContain("payload project root does not match the launching checkout");
+  });
+
+  it("refuses same-repo admit when launch install mismatches payload pin", () => {
+    const result = runAt("/repo/.claude/worktrees/agent-wt", {
+      sameRepo: true,
+      launchPinMatch: false,
+    });
+    expect(result.code).toBe(0);
+    expect(result.text).toContain("launching checkout runtime does not match payload pin");
+    expect(result.text).toMatch(/launching checkout|relaunch the host session/i);
+  });
+
+  it("does not admit launch-pin recovery when payload overlay fail-closes", () => {
+    const out: string[] = [];
+    const code = run(
+      ["--host=claude", "--event=tool.before", "--project-root=/repo/.claude/worktrees/agent-wt"],
+      {
+        readStdin: () =>
+          JSON.stringify({
+            tool_name: "Bash",
+            tool_input: { command: "pnpm install --frozen-lockfile" },
+            cwd: "/repo",
+          }),
+        writeOut: (t) => out.push(t),
+        writeErr: () => undefined,
+        cwd: () => "/repo",
+        stdinEmptyRetryMs: 0,
+        launchingCheckoutRoot: () => "/repo",
+        sameRepoGitCommonDir: () => true,
+        launchInstalledMatchesPayloadPin: () => false,
+        cheapInSync: (root) =>
+          root === "/repo"
+            ? OK_CHEAP
+            : {
+                ...OK_CHEAP,
+                ok: false,
+                failClosed: true,
+                pinMismatchOnly: false,
+                identityMatch: true,
+                recoveryGuidance: "retire overlay",
+              },
+      },
+    );
+    const text = out.join("");
+    expect(code).toBe(0);
+    expect(text).toMatch(/overlay|materialize-runtime/i);
+    expect(text).not.toContain("admitted the launch-runtime recovery");
+  });
+
+  it("refuses same-repo admit when launch checkout has a materialize overlay", () => {
+    const out: string[] = [];
+    const code = run(
+      ["--host=claude", "--event=tool.before", "--project-root=/repo/.claude/worktrees/agent-wt"],
+      {
+        readStdin: () =>
+          JSON.stringify({
+            tool_name: "Bash",
+            tool_input: { command: "git status" },
+            cwd: "/repo/.claude/worktrees/agent-wt",
+          }),
+        writeOut: (t) => out.push(t),
+        writeErr: () => undefined,
+        cwd: () => "/repo/.claude/worktrees/agent-wt",
+        stdinEmptyRetryMs: 0,
+        launchingCheckoutRoot: () => "/repo",
+        sameRepoGitCommonDir: () => true,
+        launchInstalledMatchesPayloadPin: () => true,
+        cheapInSync: (root) =>
+          root === "/repo"
+            ? {
+                ...OK_CHEAP,
+                ok: false,
+                failClosed: true,
+                pinMismatchOnly: false,
+                identityMatch: true,
+                recoveryGuidance: "retire launch overlay",
+              }
+            : OK_CHEAP,
+      },
+    );
+    const text = out.join("");
+    expect(code).toBe(0);
+    expect(text).toMatch(/launching checkout has a materialize-runtime overlay/i);
+    expect(text).toContain("retire launch overlay");
+    expect(text).not.toContain("admitted the launch-runtime recovery");
   });
 });

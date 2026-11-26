@@ -13,6 +13,10 @@ import {
 } from "@deftai/directive-core/dist/install-health/constants.js";
 import { renderPinMismatchRecoveryGuidance } from "@deftai/directive-core/dist/install-health/pin-mismatch-guidance.js";
 import {
+  readInstalledRuntimeVersion,
+  readRuntimePin,
+} from "@deftai/directive-core/dist/install-health/readers.js";
+import {
   admitHardRefuseNonGatedMcp,
   admitPinMismatchRecovery,
   admitRootMismatchRecovery,
@@ -51,6 +55,7 @@ import {
   type SessionEndHookSeams,
   toolInputRecord,
 } from "@deftai/directive-core/hooks";
+import { sameRepoGitCommonDir } from "@deftai/directive-core/session";
 import { readProjectDataStatus } from "./data-status.js";
 import { maybeSelfCompleteSetup } from "./self-complete.js";
 
@@ -98,6 +103,20 @@ export interface HookDispatchCliSeams {
    * runs (no installed package path) — mismatch guard is skipped when null.
    */
   readonly launchingCheckoutRoot?: () => string | null;
+  /**
+   * #7351 test seam for same-repo common-dir admit. Defaults to
+   * {@link sameRepoGitCommonDir}. Both roots must resolve; null never admits.
+   */
+  readonly sameRepoGitCommonDir?: (launchRoot: string, payloadRoot: string) => boolean;
+  /**
+   * #7351: when roots differ but common dirs match, true only if the launching
+   * checkout's installed runtime equals the payload pin. `null` means unknown
+   * (skip the cross-check). Defaults to {@link launchInstalledMatchesPayloadPin}.
+   */
+  readonly launchInstalledMatchesPayloadPin?: (
+    launchRoot: string,
+    payloadRoot: string,
+  ) => boolean | null;
   /**
    * The launcher's own (link-side) script path, `process.argv[1]` by default
    * (#6185). Used only to choose the wording of a root-mismatch refusal; never
@@ -162,6 +181,20 @@ function rootsMatch(a: string, b: string): boolean {
   return realpathOrResolve(a) === realpathOrResolve(b);
 }
 
+/**
+ * Launch installed runtime vs payload pin (#7351). Explicit mismatch is false;
+ * either side unresolved is null (caller may still admit on common-dir alone).
+ */
+export function launchInstalledMatchesPayloadPin(
+  launchRoot: string,
+  payloadRoot: string,
+): boolean | null {
+  const pinVersion = readRuntimePin(payloadRoot).pinVersion;
+  const installedVersion = readInstalledRuntimeVersion(launchRoot);
+  if (pinVersion === null || installedVersion === null) return null;
+  return pinVersion === installedVersion;
+}
+
 function installationIdentityDeny(
   host: HookHost,
   event: HookEvent,
@@ -180,7 +213,7 @@ function installationIdentityDeny(
   };
 }
 
-/** Explicit not-gated allow message for Claude hard-refuse MCP UI admit (#7352). */
+/** Tool-input fields that name a shell call's run directory (#6313). */
 export const HARD_REFUSE_NON_GATED_MCP_ALLOW_MESSAGE =
   "Warning: Directive hard-refuse admitted non-gated host MCP " +
   "(not push/merge, not write-shaped, not authz-class, not proxy). " +
@@ -219,7 +252,6 @@ function hardRefuseNonGatedMcpAdmit(
   };
 }
 
-/** Tool-input fields that name a shell call's run directory (#6313). */
 const SHELL_RUN_DIRECTORY_FIELDS = ["workdir", "cwd", "working_directory", "workingDirectory"];
 
 /**
@@ -499,8 +531,19 @@ function runSessionEnd(
     );
     killSwitchForEvent(projectRoot, seams, writeErr);
     const launchRoot = (seams.launchingCheckoutRoot ?? resolveLaunchingCheckoutRoot)();
+    // #7351: same-repo linked worktree sessions must release; map launch→payload
+    // when common dirs match so runSessionEndHook's path equality admits, while
+    // cross-repo mismatch and owner-only release stay unchanged.
+    let effectiveLaunchRoot = launchRoot;
+    if (launchRoot !== null && !rootsMatch(launchRoot, projectRoot)) {
+      const sameRepo = (seams.sameRepoGitCommonDir ?? sameRepoGitCommonDir)(
+        launchRoot,
+        projectRoot,
+      );
+      if (sameRepo) effectiveLaunchRoot = projectRoot;
+    }
     const ended = runSessionEndHook(
-      { host, projectRoot, payload, environ: process.env, launchRoot },
+      { host, projectRoot, payload, environ: process.env, launchRoot: effectiveLaunchRoot },
       {
         ...(seams.cheapInSync !== undefined ? { cheapInSync: seams.cheapInSync } : {}),
         ...(seams.sessionEndRelease !== undefined ? { release: seams.sessionEndRelease } : {}),
@@ -562,14 +605,27 @@ export function run(argv: string[], seams: HookDispatchCliSeams = {}): number {
   if (launchRoot !== null && !rootsMatch(launchRoot, projectRoot)) {
     const payloadRootText = normalizeHookProjectRoot(projectRoot);
     const launchRootText = normalizeHookProjectRoot(launchRoot);
-    // #6185: wording only. The link-side path never admits anything.
+    // #6185: wording only. The link-side path never admits anything — including
+    // when launch and payload share a git common dir (#7351 keep foreign deny).
     const foreign =
       classifyRootMismatch(
         launchRoot,
         seams.launcherPath ? seams.launcherPath() : process.argv[1],
         projectRoot,
       ) === FOREIGN_RUNTIME_LINK;
-    if (!foreign) {
+    if (foreign) {
+      const message =
+        `Directive hook refuse (${FOREIGN_RUNTIME_LINK}): this checkout's Directive runtime is linked in from another checkout ` +
+        `(payloadRoot=${payloadRootText} launchRoot=${launchRootText}). ` +
+        `Recovery: ${FOREIGN_RUNTIME_LINK_RECOVERY_GUIDANCE.replaceAll("<payloadRoot>", payloadRootText)}`;
+      const decision = installationIdentityDeny(args.host, args.event, projectRoot, message);
+      const rendered = renderHostDecision(args.host, decision);
+      if (rendered.length > 0) writeOut(`${rendered}\n`);
+      return 0;
+    }
+    // #7351: same-repo linked worktree admit — matching gitCommonDir before path refuse
+    const sameRepo = (seams.sameRepoGitCommonDir ?? sameRepoGitCommonDir)(launchRoot, projectRoot);
+    if (!sameRepo) {
       // #6599: admit the refusal's own named recovery; the foreign branch never does.
       const admit = rootMismatchRecoveryAdmit(args.host, args.event, projectRoot, payload);
       if (admit !== null) {
@@ -584,18 +640,109 @@ export function run(argv: string[], seams: HookDispatchCliSeams = {}): number {
         if (renderedAdmit.length > 0) writeOut(`${renderedAdmit}\n`);
         return 0;
       }
-    }
-    const message = foreign
-      ? `Directive hook refuse (${FOREIGN_RUNTIME_LINK}): this checkout's Directive runtime is linked in from another checkout ` +
-        `(payloadRoot=${payloadRootText} launchRoot=${launchRootText}). ` +
-        `Recovery: ${FOREIGN_RUNTIME_LINK_RECOVERY_GUIDANCE.replaceAll("<payloadRoot>", payloadRootText)}`
-      : `Directive hook refuse: payload project root does not match the launching checkout ` +
+      const message =
+        `Directive hook refuse: payload project root does not match the launching checkout ` +
         `(payloadRoot=${payloadRootText} ` +
         `launchRoot=${launchRootText}). Recovery: ${HOOK_ROOT_MISMATCH_RECOVERY_GUIDANCE}`;
-    const decision = installationIdentityDeny(args.host, args.event, projectRoot, message);
-    const rendered = renderHostDecision(args.host, decision);
-    if (rendered.length > 0) writeOut(`${rendered}\n`);
-    return 0;
+      const decision = installationIdentityDeny(args.host, args.event, projectRoot, message);
+      const rendered = renderHostDecision(args.host, decision);
+      if (rendered.length > 0) writeOut(`${rendered}\n`);
+      return 0;
+    }
+    // #7351: launch overlay must refuse before same-repo admit (versions may still match).
+    const launchCheap = (seams.cheapInSync ?? checkCheapInSync)(launchRoot);
+    if (launchCheap.failClosed === true && launchCheap.pinMismatchOnly !== true) {
+      const mcpAdmit = hardRefuseNonGatedMcpAdmit(args.host, args.event, projectRoot, payload);
+      if (mcpAdmit !== null) {
+        const renderedAdmit = renderHostDecision(args.host, mcpAdmit);
+        if (renderedAdmit.length > 0) writeOut(`${renderedAdmit}\n`);
+        return 0;
+      }
+      const cheapRecovery = launchCheap.recoveryGuidance ?? ENTRY_GUARD_MESSAGES.overlay;
+      const message =
+        `Directive hook refuse: launching checkout has a materialize-runtime overlay; ` +
+        `same-repo linked worktrees cannot use that runtime ` +
+        `(payloadRoot=${payloadRootText} launchRoot=${launchRootText} ` +
+        `pin=${launchCheap.pinVersion ?? "?"} installed=${launchCheap.installedVersion ?? "?"}). ` +
+        `Recovery: ${cheapRecovery}`;
+      const decision = installationIdentityDeny(args.host, args.event, projectRoot, message);
+      const rendered = renderHostDecision(args.host, decision);
+      if (rendered.length > 0) writeOut(`${rendered}\n`);
+      return 0;
+    }
+    // #7351: when roots differ, the running launch install must match the payload pin
+    // so version A cannot serve a worktree pinned/installed at B.
+    const pinMatch = (seams.launchInstalledMatchesPayloadPin ?? launchInstalledMatchesPayloadPin)(
+      launchRoot,
+      projectRoot,
+    );
+    if (pinMatch === false) {
+      // Honor payload overlay / non-pin fail-closed before any launch-install admit (#7351).
+      const payloadCheap = (seams.cheapInSync ?? checkCheapInSync)(projectRoot);
+      const overlayBlocks =
+        payloadCheap.failClosed === true && payloadCheap.pinMismatchOnly !== true;
+      if (!overlayBlocks) {
+        const payloadPin = readRuntimePin(projectRoot).pinVersion ?? "?";
+        const launchInstalled = readInstalledRuntimeVersion(launchRoot) ?? "?";
+        // Recovery must clear the launching runtime (or rebind launch→payload). Payload-only
+        // install leaves launch at A and cannot clear this refuse; admit install at launchRoot.
+        const launchInstall = projectInstallCommand(launchRoot);
+        const cheapLaunch: CheapInSyncResult = {
+          ok: false,
+          pinVersion: payloadPin === "?" ? null : payloadPin,
+          installedVersion: launchInstalled === "?" ? null : launchInstalled,
+          identityMatch: false,
+          readinessValid: false,
+          failClosed: true,
+          pinMismatchOnly: true,
+          allowSetup: false,
+          recoveryGuidance: launchInstall,
+        };
+        if (args.event === "tool.before") {
+          const toolName = hookToolName(payload, args.host);
+          const runDirectories = shellRunDirectories(args.host, payload);
+          const atLaunchRoot =
+            runDirectories.length > 0 &&
+            runDirectories.every((dir) => rootsMatch(normalizeHookProjectRoot(dir), launchRoot));
+          const admitted = admitPinMismatchRecovery({
+            cheap: cheapLaunch,
+            shellTool: toolName !== null && isShellTool(toolName),
+            command: hookShellCommand(payload),
+            atProjectRoot: atLaunchRoot,
+          });
+          if (admitted !== null) {
+            const decision: HookDecision = {
+              verdict: "allow",
+              code: "shell-op-ready",
+              event: args.event,
+              host: args.host,
+              toolName,
+              projectRoot: payloadRootText,
+              message:
+                `Directive hook admitted the launch-runtime recovery \`${admitted}\` ` +
+                `(payloadPin=${payloadPin} launchInstalled=${launchInstalled}). ` +
+                "Other commands stay refused until the launching checkout matches the payload pin " +
+                "or the host session is relaunched from the payload worktree.",
+              scopePath: null,
+            };
+            const renderedAdmit = renderHostDecision(args.host, decision);
+            if (renderedAdmit.length > 0) writeOut(`${renderedAdmit}\n`);
+            return 0;
+          }
+        }
+        const message =
+          `Directive hook refuse: launching checkout runtime does not match payload pin ` +
+          `(payloadRoot=${payloadRootText} launchRoot=${launchRootText} ` +
+          `payloadPin=${payloadPin} launchInstalled=${launchInstalled}). ` +
+          `Recovery: in the launching checkout run \`${launchInstall}\`, or relaunch the host ` +
+          `session from the payload worktree so launchRoot matches payloadRoot.`;
+        const decision = installationIdentityDeny(args.host, args.event, projectRoot, message);
+        const rendered = renderHostDecision(args.host, decision);
+        if (rendered.length > 0) writeOut(`${rendered}\n`);
+        return 0;
+      }
+      // overlayBlocks: fall through to the normal cheap fail-closed path below.
+    }
   }
 
   // Wave 2k / AC9.4+AC14.8: pin≠installed → fail closed before policy.

@@ -183,3 +183,90 @@ describe("assist-scratch reclassification through the deposited CLI (#3794)", ()
     }
   });
 });
+
+describe("#7351 same-repo gitCommonDir admit", () => {
+  const OK_CHEAP = {
+    ok: true,
+    pinVersion: "0.129.9",
+    installedVersion: "0.129.9",
+    identityMatch: true,
+    readinessValid: true,
+    failClosed: false,
+    pinMismatchOnly: false,
+    allowSetup: true,
+    recoveryGuidance: null,
+  };
+  function toolFor(host: string): string {
+    if (host === "cursor") return "Shell";
+    if (host === "grok") return "run_terminal_command";
+    return "Bash";
+  }
+  function payloadFor(host: string, toolName: string, command: string, cwd: string): string {
+    return JSON.stringify({
+      tool_name: toolName,
+      tool_input: { command },
+      cwd,
+      ...(host === "cursor" ? { workspace_roots: [cwd] } : {}),
+    });
+  }
+  function dispatch(
+    host: string,
+    projectRoot: string,
+    seams: {
+      sameRepo?: boolean;
+      launcherPath?: () => string | undefined;
+    },
+  ): { code: number; raw: string; denied: boolean } {
+    const out: string[] = [];
+    const code = run([`--host=${host}`, "--event=tool.before", `--project-root=${projectRoot}`], {
+      readStdin: () => payloadFor(host, toolFor(host), "git status", projectRoot),
+      writeOut: (t) => out.push(t),
+      writeErr: () => undefined,
+      cwd: () => projectRoot,
+      stdinEmptyRetryMs: 0,
+      launchingCheckoutRoot: () => "/primary",
+      launcherPath: seams.launcherPath ?? (() => undefined),
+      cheapInSync: () => OK_CHEAP,
+      sameRepoGitCommonDir: () => seams.sameRepo ?? false,
+    });
+    const raw = out.join("").trim();
+    const wire = raw.length === 0 ? {} : (JSON.parse(raw) as Record<string, unknown>);
+    const denied =
+      wire.decision === "deny" ||
+      wire.permission === "deny" ||
+      raw.includes("payload project root does not match") ||
+      raw.includes("foreign-runtime-link");
+    return { code, raw, denied };
+  }
+  it.each([
+    "claude",
+    "cursor",
+    "grok",
+    "codex",
+  ])("admits mismatched paths when common dirs match on %s", (host) => {
+    const result = dispatch(host, "/worktree", { sameRepo: true });
+    expect(result.code).toBe(0);
+    expect(result.denied).toBe(false);
+    expect(result.raw.includes("payload project root does not match")).toBe(false);
+  });
+  it.each([
+    "claude",
+    "cursor",
+    "grok",
+    "codex",
+  ])("still refuses when common dirs differ on %s", (host) => {
+    const result = dispatch(host, "/worktree", { sameRepo: false });
+    expect(result.code).toBe(0);
+    expect(result.denied).toBe(true);
+    expect(result.raw).toContain("payload project root does not match");
+  });
+  it("refuses foreign-runtime-link even when common dirs would match", () => {
+    const result = dispatch("claude", "/primary/.deft-scratch/worktrees/pr-7351", {
+      sameRepo: true,
+      launcherPath: () =>
+        "/primary/.deft-scratch/worktrees/pr-7351/node_modules/@deftai/directive-runtime/dist/hook-bin.js",
+    });
+    expect(result.denied).toBe(true);
+    expect(result.raw).toContain("foreign-runtime-link");
+  });
+});
