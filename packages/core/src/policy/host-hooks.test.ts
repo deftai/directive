@@ -309,10 +309,11 @@ describe("hostHooks policy (#2752)", () => {
     expect(loadHostHooksPolicyFromProject(root).claude).toBe(false);
   });
 
-  it("names launch-checkout repair in root-mismatch recovery (#7349 P2)", () => {
+  it("names launch-checkout disable/strip and opt-out-gated repair (#7349 P2)", () => {
     expect(HOOK_ROOT_MISMATCH_RECOVERY_GUIDANCE).toContain("launch checkout");
-    expect(HOOK_ROOT_MISMATCH_RECOVERY_GUIDANCE).toContain("directive install --repair");
-    expect(HOOK_ROOT_MISMATCH_RECOVERY_GUIDANCE).toContain("a new session alone is not enough");
+    expect(HOOK_ROOT_MISMATCH_RECOVERY_GUIDANCE).toContain("disable-host-hooks");
+    expect(HOOK_ROOT_MISMATCH_RECOVERY_GUIDANCE).toContain("strips opted-out hosts only");
+    expect(HOOK_ROOT_MISMATCH_RECOVERY_GUIDANCE).toContain("new session alone is not enough");
     expect(HOOK_ROOT_MISMATCH_RECOVERY_GUIDANCE).not.toContain(
       "the disable takes effect in a new session",
     );
