@@ -146,7 +146,12 @@ export const AGY_SESSION_START_NOTICES = {
 } as const;
 export type AgySessionStartNoticeId = keyof typeof AGY_SESSION_START_NOTICES;
 
-/** Notice id for a SessionStart decision code, or null when none applies. */
+/**
+ * Notice id for a SessionStart decision code, or null when none applies.
+ * `hook-runtime-unavailable` has no decision code: no runtime runs when it applies, so
+ * the deposited outer emits it through `renderAgySessionStartNotice` (deposit-doctor
+ * slice, #7347). Until then it is unreachable from `decideHook` by design.
+ */
 export function agySessionStartNoticeFor(code: string): AgySessionStartNoticeId | null {
   if (code === "session-start-disabled" || code === "directive-disabled") {
     return "directive-disabled";

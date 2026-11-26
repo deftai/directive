@@ -1171,6 +1171,34 @@ describe("agy through decideHook and renderHostDecision (#7346)", () => {
     }
   });
 
+  it("lets a native spawn tool through while a valid kill record stands the project down", () => {
+    const projectRoot = mkdtempSync(join(tmpdir(), "deft-agy-kill-"));
+    try {
+      const decision = decideHook(
+        {
+          host: "agy",
+          event: "tool.before",
+          projectRoot,
+          payload: agyPayload("invoke_subagent", { Prompt: "x" }),
+          environ: {},
+        },
+        {
+          ...seams(),
+          detectDeftDirectiveDisable: () => ({
+            present: true,
+            flagPath: join(projectRoot, ".deft-directive-disable"),
+            depositPresent: true,
+            trackedByGit: false,
+            active: true,
+          }),
+        },
+      );
+      expect(decision).toMatchObject({ verdict: "allow", code: "directive-disabled" });
+    } finally {
+      rmSync(projectRoot, { recursive: true, force: true });
+    }
+  });
+
   it("rewrites an exact lifecycle command to the agy owner via overwrite.CommandLine", () => {
     const decision = decide(agyPayload("run_command", { CommandLine: "deft session:start" }));
     expect(decision.verdict).toBe("allow");

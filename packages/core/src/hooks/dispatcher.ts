@@ -4832,13 +4832,6 @@ function decideHookWithSignals(input: HookDispatchInput, seams: HookPolicySeams)
       scopePath: null,
     };
   }
-  if (input.host === "agy" && input.event === "tool.before") {
-    // #7346: native agy spawn tools carry no child checkout or process-only class; deny.
-    const agyTool = hookToolName(input.payload, input.host);
-    if (agyTool !== null && isAgyUnsupportedSpawnTool(agyTool)) {
-      return deny(input, "spawn-not-ready", agyTool, agyUnsupportedSpawnDenialMessage(agyTool));
-    }
-  }
   const observation: DispatchObservation = { effectiveRoots: [], foreignTarget: false };
   const landed: HookDispatchInput = {
     ...input,
@@ -4891,6 +4884,15 @@ function routeHookDecision(
         message,
         scopePath: null,
       };
+    }
+  }
+
+  if (input.host === "agy" && input.event === "tool.before") {
+    // #7346: native agy spawn tools carry no child checkout or process-only class; deny.
+    // After the kill-switch stand-down above, so a disabled project is not blocked.
+    const agyTool = hookToolName(input.payload, input.host);
+    if (agyTool !== null && isAgyUnsupportedSpawnTool(agyTool)) {
+      return deny(input, "spawn-not-ready", agyTool, agyUnsupportedSpawnDenialMessage(agyTool));
     }
   }
 
