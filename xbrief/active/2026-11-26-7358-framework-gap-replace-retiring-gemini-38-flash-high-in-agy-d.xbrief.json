@@ -1,0 +1,402 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #7358",
+    "updated": "2026-11-26T18:07:59Z"
+  },
+  "plan": {
+    "title": "[framework-gap] Replace retiring gemini-3.8-flash-high in AGY design-critique critic seat before Nov 30, 2026 sunset",
+    "status": "running",
+    "narratives": {
+      "Description": "[framework-gap] Replace retiring gemini-3.8-flash-high in AGY design-critique critic seat before Nov 30, 2026 sunset",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/7358",
+      "Overview": "\n\n1. Replace AGY_CRITIC_MODEL — set the published constant to gemini-4-hydrogen-high as the sole all-plans survivor pin after the 2026-11-30 sunset.\n2. Pin pong and short-pointer argv — put the same Hydrogen slug on AGY_PONG_ARGV and AGY_SHORT_POINTER_ARGV --model flags.\n3. Keep discharge keyed to the constant — agyModelDischargesSeat / evaluateAgySeatCompletion admit only AGY_CRITIC_MODEL; refuse gemini-3.8-flash-high, Claude, GPT, and Argon as discharge.\n4. Flip fixtures and CHANGELOG — retarget launcher-argv tests so hydrogen-high admits and retiring 3.8 misses, and record the published pin change.\n\n\n",
+      "Constraint": "- Defaulting the Free-plan pin to Neon or Carbon.\n- Pinning Argon (also retires 2026-11-30).\n- Relabeling seat or launcher away from agy.\n- Absorbing #7332 first-class host/hooks work.\n- Changing sandbox vs --dangerously-skip-permissions in this Bound.",
+      "Labels": "design-critique:ingest-ready"
+    },
+    "items": [
+      {
+        "title": "Replace AGY_CRITIC_MODEL — set the published constant to gemini-4-hydrogen-high as the sole all-plans survivor pin after the 2026-11-30 sunset.",
+        "status": "proposed",
+        "id": "clause.1"
+      },
+      {
+        "title": "Pin pong and short-pointer argv — put the same Hydrogen slug on AGY_PONG_ARGV and AGY_SHORT_POINTER_ARGV --model flags.",
+        "status": "proposed",
+        "id": "clause.2"
+      },
+      {
+        "title": "Keep discharge keyed to the constant — agyModelDischargesSeat / evaluateAgySeatCompletion admit only AGY_CRITIC_MODEL; refuse gemini-3.8-flash-high, Claude, GPT, and Argon as discharge.",
+        "status": "proposed",
+        "id": "clause.3"
+      },
+      {
+        "title": "Flip fixtures and CHANGELOG — retarget launcher-argv tests so hydrogen-high admits and retiring 3.8 misses, and record the published pin change.",
+        "status": "proposed",
+        "id": "clause.4"
+      }
+    ],
+    "tags": [
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/7358",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #7358: [framework-gap] Replace retiring gemini-3.8-flash-high in AGY design-critique critic seat before Nov 30, 2026 sunset"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/7245",
+        "type": "x-xbrief/refs",
+        "title": "Issue #7245"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/1709",
+        "type": "x-xbrief/refs",
+        "title": "Issue #1709"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per harvested lean item (4), in list order (#6333)",
+      "sentences": [
+        "Replace AGY_CRITIC_MODEL — set the published constant to gemini-4-hydrogen-high as the sole all-plans survivor pin after the 2026-11-30 sunset.",
+        "Pin pong and short-pointer argv — put the same Hydrogen slug on AGY_PONG_ARGV and AGY_SHORT_POINTER_ARGV --model flags.",
+        "Keep discharge keyed to the constant — agyModelDischargesSeat / evaluateAgySeatCompletion admit only AGY_CRITIC_MODEL; refuse gemini-3.8-flash-high, Claude, GPT, and Argon as discharge.",
+        "Flip fixtures and CHANGELOG — retarget launcher-argv tests so hydrogen-high admits and retiring 3.8 misses, and record the published pin change."
+      ],
+      "admitted_source_sentences": [
+        "Replace AGY_CRITIC_MODEL — set the published constant to gemini-4-hydrogen-high as the sole all-plans survivor pin after the 2026-11-30 sunset.",
+        "Pin pong and short-pointer argv — put the same Hydrogen slug on AGY_PONG_ARGV and AGY_SHORT_POINTER_ARGV --model flags.",
+        "Keep discharge keyed to the constant — agyModelDischargesSeat / evaluateAgySeatCompletion admit only AGY_CRITIC_MODEL; refuse gemini-3.8-flash-high, Claude, GPT, and Argon as discharge.",
+        "Flip fixtures and CHANGELOG — retarget launcher-argv tests so hydrogen-high admits and retiring 3.8 misses, and record the published pin change."
+      ],
+      "admitted_source_digest": "e6d7035b14fb5193873e78eda12120fea378a833a4cf6b36c8eda7f2689307df",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "Replace AGY_CRITIC_MODEL — set the published constant to gemini-4-hydrogen-high as the sole all-plans survivor pin after the 2026-11-30 sunset.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Pin pong and short-pointer argv — put the same Hydrogen slug on AGY_PONG_ARGV and AGY_SHORT_POINTER_ARGV --model flags.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Keep discharge keyed to the constant — agyModelDischargesSeat / evaluateAgySeatCompletion admit only AGY_CRITIC_MODEL; refuse gemini-3.8-flash-high, Claude, GPT, and Argon as discharge.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Flip fixtures and CHANGELOG — retarget launcher-argv tests so hydrogen-high admits and retiring 3.8 misses, and record the published pin change.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/design-critique/panel-seat-families.ts",
+          "packages/core/src/design-critique/panel-seat-families.test.ts",
+          "packages/core/src/hooks/launcher-argv.test.ts",
+          "changelog.d/7358-agy-critic-hydrogen-pin.md"
+        ],
+        "module_boundary": "packages/core/src/design-critique",
+        "cohesion_exemption": "One-pin cutover co-travels launcher-argv fixtures and changelog fragment"
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: triage\n```\n\ndesign-critique: warranted, because tip still publishes AGY_CRITIC_MODEL / AGY_PONG_ARGV / AGY_SHORT_POINTER_ARGV as gemini-3.8-flash-high, and Antigravity removes that model on 2026-11-30, so agy critic pong and pointer dispatch fail after sunset.\n\nmechanism-shaped: true\nrefutation-target: Published agy critic argv and AGY_CRITIC_MODEL may remain gemini-3.8-flash-high after the 2026-11-30 Antigravity model removal and still discharge the agy seat.\ncharter: refutation\nspend-recommend: N≥3\nspend: N≥3\nspend-ask: resolved\narc-mode: no-ingest\nmateriality-bar: open\nyolo: standing\ndispatch-sha: 25923e3c921e91255a24ed5815be8bc64c5c9a3d\nverification-path: pin-read git show 25923e3c921e91255a24ed5815be8bc64c5c9a3d:\ndual-stop-reserved: first post-lean pain-audit in-cap\n\npain: P1, P2, P3\n- P1: After 2026-11-30, published AGY_PONG_ARGV and AGY_SHORT_POINTER_ARGV still pass --model gemini-3.8-flash-high against a removed Antigravity model, so agy critic probe and pointer seats fail closed at launch.\n- P2: agyModelDischargesSeat / evaluateAgySeatCompletion still key only to gemini-3.8-flash-high, so a Hydrogen (or other surviving) pointer completion cannot discharge the seat while the retiring slug still would.\n- P3: launcher-argv tests and CHANGELOG still pin gemini-3.8-flash-high (and refuse Hydrogen as discharge), so the published pin and fixtures disagree with the post-sunset survivor set.\n\nKeep-outs: #7332 first-class agy host/hooks; Neon/Carbon as Free-plan default; Argon (also retires 2026-11-30); seat/launcher rename away from agy; sandbox vs --dangerously-skip-permissions seating flag (orthogonal to model pin).\n\nFiled for @MScottAdams\r\n\n",
+          "id": 7177735517,
+          "html_url": "https://github.com/deftai/directive/issues/7358#issuecomment-7177735517",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-25T23:33:46Z",
+          "updated_at": "2026-11-25T23:33:46Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\nLean: Prefer-A draft (not Bound)\n\n## In plain English\nThe agy critic seat still ships with gemini-3.8-flash-high hard-coded in the published model constant and in the pong/pointer argv. Antigravity removes that model on 2026-11-30. Live agy models and the public Antigravity model table already list gemini-4-hydrogen-high on every plan, including Free. Prefer-A replaces the published pin and both argv strings with that Hydrogen slug, keeps discharge keyed to AGY_CRITIC_MODEL only (refuse retiring 3.8 / Claude / GPT / Argon), and updates the launcher-argv fixtures plus CHANGELOG. Seat and launcher stay named agy. Paid Neon/Carbon defaults, Argon, host work on #7332, and the sandbox vs skip-permissions seating flag stay out of this Bound.\n\nconflict_group: agy-critic-model-pin-replace-38flash-with-hydrogen\nTarget-digest: sha256:ed08aa9c3c3a1bdf2ee14e4c322de6fde1c0c01c673da0a6db6d8a1e4f2a589c\n\n## Bound remedy\n\n1. Replace AGY_CRITIC_MODEL — set the published constant to gemini-4-hydrogen-high as the sole all-plans survivor pin after the 2026-11-30 sunset.\n2. Pin pong and short-pointer argv — put the same Hydrogen slug on AGY_PONG_ARGV and AGY_SHORT_POINTER_ARGV --model flags.\n3. Keep discharge keyed to the constant — agyModelDischargesSeat / evaluateAgySeatCompletion admit only AGY_CRITIC_MODEL; refuse gemini-3.8-flash-high, Claude, GPT, and Argon as discharge.\n4. Update fixtures and CHANGELOG — retarget launcher-argv tests that pin or refuse the old slug, and record the published pin change.\n\n## Reject\n\n- Defaulting the Free-plan pin to Neon or Carbon.\n- Pinning Argon (also retires 2026-11-30).\n- Relabeling seat or launcher away from agy.\n- Absorbing #7332 first-class host/hooks work.\n- Changing sandbox vs --dangerously-skip-permissions in this Bound.\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nFiled for @MScottAdams",
+          "id": 7177749324,
+          "html_url": "https://github.com/deftai/directive/issues/7358#issuecomment-7177749324",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-25T23:34:22Z",
+          "updated_at": "2026-11-25T23:34:22Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 1\ninput-ceiling: 7177749324\nfamilies: grok\nseat: grok launcher: spawn_subagent\nspend-amend: N≥3→N=1 because sticky PreToolUse after recorded native deny admits only dest-rooted grok --cwd --prompt-file; Claude/Codex/agy CLI critic probes are hook-denied in this parent shell. Reduced panel named here. PATH still resolves claude/codex/agy for later seating when sticky clears.\n\ndispatch-sha: 25923e3c921e91255a24ed5815be8bc64c5c9a3d\nverification-path: pin-read git show 25923e3c921e91255a24ed5815be8bc64c5c9a3d:\nid-ceiling: 7177749324\n\nFiled for @MScottAdams",
+          "id": 7177786504,
+          "html_url": "https://github.com/deftai/directive/issues/7358#issuecomment-7177786504",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-25T23:35:56Z",
+          "updated_at": "2026-11-25T23:35:56Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nissue: deftai/directive#7358\ncharter: refutation\nspend: N=1\nround: 1 critic\nseat: grok\nlauncher: paste-ready\nid-ceiling: 7177786504\ndispatch-sha: 25923e3c921e91255a24ed5815be8bc64c5c9a3d\narc-mode: no-ingest\nmateriality-bar: open\naudit-targets: none\nclean-result: yes\n\nVerdict: Prefer-A draft Bound remedy survives. Cannot refute the claim that tip still publishes gemini-3.8-flash-high and that gemini-4-hydrogen-high is the lawful all-plans survivor pin. Census: one sharpens-framing, two footnotes. No blocks-the-design.\n\nVerification: pin-read at 25923e3c921e91255a24ed5815be8bc64c5c9a3d of panel-seat-families.ts (AGY_CRITIC_MODEL / AGY_PONG_ARGV / AGY_SHORT_POINTER_ARGV / agyModelDischargesSeat / evaluateAgySeatCompletion) and launcher-argv.test.ts (agy critic seat #7245 block). Read issue body and comments 7177735517, 7177749324, 7177786504 only. Dest-rooted grok critic launch failed under process-only dest hook/runtime-pin sticky; this post is paste-ready recovery after that recorded miss. No repository edits.\n\n### SF1 — sharpens-framing: fixture polarity must flip with the constant\n\nLimb 3 already says discharge keys to AGY_CRITIC_MODEL and refuses retiring 3.8. The tip test still expects agyModelDischargesSeat(\"gemini-3.8-flash-high\") === true and gemini-4-hydrogen-medium === false. After the pin moves to gemini-4-hydrogen-high, fixtures must assert hydrogen-high admits and 3.8 misses (medium remains a miss unless deliberately admitted). This sharpens limb 4; it does not reopen Neon/Carbon/Argon or #7332.\n\n### F1 — footnote: sandbox vs skip-permissions stays outside this Bound\n\nPublished argv still carries --sandbox at the tip. Stop 1 keep-outs correctly leave that seating flag orthogonal to the model pin. No Bound change.\n\n### F2 — footnote: live agy models already lists Hydrogen\n\nLive agy models and the public Antigravity model table list gemini-4-hydrogen-high on Free through Enterprise while marking Gemini 3.8 Flash for 2026-11-30 removal. That corroborates Prefer-A's survivor choice; it is not a new limb.\n\nFiled for @MScottAdams",
+          "id": 7177918284,
+          "html_url": "https://github.com/deftai/directive/issues/7358#issuecomment-7177918284",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-25T23:41:39Z",
+          "updated_at": "2026-11-25T23:41:39Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## In plain English\nThe agy critic seat still ships gemini-3.8-flash-high in the published model constant and in the pong and pointer commands. Antigravity removes that model on 2026-11-30. Hydrogen High is already on every plan. This Bound replaces the published pin and both argv strings with gemini-4-hydrogen-high, keeps seat discharge keyed only to that constant (so retiring 3.8, Claude, GPT, and Argon miss), and flips the launcher-argv fixtures plus CHANGELOG to match. Seat and launcher stay named agy. Paid Neon/Carbon defaults, Argon, #7332 host work, and the sandbox seating flag stay out.\n\n**Lean:** Prefer-A Bound. The proposal survives in sharpened form. This map is the bind.\n\nSpec-path: Bound-remedy\nconflict_group: agy-critic-model-pin-replace-38flash-with-hydrogen\nTarget-digest: sha256:5361aa57944fe2272cbfc52b03017657f1a65c6bf7982feb341c2615c7b2e9bf\n\nsiblings: 1\nRound: 1\nResidual: none\nsupersedes: 7177749324\ndisposes critic 7177918284\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\n## Bound remedy\n\n1. Replace AGY_CRITIC_MODEL — set the published constant to gemini-4-hydrogen-high as the sole all-plans survivor pin after the 2026-11-30 sunset.\n2. Pin pong and short-pointer argv — put the same Hydrogen slug on AGY_PONG_ARGV and AGY_SHORT_POINTER_ARGV --model flags.\n3. Keep discharge keyed to the constant — agyModelDischargesSeat / evaluateAgySeatCompletion admit only AGY_CRITIC_MODEL; refuse gemini-3.8-flash-high, Claude, GPT, and Argon as discharge.\n4. Flip fixtures and CHANGELOG — retarget launcher-argv tests so hydrogen-high admits and retiring 3.8 misses, and record the published pin change.\n\n## Reject\n\n- Defaulting the Free-plan pin to Neon or Carbon.\n- Pinning Argon (also retires 2026-11-30).\n- Relabeling seat or launcher away from agy.\n- Absorbing #7332 first-class host/hooks work.\n- Changing sandbox vs --dangerously-skip-permissions in this Bound.\n\nFiled for @MScottAdams",
+          "id": 7177923529,
+          "html_url": "https://github.com/deftai/directive/issues/7358#issuecomment-7177923529",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-25T23:41:52Z",
+          "updated_at": "2026-11-25T23:45:03Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\n\nissue: deftai/directive#7358\ncharter: refutation\nspend: N=1\nround: 4 Pass-4 audit\nseat: grok\nlauncher: paste-ready\nid-ceiling: 7177923529\ndispatch-sha: 25923e3c921e91255a24ed5815be8bc64c5c9a3d\narc-mode: no-ingest\naudit-targets: pain-P1, pain-P2, pain-P3\nharvest-digest: sha256:e6d7035b14fb5193873e78eda12120fea378a833a4cf6b36c8eda7f2689307df\nharvest-changed: false\nfinding-classes: footnote\n\nVerdict: Prefer-A Bound 7177923529 covers Stop 1 P1–P3. Limb 1–2 replace the published pin and argv (P1). Limb 3 keys discharge to AGY_CRITIC_MODEL and refuses retiring 3.8 (P2). Limb 4 flips fixtures so hydrogen-high admits and 3.8 misses, absorbing Round-1 SF1 (P3). Census: footnote only. No blocks-the-design or sharpens-framing on this harvest.\n\nVerification: pin-read at dispatch-sha of panel-seat-families.ts and launcher-argv.test.ts; read Stop 1 7177735517, Round-1 7177918284, Bound 7177923529. Paste-ready after dest-rooted critic sticky deny. No repository edits.\n\n### PA1 — footnote: asserted coverage holds\n\nP1/P2/P3 each map to a Bound limb. Round-1 footnotes F1/F2 stay footnotes. harvest-changed false.\n\nFiled for @MScottAdams",
+          "id": 7177952820,
+          "html_url": "https://github.com/deftai/directive/issues/7358#issuecomment-7177952820",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-25T23:43:09Z",
+          "updated_at": "2026-11-25T23:44:35Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\n| Finding | Class | Disposition | Cite | Method |\n| --- | --- | --- | --- | --- |\n| tip publishes retiring gemini-3.8-flash-high on AGY_CRITIC_MODEL and argv | blocks-the-design | accept-into-contract | 7177735517 | Pin-read panel-seat-families.ts at 25923e3c921e91255a24ed5815be8bc64c5c9a3d. Prefer-A Bound limbs 1–2. |\n| discharge predicate still keys only to retiring 3.8 | blocks-the-design | accept-into-contract | 7177735517 | Pin-read agyModelDischargesSeat / evaluateAgySeatCompletion at same SHA. Bound limb 3. |\n| fixtures/CHANGELOG still pin 3.8 and refuse Hydrogen | blocks-the-design | accept-into-contract | 7177735517 | Pin-read launcher-argv.test.ts agy critic seat block. Bound limb 4. |\n| fixture polarity must flip with the constant | sharpens-framing | accept-into-contract | 7177918284 | Round-1 SF1 absorbed into Bound limb 4. |\n| P1 P2 P3 asserted coverage | footnote | harvest unchanged | 7177952820 | Pain-audit harvest-digest sha256:66993d608f3b5767dfe3548991d46839fb383550fbcf78685f65b1da3081db73, finding-classes footnote, harvest-changed false. |\n| sandbox seating flag orthogonal | footnote | harvest unchanged | 7177918284 | Round-1 F1; Bound Reject keeps it out. |\n\nDisagreement set: empty.\nReduced panel: N≥3→N=1 (sticky PreToolUse after native multi-active xBRIEF deny; dest-rooted grok/process-only pin miss → paste-ready Round-1 and PA).\n\nNon-self-arbitration: parent authored Stop 1 7177735517 and Bound 7177923529; Round-1/PA paste-ready after recorded dest critic miss. Same parent did not invent a second critic family for this reduced panel.\n\nFiled for @MScottAdams",
+          "id": 7177958816,
+          "html_url": "https://github.com/deftai/directive/issues/7358#issuecomment-7177958816",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-25T23:43:25Z",
+          "updated_at": "2026-11-25T23:43:25Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: parent\n```\n\ndesign-critique: synthesis accepted, because Prefer-A Bound 7177923529 relieves Stop 1 P1–P3, Round-1 left no blocks-the-design residual, and pain-audit 7177952820 reported harvest-changed false with footnote census only.\n\nsuccessor lean: 7177923529\n\n## In plain English\nShip a one-pin cutover of the agy critic seat from gemini-3.8-flash-high to gemini-4-hydrogen-high before the 2026-11-30 Antigravity sunset. Update the published constant, both argv strings, discharge fixtures, and CHANGELOG. Leave seat naming, paid Neon/Carbon defaults, Argon, #7332 host work, and the sandbox seating flag alone.\n\n## Verified-claims table\nCite: https://github.com/deftai/directive/issues/7358#issuecomment-7177958816\n\nCited Prefer-A Bound: https://github.com/deftai/directive/issues/7358#issuecomment-7177923529\nCited verified-claims table: https://github.com/deftai/directive/issues/7358#issuecomment-7177958816\n\nReduced panel: N≥3→N=1 named on panel-deposit 7177786504.\narc-mode: no-ingest remains. Ingest stays a separate operator verb (\task issue:ingest).\n\nFiled for @MScottAdams",
+          "id": 7177959325,
+          "html_url": "https://github.com/deftai/directive/issues/7358#issuecomment-7177959325",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-25T23:43:27Z",
+          "updated_at": "2026-11-25T23:43:44Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n\nReplace retiring gemini-3.8-flash-high in AGY design-critique critic seat before Nov 30, 2026 sunset\n\n## Context\n\nInternal benchmark evidence (private), Directive 0.131.5. Per Google Antigravity official docs (antigravity.google/docs/models.md), Gemini 3.8 Flash (along with Gemini 4 Argon, Claude 4.6, and GPT-OSS-120b) is scheduled for removal on November 30, 2026.\n\n## Expected behavior\n\nUpdate AGY_CRITIC_MODEL, AGY_PONG_ARGV, and AGY_SHORT_POINTER_ARGV in panel-seat-families (and any related docs/tests) to a surviving post-Nov-30 Antigravity model ID before November 30, 2026 — for example gemini-4-hydrogen-high (available on all Antigravity plans including Free, Plus, Pro, Ultra, and Enterprise) or gemini-4-carbon-high / gemini-4-neon-high for paid tiers.\n\n## Actual behavior / gap\n\nIn Directive 0.131.5, vendor/directive-core/dist/design-critique/panel-seat-families.js hard-codes AGY_CRITIC_MODEL = gemini-3.8-flash-high as well as --model gemini-3.8-flash-high in AGY_PONG_ARGV and AGY_SHORT_POINTER_ARGV. After November 30, 2026, the agy critic seat pong and dispatch commands will fail against a removed model.\n\n## Session notes\n\nEvidence: internal benchmark evidence (private). Related issues: Refs #7245, #7332.\n\n---\n_Filed via `deft feedback:file` from a directive consumer project (Refs #1709 value-feedback gap escalation)._\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6614242598,
+        "origin": "deftai/directive#7358",
+        "id": "github.issue.6614242598"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "5361aa57944fe2272cbfc52b03017657f1a65c6bf7982feb341c2615c7b2e9bf"
+      },
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 7358,
+        "leanCommentId": 7177923529,
+        "harvestDigest": "e6d7035b14fb5193873e78eda12120fea378a833a4cf6b36c8eda7f2689307df",
+        "slice": null
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "conflict_group": "agy-critic-model-pin-replace-38flash-with-hydrogen",
+        "size": "S",
+        "file_scope": [
+          "packages/core/src/design-critique/panel-seat-families.ts",
+          "packages/core/src/design-critique/panel-seat-families.test.ts",
+          "packages/core/src/hooks/launcher-argv.test.ts",
+          "changelog.d/7358-agy-critic-hydrogen-pin.md"
+        ],
+        "file_scope_confidence": "high",
+        "depends_on": [],
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/design-critique/panel-seat-families.test.ts packages/core/src/hooks/launcher-argv.test.ts --reporter=dot"
+        ],
+        "expected_outputs": [
+          "agy critic seat pinned to gemini-4-hydrogen-high"
+        ],
+        "model_tier": "standard"
+      }
+    },
+    "id": "github.issue.6614242598",
+    "updated": "2026-11-26T18:07:59Z"
+  }
+}
