@@ -170,16 +170,8 @@ export function isDirectiveManagedHostHookCommand(commandText: string, host: Hoo
   ) {
     return true;
   }
-  return commandText.includes(`--host ${host}`);
-}
-
-function nestedCommands(value: unknown): string[] {
-  const group = objectRecord(value);
-  if (group === null || !Array.isArray(group.hooks)) return [];
-  return group.hooks.flatMap((candidate) => {
-    const text = hostHookEntryText(candidate);
-    return text === null ? [] : [text];
-  });
+  // --host alone is not ownership (#7349 Greptile): company-check --host claude must stay.
+  return false;
 }
 
 function withoutManagedNestedHooks(value: unknown, host: HookHost): unknown | null {
@@ -208,16 +200,10 @@ function stripNestedHostHookConfig(
       nextHooks[key] = value;
       continue;
     }
-    const filtered =
-      key === "SessionEnd"
-        ? value
-            .map((entry) => withoutManagedNestedHooks(entry, host))
-            .filter((entry) => entry !== null)
-        : value.filter((entry) => {
-            const commands = nestedCommands(entry);
-            if (commands.length === 0) return true;
-            return !commands.some((text) => isDirectiveManagedHostHookCommand(text, host));
-          });
+    // Every nested event: strip managed commands inside the group; keep the group if user hooks remain.
+    const filtered = value
+      .map((entry) => withoutManagedNestedHooks(entry, host))
+      .filter((entry) => entry !== null);
     if (filtered.length > 0) nextHooks[key] = filtered;
   }
   if (Object.keys(nextHooks).length === 0) {

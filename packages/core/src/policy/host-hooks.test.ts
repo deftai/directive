@@ -223,6 +223,65 @@ describe("hostHooks policy (#2752)", () => {
     expect(readFileSync(join(root, ".cursor/hooks.json"), "utf8")).toContain("--host cursor");
   });
 
+  it("does not delete unrelated --host hooks when disabling Claude (#7349 Greptile)", () => {
+    const root = project();
+    writeProjectDefinition(root, {});
+    mkdirSync(join(root, ".claude"), { recursive: true });
+    writeFileSync(
+      join(root, ".claude/settings.json"),
+      `${JSON.stringify({
+        hooks: {
+          PreToolUse: [
+            { hooks: [{ command: "company-check --host claude" }] },
+            {
+              hooks: [
+                {
+                  command: "node .claude/deft-hook-abcd1234.mjs --host claude --event tool.before",
+                },
+              ],
+            },
+          ],
+        },
+      })}\n`,
+      "utf8",
+    );
+    writeFileSync(join(root, ".claude/deft-hook-abcd1234.mjs"), "export {}\n", "utf8");
+
+    const result = disableHostHooks(root, { host: "claude", confirm: true, actor: "test" });
+    expect(result.exitCode).toBe(0);
+    const content = readFileSync(join(root, ".claude/settings.json"), "utf8");
+    expect(content).toContain("company-check --host claude");
+    expect(content).not.toContain("deft-hook-abcd1234");
+  });
+
+  it("keeps user commands in a shared PreToolUse group when stripping Directive (#7349 Greptile)", () => {
+    const root = project();
+    writeProjectDefinition(root, {});
+    mkdirSync(join(root, ".claude"), { recursive: true });
+    writeFileSync(
+      join(root, ".claude/settings.json"),
+      `${JSON.stringify({
+        hooks: {
+          PreToolUse: [
+            {
+              hooks: [
+                { command: "./user-pretool.sh" },
+                { command: "deft hook:dispatch --host claude --event tool.before" },
+              ],
+            },
+          ],
+        },
+      })}\n`,
+      "utf8",
+    );
+
+    const result = disableHostHooks(root, { host: "claude", confirm: true, actor: "test" });
+    expect(result.exitCode).toBe(0);
+    const content = readFileSync(join(root, ".claude/settings.json"), "utf8");
+    expect(content).toContain("./user-pretool.sh");
+    expect(content).not.toContain("deft hook:dispatch");
+  });
+
   it("names launch-checkout repair in root-mismatch recovery (#7349 P2)", () => {
     expect(HOOK_ROOT_MISMATCH_RECOVERY_GUIDANCE).toContain("launch checkout");
     expect(HOOK_ROOT_MISMATCH_RECOVERY_GUIDANCE).toContain("directive install --repair");

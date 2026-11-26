@@ -259,21 +259,42 @@ export function disableHostHooks(
       return { changed: changedFlag };
     });
 
-    const live = stripHostHookRegistrationInPlace(projectRoot, options.host);
+    let live: { stripped: boolean; touchedPaths: string[] };
+    let stripError: string | null = null;
+    try {
+      live = stripHostHookRegistrationInPlace(projectRoot, options.host);
+    } catch (stripErr: unknown) {
+      // Policy/audit already saved — disclose both (#7349 Greptile P2).
+      stripError = stripErr instanceof Error ? stripErr.message : String(stripErr);
+      live = { stripped: false, touchedPaths: [] };
+    }
     const registration = hostHookRegistrationRelPath(options.host);
     const disclosure = hostHookRepairDisclosurePaths(options.host);
     const lines = [
       `\u2713 ${FIELD_HOST_HOOKS}.${options.host}=false (deft-hook guardrails removed for ${options.host}; result is tracked).`,
       changed ? "  audit: meta/policy-changes.log updated." : POLICY_AUDIT_NOOP_STDOUT,
-      live.stripped
-        ? `  Cleared live Directive host-hook registration in this checkout:`
-        : `  Live Directive host-hook registration already clear in this checkout:`,
-      ...live.touchedPaths.map((p) => `    - ${p}`),
-      `  Verify: confirm ${registration} has no Directive PreToolUse entries (or is {}) and ${disclosure[1]} is gone.`,
-      `  Hooks bind to the launch checkout; run this verb (or \`directive install --repair\`) there — a new session alone is not enough.`,
     ];
+    if (stripError !== null) {
+      lines.push(`  Live strip failed after policy save: ${stripError}`);
+      lines.push(
+        `  Repair: fix ${registration} JSON then re-run disable-host-hooks, or \`directive install --repair\` in the launch checkout.`,
+      );
+    } else {
+      lines.push(
+        live.stripped
+          ? `  Cleared live Directive host-hook registration in this checkout:`
+          : `  Live Directive host-hook registration already clear in this checkout:`,
+      );
+      lines.push(...live.touchedPaths.map((p) => `    - ${p}`));
+      lines.push(
+        `  Verify: confirm ${registration} has no Directive PreToolUse entries (or is {}) and ${disclosure[1]} is gone.`,
+      );
+      lines.push(
+        `  Hooks bind to the launch checkout; run this verb (or \`directive install --repair\`) there — a new session alone is not enough.`,
+      );
+    }
     return {
-      exitCode: 0,
+      exitCode: stripError !== null ? 2 : 0,
       stdout: `${lines.join("\n")}\n`,
       changed: changed || live.stripped,
       touchedPaths: live.touchedPaths,
