@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6424",
-    "updated": "2026-11-26T06:06:25Z"
+    "updated": "2026-11-26T07:02:10Z"
   },
   "plan": {
     "title": "bug(ci): one-pr-unit-merge-group fails on every merge-queue run with \"missing constituent PR\"",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(ci): one-pr-unit-merge-group fails on every merge-queue run with \"missing constituent PR\"",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6424",
@@ -16,13 +16,27 @@
     "items": [
       {
         "title": "Given a merge-queue entry for one PR, when the workflow runs, then it finds that PR as a constituent and does not report \"missing constituent PR\".",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "06633dc3b32d8bc26d14525fb1f35474139a5958",
+          "recorded_at": "2026-11-26T07:02:10Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Given a lookup error from the GitHub API, when the workflow runs, then the failure names the API error, not an empty constituent list.",
-        "status": "proposed",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "06633dc3b32d8bc26d14525fb1f35474139a5958",
+          "recorded_at": "2026-11-26T07:02:10Z",
+          "recorded_by": "scope:complete"
+        }
       }
     ],
     "tags": [
@@ -457,7 +471,36 @@
         "algorithm": "sha256",
         "sha256": "742807cdd754c4263211ccc163614fa7e2c0d6e76699597e0b8fdf6c2d5e5079"
       },
-      "kind": "story"
+      "kind": "story",
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "326a010fdba207b78bcfe4162d3ef53236a44bde",
+        "prNumber": 7376,
+        "prBase": "master",
+        "mergeCommit": "06633dc3b32d8bc26d14525fb1f35474139a5958",
+        "deliveryBranch": "master",
+        "deliveryCommit": "06633dc3b32d8bc26d14525fb1f35474139a5958",
+        "verifiedAt": "2026-11-26T07:02:10Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:YTQ2NTZlZmEtNzdjMy00ZTZhLWEyYmMtNjYxNjdkYTg5NDA4",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          7375
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-26T07:02:10Z",
+      "completedSessionId": "host:claude:v1:YTQ2NTZlZmEtNzdjMy00ZTZhLWEyYmMtNjYxNjdkYTg5NDA4",
+      "capacityBucket": "technical-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-26T07:02:10Z"
+      }
     },
     "acceptance": {
       "commands": [],
@@ -493,6 +536,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.6426916059",
-    "updated": "2026-11-26T06:06:25Z"
+    "updated": "2026-11-26T07:02:10Z"
   }
 }
