@@ -27,7 +27,11 @@ import {
   resolveSessionPosture,
   ritualStateIsPostureAuthority,
 } from "./posture.js";
-import { defaultRitualRunner } from "./ritual-entrypoint.js";
+import {
+  defaultRitualRunner,
+  type RitualRunContext,
+  type RitualRunResult,
+} from "./ritual-entrypoint.js";
 import {
   COMPACT_PRIOR_STARTED_AT_KEY,
   type RitualState,
@@ -178,14 +182,12 @@ export interface VerifyResult {
   readonly boundSessionId?: string;
 }
 
+/** `context` tells the agent_hooks step which surface and applying host it runs for (#7416). */
 export type RitualRunner = (
   command: readonly string[],
   projectRoot: string,
-) => {
-  code: number;
-  stdout: string;
-  stderr: string;
-};
+  context?: RitualRunContext,
+) => RitualRunResult;
 
 function truthy(raw: string | undefined): boolean {
   return new Set(["1", "true", "yes", "on"]).has((raw ?? "").trim().toLowerCase());
@@ -306,29 +308,40 @@ function runGatedStep(
   expected: { sessionId?: string; startedAt: Date },
   detect: DetectWorkSelection = detectWorkSelection,
   checkClassCacheFresh = false,
-): string | null {
+  runContext?: RitualRunContext,
+): { error: string | null; ok: boolean } {
   const command = resolveGatedEntrypointCommand(stepName, projectRoot, detect, {
     checkClassCacheFresh,
   });
-  const { code, stdout, stderr } = runner(command, projectRoot);
+  const result = runner(command, projectRoot, runContext);
+  const { code, stdout, stderr } = result;
   const message = stdout.trim() || stderr.trim() || `${command[0] as string} exited ${code}`;
   const gated = (payload.gated_steps as Record<string, Record<string, unknown>> | undefined) ?? {};
-  gated[stepName] = ritualStep({
-    ok: code === 0,
-    ts: now,
-    exitCode: code,
-    message,
-    command,
-  });
+  gated[stepName] = {
+    ...ritualStep({
+      ok: code === 0,
+      ts: now,
+      exitCode: code,
+      message,
+      command,
+    }),
+    // Per-host agent_hooks entries (#7416); the merge keeps the other hosts' entries.
+    ...(stepName === "agent_hooks" && result.agentHookHosts !== undefined
+      ? { hosts: result.agentHookHosts }
+      : {}),
+  };
   payload.gated_steps = gated;
   if (stepName === "cache_fresh") {
     applyCacheFreshDriftProbeField(payload, command);
   }
   const refusal = writeRitualStateIfStillOwned(projectRoot, payload, expected);
   if (refusal !== null) {
-    return `could not write session ritual state after ${stepName}: ${refusal}`;
+    return {
+      error: `could not write session ritual state after ${stepName}: ${refusal}`,
+      ok: false,
+    };
   }
-  return null;
+  return { error: null, ok: code === 0 };
 }
 
 /** Discontinuous-HEAD recovery; #4290 strips unauthorized ceremony when occupancy refuses (#3884). */
@@ -355,6 +368,11 @@ function evaluateLoadedState(
     runGit?: GitRunner;
     rebindForwardHead?: boolean;
     requiredGatedSteps?: readonly GatedStepName[];
+    /**
+     * Verdict of gated steps this very call just ran. The step record can be replaced by a
+     * concurrent write of another host, so the verdict of our own run decides (#7416).
+     */
+    justRan?: Partial<Record<GatedStepName, boolean>>;
   },
 ): EvaluateLoadedResult {
   const runGit = input.runGit ?? defaultGitRunner;
@@ -496,7 +514,8 @@ function evaluateLoadedState(
     const requiredGated = input.requiredGatedSteps ?? GATED_STEPS;
     for (const stepName of requiredGated) {
       const step = state.gatedSteps[stepName];
-      if (!stepPasses(step)) {
+      const ranOk = input.justRan?.[stepName];
+      if (ranOk === true ? false : ranOk === false || !stepPasses(step)) {
         // #5390 / #3738: name --rearm only for the missing-VERSION / this-class
         // stamp. Rearm restamps gated steps and does not re-run doctor; generic
         // doctor failures stay cold so the preferred recovery can clear them.
@@ -573,6 +592,13 @@ export interface VerifySessionRitualOptions {
    * `doctor` cannot run as write-path repair (#3738).
    */
   readonly executeGatedSteps?: readonly GatedStepName[];
+  /**
+   * Surface the gated steps run for (#7416). `write` is the mutation write gate, which probes
+   * only the applying host; the default `ritual` probes every enabled host.
+   */
+  readonly agentHookSurface?: RitualRunContext["surface"];
+  /** Applying hook host on the write surface (`input.host`); absent means unknown (#7416). */
+  readonly applyingHost?: string;
 }
 
 /**
@@ -582,11 +608,12 @@ export interface VerifySessionRitualOptions {
 export function writeGateRitualOptions(
   extras: Omit<
     VerifySessionRitualOptions,
-    "requiredGatedSteps" | "executeGatedSteps" | "tier"
+    "requiredGatedSteps" | "executeGatedSteps" | "tier" | "agentHookSurface"
   > = {},
 ): VerifySessionRitualOptions {
   return {
     ...extras,
+    agentHookSurface: "write",
     tier: "gated",
     posture: extras.posture ?? "mutation",
     requiredGatedSteps: WRITE_GATED_REQUIRED_STEPS,
@@ -772,6 +799,7 @@ export function verifySessionRitual(
     };
   }
 
+  const justRan: Partial<Record<GatedStepName, boolean>> = {};
   if (tier === "gated" && !isBypassed) {
     const precheck = evaluateLoadedState(projectRoot, state, {
       tier: "quick",
@@ -818,7 +846,9 @@ export function verifySessionRitual(
     const ownerAtVerify = { sessionId: state.sessionId, startedAt: state.startedAt };
     const gated = { ...(payload.gated_steps as Record<string, Record<string, unknown>>) };
     payload.gated_steps = gated;
-    const runCmd = options.runner ?? defaultRitualRunner;
+    const runCmd: RitualRunner =
+      options.runner ??
+      ((command, root, context) => defaultRitualRunner(command, root, {}, context));
     const forced = new Set<GatedStepName>(options.forceGatedSteps ?? []);
     const detect = options.detectWorkSelection ?? detectWorkSelection;
     const executable = new Set<GatedStepName>(options.executeGatedSteps ?? [...GATED_STEPS]);
@@ -834,7 +864,7 @@ export function verifySessionRitual(
       if (stepName !== "agent_hooks" && stepPasses(step) && !forced.has(stepName) && !rearmDrift) {
         continue;
       }
-      const writeError = runGatedStep(
+      const stepRun = runGatedStep(
         projectRoot,
         payload,
         stepName,
@@ -843,11 +873,16 @@ export function verifySessionRitual(
         ownerAtVerify,
         detect,
         options.checkClassCacheFresh === true,
+        {
+          surface: options.agentHookSurface ?? "ritual",
+          now: instant,
+          ...(options.applyingHost === undefined ? {} : { host: options.applyingHost }),
+        },
       );
-      if (writeError !== null) {
+      if (stepRun.error !== null) {
         return {
           code: 2,
-          message: writeError,
+          message: stepRun.error,
           tier,
           statePath,
           bypassed: false,
@@ -856,6 +891,7 @@ export function verifySessionRitual(
           ritualStateRequired,
         };
       }
+      justRan[stepName] = stepRun.ok;
     }
     const reloaded = readRitualState(projectRoot);
     state = reloaded[0];
@@ -911,6 +947,7 @@ export function verifySessionRitual(
     runGit: options.runGit,
     rebindForwardHead: true,
     requiredGatedSteps: options.requiredGatedSteps,
+    justRan,
   });
   if (isBypassed) {
     return {

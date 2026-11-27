@@ -93,6 +93,64 @@ describe("evaluateAgentHookReadiness", () => {
     });
   });
 
+  it("live-probes only the applying host and passes the overall deadline (#7416)", () => {
+    const probe = vi.fn((_root: string, seams?: { hosts?: readonly string[] }) => ({
+      ...live(),
+      hosts: (seams?.hosts ?? []).map((host) => ({ host, status: "functional" as const })),
+    }));
+    const result = evaluateAgentHookReadiness("/project", {
+      consumerContext: () => true,
+      evaluateStructural: () => structural(),
+      probeLive: probe as never,
+      hosts: ["claude"],
+      probeDeadlineMs: 20_000,
+    });
+
+    expect(probe).toHaveBeenCalledTimes(1);
+    expect(probe.mock.calls[0]?.[1]).toMatchObject({ hosts: ["claude"], deadlineMs: 20_000 });
+    expect(result.code).toBe(0);
+    expect(result.hosts.find((entry) => entry.host === "claude")?.functionality).toBe("functional");
+    // Hosts the write does not probe stay not-run; structural inspection still covered them all.
+    expect(result.hosts.find((entry) => entry.host === "grok")?.functionality).toBe("not-run");
+    expect(result.registrations).toHaveLength(4);
+  });
+
+  it("still fails structurally on a host that is not the applying host (#7416)", () => {
+    const probe = vi.fn(() => live());
+    const result = evaluateAgentHookReadiness("/project", {
+      consumerContext: () => true,
+      evaluateStructural: () => structural(1),
+      probeLive: probe,
+      hosts: ["claude"],
+    });
+    expect(result.code).toBe(1);
+    expect(probe).not.toHaveBeenCalled();
+  });
+
+  it("reports budget exhaustion as timed-out, never non-functional (#7416)", () => {
+    const result = evaluateAgentHookReadiness("/project", {
+      consumerContext: () => true,
+      evaluateStructural: () => structural(),
+      probeLive: () => ({
+        code: 1,
+        message: "probe deadline",
+        cases: [
+          {
+            host: "grok",
+            event: "tool.before",
+            fixture: "allow",
+            issue: "timed-out",
+            detail: "probe deadline of 20000ms ran out before this case finished",
+          },
+        ],
+        hosts: [{ host: "grok", status: "timed-out" }],
+        durationMs: 20_000,
+      }),
+    });
+    expect(result.liveStatus).toBe("timed-out");
+    expect(result.hosts.find((entry) => entry.host === "grok")?.functionality).toBe("timed-out");
+  });
+
   it("fails structurally before invoking the live probe", () => {
     const probe = vi.fn(() => live());
     const result = evaluateAgentHookReadiness("/project", {
