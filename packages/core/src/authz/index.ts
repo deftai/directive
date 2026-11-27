@@ -8,6 +8,11 @@ export * from "./actions.js";
 export * from "./classify.js";
 export * from "./closed-verb.js";
 export * from "./decompose-apply.js";
+// TOTP-armed operator delegation (#7420).
+export * from "./delegation/arm.js";
+export * from "./delegation/store.js";
+export * from "./delegation/totp.js";
+export * from "./delegation/types.js";
 export * from "./evaluate.js";
 export * from "./gate-override.js";
 export * from "./origin.js";

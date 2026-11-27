@@ -10,8 +10,11 @@
  * second mint path — grants come from Wave 1 mintHumanOriginGrant / authz:grant.
  */
 
+import { isDelegationIdLive, readLiveDelegation } from "./delegation/store.js";
+import { DELEGABLE_RELEASE_TEMPLATES, type LiveDelegationView } from "./delegation/types.js";
 import {
   evidenceSatisfiesImplementationApproval,
+  isDelegatedOrigin,
   isHumanOriginGrant,
   isRejectedOriginKind,
 } from "./origin.js";
@@ -40,6 +43,13 @@ export interface EvaluateClosedVerbInput {
   /** Optional structural context — when grant pins repo/branch, must match. */
   readonly repo?: string | null;
   readonly branch?: string | null;
+  /**
+   * Live TOTP delegation at evaluate time (#7420 B4). `undefined` = resolve
+   * from the delegation store when `projectRoot` is set, else none. `null` =
+   * no live delegation. A delegated-origin grant admits only while the
+   * delegation that minted it is this live one.
+   */
+  readonly delegation?: LiveDelegationView | null;
 }
 
 function sanitize(text: string): string {
@@ -189,6 +199,14 @@ function grantValidity(
         "Human action required: mint via `deft authz:grant` (operator-cli).",
     };
   }
+  return grantSemanticsValidity(grant, now);
+}
+
+/** Revoked / spent / expiry checks shared by human and delegated grants. */
+function grantSemanticsValidity(
+  grant: HumanOriginGrant,
+  now: Date,
+): { ok: true } | { ok: false; code: ClosedVerbDecisionCode; reason: string } {
   if (grant.semantics.revokedAt !== null) {
     return {
       ok: false,
@@ -215,6 +233,53 @@ function grantValidity(
           `(${grant.semantics.expiresAt}). Human action required: mint a fresh grant via \`deft authz:grant\`.`,
       };
     }
+  }
+  return { ok: true };
+}
+
+/**
+ * Delegated-origin admission (#7420 B4): only the release verb the grant's
+ * template names, only with exactly that one operation (no `deployment`
+ * alternative), only with an expiry, and only while the delegation that minted
+ * it is the live one.
+ */
+function delegatedGrantValidity(
+  grant: HumanOriginGrant,
+  verbKey: string,
+  delegation: LiveDelegationView | null,
+): { ok: true } | { ok: false; code: ClosedVerbDecisionCode; reason: string } {
+  const template = (grant.origin.delegatedTemplate ?? "").trim().toLowerCase();
+  const ops = grant.scope.operations.map((o) => o.toLowerCase());
+  if (
+    !(DELEGABLE_RELEASE_TEMPLATES as readonly string[]).includes(verbKey) ||
+    template !== verbKey ||
+    ops.length !== 1 ||
+    ops[0] !== verbKey ||
+    grant.scope.surfaces.length === 0
+  ) {
+    return {
+      ok: false,
+      code: "closed-verb-deny-scope",
+      reason:
+        `Directive denied closed verb: delegated grant ${grant.id} (template ${template || "none"}) ` +
+        `admits only its own release verb with a bound target, not '${verbKey}' (#7420).`,
+    };
+  }
+  if (grant.semantics.expiresAt === null) {
+    return {
+      ok: false,
+      code: "closed-verb-deny-expired",
+      reason: `Directive denied closed verb: delegated grant ${grant.id} has no expiry (#7420).`,
+    };
+  }
+  if (!isDelegationIdLive(delegation, grant.origin.delegationId)) {
+    return {
+      ok: false,
+      code: "closed-verb-deny-delegation-ended",
+      reason:
+        `Directive denied closed verb: delegated grant ${grant.id} stopped admitting because ` +
+        `delegation ${grant.origin.delegationId ?? "(none)"} is not live (#7420).`,
+    };
   }
   return { ok: true };
 }
@@ -264,7 +329,64 @@ export function evaluateClosedVerb(input: EvaluateClosedVerbInput): ClosedVerbDe
   const now = input.now ?? new Date();
   let lastReject: { code: ClosedVerbDecisionCode; reason: string; id?: string } | null = null;
 
+  let delegationResolved = false;
+  let delegation: LiveDelegationView | null = null;
+  const liveDelegation = (): LiveDelegationView | null => {
+    if (!delegationResolved) {
+      delegationResolved = true;
+      if (input.delegation !== undefined) {
+        delegation = input.delegation;
+      } else if (
+        input.projectRoot !== null &&
+        input.projectRoot !== undefined &&
+        input.projectRoot.length > 0
+      ) {
+        delegation = readLiveDelegation(input.projectRoot, { now });
+      }
+    }
+    return delegation;
+  };
+
   for (const grant of input.grants) {
+    // Delegated origin (#7420 B4): the one consumer that accepts it, for the
+    // release verb its template names, while its delegation is live.
+    if (isDelegatedOrigin(grant.origin)) {
+      const delegated = delegatedGrantValidity(grant, verbKey, liveDelegation());
+      const semantics = delegated.ok ? grantSemanticsValidity(grant, now) : delegated;
+      if (!semantics.ok) {
+        lastReject = { code: semantics.code, reason: semantics.reason, id: grant.id };
+        continue;
+      }
+      if (!grantCoversTarget(grant, input.target, row.wildcard_allowed)) {
+        lastReject = {
+          code: "closed-verb-deny-scope",
+          reason:
+            `Directive denied closed verb: delegated grant ${grant.id} surfaces ` +
+            `[${grant.scope.surfaces.join("|") || "*"}] do not cover target '${input.target ?? "(none)"}'.`,
+          id: grant.id,
+        };
+        continue;
+      }
+      if (!grantContextMatches(grant, input)) {
+        lastReject = {
+          code: "closed-verb-deny-scope",
+          reason:
+            `Directive denied closed verb: delegated grant ${grant.id} is bound to a different ` +
+            "repo/branch context than the attempted operation.",
+          id: grant.id,
+        };
+        continue;
+      }
+      return allow(
+        "closed-verb-allow",
+        `Directive allowed ${verbKey}` +
+          (input.target !== null ? ` target=${input.target}` : "") +
+          ` via delegated grant ${grant.id} (delegated-totp; delegation ${grant.origin.delegationId}; ` +
+          `precondition: ${skillPointer}).`,
+        input,
+        { humanApprovalRef: grant.id, skillPointer },
+      );
+    }
     // evidenceSatisfiesImplementationApproval and grantValidity both reject
     // non-human origins; run full validity (origin + expiry + single-use + revoked).
     if (!evidenceSatisfiesImplementationApproval({ grant })) {

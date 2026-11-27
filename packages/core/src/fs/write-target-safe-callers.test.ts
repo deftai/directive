@@ -15,6 +15,7 @@ const SRC_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 /** Product modules that call assertWriteTargetSafe (excludes this package's definition). */
 const WRITE_TARGET_SAFE_CALLERS: readonly string[] = [
+  "authz/delegation/store.ts",
   "authz/store.ts",
   "cache/io.ts",
   "delivery-attempt/ledger.ts",

@@ -50,6 +50,18 @@ export const REJECTED_ORIGIN_KINDS = [
 
 export type RejectedOriginKind = (typeof REJECTED_ORIGIN_KINDS)[number];
 
+/**
+ * Origin kind of a grant minted under a live TOTP delegation (#7420 B4).
+ * Deliberately NOT in {@link HUMAN_ORIGIN_KINDS}: `isHumanOrigin`, the general
+ * grant check and every other human-origin consumer refuse it. Exactly one
+ * consumer accepts it: `evaluateClosedVerb`, for the release verb its template
+ * names, while the delegation that minted it is still live.
+ */
+export const DELEGATED_ORIGIN_KIND = "operator-delegated" as const;
+
+/** `mintedVia` of a delegated grant (the #7420 provenance; never `deft authz:grant`). */
+export const DELEGATED_GRANT_MINTED_VIA = "delegated-totp" as const;
+
 export interface GrantOrigin {
   readonly kind: string;
   readonly actor: string;
@@ -57,6 +69,10 @@ export interface GrantOrigin {
   readonly mintedVia: string;
   /** Optional external human event ref (issue comment URL, plan:approved id, …). */
   readonly eventRef: string | null;
+  /** Delegation that minted this grant (delegated origin only, #7420). */
+  readonly delegationId?: string | null;
+  /** Release template named at mint (delegated origin only, #7420). */
+  readonly delegatedTemplate?: string | null;
 }
 
 export interface GrantScope {
@@ -149,6 +165,7 @@ export type ClosedVerbDecisionCode =
   | "closed-verb-deny-expired"
   | "closed-verb-deny-revoked"
   | "closed-verb-deny-spent"
+  | "closed-verb-deny-delegation-ended"
   | "closed-verb-unknown";
 
 export interface ClosedVerbDecision {
