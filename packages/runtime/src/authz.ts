@@ -40,8 +40,17 @@ import {
   AFK_TEMPLATE_NAMES,
   AUTHZ_OPERATIONS,
   type AuthzOperation,
+  appendDelegationAudit,
   CLOSED_VERB_TEMPLATE_NAMES,
+  DELEGATED_ACTION_CHAT_LINE_PREFIX,
+  DELEGATED_TOTP_PROVENANCE,
+  type DelegatedCompletion,
+  DELEGATION_SCHEMA_VERSION,
+  endDelegation,
   FINISH_LOOP_TEMPLATE_NAME,
+  mintDelegatedReleaseGrant,
+  resolveClosedVerbTemplate,
+  resolveDelegationStoreRoot,
   formatDecomposeStructuralMintCommand,
   GATE_OVERRIDE_TEMPLATE_NAME,
   isAfkTemplateName,
@@ -483,7 +492,13 @@ export function main(
    *    agent/CI markers refuse. Suspend reuses phrase `mint`.
    * Required-arg validation runs before this so missing --campaign / --ops still report clearly.
    */
-  const gateConfirm = (): number | null => {
+  /**
+   * Set when the harness-attended request completed with provenance
+   * `delegated-totp` (#7420). Only the release-template branch passes
+   * `delegable`; every other branch never sees a delegated completion.
+   */
+  const delegated: { completion: DelegatedCompletion | null } = { completion: null };
+  const gateConfirm = (delegable?: { readonly template: string | null }): number | null => {
     if (args.cmd === "show") return null;
     if (args.cmd !== "uat-suspend") {
       const uatBlocked = refuseMintWhileUatActive(`authz:${args.cmd}`, args.projectRoot);
@@ -505,11 +520,20 @@ export function main(
       hasControllingTerminal: resolved.hasControllingTerminal,
       readInteractiveConfirm: resolved.readInteractiveConfirm,
       readHostAuthenticatedConfirm: resolved.readHostAuthenticatedConfirm,
+      readDelegatedConfirm: resolved.readDelegatedConfirm,
       operatorStop,
       harnessAttended: {
         destinations: [join(projectRoot, ".deft", "authz")],
         ...(args.requestId !== null && args.requestId.trim().length > 0
           ? { requestId: args.requestId.trim() }
+          : {}),
+        ...(delegable !== undefined
+          ? {
+              delegation: { template: delegable.template },
+              onDelegatedCompletion: (c: DelegatedCompletion) => {
+                delegated.completion = c;
+              },
+            }
           : {}),
       },
     });
@@ -951,8 +975,11 @@ export function main(
             );
             return 2;
           }
-          const blocked = gateConfirm();
+          const blocked = gateConfirm({ template: args.template });
           if (blocked !== null) return blocked;
+          if (delegated.completion !== null) {
+            return mintDelegatedTemplateGrant(args, delegated.completion);
+          }
           const minted = mintAfkTemplateGrant({
             projectRoot: args.projectRoot,
             template: args.template,
@@ -1000,8 +1027,14 @@ export function main(
           return 2;
         }
         {
-          const blocked = gateConfirm();
+          // Raw operations are never delegable (#7420 B7): asking proves the
+          // allowlist refuses, and the human-presence path stays the only way.
+          const blocked = gateConfirm({ template: null });
           if (blocked !== null) return blocked;
+          if (delegated.completion !== null) {
+            process.stderr.write("authz:grant: raw-ops grants are never delegable (#7420).\n");
+            return 2;
+          }
         }
         const minted = mintHumanOriginGrant({
           projectRoot: args.projectRoot,
@@ -1042,6 +1075,14 @@ export function main(
           const blocked = gateConfirm();
           if (blocked !== null) return blocked;
         }
+        // A terminal authz:revoke ends any live delegation (#7420 B2). revoke is
+        // never delegable, so reaching here means the human-presence gate passed.
+        const ended = endDelegation(resolve(args.projectRoot), "authz-revoke");
+        if (ended.ok && ended.ended) {
+          process.stdout.write(
+            `✓ delegation ${ended.record?.delegationId ?? ""} ended (terminal authz:revoke)\n`,
+          );
+        }
         let revokedResult = revokeGrant({
           projectRoot: args.projectRoot,
           grantId: args.grantId,
@@ -1077,6 +1118,62 @@ export function main(
     process.stderr.write(`authz: ${String(err)}\n`);
     return 1;
   }
+}
+
+/**
+ * Mint a release grant after a delegated completion (#7420 B3 / B4 / B8).
+ * Core refuses anything but the four release templates and a live delegation;
+ * the grant carries the delegated origin. Audited in the delegation store and
+ * announced with one chat line.
+ */
+function mintDelegatedTemplateGrant(args: Parsed, completion: DelegatedCompletion): number {
+  const template = (args.template ?? "").trim().toLowerCase();
+  if (!isClosedVerbTemplateName(template) || args.target === null) {
+    process.stderr.write(`authz:grant: template ${template} is not delegable (#7420).\n`);
+    return 2;
+  }
+  const projectRoot = resolve(args.projectRoot);
+  const resolvedTemplate = resolveClosedVerbTemplate({
+    template,
+    target: args.target,
+    expiresAt: args.expiresAt,
+  });
+  const minted = mintDelegatedReleaseGrant({
+    projectRoot,
+    completion,
+    template,
+    surfaces: resolvedTemplate.surfaces,
+    expiresAt: resolvedTemplate.expiresAt,
+    actor: args.actor,
+    singleUse: args.singleUse,
+    planRef: args.planRef,
+    repo: args.repo,
+    branch: args.branch,
+  });
+  if (!minted.ok) {
+    process.stderr.write(`authz:grant: ${minted.reason}\n`);
+    return 2;
+  }
+  const grant = minted.grant;
+  const storeRoot = resolveDelegationStoreRoot(projectRoot);
+  appendDelegationAudit(storeRoot, {
+    schemaVersion: DELEGATION_SCHEMA_VERSION,
+    ts: grant.origin.mintedAt,
+    event: "delegated-mint",
+    provenance: DELEGATED_TOTP_PROVENANCE,
+    delegationId: completion.delegationId,
+    hostSessionId: completion.hostSessionId,
+    detail:
+      `authz:grant --template ${template} target=${args.target} grant=${grant.id} ` +
+      `request=${completion.requestId} expires=${grant.semantics.expiresAt ?? "-"}`,
+  });
+  process.stdout.write(
+    `${DELEGATED_ACTION_CHAT_LINE_PREFIX} authz:grant ${template} target=${args.target} ` +
+      `minted grant ${grant.id} under delegation ${completion.delegationId} ` +
+      `(origin ${grant.origin.kind}, expires ${grant.semantics.expiresAt ?? "-"}; ` +
+      "stops admitting when the delegation ends).\n",
+  );
+  return 0;
 }
 
 /** authz:show text section for main-clone delivery-identity-attest grants (#6317). */

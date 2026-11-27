@@ -11,6 +11,16 @@ import { existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
 import { containedWrite } from "../fs/contained-write.js";
 
+/**
+ * Stamp `kind` of an approved-scope record minted under a live TOTP delegation
+ * (#7420 B4). Scope-provenance owns the stamp format and does not import authz;
+ * the delegation e2e test pins it equal to the authz delegated origin kind.
+ */
+export const DELEGATED_APPROVAL_STAMP_KIND = "operator-delegated";
+
+/** Stamp `mintedVia` of a delegated approved-scope record (#7420 provenance). */
+export const DELEGATED_APPROVAL_STAMP_MINTED_VIA = "delegated-totp";
+
 /** Immutable approved-scope record written under `.deft/approved-scope/`. */
 export interface ApprovedScopeRecord {
   readonly schemaVersion: 1;
@@ -32,6 +42,10 @@ export interface ApprovedScopeRecord {
     readonly actor: string;
     readonly mintedAt: string;
     readonly mintedVia?: string;
+    /** Delegation that minted a delegated stamp (#7420 B4). Absent on human stamps. */
+    readonly delegationId?: string;
+    /** Expiry of a delegated stamp, never later than its delegation (#7420 B4). */
+    readonly expiresAt?: string;
   };
   /**
    * Legacy optional body digest. Wave 1 (#3384 F4) does not write this on new
@@ -238,6 +252,8 @@ export function isHumanApprovalStamp(
   if (kind.length === 0 || actor.length === 0) return false;
   if (actor === "agent" || actor.startsWith("agent:") || actor === "self") return false;
   if (kind === "agent" || kind === "self" || kind === "xbrief" || kind === "dispatch") return false;
+  // A delegated stamp is never human approval (#7420 B4); only the fence accepts it.
+  if (kind === DELEGATED_APPROVAL_STAMP_KIND) return false;
   // Accept common human kinds from #2944 surface
   const humanKinds = new Set([
     "cli",
@@ -249,4 +265,46 @@ export function isHumanApprovalStamp(
     "renewed-approval",
   ]);
   return humanKinds.has(kind) || kind.startsWith("human");
+}
+
+/**
+ * Structural check for an approved-scope stamp minted under a TOTP delegation
+ * (#7420 B4): kind `operator-delegated`, `mintedVia` `delegated-totp`, a
+ * delegation id, a parseable expiry and a non-agent actor. Not human approval:
+ * {@link isHumanApprovalStamp} refuses it. Only the scope-provenance fence
+ * accepts it, and only while its delegation is live and before its expiry.
+ */
+export function isDelegatedApprovalStamp(
+  stamp: ApprovedScopeRecord["humanApproval"] | null | undefined,
+): boolean {
+  if (stamp === null || stamp === undefined) return false;
+  if ((stamp.kind ?? "").trim().toLowerCase() !== DELEGATED_APPROVAL_STAMP_KIND) return false;
+  if (stamp.mintedVia !== DELEGATED_APPROVAL_STAMP_MINTED_VIA) return false;
+  if (typeof stamp.delegationId !== "string" || stamp.delegationId.trim().length === 0) {
+    return false;
+  }
+  if (typeof stamp.expiresAt !== "string" || Number.isNaN(Date.parse(stamp.expiresAt))) {
+    return false;
+  }
+  const actor = (stamp.actor ?? "").trim().toLowerCase();
+  if (actor.length === 0) return false;
+  if (actor === "agent" || actor.startsWith("agent:") || actor === "self") return false;
+  return true;
+}
+
+/** Build the delegated stamp written by `scope:record-approved-scope` under delegation. */
+export function buildDelegatedApprovalStamp(input: {
+  readonly actor: string;
+  readonly delegationId: string;
+  readonly expiresAt: string;
+  readonly mintedAt: string;
+}): NonNullable<ApprovedScopeRecord["humanApproval"]> {
+  return {
+    kind: DELEGATED_APPROVAL_STAMP_KIND,
+    actor: input.actor.trim().length > 0 ? input.actor.trim() : "operator",
+    mintedAt: input.mintedAt,
+    mintedVia: DELEGATED_APPROVAL_STAMP_MINTED_VIA,
+    delegationId: input.delegationId,
+    expiresAt: input.expiresAt,
+  };
 }

@@ -20,7 +20,19 @@ import {
 import { tmpdir } from "node:os";
 import { basename, join, relative, resolve, sep } from "node:path";
 import { scopeProvenance, slice } from "@deftai/directive-core";
+import {
+  appendDelegationAudit,
+  DELEGATED_ACTION_CHAT_LINE_PREFIX,
+  DELEGATED_AUTHORITY_MAX_EXPIRY_HOURS,
+  DELEGATED_TOTP_PROVENANCE,
+  type DelegatedCompletion,
+  DELEGATION_SCHEMA_VERSION,
+  isDelegationIdLive,
+  readLiveDelegation,
+  resolveDelegationStoreRoot,
+} from "@deftai/directive-core/authz";
 import { verifyDocsImpactBodyFile } from "@deftai/directive-core/dist/docs/docs-impact.js";
+import { buildDelegatedApprovalStamp } from "@deftai/directive-core/dist/scope-provenance/digest.js";
 import { evaluateOnePrScopeProofGate, resolveDeliveryBranch } from "@deftai/directive-core/policy";
 import { isDirectEntrypoint } from "./entrypoint.js";
 import {
@@ -567,6 +579,71 @@ function runWiden(input: {
   }
 }
 
+/** Approved-scope stamp: human (`isHumanApprovalStamp`) or delegated (#7420). */
+type ApprovalStamp = {
+  kind: string;
+  actor: string;
+  mintedAt: string;
+  mintedVia: string;
+  delegationId?: string;
+  expiresAt?: string;
+};
+
+/**
+ * Delegated stamp for a delegated completion (#7420 B4): expiry is the
+ * earliest of the delegation's expiry and the delegated-authority cap. Null
+ * when the delegation is no longer live (nothing is written then).
+ */
+export function delegatedApprovalStampFor(
+  projectRoot: string,
+  completion: DelegatedCompletion,
+  base: ApprovalStamp,
+  now: Date = new Date(),
+  delegationStoreRoot?: string,
+): ApprovalStamp | null {
+  if (completion.verb !== "scope:record-approved-scope" || completion.template !== null) {
+    return null;
+  }
+  const live = readLiveDelegation(projectRoot, {
+    now,
+    ...(delegationStoreRoot !== undefined ? { storeRoot: delegationStoreRoot } : {}),
+  });
+  if (!isDelegationIdLive(live, completion.delegationId) || live === null) return null;
+  const capMs = now.getTime() + DELEGATED_AUTHORITY_MAX_EXPIRY_HOURS * 3600 * 1000;
+  const expiresMs = Math.min(Date.parse(live.expiresAt), capMs);
+  if (!(expiresMs > now.getTime())) return null;
+  return buildDelegatedApprovalStamp({
+    actor: base.actor,
+    delegationId: completion.delegationId,
+    expiresAt: new Date(expiresMs).toISOString().replace(/\.\d{3}Z$/, "Z"),
+    mintedAt: now.toISOString().replace(/\.\d{3}Z$/, "Z"),
+  }) as ApprovalStamp;
+}
+
+/** Audit line plus one chat line for a delegated approved-scope write (#7420 B8). */
+function announceDelegatedStamp(
+  projectRoot: string,
+  planId: string,
+  completion: DelegatedCompletion,
+  stamp: ApprovalStamp,
+  mode: "mint" | "widen",
+): void {
+  appendDelegationAudit(resolveDelegationStoreRoot(projectRoot), {
+    schemaVersion: DELEGATION_SCHEMA_VERSION,
+    ts: stamp.mintedAt,
+    event: "delegated-mint",
+    provenance: DELEGATED_TOTP_PROVENANCE,
+    delegationId: completion.delegationId,
+    hostSessionId: completion.hostSessionId,
+    detail: `scope:record-approved-scope ${mode} plan=${planId} request=${completion.requestId} expires=${stamp.expiresAt ?? "-"}`,
+  });
+  process.stdout.write(
+    `${DELEGATED_ACTION_CHAT_LINE_PREFIX} scope:record-approved-scope ${mode} for ${planId} ` +
+      `under delegation ${completion.delegationId} (stamp ${stamp.kind}, expires ${stamp.expiresAt ?? "-"}; ` +
+      "only the scope-provenance fence accepts it, and only while the delegation is live).\n",
+  );
+}
+
 export function run(
   argv: string[],
   seams: HumanPresenceMintSeams = {},
@@ -621,7 +698,7 @@ export function run(
   const uatBlocked = refuseMintWhileUatActive(verb, projectRoot);
   if (uatBlocked !== null) return uatBlocked;
 
-  const stamp = {
+  let stamp: ApprovalStamp = {
     kind: args.kind.trim(),
     actor: args.actor.trim(),
     mintedAt: new Date().toISOString().replace(/\.\d{3}Z$/, "Z"),
@@ -659,6 +736,8 @@ export function run(
     scopeProvenance.approvedScopeIntentPath(projectRoot, planId),
   ];
   const resolved = resolveHumanPresenceMintSeams(seams);
+  // A live TOTP delegation may complete this request (#7420 B3).
+  const delegated: { completion: DelegatedCompletion | null } = { completion: null };
   const mintBlocked = refuseNonInteractiveMint({
     verb,
     confirm: args.confirm,
@@ -667,6 +746,7 @@ export function run(
     hasControllingTerminal: resolved.hasControllingTerminal,
     readInteractiveConfirm: resolved.readInteractiveConfirm,
     readHostAuthenticatedConfirm: resolved.readHostAuthenticatedConfirm,
+    readDelegatedConfirm: resolved.readDelegatedConfirm,
     operatorStop: {
       projectRoot,
       args: mintArgsAfterVerb(argv, null),
@@ -675,15 +755,30 @@ export function run(
     harnessAttended: {
       destinations,
       ...(args.requestId.trim().length > 0 ? { requestId: args.requestId.trim() } : {}),
+      delegation: { template: null },
+      onDelegatedCompletion: (c) => {
+        delegated.completion = c;
+      },
     },
   });
   if (mintBlocked !== null) return mintBlocked;
   // Fresh UAT recheck at confirm time (#7279).
   const uatRecheck = refuseMintWhileUatActive(verb, projectRoot);
   if (uatRecheck !== null) return uatRecheck;
+  if (delegated.completion !== null) {
+    const delegatedStamp = delegatedApprovalStampFor(projectRoot, delegated.completion, stamp);
+    if (delegatedStamp === null) {
+      process.stderr.write(
+        `scope_record_approved_scope: delegation ${delegated.completion.delegationId} ` +
+          "is no longer live; nothing written (#7420).\n",
+      );
+      return 2;
+    }
+    stamp = delegatedStamp;
+  }
 
   if (args.addPaths.length > 0) {
-    return runWiden({
+    const widened = runWiden({
       projectRoot,
       xbriefRelPath,
       payload,
@@ -693,6 +788,10 @@ export function run(
       quiet: args.quiet,
       seams: widenSeams,
     });
+    if (widened === 0 && delegated.completion !== null) {
+      announceDelegatedStamp(projectRoot, planId, delegated.completion, stamp, "widen");
+    }
+    return widened;
   }
   const repoSeed = slice.resolveProjectRepo(
     args.repo.trim().length > 0 ? args.repo.trim() : undefined,
@@ -721,6 +820,9 @@ export function run(
     return 1;
   }
   const { record, recordPath, intentPath } = minted;
+  if (delegated.completion !== null) {
+    announceDelegatedStamp(projectRoot, planId, delegated.completion, stamp, "mint");
+  }
   if (!args.quiet) {
     process.stdout.write(
       `scope_record_approved_scope: wrote ${recordPath}\n` +

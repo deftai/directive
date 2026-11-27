@@ -413,6 +413,23 @@ When the workflow needs an Approach 1 monitor, scope the Cursor leaf `stop-at: p
 
 **Parent-steer inbox (#4286 / #5278):** Parent writes `.deft-scratch/subagent-steer/<agent-id>.json` via `deft subagent:steer` / `task subagent:steer` (`deft.subagent.steer.v1`). Child acks apply-once. `task verify:subagent-steer` exit `1` is `STEER_PENDING` — not `REDISPATCH_OK`. Query-before-cancel: `deft subagent:pre-cancel --agent <id> --canceller-id <id> --target-id <worktree>` (observed first-seen window, ack, heartbeat grace, or `--force --reason`). Heartbeat sweep does not parse the steer directory. Host-kill refuse is #5281. See `.deft/core/docs/subagent-heartbeat.md` § Parent-steer inbox / Query-before-cancel.
 
+### Operator delegation (#7420)
+
+Arm a time-boxed TOTP delegation from chat so an agent shell can complete the
+approved-scope mint and the four release grants:
+
+```bash
+deft delegate enroll --confirm          # once, at a terminal; prints an otpauth:// URI
+# in chat, on its own line:  deft delegate on [<ttl>] <code>   (default 12h, max 72h)
+deft delegate status [--json]
+deft delegate off                       # end it now
+```
+
+- **Allows:** `scope:record-approved-scope`; `authz:grant --template release-cut|release-publish|release-rollback|release-promote-latest`. Everything else refuses, `finish-loop` included.
+- **Accepted by:** the scope-provenance fence (stamp) and `evaluateClosedVerb` (own release verb only), while the delegation is live.
+- **Ends on:** `delegate off`, TTL, session end, UAT start, the kill switch, a terminal `authz:revoke`.
+- **Strength:** parity of forging effort with the terminal mint; wider blast radius. Full contract: `content/docs/operator-delegation.md`.
+
 ### Agent-host direct-write hooks (#2438, #2596)
 
 Setup (the launcher's install, repair and upgrade commands; see [launcher.md](./docs/launcher.md)) idempotently merges Directive-owned entries into `.claude/settings.json`, `.grok/hooks/deft.json`, `.cursor/hooks.json`, and `.codex/hooks.json` while preserving unrelated settings. `SessionStart` refreshes resume bookkeeping on a non-blocking path. `PreToolUse` uses the lightweight `deft-hook` entrypoint rather than booting the full CLI router, reducing cold hook latency while retaining the same fail-closed ritual, scope, and runtime-authority decisions. Cursor `ApplyPatch` shares the direct-write registration, so each matched edit invokes one hook process. Cursor `preToolUse` deposits set `failClosed: true`, so allow decisions emit `{"permission":"allow"}` — empty stdout is treated as hook failure and would block Write tools. A second `PreToolUse` matcher covers spawn/Task tools (`Task`, `SubagentStart`, `spawn_subagent`, `start_agent`, `CreateAgent`) with the pre-`start_agent` gate stack for **implementation** spawns; explore and ephemeral postures skip active-xBRIEF (see three postures below).

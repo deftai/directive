@@ -174,6 +174,35 @@ A valid approval proves a user-verified gesture by an enrolled authenticator ove
 `approvers:enroll` and `approvers:remove` are the same kind of command: no
 terminal step, and they accept only the page's combined blob.
 
+### TOTP-armed operator delegation (#7420)
+
+A phone-only operator may arm a time-boxed delegation from chat with
+`deft delegate on [<ttl>] <code>` (default 12h, maximum 72h). The code is a TOTP
+code from a secret enrolled at a terminal with `deft delegate enroll --confirm`.
+While the delegation is live, #7279 harness-attended requests complete with
+provenance `delegated-totp` (never `host-user-event`) for
+`scope:record-approved-scope` and for `authz:grant` with `release-cut`,
+`release-publish`, `release-rollback` or `release-promote-latest` only. Every
+other verb and template refuses as before, including `finish-loop`,
+`gate-override`, `spec-drift-override`, raw-ops grants, `authz:uat-*` and
+`authz:revoke`. The human merge gate is unchanged.
+
+A delegated grant or stamp has the delegated origin (`operator-delegated`), not
+human origin. Exactly one check accepts each: the scope-provenance fence for a
+stamp, and `evaluateClosedVerb` for a release grant, only for the verb its
+template names. `isHumanOrigin`, `isHumanApprovalStamp` and the general grant
+check refuse it. It expires no later than the delegation and stops admitting
+when the delegation ends (`delegate off`, TTL, session end, UAT start, the kill
+switch, a terminal `authz:revoke`).
+
+Strength: parity of forging effort with the terminal mint, and a wider blast
+radius. The secret is readable by the operator's OS user, so an agent shell can
+compute a code, as a same-user process can drive a pseudo-terminal through the
+terminal mint. One arm buys hours, not one mint. The passkey (#6945 / #7046) is
+the upgrade that makes the code unproducible by an agent. Under standing
+delegation the #7279 request digest is not human review. Full contract:
+[operator-delegation.md](../docs/operator-delegation.md).
+
 ## Gate-override hatch (#5542 / #5674)
 
 Mint + admission APIs for an audited interactive override bound to a coverage-

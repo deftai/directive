@@ -9,9 +9,21 @@
 
 import { randomBytes } from "node:crypto";
 import {
+  endDelegation,
+  evaluateDelegableMint,
+  isDelegationIdLive,
+  readLiveDelegation,
+} from "./delegation/store.js";
+import {
+  DELEGABLE_GRANT_VERB,
+  DELEGATED_AUTHORITY_MAX_EXPIRY_HOURS,
+  type DelegatedCompletion,
+} from "./delegation/types.js";
+import {
   listActiveHumanGrants,
   listGrants,
   loadAuthzState,
+  mintDelegatedOrigin,
   mintOperatorOrigin,
   mutateAuthzState,
   persistMintedGrant,
@@ -73,6 +85,13 @@ export function startUatLease(input: StartUatInput): StartUatResult {
   }));
   if (!wrote.ok) {
     return { ok: false, code: wrote.code, reason: wrote.reason };
+  }
+  // UAT start ends any live delegation (#7420 B2). Liveness also refuses while
+  // UAT is active; this records the end reason. Best effort: never fails UAT.
+  try {
+    endDelegation(input.projectRoot, "uat-start", { now: input.now });
+  } catch {
+    /* liveness check still refuses under UAT */
   }
   return { ok: true, state: wrote.state, lease };
 }
@@ -197,6 +216,121 @@ export function mintHumanOriginGrant(input: MintGrantInput): MintGrantResult {
   if (!saved.ok) {
     return { ok: false, code: saved.code, reason: saved.reason };
   }
+  return { ok: true, grant };
+}
+
+export interface MintDelegatedReleaseGrantInput {
+  readonly projectRoot: string;
+  /** The delegated completion from the harness-attended request (#7420 B3). */
+  readonly completion: DelegatedCompletion;
+  /** Release template; must equal `completion.template` and be one of the four. */
+  readonly template: string;
+  /** Target surfaces resolved from the template (version forms). */
+  readonly surfaces: readonly string[];
+  /** Template default expiry; clamped to the delegation and the cap. */
+  readonly expiresAt: string | null;
+  readonly actor?: string;
+  readonly singleUse?: boolean;
+  readonly planRef?: string | null;
+  readonly repo?: string | null;
+  readonly branch?: string | null;
+  readonly now?: Date;
+  /** Seam: store root of the delegation (tests). */
+  readonly delegationStoreRoot?: string;
+}
+
+/**
+ * Mint a release grant under a live delegation (#7420 B3 / B4). The grant has
+ * the delegated origin (never human origin), exactly one operation equal to
+ * its template, and an expiry no later than the delegation. Refuses when the
+ * template is not one of the four, when the completion is not for this
+ * template, or when the delegation is no longer live.
+ */
+export type MintDelegatedGrantResult =
+  | { readonly ok: true; readonly grant: HumanOriginGrant }
+  | {
+      readonly ok: false;
+      readonly code: AuthzUatWriteRefuseCode | "delegation-refused";
+      readonly reason: string;
+    };
+
+export function mintDelegatedReleaseGrant(
+  input: MintDelegatedReleaseGrantInput,
+): MintDelegatedGrantResult {
+  const now = input.now ?? new Date();
+  const template = input.template.trim().toLowerCase();
+  const policy = evaluateDelegableMint({ verb: DELEGABLE_GRANT_VERB, template });
+  if (!policy.ok) return { ok: false, code: "delegation-refused", reason: policy.reason };
+  if (input.completion.verb !== DELEGABLE_GRANT_VERB || input.completion.template !== template) {
+    return {
+      ok: false,
+      code: "delegation-refused",
+      reason: `delegated completion is for ${input.completion.verb} ${input.completion.template ?? "(no template)"}, not authz:grant ${template}`,
+    };
+  }
+  const live = readLiveDelegation(input.projectRoot, {
+    now,
+    ...(input.delegationStoreRoot !== undefined ? { storeRoot: input.delegationStoreRoot } : {}),
+  });
+  if (!isDelegationIdLive(live, input.completion.delegationId) || live === null) {
+    return {
+      ok: false,
+      code: "delegation-refused",
+      reason: `delegation ${input.completion.delegationId} is not live; nothing minted`,
+    };
+  }
+  const capMs = now.getTime() + DELEGATED_AUTHORITY_MAX_EXPIRY_HOURS * 3600 * 1000;
+  const candidates = [Date.parse(live.expiresAt), capMs];
+  if (input.expiresAt !== null) {
+    const asked = Date.parse(input.expiresAt);
+    if (Number.isNaN(asked)) {
+      return { ok: false, code: "delegation-refused", reason: "unparseable expiresAt" };
+    }
+    candidates.push(asked);
+  }
+  const expiresMs = Math.min(...candidates);
+  if (!(expiresMs > now.getTime())) {
+    return {
+      ok: false,
+      code: "delegation-refused",
+      reason: "delegated grant would already be expired",
+    };
+  }
+  const grant: HumanOriginGrant = {
+    schemaVersion: 1,
+    id: newGrantId(now),
+    origin: mintDelegatedOrigin({
+      actor: input.actor ?? "operator",
+      delegationId: input.completion.delegationId,
+      template,
+      now,
+      eventRef: `harness-attended:${input.completion.requestId}`,
+    }),
+    scope: {
+      planRef: input.planRef ?? null,
+      repo: input.repo ?? null,
+      branch: input.branch ?? null,
+      worktree: null,
+      surfaces: [...input.surfaces],
+      operations: [template as AuthzOperation],
+      storyIds: [],
+      issueIds: [],
+      cohortId: null,
+      contentDigest: null,
+      parentPath: null,
+      targetPath: null,
+    },
+    semantics: {
+      expiresAt: utcIso(new Date(expiresMs)),
+      singleUse: input.singleUse === true,
+      usedAt: null,
+      revokedAt: null,
+    },
+  };
+  // Never pinned: a pin is human-origin activation (#4233); delegated grants
+  // are read only by evaluateClosedVerb via listDelegatedGrants.
+  const saved = persistMintedGrant(input.projectRoot, grant, { pinActive: false });
+  if (!saved.ok) return { ok: false, code: saved.code, reason: saved.reason };
   return { ok: true, grant };
 }
 

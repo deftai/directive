@@ -107,6 +107,7 @@ export const CLI_MODULE_VERBS = [
   "policy",
   "authz",
   "kill-switch",
+  "delegate",
   "escalation-cli",
   "pr-closing-keywords",
   "pr-merge-readiness",
@@ -368,6 +369,17 @@ const KILL_SWITCH_COLON_ALIASES = Object.fromEntries(
   Object.keys(KILL_SWITCH_ALIAS_SUBCOMMANDS).map((alias) => [alias, "kill-switch"]),
 ) as Record<string, string>;
 
+/** Colon aliases for TOTP delegation verbs (#7420). Arming is chat-only (`deft delegate on`). */
+export const DELEGATE_ALIAS_SUBCOMMANDS: Readonly<Record<string, string>> = {
+  "delegate:enroll": "enroll",
+  "delegate:off": "off",
+  "delegate:status": "status",
+};
+
+const DELEGATE_COLON_ALIASES = Object.fromEntries(
+  Object.keys(DELEGATE_ALIAS_SUBCOMMANDS).map((alias) => [alias, "delegate"]),
+) as Record<string, string>;
+
 /** Colon aliases for escalation subcommands (#518). */
 export const ESCALATION_ACTION_ALIAS_SUBCOMMANDS: Readonly<Record<string, string>> = {
   "escalation:file": "file",
@@ -550,6 +562,7 @@ export const VERB_ALIASES: Readonly<Record<string, string>> = {
   ...POLICY_ACTION_COLON_ALIASES,
   ...AUTHZ_ACTION_COLON_ALIASES,
   ...KILL_SWITCH_COLON_ALIASES,
+  ...DELEGATE_COLON_ALIASES,
   ...ESCALATION_ACTION_COLON_ALIASES,
   ...PRODUCT_SIGNAL_COLON_ALIASES,
   "agents:refresh": "agents-refresh",
@@ -3614,6 +3627,7 @@ export async function dispatch(argv: string[], io: DispatchIo = defaultIo()): Pr
     const authzSubcommand = verb !== undefined ? AUTHZ_ACTION_ALIAS_SUBCOMMANDS[verb] : undefined;
     const killSwitchSubcommand =
       verb !== undefined ? KILL_SWITCH_ALIAS_SUBCOMMANDS[verb] : undefined;
+    const delegateSubcommand = verb !== undefined ? DELEGATE_ALIAS_SUBCOMMANDS[verb] : undefined;
     const escalationSubcommand =
       verb !== undefined ? ESCALATION_ACTION_ALIAS_SUBCOMMANDS[verb] : undefined;
     const planSequenceSubcommand =
@@ -3637,19 +3651,21 @@ export async function dispatch(argv: string[], io: DispatchIo = defaultIo()): Pr
               ? [authzSubcommand, ...rest]
               : killSwitchSubcommand !== undefined && canonical === "kill-switch"
                 ? [killSwitchSubcommand, ...rest]
-                : escalationSubcommand !== undefined && canonical === "escalation-cli"
-                  ? [escalationSubcommand, ...rest]
-                  : planSequenceSubcommand !== undefined && canonical === "plan-sequence"
-                    ? [planSequenceSubcommand, ...rest]
-                    : tutorialSubcommand !== undefined && canonical === "tutorial"
-                      ? [tutorialSubcommand, ...rest]
-                      : productSignalSubcommand !== undefined && canonical === "product-signal"
-                        ? [productSignalSubcommand, ...rest]
-                        : freshnessSubcommand !== undefined && canonical === "freshness-report"
-                          ? [freshnessSubcommand, ...rest]
-                          : vbriefValidateSubcommand !== undefined
-                            ? [vbriefValidateSubcommand, ...rest]
-                            : rest;
+                : delegateSubcommand !== undefined && canonical === "delegate"
+                  ? [delegateSubcommand, ...rest]
+                  : escalationSubcommand !== undefined && canonical === "escalation-cli"
+                    ? [escalationSubcommand, ...rest]
+                    : planSequenceSubcommand !== undefined && canonical === "plan-sequence"
+                      ? [planSequenceSubcommand, ...rest]
+                      : tutorialSubcommand !== undefined && canonical === "tutorial"
+                        ? [tutorialSubcommand, ...rest]
+                        : productSignalSubcommand !== undefined && canonical === "product-signal"
+                          ? [productSignalSubcommand, ...rest]
+                          : freshnessSubcommand !== undefined && canonical === "freshness-report"
+                            ? [freshnessSubcommand, ...rest]
+                            : vbriefValidateSubcommand !== undefined
+                              ? [vbriefValidateSubcommand, ...rest]
+                              : rest;
     const helpRc = interceptHelp(canonical.replaceAll("-", "_"), handlerArgv, {
       write: io.writeOut,
     });

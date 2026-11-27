@@ -7,10 +7,12 @@ import { existsSync, readdirSync, readFileSync, renameSync, rmSync, unlinkSync }
 import { basename, dirname, join, resolve } from "node:path";
 import { ContainedWriteError, containedWrite } from "../fs/contained-write.js";
 import { assertWriteTargetSafe } from "../fs/projection-containment.js";
-import { isHumanOrigin } from "./origin.js";
+import { isDelegatedOrigin, isHumanOrigin } from "./origin.js";
 import { authzAuditPath, authzGrantPath, authzGrantsDir, authzStatePath } from "./paths.js";
 import {
   AUTHZ_OPERATIONS,
+  DELEGATED_GRANT_MINTED_VIA,
+  DELEGATED_ORIGIN_KIND,
   type AuthzAuditRecord,
   type AuthzOperation,
   type AuthzState,
@@ -93,7 +95,19 @@ function parseOrigin(raw: unknown): GrantOrigin | null {
   const mintedVia = readString(rec, "mintedVia") ?? readString(rec, "minted_via") ?? "unknown";
   if (kind === null || actor === null || mintedAt === null) return null;
   const eventRef = readString(rec, "eventRef") ?? readString(rec, "event_ref");
-  return { kind, actor, mintedAt, mintedVia, eventRef };
+  // Delegated origin fields (#7420): carried only when present so human grants
+  // keep their exact on-disk shape.
+  const delegationId = readString(rec, "delegationId");
+  const delegatedTemplate = readString(rec, "delegatedTemplate");
+  return {
+    kind,
+    actor,
+    mintedAt,
+    mintedVia,
+    eventRef,
+    ...(delegationId !== null ? { delegationId } : {}),
+    ...(delegatedTemplate !== null ? { delegatedTemplate } : {}),
+  };
 }
 
 function parseOperations(raw: unknown): AuthzOperation[] {
@@ -849,6 +863,46 @@ export function listActiveHumanGrants(
     }
     return isHumanOrigin(g.origin);
   });
+}
+
+/**
+ * Delegated-origin grants on disk (#7420): non-revoked, unspent, unexpired, and
+ * structurally delegated. Delegation liveness is NOT checked here; the one
+ * consumer (`evaluateClosedVerb`) checks it at use. Never merged into
+ * {@link listActiveHumanGrants}, so every human-origin consumer stays closed.
+ */
+export function listDelegatedGrants(
+  projectRoot: string,
+  now: Date = new Date(),
+): HumanOriginGrant[] {
+  const nowMs = now.getTime();
+  return listGrants(projectRoot).filter((g) => {
+    if (!isDelegatedOrigin(g.origin)) return false;
+    if (g.semantics.revokedAt !== null) return false;
+    if (g.semantics.singleUse && g.semantics.usedAt !== null) return false;
+    if (g.semantics.expiresAt === null) return false;
+    const exp = Date.parse(g.semantics.expiresAt);
+    return !Number.isNaN(exp) && exp > nowMs;
+  });
+}
+
+/** Delegated origin for a grant minted under a live delegation (#7420 B4). */
+export function mintDelegatedOrigin(input: {
+  readonly actor: string;
+  readonly delegationId: string;
+  readonly template: string;
+  readonly now?: Date;
+  readonly eventRef?: string | null;
+}): GrantOrigin {
+  return {
+    kind: DELEGATED_ORIGIN_KIND,
+    actor: input.actor.trim().length > 0 ? input.actor.trim() : "operator",
+    mintedAt: utcIso(input.now),
+    mintedVia: DELEGATED_GRANT_MINTED_VIA,
+    eventRef: input.eventRef ?? null,
+    delegationId: input.delegationId,
+    delegatedTemplate: input.template,
+  };
 }
 
 export function appendAuthzAudit(projectRoot: string, record: AuthzAuditRecord): void {
