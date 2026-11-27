@@ -868,7 +868,7 @@ function nestedGroup(host: string, event: string, matcher?: string): Record<stri
       {
         type: "command",
         ...hostHookEntryFields(nestedToolCommand(host, event)),
-        timeout: event === "tool.before" ? 30 : 5,
+        timeout: event === "tool.before" ? 30 : 30,
       },
     ],
   };
@@ -1000,7 +1000,7 @@ function mergeCursorHost(existing: Record<string, unknown>): Record<string, unkn
       ...hooks,
       sessionStart: [
         ...keep("sessionStart"),
-        { command: hookCommand("cursor", "session.start"), timeout: 5 },
+        { command: hookCommand("cursor", "session.start"), timeout: 30 },
       ],
       preToolUse: [
         ...keep("preToolUse"),
@@ -1013,15 +1013,15 @@ function mergeCursorHost(existing: Record<string, unknown>): Record<string, unkn
       ],
       preCompact: [
         ...keep("preCompact"),
-        { command: hookCommand("cursor", "session.compact"), timeout: 5 },
+        { command: hookCommand("cursor", "session.compact"), timeout: 30 },
       ],
       beforeSubmitPrompt: [
         ...keep("beforeSubmitPrompt"),
-        { command: hookCommand("cursor", "prompt.submit"), timeout: 5 },
+        { command: hookCommand("cursor", "prompt.submit"), timeout: 30 },
       ],
       afterAgentResponse: [
         ...keep("afterAgentResponse"),
-        { command: hookCommand("cursor", "agent.response"), timeout: 5 },
+        { command: hookCommand("cursor", "agent.response"), timeout: 30 },
       ],
     },
   };

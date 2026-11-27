@@ -247,9 +247,9 @@ export function grokPretooluseWrapperScriptSource(): string {
 
 /**
  * Cursor session.start / session.compact deposit timeout (seconds).
- * Lightweight ceremony paths — keep tight so stalled hooks fail fast.
+ * Windows warm runs measured 4.9s-6.5s, so the old 5s budget killed half of them (#7450).
  */
-export const CURSOR_SESSION_HOOK_TIMEOUT_SECONDS = 5;
+export const CURSOR_SESSION_HOOK_TIMEOUT_SECONDS = 30;
 
 /**
  * Cursor preToolUse (tool.before) deposit timeout (seconds).
@@ -278,8 +278,9 @@ export const NESTED_TOOL_BEFORE_TIMEOUT_SECONDS = CURSOR_TOOL_BEFORE_TIMEOUT_SEC
 /**
  * Nested Claude/Grok/Codex session.start / session.compact / session.end timeout (seconds).
  * For Claude SessionEnd this also raises the host's 1.5s default shutdown budget (#6274).
+ * 30s because Windows SessionStart runs measured 4.9s-6.5s against the old 5s (#7450).
  */
-export const NESTED_HOOK_TIMEOUT_SECONDS = 5;
+export const NESTED_HOOK_TIMEOUT_SECONDS = 30;
 
 export type AgentHookPath = (typeof AGENT_HOOK_PATHS)[number] | typeof AGY_HOOK_PATH;
 
