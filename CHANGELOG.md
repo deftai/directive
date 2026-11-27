@@ -50,7 +50,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Activate Prefer-A Bound briefs for #7265/#7326/#7327/#7328/#7331 and #7332 slices #7345/#7346/#7347 under onePrScopeProof=off.
 - Antigravity (`agy`) is a recognised classify host with an audited tool surface, real hook payload fixtures from agy 1.5.16, and a committed admission verdict (argument integrity fails: a later hook's overwrite wins, so deposit activation stays halted). Tracking #7345.
-- Antigravity (`agy`) is a registered hook host: identity from `conversationId` (`host:agy:v1:`), `plan.policy.hostHooks.agy` default off, agy-keyed payload reading, `overwrite.CommandLine` lifecycle rewrites, a closed SessionStart notice catalog, and fail-closed denial of native spawn tools. Nothing is deposited yet. Tracking #7346.
+- Antigravity (`agy`) is a registered hook host: identity from `conversationId` (`host:agy:v1:`), agy-keyed payload reading, `overwrite.CommandLine` lifecycle rewrites, a closed SessionStart notice catalog, and fail-closed denial of native spawn tools. Tracking #7346.
 - Antigravity (agy) hooks are installed, repaired and removed with the other hosts and are on by default. Install only runs when the recorded host check passes, `directive doctor` reports a halted install, and turning the host off removes only Directive's own hook.
 - Queue #7349 to make disabling Claude hooks clear them or require repair before reporting success. This activates the work plan; it does not ship the fix.
 - agy hook-order mitigation (#7378): a sort-last entry name, one ordering predicate run on every agy tool call and by `directive doctor`, and an agy outer that prints an explicit decision and denies empty or invalid child output.
