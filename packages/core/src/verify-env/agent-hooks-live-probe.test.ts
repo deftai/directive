@@ -404,6 +404,58 @@ describe("probeAgentHooksLive", () => {
     if (stderr) expect(result.cases[0]?.detail).toContain(stderr);
   });
 
+  describe("agy (#7347)", () => {
+    const run = (allow: string, deny: string) =>
+      probeAgentHooksLive("/project", {
+        hosts: ["agy"],
+        resolveCommand: () => "/usr/bin/deft-hook",
+        spawnHook: ({ stdin }) => ({
+          status: 0,
+          stdout: stdin.includes("read_file") ? allow : deny,
+          stderr: "",
+        }),
+      });
+
+    it("sends agy-shaped fixtures and accepts one explicit allow and a deny with a reason", () => {
+      const stdins: string[] = [];
+      const result = probeAgentHooksLive("/project", {
+        hosts: ["agy"],
+        resolveCommand: () => "/usr/bin/deft-hook",
+        spawnHook: ({ stdin }) => {
+          stdins.push(stdin);
+          return {
+            status: 0,
+            stdout: stdin.includes("read_file")
+              ? '{"decision":"allow"}'
+              : '{"decision":"deny","reason":"no"}',
+            stderr: "",
+          };
+        },
+      });
+      expect(result.code).toBe(0);
+      expect(stdins.map((text) => JSON.parse(text).toolCall.name)).toEqual([
+        "read_file",
+        "invoke_subagent",
+      ]);
+    });
+
+    it("rejects empty allow output, which agy treats as a host fail-open", () => {
+      const result = run("", '{"decision":"deny","reason":"no"}');
+      expect(result.code).toBe(1);
+      expect(result.cases[0]).toMatchObject({ host: "agy", fixture: "allow" });
+    });
+
+    it("rejects a wrong allow decision and a deny without a reason", () => {
+      expect(run('{"decision":"ask"}', '{"decision":"deny","reason":"no"}').cases[0]).toMatchObject(
+        { fixture: "allow", issue: "missing-allow" },
+      );
+      expect(run('{"decision":"allow"}', '{"decision":"deny"}').cases[0]).toMatchObject({
+        fixture: "deny",
+        issue: "missing-deny",
+      });
+    });
+  });
+
   it("escapes percent signs for Windows cmd shell arguments", () => {
     expect(quoteWindowsCmdArg("C:/Repos/deft%directive")).toBe("C:/Repos/deft%%directive");
     expect(quoteWindowsCmdArg("C:/Repos/with spaces")).toBe('"C:/Repos/with spaces"');

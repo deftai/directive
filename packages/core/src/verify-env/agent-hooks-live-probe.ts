@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { resolve } from "node:path";
+import { join, resolve } from "node:path";
 import { HOOK_HOSTS, type HookEvent, type HookHost } from "../hooks/dispatcher.js";
 import { READ_ONLY_HOOK_ENV } from "../hooks/tools.js";
 import { DEFT_HOOK_COMMAND_MARKER } from "../init-deposit/agent-hooks.js";
@@ -130,6 +130,28 @@ function spawnHookWithStdin(
   };
 }
 
+/** agy payload shape (camelCase, `toolCall.args`): a read is allowed, a native spawn is denied (#7347). */
+function agyFixture(projectRoot: string, fixture: "allow" | "deny"): string {
+  return JSON.stringify({
+    hookEventName: "PreToolUse",
+    conversationId: "deft-live-probe",
+    cwd: projectRoot,
+    workspacePaths: [projectRoot],
+    toolCall:
+      fixture === "allow"
+        ? {
+            id: "probe-allow",
+            name: "read_file",
+            args: { Path: join(projectRoot, "package.json") },
+          }
+        : {
+            id: "probe-deny",
+            name: "invoke_subagent",
+            args: { TypeName: "generalPurpose", Role: "worker", Prompt: "implement" },
+          },
+  });
+}
+
 function allowFixture(projectRoot: string): string {
   return JSON.stringify({
     tool_name: "Read",
@@ -196,6 +218,25 @@ function validateFixtureOutput(
   fixture: "allow" | "deny",
   stdout: string,
 ): { ok: true } | { ok: false; issue: AgentHookLiveProbeIssue; detail: string } {
+  if (host === "agy") {
+    // agy treats empty stdout as a host fail-open, so both fixtures need one explicit decision (#7378).
+    const parsed = parseJsonObject(stdout);
+    if (parsed.value === null) {
+      return {
+        ok: false,
+        issue: parsed.issue as "empty-stdout" | "unparseable-json",
+        detail: parsed.detail,
+      };
+    }
+    if (fixture === "allow") {
+      return parsed.value.decision === "allow"
+        ? { ok: true }
+        : { ok: false, issue: "missing-allow", detail: "expected agy decision allow" };
+    }
+    return parsed.value.decision === "deny" && typeof parsed.value.reason === "string"
+      ? { ok: true }
+      : { ok: false, issue: "missing-deny", detail: "expected agy deny with a reason" };
+  }
   if (fixture === "allow" && host !== "cursor") {
     if (stdout.trim().length === 0) return { ok: true };
     const parsed = parseJsonObject(stdout);
@@ -257,7 +298,12 @@ function runFixtureProbe(
   const input = {
     command,
     args: ["--host", host, "--event", LIVE_PROBE_EVENT, "--project-root", projectRoot] as const,
-    stdin: fixture === "allow" ? allowFixture(projectRoot) : denyFixture(projectRoot),
+    stdin:
+      host === "agy"
+        ? agyFixture(projectRoot, fixture)
+        : fixture === "allow"
+          ? allowFixture(projectRoot)
+          : denyFixture(projectRoot),
     cwd: projectRoot,
     env: fixture === "allow" ? allowProbeEnv() : denyProbeEnv(),
   };
