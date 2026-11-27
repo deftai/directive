@@ -228,8 +228,12 @@ jobs:
   merge-gate-primary:
     name: Merge gate (Blacksmith primary)
     needs: [changes]
-    if: always() && needs.changes.outputs.artifact_only != 'true' && needs.changes.outputs.queue_passed != 'true'
+    # #7014: `!cancelled()` (not `always()`) so an ordinary run cancel stops this job.
+    if: ${{ !cancelled() && needs.changes.outputs.artifact_only != 'true' && needs.changes.outputs.queue_passed != 'true' }}
     runs-on: blacksmith-4vcpu-ubuntu-2404
+    # #7014: backstop above the step timeout (setup steps run before it).
+    # The aggregator budget in the `merge-gate` job is this value plus a margin.
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -268,7 +272,11 @@ jobs:
           node -e "const fs=require('fs'); const v=process.argv[1]; const p='node_modules/@deftai/directive-runtime/package.json'; const j=JSON.parse(fs.readFileSync(p,'utf8')); j.version=v; fs.writeFileSync(p, JSON.stringify(j,null,2)+'\n');" "$DECLARED"
           ( cd node_modules/@deftai/directive-runtime && npm install --omit=dev --ignore-scripts )
 
+      # #7014: a hung check fails at this step timeout (the log names this step)
+      # instead of holding the merge queue for the 6-hour job default. Normal run
+      # is about 5 minutes; 20 leaves wide headroom for a slow runner.
       - name: task check:merge (merge chokepoint SoT — #1704)
+        timeout-minutes: 20
         run: task check:merge
         env:
           GH_TOKEN: ${{ github.token }}
@@ -481,8 +489,11 @@ jobs:
   merge-gate-failover:
     name: Merge gate (GH-hosted failover)
     needs: [changes, capacity-arm]
-    if: always() && needs.changes.outputs.queue_passed != 'true' && needs.capacity-arm.result == 'success' && needs.capacity-arm.outputs.merge_failover == 'true'
+    # #7014: `!cancelled()` (not `always()`) so an ordinary run cancel stops this job.
+    if: ${{ !cancelled() && needs.changes.outputs.queue_passed != 'true' && needs.capacity-arm.result == 'success' && needs.capacity-arm.outputs.merge_failover == 'true' }}
     runs-on: ubuntu-latest
+    # #7014: same job backstop as the primary lane; see merge-gate-primary.
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -521,7 +532,9 @@ jobs:
           node -e "const fs=require('fs'); const v=process.argv[1]; const p='node_modules/@deftai/directive-runtime/package.json'; const j=JSON.parse(fs.readFileSync(p,'utf8')); j.version=v; fs.writeFileSync(p, JSON.stringify(j,null,2)+'\n');" "$DECLARED"
           ( cd node_modules/@deftai/directive-runtime && npm install --omit=dev --ignore-scripts )
 
+      # #7014: same step timeout as the primary lane; see merge-gate-primary.
       - name: task check:merge (merge chokepoint SoT — #1704)
+        timeout-minutes: 20
         run: task check:merge
         env:
           GH_TOKEN: ${{ github.token }}
@@ -564,12 +577,19 @@ jobs:
   merge-gate:
     name: Merge gate (task check)
     needs: [changes, capacity-arm, merge-gate-failover]
-    if: always() && (needs.changes.outputs.artifact_only != 'true' || needs.changes.outputs.queue_passed == 'true')
+    # #7014: `!cancelled()` (not `always()`) so an ordinary run cancel stops this job.
+    if: ${{ !cancelled() && (needs.changes.outputs.artifact_only != 'true' || needs.changes.outputs.queue_passed == 'true') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Resolve authoritative merge-gate result
         env:
+          # #7014: resolver budget = primary job timeout (30) + 5 margin. The
+          # runner-capacity stall is already spent in capacity-watchdog /
+          # capacity-arm, which this job `needs:`, so it is not in this clock.
+          # When the failover is armed the resolver reads its result and does
+          # not poll. The TypeScript aggregator sets no budget.
+          OBSERVATION_BUDGET_MINUTES: "35"
           GH_TOKEN: ${{ github.token }}
           RUN_ID: ${{ github.run_id }}
           REPO: ${{ github.repository }}

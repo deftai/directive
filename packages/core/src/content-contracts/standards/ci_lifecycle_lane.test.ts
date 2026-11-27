@@ -184,15 +184,38 @@ describe("artifact-only lifecycle CI lane (#3678)", () => {
     const mergePrimary = jobBlock(ci, "merge-gate-primary");
     const windows = jobBlock(ci, "windows-task-dispatch");
     const mergeAgg = jobBlock(ci, "merge-gate");
+    expect(windows).toContain(skipIf);
+    // #7014: the merge-gate primary uses `!cancelled()` so an ordinary cancel takes.
+    expect(mergePrimary).toContain(
+      "if: ${{ !cancelled() && needs.changes.outputs.artifact_only != 'true' && needs.changes.outputs.queue_passed != 'true' }}",
+    );
     for (const block of [mergePrimary, windows]) {
-      expect(block).toContain(skipIf);
       expect(block).toMatch(/needs:\s*\[changes/);
     }
     // #6584: queue reuse overrides the artifact-only skip on the aggregator.
     expect(mergeAgg).toContain(
-      "if: always() && (needs.changes.outputs.artifact_only != 'true' || needs.changes.outputs.queue_passed == 'true')",
+      "if: ${{ !cancelled() && (needs.changes.outputs.artifact_only != 'true' || needs.changes.outputs.queue_passed == 'true') }}",
     );
     expect(mergeAgg).toMatch(/needs:\s*\[changes/);
+  });
+
+  it("merge-gate lanes bound the check step and the job; ordinary cancel takes (#7014)", () => {
+    const ci = readText(".github/workflows/ci.yml");
+    for (const id of ["merge-gate-primary", "merge-gate-failover"]) {
+      const block = jobBlock(ci, id);
+      expect(block).toMatch(/\n {4}timeout-minutes: 30\n/);
+      const step =
+        /- name: task check:merge[^\n]*\n {8}timeout-minutes: 20\n {8}run: task check:merge\n/;
+      expect(block).toMatch(step);
+      expect(block).not.toMatch(/\n {4}if: always\(\)/);
+    }
+    const failover = jobBlock(ci, "merge-gate-failover");
+    expect(failover).toContain("needs.capacity-arm.outputs.merge_failover == 'true' }}");
+    const agg = jobBlock(ci, "merge-gate");
+    expect(agg).not.toMatch(/\n {4}if: always\(\)/);
+    expect(agg).toContain('OBSERVATION_BUDGET_MINUTES: "35"');
+    // Only the merge-gate aggregator carries a budget; the TypeScript check keeps its deadline.
+    expect(jobBlock(ci, "ts")).not.toContain("OBSERVATION_BUDGET_MINUTES");
   });
 
   it("windows-task-dispatch promote fixture has a derivable list item (#4768 / #577)", () => {
