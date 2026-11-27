@@ -49,6 +49,12 @@
         }
       }
     ],
+    "x-directive/intentConstraint": {
+      "constraints": [
+        { "value": "30", "unit": "s-cursor-session-hook-timeout", "rejectionScope": "invocation" },
+        { "value": "30", "unit": "s-nested-session-hook-timeout", "rejectionScope": "invocation" }
+      ]
+    },
     "references": [
       {
         "uri": "https://github.com/deftai/directive/issues/7450",
