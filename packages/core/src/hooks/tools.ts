@@ -407,6 +407,7 @@ export const HOST_TOOL_SURFACE_AUDIT: Readonly<Record<ClassifyHookHost, HostTool
     nonMutation: {
       read_file: "read",
       send_message: "child-to-parent message; mutates no product path",
+      ask_question: "structured question; mutates no product path",
     },
     unobservedReason:
       "Only the names emitted by the observed prompts are listed. `run_workflow`, `swarm`, " +

@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #7445",
-    "updated": "2026-11-27T05:34:43Z"
+    "updated": "2026-11-27T07:03:31Z"
   },
   "plan": {
     "title": "[framework-gap] Antigravity PreToolUse hook blocks writes to host artifact directory (~/.gemini/antigravity/brain/<conversation-id>) as a configuration area",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "[framework-gap] Antigravity PreToolUse hook blocks writes to host artifact directory (~/.gemini/antigravity/brain/<conversation-id>) as a configuration area",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/7445",
@@ -15,28 +15,63 @@
     "items": [
       {
         "title": "A write whose every target is under `~/.gemini/antigravity/brain/<conversationId>/`, where `<conversationId>` is the applying agy session's conversation id, is treated as outside every checkout and needs no occupancy, gated ritual or active scope.",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "dab53ade4ba65f5241ed78d6881d28b240d9d90b",
+          "recorded_at": "2026-11-27T07:03:31Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "A write under another conversation's folder, or anywhere else under `~/.gemini` (for example `~/.gemini/config/`), is still treated as a configuration area and gated as today.",
-        "status": "proposed",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "dab53ade4ba65f5241ed78d6881d28b240d9d90b",
+          "recorded_at": "2026-11-27T07:03:31Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "The carve-out applies only when the applying host is agy and the conversation id is known; with no agy identity the path is gated as today.",
-        "status": "proposed",
-        "id": "clause.3"
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "dab53ade4ba65f5241ed78d6881d28b240d9d90b",
+          "recorded_at": "2026-11-27T07:03:31Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Path matching uses the shared canonical path identity (case, slash and 8.3 forms on win32), and a `..` or symlink escape out of the conversation folder is not admitted.",
-        "status": "proposed",
-        "id": "clause.4"
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "dab53ade4ba65f5241ed78d6881d28b240d9d90b",
+          "recorded_at": "2026-11-27T07:03:31Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Tests cover the allowed current-conversation write, a sibling conversation write, a `config/` write, and an escape attempt.",
-        "status": "proposed",
-        "id": "clause.5"
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "dab53ade4ba65f5241ed78d6881d28b240d9d90b",
+          "recorded_at": "2026-11-27T07:03:31Z",
+          "recorded_by": "scope:complete"
+        }
       }
     ],
     "references": [
@@ -177,9 +212,38 @@
         "github_issue_id": 6640509178,
         "origin": "deftai/directive#7445",
         "id": "github.issue.6640509178"
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "027290f9b8521771eb244b8b96d5b840a27326c8",
+        "prNumber": 7456,
+        "prBase": "master",
+        "mergeCommit": "dab53ade4ba65f5241ed78d6881d28b240d9d90b",
+        "deliveryBranch": "master",
+        "deliveryCommit": "dab53ade4ba65f5241ed78d6881d28b240d9d90b",
+        "verifiedAt": "2026-11-27T07:03:31Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:YTQ2NTZlZmEtNzdjMy00ZTZhLWEyYmMtNjYxNjdkYTg5NDA4",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          7448
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-27T07:03:31Z",
+      "completedSessionId": "host:claude:v1:YTQ2NTZlZmEtNzdjMy00ZTZhLWEyYmMtNjYxNjdkYTg5NDA4",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-27T07:03:31Z"
       }
     },
     "id": "github.issue.6640509178",
-    "updated": "2026-11-27T05:34:43Z"
+    "updated": "2026-11-27T07:03:31Z"
   }
 }

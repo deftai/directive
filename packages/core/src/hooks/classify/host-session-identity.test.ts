@@ -905,6 +905,7 @@ describe("agy host identity (#7346)", () => {
 describe("agy wire adapter (#7346)", () => {
   it("gives every named tool an explicit mutation disposition", () => {
     expect(Object.keys(AGY_TOOL_DISPOSITIONS).sort()).toEqual([
+      "ask_question",
       "define_subagent",
       "edit_file",
       "invoke_subagent",

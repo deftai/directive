@@ -38,7 +38,7 @@ export function toolInputRecord(payload: Record<string, unknown>): Record<string
     record(payload.toolInput) ??
     record(payload.input) ??
     record(payload.arguments) ??
-    (toolCall !== null ? record(toolCall.arguments) : null)
+    (toolCall !== null ? (record(toolCall.arguments) ?? record(toolCall.args)) : null)
   );
 }
 

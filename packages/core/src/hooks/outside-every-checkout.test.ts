@@ -20,6 +20,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
+  agyConversationSeam,
   allTargetsOutsideEveryCheckout,
   classifyOutsideEveryCheckoutTarget,
   defaultRuntimePackageDir,
@@ -645,5 +646,178 @@ describe("deftTempName (#6376 item 12)", () => {
   it("keeps a name that carries deft and prefixes one that does not", () => {
     expect(deftTempName("deft-cache-")).toBe("deft-cache-");
     expect(deftTempName("cache-")).toBe("deft-cache-");
+  });
+});
+
+describe("agy conversation-folder carve-out (#7445)", () => {
+  const ID = "conv-aaaa-1111";
+  let brain = "";
+  let own = "";
+
+  beforeEach(() => {
+    brain = join(home, ".gemini", "antigravity", "brain");
+    own = join(brain, ID);
+    mkdirSync(own, { recursive: true });
+    mkdirSync(join(brain, "conv-bbbb-2222"), { recursive: true });
+    mkdirSync(join(home, ".gemini", "config"), { recursive: true });
+  });
+
+  function allowed(
+    target: string,
+    agy: OutsideEveryCheckoutSeams["agyConversation"] = {
+      conversationId: ID,
+      artifactDirectoryPath: null,
+    },
+  ): boolean {
+    return allTargetsOutsideEveryCheckout(payload, [target], {}, seams({ agyConversation: agy }));
+  }
+
+  it("allows a write inside the current conversation folder, a new file included", () => {
+    expect(allowed(join(own, "plan.md"))).toBe(true);
+    expect(allowed(join(own, "sub", "new", "a.md"))).toBe(true);
+  });
+
+  it("stays gated without the carve-out seam", () => {
+    expect(allowed(join(own, "plan.md"), null)).toBe(false);
+  });
+
+  it("gates a sibling conversation's folder", () => {
+    expect(allowed(join(brain, "conv-bbbb-2222", "x.md"))).toBe(false);
+  });
+
+  it("gates config/ and the brain folder itself", () => {
+    expect(allowed(join(home, ".gemini", "config", "settings.json"))).toBe(false);
+    expect(allowed(join(brain, "x.md"))).toBe(false);
+    expect(allowed(own)).toBe(false);
+  });
+
+  it("gates a .. escape", () => {
+    expect(allowed(`${own}/../conv-bbbb-2222/x.md`)).toBe(false);
+    expect(allowed(`${own}/../../../config/x.md`)).toBe(false);
+  });
+
+  it("gates a link that leaves the conversation folder", () => {
+    if (!linkDir(join(home, ".gemini", "config"), join(own, "escape"))) return;
+    expect(allowed(join(own, "escape", "x.md"))).toBe(false);
+    if (!linkDir(join(brain, "conv-bbbb-2222"), join(own, "sibling"))) return;
+    expect(allowed(join(own, "sibling", "x.md"))).toBe(false);
+  });
+
+  it("gates a conversation folder that is itself a link out of the brain folder", () => {
+    const other = "conv-cccc-3333";
+    if (!linkDir(join(home, ".gemini", "config"), join(brain, other))) return;
+    expect(
+      allowed(join(brain, other, "x.md"), { conversationId: other, artifactDirectoryPath: null }),
+    ).toBe(false);
+  });
+
+  it("gates an unsafe conversation id", () => {
+    for (const bad of ["", "..", ".", "a/b", "a\\b", "conv-aaaa-1111/.."]) {
+      expect(allowed(join(own, "x.md"), { conversationId: bad, artifactDirectoryPath: null })).toBe(
+        false,
+      );
+    }
+  });
+
+  it("accepts a matching artifactDirectoryPath and gates a mismatched one", () => {
+    const wrong = [
+      join(brain, "conv-bbbb-2222"),
+      join(home, ".gemini"),
+      join(home, ".gemini", "config"),
+      join(own, "sub"),
+      "",
+      "relative/path",
+    ];
+    expect(allowed(join(own, "p.md"), { conversationId: ID, artifactDirectoryPath: own })).toBe(
+      true,
+    );
+    for (const artifactDirectoryPath of wrong) {
+      expect(allowed(join(own, "p.md"), { conversationId: ID, artifactDirectoryPath })).toBe(false);
+    }
+    // A payload folder never admits another conversation's target.
+    expect(
+      allowed(join(brain, "conv-bbbb-2222", "p.md"), {
+        conversationId: ID,
+        artifactDirectoryPath: join(brain, "conv-bbbb-2222"),
+      }),
+    ).toBe(false);
+  });
+
+  it("accepts the antigravity-cli root for the current id only", () => {
+    const cli = join(home, ".gemini", "antigravity-cli", "brain");
+    mkdirSync(join(cli, ID), { recursive: true });
+    mkdirSync(join(cli, "conv-bbbb-2222"), { recursive: true });
+    mkdirSync(join(home, ".gemini", "antigravity-cli", "config"), { recursive: true });
+    expect(allowed(join(cli, ID, "plan.md"))).toBe(true);
+    expect(
+      allowed(join(cli, ID, "plan.md"), {
+        conversationId: ID,
+        artifactDirectoryPath: join(cli, ID),
+      }),
+    ).toBe(true);
+    expect(allowed(join(cli, "conv-bbbb-2222", "x.md"))).toBe(false);
+    expect(allowed(join(home, ".gemini", "antigravity-cli", "config", "x.json"))).toBe(false);
+    expect(allowed(join(home, ".gemini", "antigravity-cli", "x.md"))).toBe(false);
+    // Mismatched artifactDirectoryPath: other id, the other root's folder, a parent.
+    for (const artifactDirectoryPath of [
+      join(cli, "conv-bbbb-2222"),
+      own,
+      cli,
+      join(home, ".gemini"),
+    ]) {
+      expect(allowed(join(cli, ID, "p.md"), { conversationId: ID, artifactDirectoryPath })).toBe(
+        false,
+      );
+    }
+    // The same cross-check holds for the desktop root.
+    expect(
+      allowed(join(own, "p.md"), { conversationId: ID, artifactDirectoryPath: join(cli, ID) }),
+    ).toBe(false);
+    // A third root under ~/.gemini is never admitted.
+    mkdirSync(join(home, ".gemini", "other", "brain", ID), { recursive: true });
+    expect(allowed(join(home, ".gemini", "other", "brain", ID, "x.md"))).toBe(false);
+  });
+
+  it("gates a link above the conversation folder (linked brain or root folder)", () => {
+    const plugins = join(home, ".gemini", "config", "plugins");
+    mkdirSync(join(plugins, ID), { recursive: true });
+    const cliRoot = join(home, ".gemini", "antigravity-cli");
+    mkdirSync(cliRoot, { recursive: true });
+    if (!linkDir(plugins, join(cliRoot, "brain"))) return;
+    expect(allowed(join(cliRoot, "brain", ID, "hooks.json"))).toBe(false);
+    rmSync(cliRoot, { recursive: true, force: true });
+    const elsewhere = join(home, ".gemini", "config", "elsewhere");
+    mkdirSync(join(elsewhere, "brain", ID), { recursive: true });
+    if (!linkDir(elsewhere, cliRoot)) return;
+    expect(allowed(join(cliRoot, "brain", ID, "hooks.json"))).toBe(false);
+  });
+
+  it("requires every target in a set to qualify", () => {
+    expect(
+      allTargetsOutsideEveryCheckout(
+        payload,
+        [join(own, "a.md"), join(home, ".gemini", "config", "b.json")],
+        {},
+        seams({ agyConversation: { conversationId: ID, artifactDirectoryPath: null } }),
+      ),
+    ).toBe(false);
+  });
+
+  it("builds the seam from the agy identity and payload folder; null otherwise", () => {
+    const payloadOk = { conversationId: ID, artifactDirectoryPath: own };
+    expect(agyConversationSeam("agy", payloadOk, {})).toEqual({
+      conversationId: ID,
+      artifactDirectoryPath: own,
+    });
+    expect(agyConversationSeam("agy", { conversationId: ID }, {})).toEqual({
+      conversationId: ID,
+      artifactDirectoryPath: null,
+    });
+    expect(
+      agyConversationSeam("agy", { conversationId: ID, artifactDirectoryPath: 5 }, {}),
+    ).toEqual({ conversationId: ID, artifactDirectoryPath: "" });
+    expect(agyConversationSeam("claude", payloadOk, {})).toBeNull();
+    expect(agyConversationSeam("agy", {}, {})).toBeNull();
+    expect(agyConversationSeam("agy", { conversationId: "../x" }, {})).toBeNull();
   });
 });
