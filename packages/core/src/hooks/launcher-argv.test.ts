@@ -271,6 +271,36 @@ describe("classifyLauncherFamilyArgv (#4219)", () => {
       }),
     ).toEqual({ kind: "compound", family: "agy" });
   });
+
+  it("classifies agy -i and --prompt-interactive worker argv (#7451)", () => {
+    expect(classifyLauncherFamilyArgv("agy -i 'Read /e.md'")).toEqual({
+      kind: "launcher",
+      family: "agy",
+      dest: null,
+    });
+    expect(
+      classifyLauncherFamilyArgv("agy --prompt-interactive 'Read /e.md'", { payloadCwd: "/wt" }),
+    ).toEqual({ kind: "launcher", family: "agy", dest: "/wt" });
+  });
+
+  it("classifies agy --dangerously-skip-permissions with stream formats (#7451)", () => {
+    expect(
+      classifyLauncherFamilyArgv(
+        "agy --dangerously-skip-permissions --output-format stream-json 'Read /e.md'",
+      ),
+    ).toEqual({ kind: "launcher", family: "agy", dest: null });
+    expect(
+      classifyLauncherFamilyArgv(
+        "agy -p 'x' --input-format stream-json --output-format stream-json",
+        { payloadCwd: "/wt" },
+      ),
+    ).toEqual({ kind: "launcher", family: "agy", dest: "/wt" });
+  });
+
+  it("keeps agy --version and --help non-launcher after the flag widen (#7451)", () => {
+    expect(classifyLauncherFamilyArgv("agy --version")).toEqual(NOT_LAUNCHER);
+    expect(classifyLauncherFamilyArgv("agy --help")).toEqual(NOT_LAUNCHER);
+  });
 });
 
 describe("agy critic seat (#7245)", () => {
