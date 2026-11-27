@@ -685,3 +685,55 @@ describe("spend-recommend gate (#5466)", () => {
     expect(decideSpendRecommendGate(input, "ask_user_question")).toBeNull();
   });
 });
+
+describe("agy ask_question payload (#7442)", () => {
+  function agyAsk(options: string[]) {
+    return {
+      host: "agy" as const,
+      event: "tool.before" as const,
+      projectRoot: "/project",
+      environ: {},
+      payload: {
+        toolCall: {
+          name: "ask_question",
+          args: {
+            questions: [{ question: "Pick one?", options, is_multi_select: false }],
+          },
+        },
+      },
+    };
+  }
+
+  it("allows Discuss then Back as the final two options", () => {
+    const decision = decideHook(agyAsk(["Alpha", "Beta", "Discuss", "Back"]), readySeams());
+    expect(decision.verdict).toBe("allow");
+    expect(decision.code).toBe("question-hatch-ready");
+  });
+
+  it("denies options without the hatch", () => {
+    const decision = decideHook(agyAsk(["Alpha", "Beta", "Other"]), readySeams());
+    expect(decision.verdict).toBe("deny");
+    expect(decision.code).toBe("question-hatch-missing");
+  });
+
+  it("lets the spend-recommend gate read the options", () => {
+    const root = tempDir("agy-spend-gate-");
+    writeArcSpendState(root, {
+      schema: "deft.design-critique.arc-spend-state.v1",
+      status: "in-flight",
+      spendRecommend: null,
+      spend: null,
+      spendAsk: null,
+      askPermitted: false,
+      updatedAt: new Date().toISOString(),
+      utterance: "arc 7442",
+      sessionId: "no-session",
+    });
+    const decision = decideHook(
+      { ...agyAsk(["N=1", "Discuss", "Back"]), projectRoot: root },
+      readySeams(),
+    );
+    expect(decision.verdict).toBe("deny");
+    expect(decision.code).toBe("spend-recommend-required");
+  });
+});

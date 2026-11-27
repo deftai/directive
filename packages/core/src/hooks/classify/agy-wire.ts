@@ -47,6 +47,11 @@ export const AGY_TOOL_DISPOSITIONS: Readonly<Record<string, AgyToolDisposition>>
   },
   run_workflow: { intent: "spawn", mutates: true, note: "native spawn; denied fail-closed in v1" },
   swarm: { intent: "spawn", mutates: true, note: "native spawn; denied fail-closed in v1" },
+  ask_question: {
+    intent: "other",
+    mutates: false,
+    note: "structured question (`questions`: `{ question, options, is_multi_select }`)",
+  },
   define_subagent: {
     intent: "other",
     mutates: false,
@@ -118,6 +123,12 @@ export function normalizeAgyHookPayload(payload: unknown): unknown {
   for (const [agyKey, key] of Object.entries(AGY_ARG_KEYS)) {
     const value = args[agyKey];
     if (typeof value === "string") toolInput[key] = value;
+  }
+  // Structured args (for example ask_question `questions`) carry their own keys; the
+  // gates read them by name, so forward them as-is without overriding a mapped key.
+  for (const [key, value] of Object.entries(args)) {
+    if (Object.hasOwn(AGY_ARG_KEYS, key) || Object.hasOwn(toolInput, key)) continue;
+    if (typeof value === "object" && value !== null) toolInput[key] = value;
   }
   const name = typeof toolCall.name === "string" ? toolCall.name : null;
   return {
