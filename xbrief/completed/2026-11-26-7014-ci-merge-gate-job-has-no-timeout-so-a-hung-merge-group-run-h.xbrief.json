@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #7014",
-    "updated": "2026-11-26T23:09:46Z"
+    "updated": "2026-11-27T00:15:17Z"
   },
   "plan": {
     "title": "ci: merge-gate job has no timeout, so a hung merge-group run holds the queue for 6 hours",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "ci: merge-gate job has no timeout, so a hung merge-group run holds the queue for 6 hours",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/7014",
@@ -17,53 +17,123 @@
     "items": [
       {
         "title": "Bound the merge-gate lanes: in `.github/workflows/ci.yml`, give the `task check:merge` step in `merge-gate-primary` and `merge-gate-failover` a step `timeout-minutes`, and each of those jobs a slightly larger job `timeout-minutes` as a backstop, both well above the normal run (about 5 minutes primary), with a comment giving the reason for each value.",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5b08249561bd864111949473b00b8d789c055c2d",
+          "recorded_at": "2026-11-27T00:15:17Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Make an ordinary cancel take: change the job `if:` on `merge-gate-primary`, `merge-gate-failover` and the `merge-gate` aggregator from `always() && ...` to `${{ !cancelled() && ... }}` (the expression wrapper keeps the leading `!` valid YAML), keeping every other conjunct unchanged; the TypeScript, capacity and Windows jobs keep `always()`.",
-        "status": "proposed",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5b08249561bd864111949473b00b8d789c055c2d",
+          "recorded_at": "2026-11-27T00:15:17Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Bound the resolver: in `.github/scripts/resolve-ci-authoritative-lane.mjs`, add an optional observation budget that `ci.yml` sets only on the `merge-gate` aggregator (counted from resolver start; capacity stall budget plus the primary job timeout plus a small startup margin); when it is unset, as on the `ts` aggregator, the existing deadline stays. For both callers, give each `gh api` call a subprocess timeout and retry transient failures (HTTP 5xx, call timeout) with backoff inside the deadline in force. The queue-reuse and failover short circuits still run before any API read or budget check; budget exhaustion or exhausted retries exit 1 with an error that names the cause; only a primary `success` passes.",
-        "status": "proposed",
-        "id": "clause.3"
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5b08249561bd864111949473b00b8d789c055c2d",
+          "recorded_at": "2026-11-27T00:15:17Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Lock with tests: resolver unit tests through the existing `deps` injection (primary concluded `cancelled` or `failure` after a timeout fails; missing or nonterminal primary past the budget fails; one 502 then success passes; retries exhausted fails; no budget set keeps the old deadline; queue-reuse and failover short circuits unchanged), and `ci_lifecycle_lane.test.ts` updates its `always()` assertions on the merge-gate primary and aggregator to `!cancelled()`, keeps the artifact-only and queue-reuse conjunct checks, and asserts the step and job timeouts.",
-        "status": "proposed",
-        "id": "clause.4"
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5b08249561bd864111949473b00b8d789c055c2d",
+          "recorded_at": "2026-11-27T00:15:17Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Record platform evidence after items 1 to 3 land, using a throwaway pull request (closed unmerged) whose only change makes the `task check:merge` step, when `github.event_name == 'merge_group'`, sleep past a short test step timeout, while its pull-request run keeps the normal step and passes: (a) once its pull-request checks pass, its merge-group run, with that pull request alone in the queue, shows the step timing out, \"Merge gate (Blacksmith primary)\" ending non-success, \"Merge gate (task check)\" failing, and the group leaving the queue; (b) an ordinary run cancel of its merge-group run while the step sleeps (a second queue entry), by someone with cancel permission, stops the primary, failover and aggregator jobs, and the run reaches a completed state without force-cancel. Link both runs on this issue and state for each part whether it held.",
-        "status": "proposed",
-        "id": "clause.5"
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5b08249561bd864111949473b00b8d789c055c2d",
+          "recorded_at": "2026-11-27T00:15:17Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Both merge-gate lanes set a step `timeout-minutes` on `task check:merge` and a larger job `timeout-minutes`, each well above the normal run; a hung step fails at its step timeout and the job log shows that step as the one that timed out.",
-        "status": "proposed",
-        "id": "clause.6"
+        "status": "completed",
+        "id": "clause.6",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5b08249561bd864111949473b00b8d789c055c2d",
+          "recorded_at": "2026-11-27T00:15:17Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "\"Merge gate (task check)\" exits within its observation budget when the primary job is timed out, cancelled, failed, missing, or never completes; no merge-gate path waits 6 hours, and the TypeScript check keeps its current deadline.",
-        "status": "proposed",
-        "id": "clause.7"
+        "status": "completed",
+        "id": "clause.7",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5b08249561bd864111949473b00b8d789c055c2d",
+          "recorded_at": "2026-11-27T00:15:17Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "One transient 5xx or call timeout from the jobs API is retried and does not fail a run whose primary passes; exhausted retries fail with an error that names the API failure.",
-        "status": "proposed",
-        "id": "clause.8"
+        "status": "completed",
+        "id": "clause.8",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5b08249561bd864111949473b00b8d789c055c2d",
+          "recorded_at": "2026-11-27T00:15:17Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "An ordinary run cancel stops the merge-gate primary, failover and aggregator jobs, and the run reaches a completed state without force-cancel (jobs this Bound does not change may finish first), as shown by the run linked under Bound item 5(b).",
-        "status": "proposed",
-        "id": "clause.9"
+        "status": "completed",
+        "id": "clause.9",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5b08249561bd864111949473b00b8d789c055c2d",
+          "recorded_at": "2026-11-27T00:15:17Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Resolver unit tests and the CI workflow content-contract test cover criteria 1 to 3, and the merge-group run linked under Bound item 5(a) shows the timed-out group leaving the queue.",
-        "status": "proposed",
-        "id": "clause.10"
+        "status": "completed",
+        "id": "clause.10",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5b08249561bd864111949473b00b8d789c055c2d",
+          "recorded_at": "2026-11-27T00:15:17Z",
+          "recorded_by": "scope:complete"
+        }
       }
     ],
     "tags": [
@@ -587,6 +657,35 @@
         "leanCommentId": 7204875609,
         "harvestDigest": "e36e1ee095fe89187ff7d9496bd30664beea1fa66e5aa8e688e75ad416ed6d43",
         "slice": null
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "b753d6884ca0dda98c8b3332be31455f6de5be0f",
+        "prNumber": 7408,
+        "prBase": "master",
+        "mergeCommit": "5b08249561bd864111949473b00b8d789c055c2d",
+        "deliveryBranch": "master",
+        "deliveryCommit": "5b08249561bd864111949473b00b8d789c055c2d",
+        "verifiedAt": "2026-11-27T00:15:17Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:YTQ2NTZlZmEtNzdjMy00ZTZhLWEyYmMtNjYxNjdkYTg5NDA4",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          7406
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-27T00:15:17Z",
+      "completedSessionId": "host:claude:v1:YTQ2NTZlZmEtNzdjMy00ZTZhLWEyYmMtNjYxNjdkYTg5NDA4",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-27T00:15:17Z"
       }
     },
     "acceptance": {
@@ -694,6 +793,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.6539225501",
-    "updated": "2026-11-26T23:09:46Z"
+    "updated": "2026-11-27T00:15:17Z"
   }
 }
