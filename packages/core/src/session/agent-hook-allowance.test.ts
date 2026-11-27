@@ -255,6 +255,39 @@ describe("per-host merge (#7416)", () => {
     expect(hosts.grok).toEqual(grokEntry);
   });
 
+  it("keeps a used allowance closed when a later save carries the same functional result", () => {
+    const open = functionalEntry(T0);
+    expect(open.allowance_open).toBe(true);
+    const used = { ...open, allowance_open: false, ts: minutesAfter(1).toISOString() };
+    const laterSave = { ...open, ts: minutesAfter(2).toISOString() };
+    const disk = {
+      gated_steps: {
+        agent_hooks: { ...ritualStep({ ok: true, ts: T0 }), hosts: { claude: used } },
+      },
+    };
+    const incoming = {
+      gated_steps: {
+        agent_hooks: { ...ritualStep({ ok: true, ts: T0 }), hosts: { claude: laterSave } },
+      },
+    };
+    const merged = mergeSameOwnerRitualPayload(disk, incoming);
+    const hosts = readAgentHookHostEntries(
+      (merged.gated_steps as Record<string, Record<string, unknown>>).agent_hooks,
+    );
+    expect(hosts.claude?.allowance_open).toBe(false);
+    const renewed = functionalEntry(minutesAfter(3));
+    const reopened = mergeSameOwnerRitualPayload(disk, {
+      gated_steps: {
+        agent_hooks: { ...ritualStep({ ok: true, ts: T0 }), hosts: { claude: renewed } },
+      },
+    });
+    expect(
+      readAgentHookHostEntries(
+        (reopened.gated_steps as Record<string, Record<string, unknown>>).agent_hooks,
+      ).claude?.allowance_open,
+    ).toBe(true);
+  });
+
   it("keeps the disk host entries when the incoming step carries none", () => {
     const disk = {
       gated_steps: {

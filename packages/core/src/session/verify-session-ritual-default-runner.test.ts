@@ -445,4 +445,26 @@ describe("agent_hooks step scope and allowance (#7416)", () => {
     );
     expect(result.code).toBe(1);
   });
+
+  it("a failure that names no host result still records a closing entry for the applying host", () => {
+    const result = defaultRitualRunner(
+      COMMAND,
+      "/project",
+      {
+        evaluateAgentHookReadiness: () => ({
+          code: 1,
+          message: "❌ evaluator failed",
+          stream: "stderr",
+          skipped: false,
+          liveStatus: "not-run",
+          hosts: [],
+          registrations: registrationsFor(),
+          liveProbe: null,
+        }),
+      },
+      { surface: "write", host: "claude", now: NOW },
+    );
+    expect(result.code).toBe(1);
+    expect(result.agentHookHosts?.claude).toMatchObject({ ok: false, allowance_open: false });
+  });
 });

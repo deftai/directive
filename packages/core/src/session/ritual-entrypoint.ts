@@ -289,6 +289,14 @@ function runAgentHooksStep(
   for (const [host, status] of statuses) {
     entries[host] = entryFor(host, status, status === "functional");
   }
+  if (readiness.code !== 0) {
+    // A failure that names no result for a host still closes that host's allowance: this covers a
+    // throwing evaluator (no hosts named) and a failure that skipped the host's probe.
+    const unnamed = applying !== null ? [applying] : [...inScope, ...Object.keys(prior)];
+    for (const host of unnamed) {
+      if (entries[host] === undefined) entries[host] = entryFor(host, "unavailable", false);
+    }
+  }
   return finish(readiness.code, readiness.message, entries);
 }
 

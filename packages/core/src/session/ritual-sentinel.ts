@@ -283,10 +283,19 @@ function asHostMap(value: unknown): Record<string, Record<string, unknown>> {
   return asStepMap(value);
 }
 
+function functionalTs(entry: Record<string, unknown>): string | null {
+  const record = entry.functional;
+  if (typeof record !== "object" || record === null) return null;
+  const ts = (record as Record<string, unknown>).ts;
+  return typeof ts === "string" ? ts : null;
+}
+
 /**
  * Per-host `agent_hooks` merge (#7416): a write keeps every other host's entry, and for the
  * same host the entry with the later `ts` wins (a tie goes to the incoming entry), so a stale
- * snapshot cannot overwrite a newer result.
+ * snapshot cannot overwrite a newer result. For the same functional result a closed allowance
+ * stays closed: only a newer `functional` result (a different functional `ts`) reopens it, so a
+ * later save of an unchanged entry cannot restore an allowance another write already used.
  */
 function mergeAgentHookHosts(
   disk: Record<string, unknown> | undefined,
@@ -304,6 +313,18 @@ function mergeAgentHookHosts(
       incomingTs.getTime() >= currentTs.getTime()
     ) {
       merged[host] = entry;
+    }
+    const winner = merged[host];
+    if (current !== undefined && winner !== undefined) {
+      const keptTs = functionalTs(winner);
+      if (
+        keptTs !== null &&
+        keptTs === functionalTs(current) &&
+        winner.allowance_open === true &&
+        current.allowance_open === false
+      ) {
+        merged[host] = { ...winner, allowance_open: false };
+      }
     }
   }
   return merged;
