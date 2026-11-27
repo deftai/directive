@@ -104,13 +104,24 @@ const HOST_HOOK_RELS = [
   ".cursor/hooks.json",
   ".codex/hooks.json",
   ".grok/hooks/deft.json",
+  ".agents/hooks.json",
 ] as const;
+
+/** agy hook file: shared with the user's hooks, so Directive owns only its named entry (#7438). */
+const AGY_HOOK_REL = ".agents/hooks.json";
+const AGY_ENTRY_KEY = "zzzz-directive";
 
 /**
  * Host dirs for the v261027 committed `deft-hook-<sha8>.mjs` outers (AC9.1).
  * Mirrors core `HOST_HOOK_OUTER_DIRS`; the launcher cannot import core (AC3.1).
  */
-export const HOST_HOOK_OUTER_DIRS = [".claude", ".codex", ".cursor/hooks", ".grok/hooks"] as const;
+export const HOST_HOOK_OUTER_DIRS = [
+  ".claude",
+  ".codex",
+  ".cursor/hooks",
+  ".grok/hooks",
+  ".agents",
+] as const;
 
 const HOST_HOOK_OUTER_FILE_RE = /^deft-hook-[a-f0-9]{8}\.mjs$/;
 
@@ -143,7 +154,11 @@ function isHostHookOuterCommand(command: string): boolean {
   const tokens = command.trim().split(/[ \t]+/);
   const target = tokens[1] ?? "";
   if (tokens[0] !== "node" || !isHostHookOuterRel(target.replace(/^\.\//, ""))) return false;
-  const args = tokens.slice(2);
+  return hasOnlyPlainFlags(tokens.slice(2));
+}
+
+/** Only `--flag` or `--flag value` pairs of plain tokens: a bare word would be another command. */
+function hasOnlyPlainFlags(args: readonly string[]): boolean {
   for (let i = 0; i < args.length; i++) {
     const flag = args[i] ?? "";
     if (!flag.startsWith("--") || !PLAIN_ARG_TOKEN_RE.test(flag)) return false;
@@ -154,6 +169,48 @@ function isHostHookOuterCommand(command: string): boolean {
     }
   }
   return true;
+}
+
+/**
+ * True when the whole command is Directive's agy outer: agy runs hooks from `.agents/`,
+ * so the command names the bare file (`node deft-hook-<sha8>.mjs --host agy --event …`).
+ * Mirrors core `isManagedAgyHookEntry` per command (AC3.1: no core import).
+ */
+function isAgyOuterCommand(command: string): boolean {
+  if (/[\r\n]/.test(command)) return false;
+  const tokens = command.trim().split(/[ \t]+/);
+  const target = (tokens[1] ?? "").replace(/^\.\//, "");
+  if (tokens[0] !== "node" || !HOST_HOOK_OUTER_FILE_RE.test(target)) return false;
+  const args = tokens.slice(2);
+  const host = args.indexOf("--host");
+  return host >= 0 && args[host + 1] === "agy" && hasOnlyPlainFlags(args);
+}
+
+/** Every command text of the named agy entry, in grouped or flat hook lists. */
+function agyEntryCommandTexts(entry: unknown): string[] {
+  const record = object(entry);
+  if (record === null) return [];
+  const texts: string[] = [];
+  for (const list of Object.values(record)) {
+    if (!Array.isArray(list)) continue;
+    for (const item of list) {
+      const group = object(item);
+      const hooks = group !== null && Array.isArray(group.hooks) ? group.hooks : [item];
+      for (const hook of hooks) {
+        const text = hookEntryCommandText(hook);
+        if (text !== null) texts.push(text);
+      }
+    }
+  }
+  return texts;
+}
+
+/** Drop Directive's named entry from an agy hook file; foreign entries stay byte for byte. */
+function stripAgyEntry(cfg: Record<string, unknown>): Record<string, unknown> {
+  const texts = agyEntryCommandTexts(cfg[AGY_ENTRY_KEY]);
+  if (texts.length === 0 || !texts.every(isAgyOuterCommand)) return cfg;
+  const { [AGY_ENTRY_KEY]: _managed, ...rest } = cfg;
+  return rest;
 }
 
 /** Committed `.mjs` outers on disk (any sha8) in the four host dirs. */
@@ -681,6 +738,36 @@ function maybeRemoveEmptyParents(projectRoot: string, relFile: string): string[]
 }
 
 /**
+ * Strip Directive's entry from `.agents/hooks.json` (entry-owned, #7438): a file with only
+ * foreign hooks keeps its bytes, and the file goes only when nothing else is left in it.
+ */
+function stripAgyHookFile(
+  projectRoot: string,
+  cfg: Record<string, unknown>,
+  modified: string[],
+  removed: string[],
+  leftovers: string[],
+  uncertainty: string[],
+): void {
+  const stripped = stripAgyEntry(cfg);
+  if (stripped === cfg) return;
+  if (Object.keys(stripped).length === 0) {
+    if (safeUnlink(projectRoot, AGY_HOOK_REL)) {
+      removed.push(AGY_HOOK_REL);
+      removed.push(...maybeRemoveEmptyParents(projectRoot, AGY_HOOK_REL));
+    } else {
+      leftovers.push(AGY_HOOK_REL);
+    }
+    return;
+  }
+  if (safeWriteText(projectRoot, AGY_HOOK_REL, `${JSON.stringify(stripped, null, 2)}\n`)) {
+    modified.push(`${AGY_HOOK_REL}#${AGY_ENTRY_KEY}`);
+  } else {
+    uncertainty.push(`refused write outside project: ${AGY_HOOK_REL}`);
+  }
+}
+
+/**
  * Apply launcher fallback cleanup from a retained discovery snapshot (AC11.5).
  * Idempotent. Does not touch retained artifacts or PM deps / hooksPath.
  */
@@ -772,6 +859,10 @@ export function applyLauncherCleanup(
         leftovers.push(art.path);
         continue;
       }
+      if (art.path === AGY_HOOK_REL) {
+        stripAgyHookFile(projectRoot, cfg, modified, removed, leftovers, uncertainty);
+        continue;
+      }
       const stripped = stripHostHooks(cfg);
       const prior = readText(abs) ?? "";
       const next = `${JSON.stringify(stripped, null, 2)}\n`;
@@ -807,7 +898,9 @@ export function applyLauncherCleanup(
         continue;
       }
       const cfg = readJsonObject(abs);
-      if (cfg !== null) {
+      if (cfg !== null && art.path === AGY_HOOK_REL) {
+        stripAgyHookFile(projectRoot, cfg, modified, removed, leftovers, uncertainty);
+      } else if (cfg !== null) {
         const stripped = stripHostHooks(cfg);
         const prior = readText(abs) ?? "";
         const next = `${JSON.stringify(stripped, null, 2)}\n`;

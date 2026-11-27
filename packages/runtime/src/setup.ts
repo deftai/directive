@@ -14,9 +14,12 @@ import {
   containedRemove,
   containedWrite,
 } from "@deftai/directive-core/dist/fs/contained-write.js";
+import { AGY_DIRECTIVE_HOOK_NAME } from "@deftai/directive-core/dist/hooks/classify/agy-hook-order.js";
+import { AGY_HOOK_PATH } from "@deftai/directive-core/dist/init-deposit/agent-hooks.js";
 import {
   hostHookOuterRelPath,
   hostHookOuterSha8,
+  isManagedAgyHookEntry,
 } from "@deftai/directive-core/dist/init-deposit/host-hook-outer.js";
 import {
   defaultTrackedNames,
@@ -349,8 +352,22 @@ const STRUCTURED_ENTRY_RELS: ReadonlyArray<{ path: string; entryKey: string }> =
   { path: ".cursor/hooks.json", entryKey: "hooks" },
   { path: ".codex/hooks.json", entryKey: "hooks" },
   { path: ".grok/hooks/deft.json", entryKey: "hooks" },
+  // Shared with the user's agy hooks: Directive owns only its named entry (#7438).
+  { path: AGY_HOOK_PATH, entryKey: AGY_DIRECTIVE_HOOK_NAME },
   { path: "Taskfile.yml", entryKey: "includes.deft" },
 ];
+
+/** Directive's own `zzzz-directive` entry in an agy hook file, or `undefined` when absent or foreign. */
+function managedAgyEntry(body: string): unknown {
+  try {
+    const parsed: unknown = JSON.parse(body);
+    if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) return undefined;
+    const entry = (parsed as Record<string, unknown>)[AGY_DIRECTIVE_HOOK_NAME];
+    return isManagedAgyHookEntry(entry) ? entry : undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 function buildOwnershipArtifacts(projectRoot: string): OwnedArtifact[] {
   const artifacts: OwnedArtifact[] = [];
@@ -365,14 +382,26 @@ function buildOwnershipArtifacts(projectRoot: string): OwnedArtifact[] {
   }
   for (const { path: rel, entryKey } of STRUCTURED_ENTRY_RELS) {
     const body = readText(join(projectRoot, rel));
-    if (body !== null) {
-      artifacts.push({
-        path: rel,
-        kind: "structured-entry",
-        fingerprint: fingerprintContent(body),
-        entryKey,
-      });
+    if (body === null) continue;
+    if (rel === AGY_HOOK_PATH) {
+      // Record the entry, not the file: a file with only foreign hooks is not claimed.
+      const entry = managedAgyEntry(body);
+      if (entry !== undefined) {
+        artifacts.push({
+          path: rel,
+          kind: "structured-entry",
+          fingerprint: fingerprintContent(JSON.stringify(entry)),
+          entryKey,
+        });
+      }
+      continue;
     }
+    artifacts.push({
+      path: rel,
+      kind: "structured-entry",
+      fingerprint: fingerprintContent(body),
+      entryKey,
+    });
   }
   // Record only hook bodies Directive wrote: a hook left alone as a conflict
   // (not Directive's) is never claimed (#5976).
@@ -390,7 +419,7 @@ function buildOwnershipArtifacts(projectRoot: string): OwnedArtifact[] {
   // Fingerprint LF-normalized text: setup keeps a CRLF checkout of the same
   // outer, so the record must not change with core.autocrlf (AC13.2).
   const outerSha8 = hostHookOuterSha8();
-  for (const host of ["claude", "codex", "cursor", "grok"] as const) {
+  for (const host of ["claude", "codex", "cursor", "grok", "agy"] as const) {
     const rel = hostHookOuterRelPath(host, outerSha8);
     const body = readText(join(projectRoot, rel));
     if (body !== null) {
@@ -572,6 +601,7 @@ export function runSetup(options: {
     const hooks = ensureHostHooks(root);
     created.push(...hooks.created);
     modified.push(...hooks.modified);
+    for (const warning of hooks.warnings) process.stderr.write(`warning: ${warning}\n`);
 
     const githooks = ensureGitHooks(root, {
       takeOverHooksPath: options.takeOverHooksPath === true,

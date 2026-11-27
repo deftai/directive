@@ -6,11 +6,13 @@
  */
 import { existsSync, readdirSync, readFileSync, realpathSync, statSync } from "node:fs";
 import { isAbsolute, join, relative, resolve } from "node:path";
+import { AGY_DIRECTIVE_HOOK_NAME } from "@deftai/directive-core/dist/hooks/classify/agy-hook-order.js";
 import {
   hostHookConfigEntryLines,
   hostHookOuterRelPath,
   hostHookOuterSha8,
   isHostHookOuterCommand,
+  isManagedAgyHookEntry,
 } from "@deftai/directive-core/dist/init-deposit/host-hook-outer.js";
 import {
   ENTRY_GUARD_MESSAGES,
@@ -74,7 +76,22 @@ const HOST_CONFIGS = [
   { config: ".cursor/hooks.json", host: "cursor" },
   { config: ".codex/hooks.json", host: "codex" },
   { config: ".grok/hooks/deft.json", host: "grok" },
+  { config: ".agents/hooks.json", host: "agy" },
 ] as const;
+
+/**
+ * `.agents/hooks.json` is shared with the user's own agy hooks, so it counts as
+ * Directive's only while it holds the `zzzz-directive` entry (#7438).
+ */
+function holdsDirectiveAgyEntry(abs: string): boolean {
+  try {
+    const parsed: unknown = JSON.parse(readFileSync(abs, "utf8"));
+    if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) return false;
+    return isManagedAgyHookEntry((parsed as Record<string, unknown>)[AGY_DIRECTIVE_HOOK_NAME]);
+  } catch {
+    return false;
+  }
+}
 
 /** Read-only git runner: no optional index refresh (AC12.1). */
 export function readOnlyGitRunner(): GitRunner {
@@ -116,13 +133,17 @@ export function directiveFilesToCheck(projectRoot: string): string[] {
       }
       continue;
     }
-    if (isFilePath(join(projectRoot, entry.path))) out.add(entry.path);
+    const abs = join(projectRoot, entry.path);
+    if (!isFilePath(abs)) continue;
+    if (entry.path === ".agents/hooks.json" && !holdsDirectiveAgyEntry(abs)) continue;
+    out.add(entry.path);
   }
   const sha8 = hostHookOuterSha8();
   for (const { config, host } of HOST_CONFIGS) {
-    if (existsSync(join(projectRoot, config))) {
-      out.add(hostHookOuterRelPath(host, sha8));
-    }
+    const abs = join(projectRoot, config);
+    if (!existsSync(abs)) continue;
+    if (host === "agy" && !holdsDirectiveAgyEntry(abs)) continue;
+    out.add(hostHookOuterRelPath(host, sha8));
   }
   return [...out].filter((rel) => !rel.startsWith("node_modules/")).sort();
 }

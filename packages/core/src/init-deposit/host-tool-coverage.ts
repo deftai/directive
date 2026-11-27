@@ -23,6 +23,8 @@
  *    no mutation tool, or a non-mutation entry the classifier actually gates.
  */
 
+import { agyWriteIntent } from "../hooks/classify/agy-wire.js";
+import type { HookWriteIntent } from "../hooks/classify/types.js";
 import { HOOK_HOSTS, type HookHost } from "../hooks/dispatcher.js";
 import {
   HOST_TOOL_SURFACE_AUDIT,
@@ -68,6 +70,36 @@ const CLASSIFIERS: Readonly<Record<MutationGroup, (toolName: string) => boolean>
 };
 
 const MUTATION_GROUPS: readonly MutationGroup[] = ["directWrite", "shell", "spawn", "kill"];
+
+/** The write intent agy's own classifier assigns to each group; agy has no kill tool. */
+const AGY_INTENT_BY_GROUP: Readonly<Record<MutationGroup, HookWriteIntent | null>> = {
+  directWrite: "direct-write",
+  shell: "shell",
+  spawn: "spawn",
+  kill: null,
+};
+
+/**
+ * Whether the runtime classifier for `host` places `toolName` in `group`. agy names
+ * (`run_command`, `edit_file`, `invoke_subagent`) are classified by the host-keyed agy
+ * table (#7346), not the shared catalogs, which do not know them (#7438).
+ */
+function classifiesAs(host: HookHost, group: MutationGroup, toolName: string): boolean {
+  if (host === "agy") {
+    const intent = AGY_INTENT_BY_GROUP[group];
+    return intent !== null && agyWriteIntent(toolName) === intent;
+  }
+  return CLASSIFIERS[group](toolName);
+}
+
+/**
+ * A deposited matcher covers a tool when it names the tool as a literal token. agy's
+ * single `*` matcher is read by agy as every tool (observed, #7345 s16 to s19), so for
+ * agy alone `*` covers every name (#7438).
+ */
+function matcherCoversTool(host: HookHost, matcher: string, toolName: string): boolean {
+  return (host === "agy" && matcher === "*") || matcherHasLiteralToken(matcher, toolName);
+}
 
 function auditFor(host: HookHost): HostToolSurfaceAudit | undefined {
   return (HOST_TOOL_SURFACE_AUDIT as Partial<Record<string, HostToolSurfaceAudit>>)[host];
@@ -120,7 +152,7 @@ function checkAuditShape(
       });
       continue;
     }
-    const gated = MUTATION_GROUPS.find((group) => CLASSIFIERS[group](toolName));
+    const gated = MUTATION_GROUPS.find((group) => classifiesAs(host, group, toolName));
     if (gated !== undefined) {
       findings.push({
         host,
@@ -166,7 +198,7 @@ export function inspectHostToolCoverage(
     if (matchers === null) continue;
     for (const group of MUTATION_GROUPS) {
       for (const toolName of audit.mutation[group]) {
-        if (!matchers.some((matcher) => matcherHasLiteralToken(matcher, toolName))) {
+        if (!matchers.some((matcher) => matcherCoversTool(host, matcher, toolName))) {
           findings.push({
             host,
             path,
@@ -175,7 +207,7 @@ export function inspectHostToolCoverage(
             detail: `${group} tool is absent from every deposited PreToolUse matcher.`,
           });
         }
-        if (!CLASSIFIERS[group](toolName)) {
+        if (!classifiesAs(host, group, toolName)) {
           findings.push({
             host,
             path,

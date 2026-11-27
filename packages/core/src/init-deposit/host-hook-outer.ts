@@ -136,13 +136,18 @@ export function hostHookOuterRelPath(host: HookHost, sha8: string): string {
  * Delete every `deft-hook-<sha8>.mjs` under the host deposit dir (#7349).
  * Returns relative paths that were removed.
  */
-export function removeHostHookOuterModules(projectRoot: string, host: HookHost): string[] {
+export function removeHostHookOuterModules(
+  projectRoot: string,
+  host: HookHost,
+  keep: ReadonlySet<string> = new Set(),
+): string[] {
   const dirRel = hostHookOuterDepositDir(host);
   const dirAbs = join(projectRoot, dirRel);
   if (!existsSync(dirAbs)) return [];
   const removed: string[] = [];
   for (const name of readdirSync(dirAbs)) {
     if (!/^deft-hook-[a-f0-9]{8}\.mjs$/.test(name)) continue;
+    if (keep.has(name)) continue;
     const rel = `${dirRel}/${name}`;
     const abs = join(projectRoot, rel);
     if (
@@ -278,15 +283,34 @@ export function agyEntryCommands(entry: unknown): string[] {
 }
 
 /**
+ * A whole agy outer command: `node deft-hook-<sha8>.mjs` followed only by plain
+ * `--flag [value]` pairs. A command chained after it (`&& …`, `;`, extra words) is not
+ * Directive's, so install keeps it and uninstall never deletes it (#7438).
+ */
+const AGY_OUTER_COMMAND_RE =
+  /^node (?:\.\/)?(?:\.agents\/)?deft-hook-[a-f0-9]{8}\.mjs(?: --[A-Za-z0-9_.:=-]+(?: [A-Za-z0-9_.:=][A-Za-z0-9_.:=-]*)?)*$/;
+
+/**
  * True when a named agy entry is Directive's: it has commands, and every one is
- * a Directive outer command for agy (key name plus command marker, #7347).
+ * a whole Directive outer command for agy (key name plus command marker, #7347).
  */
 export function isManagedAgyHookEntry(entry: unknown): boolean {
   const commands = agyEntryCommands(entry);
   return (
     commands.length > 0 &&
-    commands.every((text) => isHostHookOuterCommand(text) && text.includes("--host agy"))
+    commands.every(
+      (text) =>
+        isHostHookOuterCommand(text) &&
+        AGY_OUTER_COMMAND_RE.test(text.trim()) &&
+        / --host agy(?: |$)/.test(text),
+    )
   );
+}
+
+/** Outer file names a registration still names (a kept entry runs them). */
+export function referencedHostHookOuterNames(config: unknown): Set<string> {
+  const found = JSON.stringify(config ?? null).match(/deft-hook-[a-f0-9]{8}\.mjs/g);
+  return new Set(found ?? []);
 }
 
 /** Drop Directive's named entry from an agy hook file; foreign entries stay (#7347). */
@@ -353,6 +377,7 @@ export function stripHostHookRegistrationInPlace(
 ): StripHostHookRegistrationResult {
   const touched: string[] = [];
   let stripped = false;
+  let keep: ReadonlySet<string> = new Set();
   const regRel = hostHookRegistrationRelPath(host);
   const regAbs = join(projectRoot, regRel);
   if (existsSync(regAbs)) {
@@ -381,6 +406,7 @@ export function stripHostHookRegistrationInPlace(
         : host === "agy"
           ? stripAgyHostHookConfig(config)
           : stripNestedHostHookConfig(config, host);
+    keep = referencedHostHookOuterNames(next);
     const after = `${JSON.stringify(next, null, 2)}\n`;
     // An unchanged object (agy file with no Directive entry) keeps the user's bytes.
     if (next !== config && after !== before) {
@@ -393,7 +419,7 @@ export function stripHostHookRegistrationInPlace(
     }
   }
 
-  for (const rel of removeHostHookOuterModules(projectRoot, host)) {
+  for (const rel of removeHostHookOuterModules(projectRoot, host, keep)) {
     touched.push(rel);
     stripped = true;
   }
