@@ -15,7 +15,6 @@
 - **#6613** -- P3-U1a: revert release checks that contradict the #5947 decision (U1a: code removal, release finish step, release skill) -- `[running]`
 - **#6740** -- security(kill-switch): honor the kill switch only when a human mints it -- `[running]`
 - **#7127** -- feat(scope): operator-authorized correction of a clause's required axis after activation that keeps its test evidence -- `[running]`
-- **#7253** -- Tell the operator the mint and off tradeoff before a batch -- `[running]`
 
 ## Proposed
 
@@ -49,31 +48,31 @@ _Scopes not yet promoted to pending. Orientation only — not a substitute for `
 
 ## Completed
 
-_Showing 25 of 2109 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
+_Showing 25 of 2129 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
 
+- **#7347** -- feat(harness): agy host deposit-doctor slice (#7332) -- `[completed]`
+- **#6826** -- bug(spec): task spec:render deletes about 23k lines of SPECIFICATION.md -- `[completed]`
+- **#7413** -- docs(scm): github.md quotes the old merge-gate aggregator guard (always()) after #7408 -- `[completed]`
+- **#7378** -- feat(harness): admit agy hook activation under sort-last + doctor integrity mitigation (#7332) -- `[completed]`
+- **#7014** -- ci: merge-gate job has no timeout, so a hung merge-group run holds the queue for 6 hours -- `[completed]`
+- **#7346** -- feat(harness): agy host classify-identity slice (#7332) -- `[completed]`
+- **#7345** -- feat(harness): agy host observe slice (#7332) -- `[completed]`
+- **#7358** -- [framework-gap] Replace retiring gemini-3.8-flash-high in AGY design-critique critic seat before Nov 30, 2026 sunset -- `[completed]`
+- **#7384** -- fix(test): stub the #7252 slow-path gate in open-umbrella-warning test so it stays offline (#7265) -- `[completed]`
+- **#6424** -- bug(ci): one-pr-unit-merge-group fails on every merge-queue run with "missing constituent PR" -- `[completed]`
+- **#7252** -- Refuse a one-story scope:complete when another merged story is still active -- `[completed]`
+- **#7351** -- [framework-gap] Admit same-repo Claude/Directive linked worktrees under host-hook root check (split from #7349) -- `[completed]`
+- **#7328** -- release: Step 5 must not re-test tip when merge-gate already green -- `[completed]`
+- **#7352** -- [framework-gap] Claude host-hook matcher gates host MCP/UI tools (split from #7349) -- `[completed]`
+- **#7265** -- Nightly lane red: Nightly coverage (Linux) -- `[completed]`
+- **#7327** -- release:run: dry-run dirties tree then clean-tree readiness fails -- `[completed]`
+- **#7326** -- release: drop github-issue triage cache fetch-all as hard Phase 1 preflight (#4399) -- `[completed]`
+- **#7331** -- release: ship pin-PR setup in skill; local-update must survive untracked approved-scope twins -- `[completed]`
+- **#7349** -- Prefer-A Bound: Claude disable-host-hooks strip or honest repair -- `[completed]`
+- **#7253** -- Tell the operator the mint and off tradeoff before a batch -- `[completed]`
 - **#7279** -- leftover(#7272): harness-attended human-presence mint for approved-scope and authz -- `[completed]`
 - **#7292** -- fix(test): isolate vb-cov-cli fixture + finalize pathspecs when vbrief absent -- `[completed]`
 - **#7274** -- Pre-dispatch binding lock repair -- `[completed]`
 - **#7273** -- Exact-word commit gate -- `[completed]`
 - **#7271** -- [framework-gap] Spawn ignores a destination story-binding and still fails on the session root's active briefs -- `[completed]`
-- **#7245** -- Admit Antigravity CLI as a design-critique critic seat -- `[completed]`
-- **#7270** -- Foreign linked-worktree spawn admit with begun-from checkout root -- `[completed]`
-- **#7272** -- Observable-scope rediscovery scrub -- `[completed]`
-- **#7254** -- [framework-gap] acceptance-disposition deferral is never applied when the clause walk fails (scope:complete refuses before reading the grant) -- `[completed]`
-- **#7275** -- [framework-gap] A checkout with no runtime cannot run the install that would create it -- `[completed]`
-- **#7256** -- Fix bulk mint spawn admission (#7256 / #7257) -- `[completed]`
-- **#6945** -- feat(scope): zero-terminal-step approval of observable-scope and intent-constraint records that an agent cannot forge -- `[completed]`
-- **#7175** -- Admit npm and pnpm verification commands at scope complete -- `[completed]`
-- **#7234** -- bug(agents-entry): managed AGENTS.md cites templates/agent-prompt-preamble.md, which does not exist in a consumer project (regression from #7152) -- `[completed]`
-- **#7233** -- bug(scope-cover): a directive upgrade run in a worktree is refused because npm rewrites the lockfile's top-level name -- `[completed]`
-- **#6298** -- test(session): session-start tests read Claude host env vars, so task check fails under Claude Code -- `[completed]`
-- **#7223** -- fix(literal-acceptance): refuse acceptance cwd and npm --prefix inside node_modules -- `[completed]`
-- **#7025** -- bug(scope): scope:complete's delivery-identity-join rejects the real, GitHub-confirmed merge commit, citing a SHA that doesn't exist -- `[completed]`
-- **#7200** -- fix(windows): path identity compares 8.3 short and long spellings in the shared git path helpers (#7199 A) -- `[completed]`
-- **#7099** -- [framework-gap] scope:complete reads 'deployment' in a test-level criterion as a required deploy axis -- `[completed]`
-- **#7203** -- test(windows): coverage-report symlink-swap test assumes O_NOFOLLOW (#7199 D) -- `[completed]`
-- **#7181** -- test(flaky): #6904 tree-kill tests in ci-reuse.test.ts and the occupancy suite fail intermittently in the queue -- `[completed]`
-- **#7170** -- [framework-gap] scope:complete clause walk requires a quoted token that the clause says must never appear ('never apikey:…') -- `[completed]`
-- **#7172** -- Nightly lane red: Nightly full suite (Windows) -- `[completed]`
-- **#7147** -- bug(class-checks): merge_group runs judge a multi-PR diff, so a mint PR queued behind product fails class 4 -- `[completed]`
 

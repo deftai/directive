@@ -7,13 +7,57 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- [release-line] v0.131.5
+- [release-line] v0.132.0
 
 ### Added
 
 ### Changed
 
 ### Fixed
+
+### Removed
+
+## [0.132.0] - 2026-11-27
+### Added
+
+- Activate Prefer-A Bound briefs for #7265/#7326/#7327/#7328/#7331 and #7332 slices #7345/#7346/#7347 under onePrScopeProof=off.
+- Antigravity (`agy`) is a recognised classify host with an audited tool surface, real hook payload fixtures from agy 1.5.16, and a committed admission verdict (argument integrity fails: a later hook's overwrite wins, so deposit activation stays halted). Tracking #7345.
+- Antigravity (`agy`) is a registered hook host: identity from `conversationId` (`host:agy:v1:`), `plan.policy.hostHooks.agy` default off, agy-keyed payload reading, `overwrite.CommandLine` lifecycle rewrites, a closed SessionStart notice catalog, and fail-closed denial of native spawn tools. Nothing is deposited yet. Tracking #7346.
+- Antigravity (agy) hooks are installed, repaired and removed with the other hosts and are on by default. Install only runs when the recorded host check passes, `directive doctor` reports a halted install, and turning the host off removes only Directive's own hook.
+- Queue #7349 to make disabling Claude hooks clear them or require repair before reporting success. This activates the work plan; it does not ship the fix.
+- agy hook-order mitigation (#7378): a sort-last entry name, one ordering predicate run on every agy tool call and by `directive doctor`, and an agy outer that prints an explicit decision and denies empty or invalid child output.
+
+### Changed
+
+- Complete #6424 after merge of #7376.
+- Complete #7014 after merge of #7408.
+- chore(dogfood): pin Directive to 0.131.5.
+- Set onePrScopeProof to off so story product PRs no longer require same-PR human mint twins.
+- Complete #7345 after merge of #7400.
+- Complete #7346 after merge of #7405.
+- Queue #7351 to admit same-repo Claude/Directive linked worktrees under the host-hook root check. This activates the work plan; it does not ship the admit gate.
+- Queue #7352 so Claude hard-lock sessions still admit host status/UI MCP while Bash/Edit/Write stay refused. This activates the work plan; it does not ship the matcher admit.
+- Pin the agy design-critique critic seat to gemini-4-hydrogen-high (AGY_CRITIC_MODEL, pong and short-pointer argv); the retiring gemini-3.8-flash-high no longer discharges the seat. Tracking #7358.
+- Complete #7358 after merge of #7399.
+- Complete #7378 after merge of #7409.
+- Complete #7384 after merge of #7398.
+- `scm/github.md` now quotes the real `merge-gate` guard, and a test pins it to `ci.yml` (#7413).
+
+### Fixed
+
+- one-pr-unit-merge-group builds the queue entry list from merge_group.head_ref plus the base..head range, loads each PR over REST, and names real API or parse failures instead of "missing constituent PR". Tracking #6424.
+- `verify:spec-prd-fresh` now fails when SPECIFICATION.md holds a section the default `task spec:render` does not write (such as a frozen `## Scope outlook`), and SPECIFICATION.md is regenerated (#6826).
+- A hung merge-gate run no longer holds the merge queue for 6 hours: the `task check:merge` step times out at 20 minutes, the job at 30, an ordinary run cancel now stops the lanes, and the merge-gate resolver stops at a 35-minute budget and retries transient jobs-API errors (#7014).
+- scope:complete slow-path admits a solo eligible brief without merge-state lookup, finishes the ≥2-candidate loop, and retries only when unresolved evidence can still reach two merged actives (Prefer-A Bound 7150994871). Tracking #7252.
+- Replace absolute 1s twin meters on classifyShellAuthzOps arithmetic-shift preprocess (#4005/#4188) with a shared N/2N quadratic-guard ratio helper under coverage (#7265).
+- release Phase 1: treat missing github-issue triage cache orientation dirty as advisory (#4399 / #7326); keep present-cache stale-by-drift hard.
+- release:run / `release run` no longer self-completes setup before readiness, and stamps that skip on child session:start/setup so tip cuts keep a clean tree through the cut; readiness also re-checks clean after dry-run and uses honest refuse wording (#7327).
+- Release Step 5 tip-green CI reuse: shared release-input classifier admits session-scratch-only dogfood without `--allow-dirty`, tip-green reuse no longer hard-requires nightly success (truthful per-lane print), and #5855 untied admission resolves the host presenter via `resolvePresentedIdentity` (#7328).
+- release: ship runnable `release:pin-pr` (ensures `changelog.d/`) and per-path approved-scope clash remediation on `release:local-update` ff-only; final lines and release skill name both paths.
+- `policy:disable-host-hooks` clears that host's live Directive hook registration in the current checkout, prints touched paths, and root-mismatch recovery names launch-checkout disable/strip (repair strips only after opt-out) instead of a new session alone (#7349).
+- Admit same-repo Claude and Directive linked worktrees under the host-hook root check when launch and payload share a git common dir (#7351). Foreign-runtime-link and other-repo mismatches stay refused.
+- Under Claude hard-lock (root mismatch or pin skew), admit host status/UI MCP tools that healthy sessions already fail-open on, while Bash/Edit/Write and write-shaped or forge-sensitive MCP stay refused (#7352).
+- The open-umbrella-warning scope:complete test stubs the #7252 slow-path gate so it stays offline. Tracking #7384, refs #7265.
 
 ### Removed
 
@@ -8659,7 +8703,8 @@ If you have custom scripts or references to deft files, update these paths:
 
 
 
-[Unreleased]: https://github.com/deftai/directive/compare/v0.131.5...HEAD
+[Unreleased]: https://github.com/deftai/directive/compare/v0.132.0...HEAD
+[0.132.0]: https://github.com/deftai/directive/compare/v0.131.5...v0.132.0
 [0.131.5]: https://github.com/deftai/directive/compare/v0.131.4...v0.131.5
 [0.131.4]: https://github.com/deftai/directive/compare/v0.131.3...v0.131.4
 [0.131.3]: https://github.com/deftai/directive/compare/v0.131.2...v0.131.3
