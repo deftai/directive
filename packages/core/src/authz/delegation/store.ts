@@ -14,6 +14,7 @@
 
 import { randomBytes } from "node:crypto";
 import {
+  chmodSync,
   existsSync,
   lstatSync,
   mkdirSync,
@@ -21,11 +22,15 @@ import {
   renameSync,
   rmSync,
   unlinkSync,
-  writeFileSync,
 } from "node:fs";
 import { homedir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
-import { ContainedWriteError, containedWrite } from "../../fs/contained-write.js";
+import {
+  ContainedWriteError,
+  containedChmod,
+  containedRemove,
+  containedWrite,
+} from "../../fs/contained-write.js";
 import { assertWriteTargetSafe } from "../../fs/projection-containment.js";
 import { killSwitchRecordPath } from "../../policy/kill-switch-record.js";
 import type { GitRunner } from "../../session/git.js";
@@ -163,17 +168,41 @@ export function writeEnrolledSecret(
   secret: EnrolledSecret,
   replace: boolean,
 ): { ok: true } | { ok: false; reason: string } {
+  const root = dirname(resolve(secretPath));
+  let created = false;
   try {
-    mkdirSync(dirname(secretPath), { recursive: true });
-    writeFileSync(secretPath, `${JSON.stringify(secret, null, 2)}\n`, {
-      encoding: "utf8",
-      mode: 0o600,
-      flag: replace ? "w" : "wx",
+    // Owner-only directory first: no other user can open the file between its
+    // creation and the mode change. Then create empty, restrict, and fill, so
+    // the secret is never written into a file with a wider mode.
+    mkdirSync(root, { recursive: true, mode: 0o700 });
+    try {
+      chmodSync(root, 0o700);
+    } catch {
+      /* the OS does not honour modes (Windows) */
+    }
+    containedWrite({ root, target: secretPath, data: "", mode: replace ? "replace" : "create" });
+    created = true;
+    containedChmod({ root, target: secretPath, mode: 0o600 });
+    containedWrite({
+      root,
+      target: secretPath,
+      data: `${JSON.stringify(secret, null, 2)}\n`,
+      mode: "replace",
     });
     return { ok: true };
   } catch (err) {
+    if (created && !replace) {
+      try {
+        containedRemove({ root, target: secretPath });
+      } catch {
+        /* best effort: a partial empty file is refused as unreadable on read */
+      }
+    }
     const code = (err as NodeJS.ErrnoException).code;
-    if (code === "EEXIST") {
+    if (
+      code === "EEXIST" ||
+      (err instanceof ContainedWriteError && err.code === "CONTAINED_WRITE_EXISTS")
+    ) {
       return { ok: false, reason: `a secret is already enrolled at ${secretPath}` };
     }
     return { ok: false, reason: `secret write failed: ${String(err)}` };
@@ -349,10 +378,15 @@ function pidAlive(pid: number): boolean {
   }
 }
 
-/** Rename-away reclaim of a dead holder's lock; refuses to steal a live replacement. */
+/**
+ * Rename-away reclaim of a dead holder's lock; refuses to steal a live replacement.
+ * An unreadable lock is never reclaimed: its owner cannot be shown dead (a live
+ * holder is unreadable between create and body write), so the caller times out
+ * and the operator removes it.
+ */
 function reclaimDeadLock(path: string): boolean {
   const seen = readLockBody(path);
-  if (seen !== null && pidAlive(seen.pid)) return false;
+  if (seen === null || pidAlive(seen.pid)) return false;
   const side = `${path}.reclaim.${randomBytes(6).toString("hex")}`;
   try {
     renameSync(path, side);
@@ -360,7 +394,7 @@ function reclaimDeadLock(path: string): boolean {
     return false;
   }
   const got = readLockBody(side);
-  const same = seen === null ? got === null : got !== null && got.token === seen.token;
+  const same = got !== null && got.token === seen.token;
   if (!same) {
     try {
       renameSync(side, path);
@@ -407,7 +441,10 @@ export function withDelegationLock<T>(
     }
     if (reclaimDeadLock(lockPath)) continue;
     if (Date.now() - started > timeout) {
-      return { ok: false, reason: "delegation store lock timeout; nothing was written" };
+      return {
+        ok: false,
+        reason: `delegation store lock timeout; nothing was written (a lock with no readable owner is never reclaimed; remove ${lockPath} if no deft process is running)`,
+      };
     }
     sleepSync(DELEGATION_LOCK_RETRY_MS);
   }
@@ -504,7 +541,11 @@ export function readDelegationLiveness(
       verdict.reason === "ttl-expired")
   ) {
     try {
-      endDelegation(projectRoot, verdict.reason, { now, storeRoot });
+      endDelegation(projectRoot, verdict.reason, {
+        now,
+        storeRoot,
+        expectDelegationId: rec.delegationId,
+      });
     } catch {
       /* the verdict already refuses */
     }
@@ -540,6 +581,8 @@ export function endDelegation(
     readonly storeRoot?: string;
     readonly runGit?: GitRunner;
     readonly hostSessionId?: string;
+    /** End only this record; a replaced (freshly armed) record is left alone. */
+    readonly expectDelegationId?: string;
   } = {},
 ):
   | { readonly ok: true; readonly ended: boolean; readonly record: DelegationRecord | null }
@@ -552,6 +595,9 @@ export function endDelegation(
     if (!load.ok) return { ok: false as const, reason: load.reason };
     const rec = load.state.record;
     if (rec === null || rec.endedAt !== null) {
+      return { ok: true as const, ended: false, record: rec };
+    }
+    if (opts.expectDelegationId !== undefined && opts.expectDelegationId !== rec.delegationId) {
       return { ok: true as const, ended: false, record: rec };
     }
     if (opts.hostSessionId !== undefined && opts.hostSessionId !== rec.hostSessionId) {

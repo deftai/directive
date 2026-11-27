@@ -36,6 +36,7 @@ import {
 import {
   AGENT_HOOK_PATHS,
   AGY_ACTIVATION_HALT_DETAIL,
+  AGY_HOOK_PATH,
   agyActivationWiring,
   agyDepositAdmitted,
   CURSOR_SESSION_HOOK_TIMEOUT_SECONDS,
@@ -345,7 +346,8 @@ describe("writeAgentHookDeposit", () => {
       };
     };
     expect(CURSOR_TOOL_BEFORE_TIMEOUT_SECONDS).toBeGreaterThanOrEqual(30);
-    expect(CURSOR_TOOL_BEFORE_TIMEOUT_SECONDS).toBeGreaterThan(CURSOR_SESSION_HOOK_TIMEOUT_SECONDS);
+    expect(CURSOR_TOOL_BEFORE_TIMEOUT_SECONDS).toBe(30);
+    expect(CURSOR_SESSION_HOOK_TIMEOUT_SECONDS).toBe(30);
     for (const entry of cursor.hooks.preToolUse) {
       if (!entry.command?.includes("--host cursor --event tool.before")) continue;
       expect(entry.failClosed).toBe(true);
@@ -382,9 +384,10 @@ describe("writeAgentHookDeposit", () => {
           e.timeout === CURSOR_TOOL_BEFORE_TIMEOUT_SECONDS,
       ),
     ).toBe(true);
-    // #3739: nested tool.before shares Cursor's readiness ceiling; session stays at 5s.
+    // #3739: nested tool.before shares Cursor's readiness ceiling; #7450: session is 30s too.
     expect(NESTED_TOOL_BEFORE_TIMEOUT_SECONDS).toBe(CURSOR_TOOL_BEFORE_TIMEOUT_SECONDS);
-    expect(NESTED_TOOL_BEFORE_TIMEOUT_SECONDS).toBeGreaterThan(NESTED_HOOK_TIMEOUT_SECONDS);
+    expect(NESTED_TOOL_BEFORE_TIMEOUT_SECONDS).toBe(30);
+    expect(NESTED_HOOK_TIMEOUT_SECONDS).toBe(30);
     const nestedHosts = [
       ".claude/settings.json",
       ".grok/hooks/deft.json",
@@ -549,6 +552,52 @@ describe("writeAgentHookDeposit", () => {
         expect(entry.timeout).toBe(CURSOR_TOOL_BEFORE_TIMEOUT_SECONDS);
       }
     }
+  });
+
+  it("deposits a 30s SessionStart timeout per host and repairs old 5s deposits as drift (#7450)", () => {
+    const root = project();
+    writeAgentHookDeposit(root);
+    const paths = [...AGENT_HOOK_PATHS, AGY_HOOK_PATH];
+    // Visit every SessionStart entry of one host file; `set` rewrites its timeout in place.
+    const visitSessionStart = (path: string, set?: number): number[] => {
+      const found: number[] = [];
+      const file = join(root, path);
+      const parsed: unknown = JSON.parse(readFileSync(file, "utf8"));
+      const walk = (node: unknown): void => {
+        if (Array.isArray(node)) {
+          node.forEach(walk);
+          return;
+        }
+        if (node === null || typeof node !== "object") return;
+        const record = node as Record<string, unknown>;
+        if (
+          hostHookEntryText(record)?.includes("session.start") === true &&
+          typeof record.timeout === "number"
+        ) {
+          found.push(record.timeout);
+          if (set !== undefined) record.timeout = set;
+        }
+        Object.values(record).forEach(walk);
+      };
+      walk(parsed);
+      if (set !== undefined) writeFileSync(file, `${JSON.stringify(parsed, null, 2)}\n`, "utf8");
+      return found;
+    };
+    const sessionStartTimeouts = (path: string): number[] => visitSessionStart(path);
+    for (const path of paths) {
+      const timeouts = sessionStartTimeouts(path);
+      expect(timeouts.length).toBeGreaterThan(0);
+      expect(timeouts.every((t) => t === 30)).toBe(true);
+      visitSessionStart(path, 5);
+      expect(sessionStartTimeouts(path).every((t) => t === 5)).toBe(true);
+      // Each host's own 5s deposit must read as drift, not only agy's.
+      expect(inspectAgentHookDeposit(root).find((entry) => entry.path === path)?.status).toBe(
+        "drifted",
+      );
+      writeAgentHookDeposit(root);
+      expect(sessionStartTimeouts(path).every((t) => t === 30)).toBe(true);
+    }
+    expect(inspectAgentHookDeposit(root).every((entry) => entry.status === "healthy")).toBe(true);
   });
 
   it("deposits exactly one direct-write matcher for each supported host (#2790)", () => {

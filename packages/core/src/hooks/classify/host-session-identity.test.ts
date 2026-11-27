@@ -850,6 +850,54 @@ describe("agy host identity (#7346)", () => {
     }
   });
 
+  it("binds the owner onto verify:session-ritual, including the documented -- form (#7446)", () => {
+    const payload = (commandLine: string) => ({
+      conversationId: PARENT,
+      hookEventName: "PreToolUse",
+      toolCall: { id: "c", name: "run_command", args: { CommandLine: commandLine } },
+    });
+    for (const command of [
+      "deft verify:session-ritual",
+      "deft verify:session-ritual -- --tier=gated",
+      "deft verify:session-ritual --tier=gated",
+      "task verify:session-ritual -- --tier=gated",
+    ]) {
+      const result = rewriteAgyExactLifecycleCommand(payload(command), parentOwner);
+      expect(result).toMatchObject({
+        kind: "rewrite",
+        verb: "verify:session-ritual",
+        rewrittenCommand: `${command} --session-id=${parentOwner}`,
+        overwrite: { CommandLine: `${command} --session-id=${parentOwner}` },
+      });
+    }
+    // An existing matching owner is left alone; a different one is a conflict.
+    expect(
+      rewriteAgyExactLifecycleCommand(
+        payload(`deft verify:session-ritual --session-id=${parentOwner}`),
+        parentOwner,
+      ),
+    ).toBeNull();
+    expect(
+      rewriteAgyExactLifecycleCommand(
+        payload("deft verify:session-ritual --session-id=host:agy:v1:eHg"),
+        parentOwner,
+      ),
+    ).toMatchObject({ kind: "conflict", verb: "verify:session-ritual" });
+    // A non-claiming read-only run and a path-rebinding run are not rewritten.
+    expect(
+      rewriteAgyExactLifecycleCommand(
+        payload("deft verify:session-ritual -- --posture=read-only"),
+        parentOwner,
+      ),
+    ).toBeNull();
+    expect(
+      rewriteAgyExactLifecycleCommand(
+        payload("deft verify:session-ritual --project-root=/tmp/x"),
+        parentOwner,
+      ),
+    ).toBeNull();
+  });
+
   it("denies conflicts and leaves compound commands and other tools untouched", () => {
     const run = (name: string, args: Record<string, unknown>) => ({
       toolCall: { id: "c", name, args },
