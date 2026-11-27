@@ -8,7 +8,7 @@ Maintainer-facing map of how Directive's rules are layered and grouped. This is 
 
 ## Overview
 
-- **Rules:** 25 groupings, 294 documents
+- **Rules:** 25 groupings, 295 documents
 - **Tasks:** 68 namespaces, 295 Taskfile declarations (includes + unlisted tasks/*.yml, not `task --list`)
 - **Packs:** 6 source-of-truth packs (721 entries from rules|lessons|patterns|skills|strategies|entries)
 
@@ -24,7 +24,7 @@ Three layers: **Rules** (lazy-loaded guidance under `content/`), **Tasks** (the 
 | contracts | Interface/behavioral contracts the framework enforces. | 16 | 235 | 16 | 149 | 0 | 6 |
 | conventions | Cross-cutting naming, formatting, and repo conventions. | 4 | 16 | 2 | 16 | 0 | 3 |
 | deployments | Provider-specific deployment playbooks (AWS, Azure, GCP, Cloudflare, Vercel, fly.io…). | 52 | 107 | 74 | 24 | 13 | 6 |
-| docs | Explanatory docs and the framework glossary. | 50 | 34 | 17 | 69 | 1 | 3 |
+| docs | Explanatory docs and the framework glossary. | 51 | 34 | 17 | 69 | 1 | 3 |
 | events | Event and signal definitions used across the framework. | 1 | 0 | 0 | 0 | 0 | 0 |
 | incidents | Incident handling and postmortem guidance. | 2 | 0 | 0 | 0 | 0 | 0 |
 | interfaces | Interface definitions and boundaries. | 4 | 119 | 66 | 37 | 2 | 9 |
@@ -131,6 +131,7 @@ _Explanatory docs and the framework glossary._
 - `BROWNFIELD.md` — Adding Deft to an existing codebase is the harder path and the one most likely to go wrong without guidance. This guide walks you through the steps, what changes, and how to preserve existing spec content.
 - `SUPPORT.md` — This page is a **symptom index**. It is not a second recovery ladder.
 - `agent-docs.md` — Guidance for structuring the AGENTS.md (and its reference docs) of a project directive creates or maintains. Unlike most style advice, the patterns here are **empirically measured**, not opinion: Augment Code's April 2026 AuggieBench…
+- `agy-host.md` — agy runs `PreToolUse` hooks in hook-name order, and the last `overwrite` wins (observed in #7345). Directive's check therefore sees the arguments that run only when no other hook runs at or after Directive's entry.
 - `approvers.md` — Refs: #6945 · Related: [observable-scope.md](../content/docs/observable-scope.md), [intent-constraint.md](../content/docs/intent-constraint.md), [scope-provenance.md](../content/docs/scope-provenance.md) (#5862 reserved)
 - **assets/** (0 files)
 - `capabilities.md` — Generated view over existing registries. Overlay: `content/docs/capability-overlay.json`. Membership: `in_the_public_index` and status `current` or `compatibility` and canonical kind not `none`. Same-PR documentation rule:…

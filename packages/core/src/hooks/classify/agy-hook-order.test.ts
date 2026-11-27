@@ -83,9 +83,7 @@ describe("agy hook files across scopes (#7378 n02 to n05)", () => {
 
   it("fails closed on an unreadable file, an unreadable folder and an empty workspace list", () => {
     const throwingRead: AgyHookFileSeams = {
-      readText: () => {
-        throw new Error("EACCES");
-      },
+      readText: () => ({ unreadable: true }),
       listDirs: () => [],
     };
     expect(collectAgyHookOrderFindings([WS], HOME, throwingRead).map((f) => f.kind)).toContain(

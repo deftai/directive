@@ -2162,7 +2162,7 @@ export function checkAgyHookOrder(projectRoot: string, seams: CheckSeams = {}): 
       const read = readText(path, seams);
       if (read !== null) return read;
       if (seams.readText !== undefined || !existsSync(path)) return null;
-      throw new Error(`unreadable: ${path}`);
+      return { unreadable: true };
     },
     listDirs: (path) => {
       if (seams.readdir !== undefined) {

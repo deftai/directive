@@ -130,14 +130,16 @@ export function agyHookOrderFindingsFromText(
 
 /** Hook-file access for the collectors (a seam so doctor and tests can stub it). */
 export interface AgyHookFileSeams {
-  /** File text, or null when the file does not exist; throws on any other read error. */
-  readonly readText: (path: string) => string | null;
+  /** File text, null when the file does not exist, or `{ unreadable: true }` on any other read error. */
+  readonly readText: (path: string) => string | null | { readonly unreadable: true };
   /** Child directory names, or [] when the directory does not exist; throws on other errors. */
   readonly listDirs: (path: string) => string[];
 }
 
 function joinPath(base: string, ...parts: string[]): string {
-  return [base.replace(/[\\/]+$/, ""), ...parts].join("/");
+  let end = base.length;
+  while (end > 0 && (base[end - 1] === "/" || base[end - 1] === "\\")) end -= 1;
+  return [base.slice(0, end), ...parts].join("/");
 }
 
 /**
@@ -203,10 +205,9 @@ export function collectAgyHookOrderFindings(
     for (const file of files) {
       if (seen.has(file.path)) continue;
       seen.add(file.path);
-      let text: string | null;
-      try {
-        text = seams.readText(file.path);
-      } catch {
+      const text = seams.readText(file.path);
+      if (text === null) continue;
+      if (typeof text !== "string") {
         findings.push({
           name: "",
           kind: "unparseable-config",
@@ -214,7 +215,6 @@ export function collectAgyHookOrderFindings(
         });
         continue;
       }
-      if (text === null) continue;
       findings.push(
         ...agyHookOrderFindingsFromText(
           text,
