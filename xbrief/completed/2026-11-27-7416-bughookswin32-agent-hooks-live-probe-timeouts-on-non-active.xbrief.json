@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #7416",
-    "updated": "2026-11-27T05:03:03Z"
+    "updated": "2026-11-27T17:11:55Z"
   },
   "plan": {
     "title": "bug(hooks,win32): agent_hooks live-probe timeouts on non-active hosts block every gated write, and session:ready cannot recover",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(hooks,win32): agent_hooks live-probe timeouts on non-active hosts block every gated write, and session:ready cannot recover",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/7416",
@@ -16,91 +16,219 @@
     "items": [
       {
         "title": "The write-path `agent_hooks` check receives the applying hook host (`input.host`) and live-probes only that host, through the existing `hosts` seam. If the applying host is unknown, it probes every enabled host and blocks on any failure, timeout included, as today, with no timeout allowance. Structural registration inspection and hook-command resolution stay live on every write.",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4afac8e8967485833f63da0548cd1bfaaad63a0b",
+          "recorded_at": "2026-11-27T17:11:55Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "On the applying host, `non-functional` and `unavailable` block as today. A `timed-out` result blocks unless B3 admits it.",
-        "status": "proposed",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4afac8e8967485833f63da0548cd1bfaaad63a0b",
+          "recorded_at": "2026-11-27T17:11:55Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "One-timeout allowance: each host's entry keeps the last `functional` result with the resolved hook-command identity (path, size, mtime) and the structural registration digest, plus whether the allowance is open. Only a `functional` result opens it; a timeout never renews it. Any `non-functional`, `unavailable` or structural failure on that host closes it until a new `functional` result. An applying-host timeout is admitted, with a warning, only when the allowance is open, the identity and digest match the current ones, and the record is younger than a named grace window no longer than the ritual freshness window. Checking and closing the allowance is one step inside the existing ritual-state lock: the step re-reads the host's current entry, admits only if it is still open, and records the timeout, which closes it. If that step cannot be saved, the write is refused. A second timeout before a new `functional` result blocks.",
-        "status": "proposed",
-        "id": "clause.3"
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4afac8e8967485833f63da0548cd1bfaaad63a0b",
+          "recorded_at": "2026-11-27T17:11:55Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Ritual state records `agent_hooks` per host (status, time, identity, allowance) instead of one aggregate result, and a write merges only its own host's entry, keeping the others. A write by host H reads only H's entry, so one host's green never vouches for another host, granted members included.",
-        "status": "proposed",
-        "id": "clause.4"
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4afac8e8967485833f63da0548cd1bfaaad63a0b",
+          "recorded_at": "2026-11-27T17:11:55Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "`session:ready` and the CLI gated verify still probe every enabled host and update the same per-host entries. A host whose only failure is a timeout is recorded `timed-out` with a warning and does not fail the step. Non-functional, unavailable and structural failures still fail it. The printed timeout recovery says that each write re-checks its own host.",
-        "status": "proposed",
-        "id": "clause.5"
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4afac8e8967485833f63da0548cd1bfaaad63a0b",
+          "recorded_at": "2026-11-27T17:11:55Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "The per-case timeout and retry stay named constants, sized so the worst-case known-host write probe (one host, both fixtures, retries, plus the surrounding write-path work) stays below the 30 s host `tool.before` limit minus a stated margin. The unknown-host fallback runs under a named overall deadline inside the same limit and margin; when it runs out before every host passes, the write is refused. Budget exhaustion is reported as `timed-out`, never `non-functional`.",
-        "status": "proposed",
-        "id": "clause.6"
+        "status": "completed",
+        "id": "clause.6",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4afac8e8967485833f63da0548cd1bfaaad63a0b",
+          "recorded_at": "2026-11-27T17:11:55Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "`content/contracts/agent-hook-readiness.md` is amended in the same change (timeout fail-closed, unused-host, `session:ready` and no-throttle lines) to match B1-B6. The re-run-every-write rule (#3738) stays, narrowed to the applying host.",
-        "status": "proposed",
-        "id": "clause.7"
+        "status": "completed",
+        "id": "clause.7",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4afac8e8967485833f63da0548cd1bfaaad63a0b",
+          "recorded_at": "2026-11-27T17:11:55Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "A Claude-host write whose Claude probe is functional is admitted when Grok, Cursor, Codex or agy would time out, and the write path does not spawn their probes.",
-        "status": "proposed",
-        "id": "clause.8"
+        "status": "completed",
+        "id": "clause.8",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4afac8e8967485833f63da0548cd1bfaaad63a0b",
+          "recorded_at": "2026-11-27T17:11:55Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "A write with an unknown applying host probes every enabled host and blocks on any failure, timeout included, with no timeout allowance.",
-        "status": "proposed",
-        "id": "clause.9"
+        "status": "completed",
+        "id": "clause.9",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4afac8e8967485833f63da0548cd1bfaaad63a0b",
+          "recorded_at": "2026-11-27T17:11:55Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "After a functional result inside the grace window with unchanged hook-command identity and registration digest, one applying-host timeout admits with a warning; a second timeout before a new functional result blocks; a changed identity or digest, or an expired window, blocks on the first timeout; a timeout does not renew the functional record.",
-        "status": "proposed",
-        "id": "clause.10"
+        "status": "completed",
+        "id": "clause.10",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4afac8e8967485833f63da0548cd1bfaaad63a0b",
+          "recorded_at": "2026-11-27T17:11:55Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "The sequence functional, then non-functional (or unavailable, or a structural failure), then timeout blocks on the timeout; the allowance reopens only after a new functional result.",
-        "status": "proposed",
-        "id": "clause.11"
+        "status": "completed",
+        "id": "clause.11",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4afac8e8967485833f63da0548cd1bfaaad63a0b",
+          "recorded_at": "2026-11-27T17:11:55Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Two concurrent same-host writes that both time out after one functional result admit at most one; a failure to save the allowance step refuses the write; other hosts' entries are preserved.",
-        "status": "proposed",
-        "id": "clause.12"
+        "status": "completed",
+        "id": "clause.12",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4afac8e8967485833f63da0548cd1bfaaad63a0b",
+          "recorded_at": "2026-11-27T17:11:55Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "A non-functional or unavailable result on the applying host blocks, and a structural registration failure blocks (no change).",
-        "status": "proposed",
-        "id": "clause.13"
+        "status": "completed",
+        "id": "clause.13",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4afac8e8967485833f63da0548cd1bfaaad63a0b",
+          "recorded_at": "2026-11-27T17:11:55Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "`session:ready` passes with a warning when the only failures are timeouts, and fails on non-functional, unavailable or structural failures.",
-        "status": "proposed",
-        "id": "clause.14"
+        "status": "completed",
+        "id": "clause.14",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4afac8e8967485833f63da0548cd1bfaaad63a0b",
+          "recorded_at": "2026-11-27T17:11:55Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Tests assert that the worst-case known-host write probe and the unknown-host fallback both stay below the host `tool.before` limit minus the stated margin, and that the fallback refuses when its overall deadline runs out.",
-        "status": "proposed",
-        "id": "clause.15"
+        "status": "completed",
+        "id": "clause.15",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4afac8e8967485833f63da0548cd1bfaaad63a0b",
+          "recorded_at": "2026-11-27T17:11:55Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "The readiness contract text matches the new behavior, and ritual state holds per-host `agent_hooks` entries so a Grok-host write is not admitted by a Claude-host functional entry.",
-        "status": "proposed",
-        "id": "clause.16"
+        "status": "completed",
+        "id": "clause.16",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "4afac8e8967485833f63da0548cd1bfaaad63a0b",
+          "recorded_at": "2026-11-27T17:11:55Z",
+          "recorded_by": "scope:complete"
+        }
       }
     ],
     "x-directive/intentConstraint": {
       "constraints": [
-        { "value": "4000", "unit": "ms-live-probe-case-timeout", "rejectionScope": "invocation" },
-        { "value": "30000", "unit": "ms-host-tool-before-limit", "rejectionScope": "invocation" },
-        { "value": "5000", "unit": "ms-tool-before-safety-margin", "rejectionScope": "invocation" },
-        { "value": "20000", "unit": "ms-unknown-host-probe-deadline", "rejectionScope": "invocation" }
+        {
+          "value": "4000",
+          "unit": "ms-live-probe-case-timeout",
+          "rejectionScope": "invocation"
+        },
+        {
+          "value": "30000",
+          "unit": "ms-host-tool-before-limit",
+          "rejectionScope": "invocation"
+        },
+        {
+          "value": "5000",
+          "unit": "ms-tool-before-safety-margin",
+          "rejectionScope": "invocation"
+        },
+        {
+          "value": "20000",
+          "unit": "ms-unknown-host-probe-deadline",
+          "rejectionScope": "invocation"
+        }
       ]
     },
     "tags": [
@@ -814,9 +942,39 @@
         "leanCommentId": 7206863160,
         "harvestDigest": "4c07dcc3b5b2d29c28a208cfd0e520da000933e01e2e45a7c4bb0f83ba0e1416",
         "slice": null
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "020dc0540e979912d48462e4f10cd2cd1d7d3a3c",
+        "prNumber": 7469,
+        "prBase": "master",
+        "mergeCommit": "4afac8e8967485833f63da0548cd1bfaaad63a0b",
+        "deliveryBranch": "master",
+        "deliveryCommit": "4afac8e8967485833f63da0548cd1bfaaad63a0b",
+        "verifiedAt": "2026-11-27T17:11:55Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          7443,
+          7457,
+          7465,
+          7466
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-27T17:11:55Z",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-27T17:11:55Z"
       }
     },
     "id": "github.issue.6637393374",
-    "updated": "2026-11-27T05:03:03Z"
+    "updated": "2026-11-27T17:11:55Z"
   }
 }
