@@ -95,6 +95,14 @@
         "id": "clause.16"
       }
     ],
+    "x-directive/intentConstraint": {
+      "constraints": [
+        { "value": "4000", "unit": "ms-live-probe-case-timeout", "rejectionScope": "invocation" },
+        { "value": "30000", "unit": "ms-host-tool-before-limit", "rejectionScope": "invocation" },
+        { "value": "5000", "unit": "ms-tool-before-safety-margin", "rejectionScope": "invocation" },
+        { "value": "20000", "unit": "ms-unknown-host-probe-deadline", "rejectionScope": "invocation" }
+      ]
+    },
     "tags": [
       "design-critique:ingest-ready"
     ],
