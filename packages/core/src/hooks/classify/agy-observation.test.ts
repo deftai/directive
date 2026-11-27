@@ -24,9 +24,11 @@ describe("agy host observation and admission verdict (#7345)", () => {
     const audit = HOST_TOOL_SURFACE_AUDIT.agy;
     expect(audit.source).toContain(AGY_OBSERVED_HOST_VERSION);
     expect(audit.unobservedReason ?? "").toMatch(/run_workflow/);
-    const fixtureTools = new Set(
-      Object.values(AGY_PRETOOLUSE_FIXTURES).map((f) => f.toolCall.name),
-    );
+    const fixtureTools = new Set([
+      ...Object.values(AGY_PRETOOLUSE_FIXTURES).map((f) => f.toolCall.name),
+      // Reported with a real payload in #7442 (not in the 1.5.16 recording run).
+      "ask_question",
+    ]);
     const named = [
       ...audit.mutation.directWrite,
       ...audit.mutation.shell,

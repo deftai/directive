@@ -36,6 +36,11 @@ describe("payload helpers (#2950)", () => {
     expect(toolInputRecord(input)?.path).toBe("a.ts");
   });
 
+  it("toolInputRecord falls back to toolCall.args, after toolCall.arguments (#7442)", () => {
+    expect(toolInputRecord({ toolCall: { args: { q: 1 } } })?.q).toBe(1);
+    expect(toolInputRecord({ toolCall: { arguments: { q: 2 }, args: { q: 1 } } })?.q).toBe(2);
+  });
+
   it("hookPayloadTopLevelKeys sorts keys", () => {
     expect(hookPayloadTopLevelKeys({ b: 1, a: 2 })).toEqual(["a", "b"]);
     expect(hookPayloadTopLevelKeys(null)).toEqual([]);

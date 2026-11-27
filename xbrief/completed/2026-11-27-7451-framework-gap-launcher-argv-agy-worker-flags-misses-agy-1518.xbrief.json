@@ -1,0 +1,261 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #7451",
+    "updated": "2026-11-27T07:43:01Z"
+  },
+  "plan": {
+    "title": "[framework-gap] launcher-argv AGY_WORKER_FLAGS misses agy 1.5.18 worker flags (-i/--prompt-interactive, --dangerously-skip-permissions, --output-format, --input-format)",
+    "status": "completed",
+    "narratives": {
+      "Description": "Add the agy 1.5.18 worker-spawning flags (-i / --prompt-interactive and --dangerously-skip-permissions) to AGY_WORKER_FLAGS in launcher-argv.ts. Today only -p / --print / --prompt classify an agy command line as a worker launch, so agy workers started with the newer flags bypass the dest-worktree gate.",
+      "UserStory": "As a maintainer running agy workers, I want every agy worker-spawning flag form to be gated on a dest-proven worktree so that no agy worker starts from the parent checkout unnoticed.",
+      "ImplementationPlan": "Extend the AGY_WORKER_FLAGS set in packages/core/src/hooks/launcher-argv.ts with -i, --prompt-interactive and --dangerously-skip-permissions. Keep non-worker invocations such as agy --version and agy --help unclassified. Add table-driven tests in launcher-argv.test.ts for each flag form, including --output-format and --input-format beside a worker flag, and a dispatcher test for deny without a dest and allow from a dest-proven linked worktree.",
+      "Traces": "clause.1 -> AGY_WORKER_FLAGS in launcher-argv.ts; clause.2 -> classifier tests with --output-format / --input-format; clause.3 -> dispatcher.test.ts deny and allow cases; clause.4 -> non-worker classifier tests; clause.5 -> launcher-argv.test.ts flag-form table",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/7451",
+      "Overview": "## Acceptance Criteria\n\n- [ ] `AGY_WORKER_FLAGS` in `hooks/launcher-argv.ts` includes the agy 1.5.18 worker-spawning flags `-i` / `--prompt-interactive` and `--dangerously-skip-permissions`, alongside `-p` / `--print` / `--prompt`.\n- [ ] An `agy` command line using `--output-format` or `--input-format` together with a worker flag is classified as launcher-family argv.\n- [ ] `agy -i <prompt>` and `agy --dangerously-skip-permissions --output-format stream-json <prompt>` without a dest worktree are denied like `agy -p <prompt>`, and allowed from a dest-proven linked worktree.\n- [ ] Non-worker agy invocations (for example `agy --version`, `agy --help`) are not classified as launcher argv.\n- [ ] Tests cover each flag form.\n\n"
+    },
+    "items": [
+      {
+        "title": "`AGY_WORKER_FLAGS` in `hooks/launcher-argv.ts` includes the agy 1.5.18 worker-spawning flags `-i` / `--prompt-interactive` and `--dangerously-skip-permissions`, alongside `-p` / `--print` / `--prompt`.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "AGY_WORKER_FLAGS contains -i, --prompt-interactive and --dangerously-skip-permissions plus the existing flags."
+        },
+        "id": "clause.1",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a97a9152b3933cc4c44bf96b8770051887d00bfb",
+          "recorded_at": "2026-11-27T07:43:01Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "An `agy` command line using `--output-format` or `--input-format` together with a worker flag is classified as launcher-family argv.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "agy with --output-format or --input-format plus a worker flag classifies as launcher family agy."
+        },
+        "id": "clause.2",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a97a9152b3933cc4c44bf96b8770051887d00bfb",
+          "recorded_at": "2026-11-27T07:43:01Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "`agy -i <prompt>` and `agy --dangerously-skip-permissions --output-format stream-json <prompt>` without a dest worktree are denied like `agy -p <prompt>`, and allowed from a dest-proven linked worktree.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Both agy forms are denied without a dest worktree and allowed from a dest-proven linked worktree."
+        },
+        "id": "clause.3",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a97a9152b3933cc4c44bf96b8770051887d00bfb",
+          "recorded_at": "2026-11-27T07:43:01Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "Non-worker agy invocations (for example `agy --version`, `agy --help`) are not classified as launcher argv.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "agy --version and agy --help classify as not a launcher."
+        },
+        "id": "clause.4",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a97a9152b3933cc4c44bf96b8770051887d00bfb",
+          "recorded_at": "2026-11-27T07:43:01Z",
+          "recorded_by": "scope:complete"
+        }
+      },
+      {
+        "title": "Tests cover each flag form.",
+        "status": "completed",
+        "narrative": {
+          "Acceptance": "Each flag form has at least one test."
+        },
+        "id": "clause.5",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "a97a9152b3933cc4c44bf96b8770051887d00bfb",
+          "recorded_at": "2026-11-27T07:43:01Z",
+          "recorded_by": "scope:complete"
+        }
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/7451",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #7451: [framework-gap] launcher-argv AGY_WORKER_FLAGS misses agy 1.5.18 worker flags (-i/--prompt-interactive, --dangerously-skip-permissions, --output-format, --input-format)"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per sentence-list entry (5), in order (#6333)",
+      "sentences": [
+        "`AGY_WORKER_FLAGS` in `hooks/launcher-argv.ts` includes the agy 1.5.18 worker-spawning flags `-i` / `--prompt-interactive` and `--dangerously-skip-permissions`, alongside `-p` / `--print` / `--prompt`.",
+        "An `agy` command line using `--output-format` or `--input-format` together with a worker flag is classified as launcher-family argv.",
+        "`agy -i <prompt>` and `agy --dangerously-skip-permissions --output-format stream-json <prompt>` without a dest worktree are denied like `agy -p <prompt>`, and allowed from a dest-proven linked worktree.",
+        "Non-worker agy invocations (for example `agy --version`, `agy --help`) are not classified as launcher argv.",
+        "Tests cover each flag form."
+      ],
+      "admitted_source_sentences": [
+        "`AGY_WORKER_FLAGS` in `hooks/launcher-argv.ts` includes the agy 1.5.18 worker-spawning flags `-i` / `--prompt-interactive` and `--dangerously-skip-permissions`, alongside `-p` / `--print` / `--prompt`.",
+        "An `agy` command line using `--output-format` or `--input-format` together with a worker flag is classified as launcher-family argv.",
+        "`agy -i <prompt>` and `agy --dangerously-skip-permissions --output-format stream-json <prompt>` without a dest worktree are denied like `agy -p <prompt>`, and allowed from a dest-proven linked worktree.",
+        "Non-worker agy invocations (for example `agy --version`, `agy --help`) are not classified as launcher argv.",
+        "Tests cover each flag form."
+      ],
+      "admitted_source_digest": "2b2b12e066b44cc92eda5906c532c920275e3f05027d88eb528bfdd046e3880e",
+      "admitted_source_extractor": 2,
+      "clauses": [
+        {
+          "id": 1,
+          "text": "`AGY_WORKER_FLAGS` in `hooks/launcher-argv.ts` includes the agy 1.5.18 worker-spawning flags `-i` / `--prompt-interactive` and `--dangerously-skip-permissions`, alongside `-p` / `--print` / `--prompt`.",
+          "artifact_path": "packages/core/src/hooks/launcher-argv.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "An `agy` command line using `--output-format` or `--input-format` together with a worker flag is classified as launcher-family argv.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "`agy -i <prompt>` and `agy --dangerously-skip-permissions --output-format stream-json <prompt>` without a dest worktree are denied like `agy -p <prompt>`, and allowed from a dest-proven linked worktree.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Non-worker agy invocations (for example `agy --version`, `agy --help`) are not classified as launcher argv.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Tests cover each flag form.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "Rewriting the body to criteria-only for ingest; added to the 0.132.1 maintainer release (Scott, yolo overnight). No arc: the fix and files are named. Prior body quoted below.\n\n<details><summary>Prior body</summary>\n\n## Summary\n\nlauncher-argv AGY_WORKER_FLAGS misses agy 1.5.18 worker flags (-i/--prompt-interactive, --dangerously-skip-permissions, --output-format, --input-format)\n\n## Context\n\nDirective 0.132.0 on Antigravity (agy 1.5.18, win32) with live PreToolUse hooks active (internal benchmark evidence (private)). Auditing agy --help flags against AGY_WORKER_FLAGS in hooks/launcher-argv.js and testing commands through the live AGY PreToolUse hook.\n\n## Expected behavior\n\nWorker-spawning agy invocations using agy 1.5.18 flags such as -i/--prompt-interactive or --dangerously-skip-permissions --output-format stream-json are classified as launcher-family argv and gated consistently with -p/--print/--prompt and CLAUDE_WORKER_FLAGS.\n\n## Actual behavior / gap\n\nhooks/launcher-argv.js defines AGY_WORKER_FLAGS as only -p, --print, --prompt (compared to CLAUDE_WORKER_FLAGS which also includes --permission-mode, --dangerously-skip-permissions, and --output-format). Verified via live AGY PreToolUse hook stdin: agy -p probe is denied (launcher-family argv (agy) requires a dest worktree), while agy -i probe and agy --dangerously-skip-permissions --output-format stream-json both return decision allow.\n\n## Session notes\n\nagy 1.5.18 --help exposes -i/--prompt-interactive, --dangerously-skip-permissions, --input-format, --output-format, --mode, -c/--continue, and -r/--conversation/--resume (Refs #4219, #4066, #7245, #7346). Source: internal benchmark evidence (private).\n\n---\n_Filed via `deft feedback:file` from a directive consumer project (Refs #1709 value-feedback gap escalation)._\n\n\n\n</details>\n\n",
+          "id": 7211051265,
+          "html_url": "https://github.com/deftai/directive/issues/7451#issuecomment-7211051265",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-27T05:54:42Z",
+          "updated_at": "2026-11-27T05:54:42Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "conflict_group": "launcher-argv-agy",
+        "size": "S",
+        "file_scope": [
+          "packages/core/src/hooks/launcher-argv.ts",
+          "packages/core/src/hooks/launcher-argv.test.ts",
+          "packages/core/src/hooks/dispatcher.test.ts",
+          "changelog.d/7451-agy-worker-flags.md"
+        ],
+        "file_scope_confidence": "medium",
+        "depends_on": [],
+        "verify_commands": [
+          "pnpm exec vitest run --reporter=dot packages/core/src/hooks/launcher-argv.test.ts packages/core/src/hooks/dispatcher.test.ts"
+        ],
+        "expected_outputs": [
+          "agy -i, --prompt-interactive and --dangerously-skip-permissions classify as launcher argv; agy --version and --help do not"
+        ],
+        "model_tier": "standard"
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6640716179,
+        "origin": "deftai/directive#7451",
+        "id": "github.issue.6640716179"
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "a8ff633b294b7db0a8b90291523ed092fa12fcbf",
+        "prNumber": 7462,
+        "prBase": "master",
+        "mergeCommit": "a97a9152b3933cc4c44bf96b8770051887d00bfb",
+        "deliveryBranch": "master",
+        "deliveryCommit": "a97a9152b3933cc4c44bf96b8770051887d00bfb",
+        "verifiedAt": "2026-11-27T07:43:01Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:YTQ2NTZlZmEtNzdjMy00ZTZhLWEyYmMtNjYxNjdkYTg5NDA4",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          7458
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-27T07:43:01Z",
+      "completedSessionId": "host:claude:v1:YTQ2NTZlZmEtNzdjMy00ZTZhLWEyYmMtNjYxNjdkYTg5NDA4",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-27T07:43:01Z"
+      }
+    },
+    "id": "github.issue.6640716179",
+    "updated": "2026-11-27T07:43:01Z"
+  }
+}

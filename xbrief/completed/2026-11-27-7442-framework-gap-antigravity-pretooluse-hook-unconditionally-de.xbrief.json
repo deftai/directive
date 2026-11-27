@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #7442",
-    "updated": "2026-11-27T05:08:35Z"
+    "updated": "2026-11-27T06:47:06Z"
   },
   "plan": {
     "title": "[framework-gap] Antigravity PreToolUse hook unconditionally denies ask_question because normalizeAgyHookPayload drops toolCall.args.questions",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "[framework-gap] Antigravity PreToolUse hook unconditionally denies ask_question because normalizeAgyHookPayload drops toolCall.args.questions",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/7442",
@@ -15,33 +15,75 @@
     "items": [
       {
         "title": "`normalizeAgyHookPayload` forwards structured arguments from agy `toolCall.args` onto `tool_input`, including `questions` (each `{ question, options: string[], is_multi_select }`), not only the five string keys.",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5e40fcb3a5bf6dc7fd33850f403dbe17fd8e635d",
+          "recorded_at": "2026-11-27T06:47:06Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "`toolInputRecord` falls back to `toolCall.args` as well as `toolCall.arguments`.",
-        "status": "proposed",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5e40fcb3a5bf6dc7fd33850f403dbe17fd8e635d",
+          "recorded_at": "2026-11-27T06:47:06Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "An agy `ask_question` whose final two options are `Discuss` and `Back` is allowed by the question-hatch gate, and one without them is still denied with `question-hatch-missing`.",
-        "status": "proposed",
-        "id": "clause.3"
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5e40fcb3a5bf6dc7fd33850f403dbe17fd8e635d",
+          "recorded_at": "2026-11-27T06:47:06Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "`decideSpendRecommendGate` reads the options of an agy `ask_question`.",
-        "status": "proposed",
-        "id": "clause.4"
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5e40fcb3a5bf6dc7fd33850f403dbe17fd8e635d",
+          "recorded_at": "2026-11-27T06:47:06Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "`ask_question` has an entry in `AGY_TOOL_DISPOSITIONS`.",
-        "status": "proposed",
-        "id": "clause.5"
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5e40fcb3a5bf6dc7fd33850f403dbe17fd8e635d",
+          "recorded_at": "2026-11-27T06:47:06Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "A test drives `decideHook` with a real-shaped agy `ask_question` payload for both the allow and deny cases.",
-        "status": "proposed",
-        "id": "clause.6"
+        "status": "completed",
+        "id": "clause.6",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "5e40fcb3a5bf6dc7fd33850f403dbe17fd8e635d",
+          "recorded_at": "2026-11-27T06:47:06Z",
+          "recorded_by": "scope:complete"
+        }
       }
     ],
     "references": [
@@ -200,9 +242,38 @@
         "github_issue_id": 6640307441,
         "origin": "deftai/directive#7442",
         "id": "github.issue.6640307441"
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "209d789945c18a3d0467ac836f67f49cf1a5b723",
+        "prNumber": 7455,
+        "prBase": "master",
+        "mergeCommit": "5e40fcb3a5bf6dc7fd33850f403dbe17fd8e635d",
+        "deliveryBranch": "master",
+        "deliveryCommit": "04f89ebb01ae0323688461d5b56d38ec398d26cb",
+        "verifiedAt": "2026-11-27T06:47:06Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:YTQ2NTZlZmEtNzdjMy00ZTZhLWEyYmMtNjYxNjdkYTg5NDA4",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          7444
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-27T06:47:06Z",
+      "completedSessionId": "host:claude:v1:YTQ2NTZlZmEtNzdjMy00ZTZhLWEyYmMtNjYxNjdkYTg5NDA4",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-27T06:47:06Z"
       }
     },
     "id": "github.issue.6640307441",
-    "updated": "2026-11-27T05:08:35Z"
+    "updated": "2026-11-27T06:47:06Z"
   }
 }
