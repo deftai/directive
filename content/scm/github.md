@@ -727,7 +727,7 @@ Forge **required-status-check** / platform merge-gate readiness is a **distinct 
 
 ## Merge-gate aggregator enrollment (#633)
 
-`Merge gate (task check)` is the CI aggregator for `task check`. Live branch protection requires `TypeScript (build + lint)` and `Merge gate (task check)` (`Required?` YES for both; #6586). The TypeScript lane runs build and lint only; the full suite runs once, in the merge gate (`task check:merge`). The merge-gate aggregator skips when the artifact-only predicate is true (`if: always() && needs.changes.outputs.artifact_only != 'true'`), so artifact-only PR and push runs run no vitest; every `merge_group` run is full-stack.
+`Merge gate (task check)` is the CI aggregator for `task check`. Live branch protection requires `TypeScript (build + lint)` and `Merge gate (task check)` (`Required?` YES for both; #6586). The TypeScript lane runs build and lint only; the full suite runs once, in the merge gate (`task check:merge`). The merge-gate aggregator skips when the artifact-only predicate is true and no merge-queue result is reusable (`if: ${{ !cancelled() && (needs.changes.outputs.artifact_only != 'true' || needs.changes.outputs.queue_passed == 'true') }}`), so artifact-only PR and push runs run no vitest; every `merge_group` run is full-stack.
 
 Making `Merge gate (task check)` a required context is an **operator-owned repo-scoped ruleset** step. Directive does not empty-PUT GitHub rulesets and does not auto-promote observed check names (#1517). This remainder records the enrollment step; it does not flip live protection and does not claim live skip detection (#4912 / #4976).
 
