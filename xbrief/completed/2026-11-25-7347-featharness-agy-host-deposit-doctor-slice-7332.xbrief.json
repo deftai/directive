@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #7347",
-    "updated": "2026-11-25T18:35:09.557Z"
+    "updated": "2026-11-27T03:04:17Z"
   },
   "plan": {
     "title": "feat(harness): agy host deposit-doctor slice (#7332)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Activate Prefer-A Bound #7347 so gated Antigravity hook deposit and doctor repair can ship after the observe and classify-identity slices. Deposit activation stays gated on the committed observe verdict.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/7347",
@@ -19,26 +19,47 @@
     "items": [
       {
         "id": "clause.1",
-        "status": "pending",
+        "status": "completed",
         "title": "Implement named-object agent hooks deposit repair and uninstall keyed by Directive name plus command marker",
         "narrative": {
           "Acceptance": "Implement named-object agent hooks deposit repair and uninstall keyed by Directive name plus command marker"
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ef84968c708ce06c7fb8861fe657be488e4e3ab9",
+          "recorded_at": "2026-11-27T03:04:17Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "id": "clause.2",
-        "status": "pending",
+        "status": "completed",
         "title": "Gate deposit-doctor activation behind deterministic contract test reading committed observe verdict",
         "narrative": {
           "Acceptance": "Gate deposit-doctor activation behind deterministic contract test reading committed observe verdict"
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ef84968c708ce06c7fb8861fe657be488e4e3ab9",
+          "recorded_at": "2026-11-27T03:04:17Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "id": "clause.3",
-        "status": "pending",
+        "status": "completed",
         "title": "On fail or absent verdict halt activation with pains unmet and route leftover issue",
         "narrative": {
           "Acceptance": "On fail or absent verdict halt activation with pains unmet and route leftover issue"
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "ef84968c708ce06c7fb8861fe657be488e4e3ab9",
+          "recorded_at": "2026-11-27T03:04:17Z",
+          "recorded_by": "scope:complete"
         }
       }
     ],
@@ -138,9 +159,44 @@
           "Prefer-A Bound slice #7347 shipped"
         ],
         "model_tier": "standard"
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "be0c2003e7f45106e12b4e875acac26cc83690a6",
+        "prNumber": 7425,
+        "prBase": "master",
+        "mergeCommit": "ef84968c708ce06c7fb8861fe657be488e4e3ab9",
+        "deliveryBranch": "master",
+        "deliveryCommit": "ef84968c708ce06c7fb8861fe657be488e4e3ab9",
+        "verifiedAt": "2026-11-27T03:04:17Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:YTQ2NTZlZmEtNzdjMy00ZTZhLWEyYmMtNjYxNjdkYTg5NDA4",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          7380,
+          7382,
+          7387,
+          7410,
+          7412,
+          7427,
+          7429
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-27T03:04:17Z",
+      "completedSessionId": "host:claude:v1:YTQ2NTZlZmEtNzdjMy00ZTZhLWEyYmMtNjYxNjdkYTg5NDA4",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-27T03:04:17Z"
       }
     },
     "id": "github.issue.6609699326",
-    "updated": "2026-11-25T18:35:09.557Z"
+    "updated": "2026-11-27T03:04:17Z"
   }
 }
