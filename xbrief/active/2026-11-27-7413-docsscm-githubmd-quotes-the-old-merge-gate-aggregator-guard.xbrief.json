@@ -1,0 +1,113 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #7413",
+    "updated": "2026-11-27T00:23:38Z"
+  },
+  "plan": {
+    "title": "docs(scm): github.md quotes the old merge-gate aggregator guard (always()) after #7408",
+    "status": "running",
+    "narratives": {
+      "Description": "docs(scm): github.md quotes the old merge-gate aggregator guard (always()) after #7408",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/7413",
+      "Overview": "## Problem\n\n`content/scm/github.md` (around line 730, the merge-gate aggregator paragraph) still quotes the aggregator guard as:\n\n`if: always() && needs.changes.outputs.artifact_only != 'true'`\n\nAfter #7408 (#7014), the real guard in `.github/workflows/ci.yml` (`merge-gate` job) is:\n\n`if: ${{ !cancelled() && (needs.changes.outputs.artifact_only != 'true' || needs.changes.outputs.queue_passed == 'true') }}`\n\nThe quoted text was already behind before #7408: it lacks the `queue_passed` term.\n\n`packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts` (line ~163) asserts the old doc text, so the doc and the test must change together.\n\nGreptile flagged this as a P2 on #7408. It was left out of that PR because `content/scm/github.md` was outside the #7014 file_scope.\n\n## Acceptance criteria\n\n- [ ] `content/scm/github.md` quotes the current `merge-gate` guard (`!cancelled()` plus the `queue_passed` term), or describes it without quoting a literal that can drift.\n- [ ] `ci_lifecycle_lane.test.ts` asserts the new doc text, so the doc cannot drift from `ci.yml` again unnoticed.\n\nRefs #7014, #7408.\n\n",
+      "Labels": "documentation"
+    },
+    "items": [
+      {
+        "title": "`content/scm/github.md` quotes the current `merge-gate` guard (`!cancelled()` plus the `queue_passed` term), or describes it without quoting a literal that can drift.",
+        "status": "proposed",
+        "id": "clause.1"
+      },
+      {
+        "title": "`ci_lifecycle_lane.test.ts` asserts the new doc text, so the doc cannot drift from `ci.yml` again unnoticed.",
+        "status": "proposed",
+        "id": "clause.2"
+      }
+    ],
+    "tags": [
+      "documentation"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/7413",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #7413: docs(scm): github.md quotes the old merge-gate aggregator guard (always()) after #7408"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/7014",
+        "type": "x-xbrief/refs",
+        "title": "Issue #7014"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per sentence-list entry (2), in order (#6333)",
+      "sentences": [
+        "`content/scm/github.md` quotes the current `merge-gate` guard (`!cancelled()` plus the `queue_passed` term), or describes it without quoting a literal that can drift.",
+        "`ci_lifecycle_lane.test.ts` asserts the new doc text, so the doc cannot drift from `ci.yml` again unnoticed."
+      ],
+      "admitted_source_sentences": [
+        "`content/scm/github.md` quotes the current `merge-gate` guard (`!cancelled()` plus the `queue_passed` term), or describes it without quoting a literal that can drift.",
+        "`ci_lifecycle_lane.test.ts` asserts the new doc text, so the doc cannot drift from `ci.yml` again unnoticed."
+      ],
+      "admitted_source_digest": "1bbf4ce0d4f028cb73c3301690ff2e6b76ef67462799ec4b5dfa43d13d0dde88",
+      "admitted_source_extractor": 2,
+      "clauses": [
+        {
+          "id": 1,
+          "text": "`content/scm/github.md` quotes the current `merge-gate` guard (`!cancelled()` plus the `queue_passed` term), or describes it without quoting a literal that can drift.",
+          "artifact_path": "content/scm/github.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "`ci_lifecycle_lane.test.ts` asserts the new doc text, so the doc cannot drift from `ci.yml` again unnoticed.",
+          "artifact_path": "packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "conflict_group": "ci-merge-gate-docs",
+        "size": "XS",
+        "file_scope": [
+          "content/scm/github.md",
+          "packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts",
+          "changelog.d/7413-github-md-merge-gate-guard.md"
+        ],
+        "file_scope_confidence": "high",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/content-contracts/standards/ci_lifecycle_lane.test.ts --reporter=dot"
+        ],
+        "expected_outputs": [
+          "content/scm/github.md merge-gate aggregator paragraph quotes the current ci.yml guard (!cancelled() plus the queue_passed term)",
+          "ci_lifecycle_lane.test.ts enrollment-docs test asserts that new doc text"
+        ],
+        "model_tier": "standard"
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6637299808,
+        "origin": "deftai/directive#7413",
+        "id": "github.issue.6637299808"
+      }
+    },
+    "id": "github.issue.6637299808",
+    "updated": "2026-11-27T00:23:38Z"
+  }
+}
