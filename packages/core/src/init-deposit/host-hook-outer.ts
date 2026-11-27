@@ -278,14 +278,27 @@ export function agyEntryCommands(entry: unknown): string[] {
 }
 
 /**
+ * A whole agy outer command: `node deft-hook-<sha8>.mjs` followed only by plain
+ * `--flag [value]` pairs. A command chained after it (`&& …`, `;`, extra words) is not
+ * Directive's, so install keeps it and uninstall never deletes it (#7438).
+ */
+const AGY_OUTER_COMMAND_RE =
+  /^node (?:\.\/)?(?:\.agents\/)?deft-hook-[a-f0-9]{8}\.mjs(?: --[A-Za-z0-9_.:=-]+(?: [A-Za-z0-9_.:=-]+)?)*$/;
+
+/**
  * True when a named agy entry is Directive's: it has commands, and every one is
- * a Directive outer command for agy (key name plus command marker, #7347).
+ * a whole Directive outer command for agy (key name plus command marker, #7347).
  */
 export function isManagedAgyHookEntry(entry: unknown): boolean {
   const commands = agyEntryCommands(entry);
   return (
     commands.length > 0 &&
-    commands.every((text) => isHostHookOuterCommand(text) && text.includes("--host agy"))
+    commands.every(
+      (text) =>
+        isHostHookOuterCommand(text) &&
+        AGY_OUTER_COMMAND_RE.test(text.trim()) &&
+        / --host agy(?: |$)/.test(text),
+    )
   );
 }
 

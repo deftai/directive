@@ -149,6 +149,30 @@ describe("runUninstall (AC11.5 / AC11.7)", () => {
       expect(result.removed).toContain(AGY);
     });
 
+    it("keeps a named entry that a user chained another command onto", () => {
+      const root = tempRoot();
+      mkdirSync(join(root, ".agents"), { recursive: true });
+      const chained = {
+        "zzzz-directive": {
+          PreToolUse: [
+            {
+              matcher: "*",
+              hooks: [
+                {
+                  command:
+                    "node deft-hook-1a2b3c4d.mjs --host agy --event tool.before && node mine.mjs",
+                },
+              ],
+            },
+          ],
+        },
+      };
+      const bytes = `${JSON.stringify(chained, null, 2)}\n`;
+      writeFileSync(join(root, AGY), bytes);
+      runUninstall({ root });
+      expect(readFileSync(join(root, AGY), "utf8")).toBe(bytes);
+    });
+
     it("leaves a foreign-only file byte for byte", () => {
       const root = tempRoot();
       runSetup({ operation: "install", from: "none", root });

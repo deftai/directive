@@ -6,7 +6,7 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, lstatSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, sep } from "node:path";
-import { containedRemove } from "@deftai/directive-core/dist/fs/contained-write.js";
+import { containedRemove, containedWrite } from "@deftai/directive-core/dist/fs/contained-write.js";
 import { stripAgyHostHookConfig } from "@deftai/directive-core/dist/init-deposit/host-hook-outer.js";
 import { bareVersionMarkerRelativePaths } from "@deftai/directive-core/dist/init-deposit/hygiene.js";
 import {
@@ -612,7 +612,22 @@ export function clearOwnedHookEntries(root: string): StepResult {
       }
       continue;
     }
-    writeFileSync(abs, next);
+    if (rel === AGY_HOOK_REL) {
+      // The agy file may be a link to a shared file outside the project: write only inside it.
+      try {
+        containedWrite({
+          root,
+          target: abs,
+          data: next,
+          mode: "replace",
+          mutation: { kind: "stripped", path: rel },
+        });
+      } catch {
+        continue;
+      }
+    } else {
+      writeFileSync(abs, next);
+    }
     modified.push(`${toPosix(rel)}#hooks`);
   }
   for (const rel of GITHOOK_RELS) {

@@ -6,7 +6,7 @@
  */
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { containedRemove } from "@deftai/directive-core/dist/fs/contained-write.js";
+import { containedRemove, containedWrite } from "@deftai/directive-core/dist/fs/contained-write.js";
 import {
   hostHookEntryText,
   stripAgyHostHookConfig,
@@ -201,10 +201,24 @@ function stripHostHookFile(
   }
   const prior = readText(abs) ?? "";
   const next = `${JSON.stringify(stripped, null, 2)}\n`;
-  if (next !== prior) {
+  if (next === prior) return;
+  if (isAgy) {
+    // The agy file may be a link to a shared file outside the project: write only inside it.
+    try {
+      containedWrite({
+        root,
+        target: abs,
+        data: next,
+        mode: "replace",
+        mutation: { kind: "stripped", path: rel },
+      });
+    } catch {
+      return;
+    }
+  } else {
     writeFileSync(abs, next);
-    modified.push(`${rel}#${tag}`);
   }
+  modified.push(`${rel}#${tag}`);
 }
 
 function removeManagedSection(body: string): { next: string; removed: boolean } {
