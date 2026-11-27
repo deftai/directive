@@ -1,0 +1,302 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #7438",
+    "updated": "2026-11-27T04:41:44Z"
+  },
+  "plan": {
+    "title": "[framework-gap] directive upgrade to 0.132.0 omits .agents/hooks.json, .agents/deft-hook-*.mjs, and Claude SessionEnd hook until verify:hooks-installed --repair runs",
+    "status": "running",
+    "narratives": {
+      "Description": "[framework-gap] directive upgrade to 0.132.0 omits .agents/hooks.json, .agents/deft-hook-*.mjs, and Claude SessionEnd hook until verify:hooks-installed --repair runs",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/7438",
+      "Overview": "## Acceptance Criteria\n\n- [ ] `directive install` and `directive upgrade` deposit the agy host hooks when `plan.policy.hostHooks.agy` is on and the committed verdict admits them: the `zzzz-directive` entry in `.agents/hooks.json` and `.agents/deft-hook-<sha8>.mjs`, so `directive doctor --full` reports `agent-hooks-registration` green right after the command.\n- [ ] `.deft/GENERATION.json` ownership records the `zzzz-directive` entry of `.agents/hooks.json` (entry-owned, not the whole file) and the agy outer `.agents/deft-hook-<sha8>.mjs` (whole-file owned).\n- [ ] `directive uninstall` removes only the `zzzz-directive` entry from `.agents/hooks.json`, keeps foreign hook entries byte for byte, deletes the file only when it would be empty, and removes the agy outer.\n- [ ] The doctor host-config list, the removal steps, and the launcher host lists (`HOST_HOOK_RELS`, `HOST_HOOK_OUTER_DIRS`, the repair opt-out disclosure) include agy.\n- [ ] Install and upgrade register the Claude `SessionEnd` hook in `.claude/settings.json`.\n- [ ] Hygiene claims only Directive's own entries under `.agents/` (the `zzzz-directive` hook entry and Directive-managed skills); a foreign `.agents/hooks.json` entry or foreign skill is never reported or stripped as Directive's.\n- [ ] The host-tool-coverage audit covers agy, treating the single `*` matcher as every tool.\n- [ ] The outer install-admit test includes an agy `run_command` / `toolCall.args.CommandLine` payload.\n\n"
+    },
+    "items": [
+      {
+        "title": "`directive install` and `directive upgrade` deposit the agy host hooks when `plan.policy.hostHooks.agy` is on and the committed verdict admits them: the `zzzz-directive` entry in `.agents/hooks.json` and `.agents/deft-hook-<sha8>.mjs`, so `directive doctor --full` reports `agent-hooks-registration` green right after the command.",
+        "status": "proposed",
+        "id": "clause.1"
+      },
+      {
+        "title": "`.deft/GENERATION.json` ownership records the `zzzz-directive` entry of `.agents/hooks.json` (entry-owned, not the whole file) and the agy outer `.agents/deft-hook-<sha8>.mjs` (whole-file owned).",
+        "status": "proposed",
+        "id": "clause.2"
+      },
+      {
+        "title": "`directive uninstall` removes only the `zzzz-directive` entry from `.agents/hooks.json`, keeps foreign hook entries byte for byte, deletes the file only when it would be empty, and removes the agy outer.",
+        "status": "proposed",
+        "id": "clause.3"
+      },
+      {
+        "title": "The doctor host-config list, the removal steps, and the launcher host lists (`HOST_HOOK_RELS`, `HOST_HOOK_OUTER_DIRS`, the repair opt-out disclosure) include agy.",
+        "status": "proposed",
+        "id": "clause.4"
+      },
+      {
+        "title": "Install and upgrade register the Claude `SessionEnd` hook in `.claude/settings.json`.",
+        "status": "proposed",
+        "id": "clause.5"
+      },
+      {
+        "title": "Hygiene claims only Directive's own entries under `.agents/` (the `zzzz-directive` hook entry and Directive-managed skills); a foreign `.agents/hooks.json` entry or foreign skill is never reported or stripped as Directive's.",
+        "status": "proposed",
+        "id": "clause.6"
+      },
+      {
+        "title": "The host-tool-coverage audit covers agy, treating the single `*` matcher as every tool.",
+        "status": "proposed",
+        "id": "clause.7"
+      },
+      {
+        "title": "The outer install-admit test includes an agy `run_command` / `toolCall.args.CommandLine` payload.",
+        "status": "proposed",
+        "id": "clause.8"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/7438",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #7438: [framework-gap] directive upgrade to 0.132.0 omits .agents/hooks.json, .agents/deft-hook-*.mjs, and Claude SessionEnd hook until verify:hooks-installed --repair runs"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per sentence-list entry (8), in order (#6333)",
+      "sentences": [
+        "`directive install` and `directive upgrade` deposit the agy host hooks when `plan.policy.hostHooks.agy` is on and the committed verdict admits them: the `zzzz-directive` entry in `.agents/hooks.json` and `.agents/deft-hook-<sha8>.mjs`, so `directive doctor --full` reports `agent-hooks-registration` green right after the command.",
+        "`.deft/GENERATION.json` ownership records the `zzzz-directive` entry of `.agents/hooks.json` (entry-owned, not the whole file) and the agy outer `.agents/deft-hook-<sha8>.mjs` (whole-file owned).",
+        "`directive uninstall` removes only the `zzzz-directive` entry from `.agents/hooks.json`, keeps foreign hook entries byte for byte, deletes the file only when it would be empty, and removes the agy outer.",
+        "The doctor host-config list, the removal steps, and the launcher host lists (`HOST_HOOK_RELS`, `HOST_HOOK_OUTER_DIRS`, the repair opt-out disclosure) include agy.",
+        "Install and upgrade register the Claude `SessionEnd` hook in `.claude/settings.json`.",
+        "Hygiene claims only Directive's own entries under `.agents/` (the `zzzz-directive` hook entry and Directive-managed skills); a foreign `.agents/hooks.json` entry or foreign skill is never reported or stripped as Directive's.",
+        "The host-tool-coverage audit covers agy, treating the single `*` matcher as every tool.",
+        "The outer install-admit test includes an agy `run_command` / `toolCall.args.CommandLine` payload."
+      ],
+      "admitted_source_sentences": [
+        "`directive install` and `directive upgrade` deposit the agy host hooks when `plan.policy.hostHooks.agy` is on and the committed verdict admits them: the `zzzz-directive` entry in `.agents/hooks.json` and `.agents/deft-hook-<sha8>.mjs`, so `directive doctor --full` reports `agent-hooks-registration` green right after the command.",
+        "`.deft/GENERATION.json` ownership records the `zzzz-directive` entry of `.agents/hooks.json` (entry-owned, not the whole file) and the agy outer `.agents/deft-hook-<sha8>.mjs` (whole-file owned).",
+        "`directive uninstall` removes only the `zzzz-directive` entry from `.agents/hooks.json`, keeps foreign hook entries byte for byte, deletes the file only when it would be empty, and removes the agy outer.",
+        "The doctor host-config list, the removal steps, and the launcher host lists (`HOST_HOOK_RELS`, `HOST_HOOK_OUTER_DIRS`, the repair opt-out disclosure) include agy.",
+        "Install and upgrade register the Claude `SessionEnd` hook in `.claude/settings.json`.",
+        "Hygiene claims only Directive's own entries under `.agents/` (the `zzzz-directive` hook entry and Directive-managed skills); a foreign `.agents/hooks.json` entry or foreign skill is never reported or stripped as Directive's.",
+        "The host-tool-coverage audit covers agy, treating the single `*` matcher as every tool.",
+        "The outer install-admit test includes an agy `run_command` / `toolCall.args.CommandLine` payload."
+      ],
+      "admitted_source_digest": "b2a16b1a2432f3a1296e8e44b7669cdb756c4b0f17cf08ae45a0606c535749bc",
+      "admitted_source_extractor": 2,
+      "clauses": [
+        {
+          "id": 1,
+          "text": "`directive install` and `directive upgrade` deposit the agy host hooks when `plan.policy.hostHooks.agy` is on and the committed verdict admits them: the `zzzz-directive` entry in `.agents/hooks.json` and `.agents/deft-hook-<sha8>.mjs`, so `directive doctor --full` reports `agent-hooks-registration` green right after the command.",
+          "artifact_path": "packages/runtime/src/setup-wiring.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "`.deft/GENERATION.json` ownership records the `zzzz-directive` entry of `.agents/hooks.json` (entry-owned, not the whole file) and the agy outer `.agents/deft-hook-<sha8>.mjs` (whole-file owned).",
+          "artifact_path": "packages/runtime/src/setup.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "`directive uninstall` removes only the `zzzz-directive` entry from `.agents/hooks.json`, keeps foreign hook entries byte for byte, deletes the file only when it would be empty, and removes the agy outer.",
+          "artifact_path": "packages/runtime/src/removal-steps/steps.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "The doctor host-config list, the removal steps, and the launcher host lists (`HOST_HOOK_RELS`, `HOST_HOOK_OUTER_DIRS`, the repair opt-out disclosure) include agy.",
+          "artifact_path": "packages/runtime/src/doctor-diagnose.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Install and upgrade register the Claude `SessionEnd` hook in `.claude/settings.json`.",
+          "artifact_path": "packages/runtime/src/setup-wiring.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "Hygiene claims only Directive's own entries under `.agents/` (the `zzzz-directive` hook entry and Directive-managed skills); a foreign `.agents/hooks.json` entry or foreign skill is never reported or stripped as Directive's.",
+          "artifact_path": "packages/core/src/init-deposit/hygiene.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "The host-tool-coverage audit covers agy, treating the single `*` matcher as every tool.",
+          "artifact_path": "packages/core/src/init-deposit/host-tool-coverage.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "The outer install-admit test includes an agy `run_command` / `toolCall.args.CommandLine` payload.",
+          "artifact_path": "packages/core/src/init-deposit/host-hook-outer.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/runtime/src/setup-wiring.ts",
+          "packages/runtime/src/setup.ts",
+          "packages/runtime/src/doctor-diagnose.ts",
+          "packages/runtime/src/removal-steps/steps.ts",
+          "packages/runtime/src/uninstall.ts",
+          "packages/cli/src/uninstall-map.ts",
+          "packages/cli/src/plan-present.ts",
+          "packages/core/src/install-health/owned-paths.ts",
+          "packages/core/src/init-deposit/host-hook-outer.ts",
+          "packages/core/src/init-deposit/hygiene.ts",
+          "packages/core/src/init-deposit/host-tool-coverage.ts"
+        ],
+        "module_boundary": "packages/runtime/src",
+        "cohesion_exemption": "Host-list extension co-travels runtime wiring, launcher lists, core ownership and tests"
+      },
+      "issueCommentThread": [
+        {
+          "body": "Follow-up root-cause pointers from inspecting the published `0.132.0` packages (internal benchmark evidence (private)):\n\nThe gap is broader than `directive upgrade` — the OVPR bookend installer, ownership recorder, uninstaller, and launcher still hardcode only the four pre-`agy` hosts (`.claude`, `.cursor`, `.codex`, `.grok`), while `plan.policy.hostHooks.agy` now defaults to `true` and `agy-activation` passes:\n\n- `@deftai/directive-runtime`:\n  - `dist/setup-wiring.js` — only wires `.claude/settings.json`, `.cursor/hooks.json`, `.codex/hooks.json`, `.grok/hooks/deft.json` (omits `.agents/hooks.json`, `.agents/deft-hook-*.mjs`, and Claude `SessionEnd`).\n  - `dist/setup.js` — `GENERATION.json` ownership list only records the 4 older host hook configs/outers.\n  - `dist/doctor-diagnose.js` — host config list only checks the 4 older hosts.\n  - `dist/removal-steps/steps.js` and `dist/uninstall.js` — `HOST_HOOK_RELS` / `HOST_HOOK_OUTER_DIRS` only enumerate the 4 older host dirs, so `directive uninstall` would not remove `.agents/hooks.json` or `.agents/deft-hook-*.mjs` even after manual repair.\n- `@deftai/directive` (launcher):\n  - `dist/bin.js` — `HOST_HOOK_RELS`, `HOST_HOOK_OUTER_DIRS`, and `hostHookRepairOptOutDisclosureBullet` only enumerate the 4 older hosts.\n\n**Consumer impact:** Any consumer running `directive install` or `directive upgrade` on `0.132.0` exits 0 without `.agents/hooks.json`, then immediately hits `agent-hooks-registration INCOMPLETE` in `directive doctor` / `deft verify:hooks-installed --scope=agent` (even on repos not using Antigravity), and manual `verify:hooks-installed --scope=agent --repair` leaves `.agents/hooks.json` and `.agents/deft-hook-*.mjs` untracked by `.deft/GENERATION.json` and `directive uninstall`.",
+          "id": 7209864983,
+          "html_url": "https://github.com/deftai/directive/issues/7438#issuecomment-7209864983",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-27T04:31:25Z",
+          "updated_at": "2026-11-27T04:31:25Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "Rewriting the body to criteria-only for ingest (Scott: \"yes take through merge, no arc\"; #7434 folded in). Operator decision recorded here: `.agents/hooks.json` is a shared file and is **entry-owned** -- Directive owns only its `zzzz-directive` entry; uninstall strips that entry with the #7347 strip (foreign hooks kept byte for byte) and deletes the file only when it would be empty; `GENERATION.json` records the entry, not the file. The agy outer `.agents/deft-hook-<sha8>.mjs` stays whole-file owned. Prior body quoted below for the audit trail.\n\n<details><summary>Prior body</summary>\n\n## Summary\n\ndirective upgrade to 0.132.0 omits .agents/hooks.json, .agents/deft-hook-*.mjs, and Claude SessionEnd hook until verify:hooks-installed --repair runs\n\n## Context\n\nUpgrading a consumer OVPR project from 0.131.5 to 0.132.0 (maintainer dist-tag) via directive upgrade --target-version 0.132.0 --yes on Windows (internal benchmark evidence (private)).\n\n## Expected behavior\n\ndirective upgrade --target-version 0.132.0 --yes deposits all enabled host hooks (including .agents/hooks.json, .agents/deft-hook-<sha8>.mjs, and .claude/settings.json SessionEnd) so directive doctor --full reports agent-hooks-registration green immediately after upgrade.\n\n## Actual behavior / gap\n\ndirective upgrade exited 0 and updated package.json, package-lock.json, .deft/GENERATION.json, and existing Claude/Codex/Cursor/Grok hook files, but did not create .agents/hooks.json or .agents/deft-hook-aee61ba9.mjs and did not add SessionEnd to .claude/settings.json. Running directive doctor --full immediately afterward warned agent-hooks-registration INCOMPLETE: agy missing at .agents/hooks.json. Running deft verify:hooks-installed --scope=agent --repair then deposited .agents/hooks.json, .agents/deft-hook-aee61ba9.mjs, and .claude/settings.json SessionEnd and cleared the warning.\n\n## Session notes\n\nObserved on @deftai/directive 0.132.0 + @deftai/directive-runtime 0.132.0 (plan.policy.hostHooks defaults agy: true; agy-activation: pass). Source: internal benchmark evidence (private).\n\n---\n_Filed via `deft feedback:file` from a directive consumer project (Refs #1709 value-feedback gap escalation)._\n\n\n\n</details>\n\n",
+          "id": 7209926514,
+          "html_url": "https://github.com/deftai/directive/issues/7438#issuecomment-7209926514",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-27T04:35:44Z",
+          "updated_at": "2026-11-27T04:35:44Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6639978653,
+        "origin": "deftai/directive#7438",
+        "id": "github.issue.6639978653"
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": false,
+        "conflict_group": "agy-host-install-wiring",
+        "size": "L",
+        "file_scope": [
+          "packages/runtime/src/setup-wiring.ts",
+          "packages/runtime/src/setup.ts",
+          "packages/runtime/src/doctor-diagnose.ts",
+          "packages/runtime/src/installer-output-inventory.ts",
+          "packages/runtime/src/removal-steps/steps.ts",
+          "packages/runtime/src/uninstall.ts",
+          "packages/cli/src/uninstall-map.ts",
+          "packages/cli/src/plan-present.ts",
+          "packages/core/src/install-health/owned-paths.ts",
+          "packages/core/src/install-health/wiring.ts",
+          "packages/core/src/init-deposit/host-hook-outer.ts",
+          "packages/core/src/init-deposit/hygiene.ts",
+          "packages/core/src/init-deposit/host-tool-coverage.ts",
+          "packages/core/src/init-deposit/agent-hooks.ts",
+          "packages/core/src/init-deposit/host-hook-outer.test.ts",
+          "packages/core/src/init-deposit/hygiene.test.ts",
+          "packages/core/src/init-deposit/host-tool-coverage.test.ts",
+          "packages/core/src/init-deposit/agent-hooks.test.ts",
+          "packages/core/src/install-health/owned-paths.test.ts",
+          "packages/core/src/install-health/ownership.test.ts",
+          "packages/core/src/install-health/wiring.test.ts",
+          "packages/core/src/policy/host-hooks.test.ts",
+          "packages/core/src/hooks/cursor-hooks.test.ts",
+          "packages/core/src/verify-env/agent-hooks.test.ts",
+          "packages/core/src/verify-env/agent-hook-readiness.test.ts",
+          "packages/runtime/src/setup.test.ts",
+          "packages/runtime/src/setup-wiring.test.ts",
+          "packages/runtime/src/setup-wiring-ovpr-hooks-red.test.ts",
+          "packages/runtime/src/setup-ovpr-greenfield-4666.test.ts",
+          "packages/runtime/src/doctor-diagnose.test.ts",
+          "packages/runtime/src/uninstall.test.ts",
+          "packages/runtime/src/install-upgrade.test.ts",
+          "packages/runtime/src/verify-hooks-installed.test.ts",
+          "packages/runtime/src/hook-host-identity-lifetime.test.ts",
+          "packages/cli/src/uninstall-bookend.test.ts",
+          "packages/cli/src/install-bookend.test.ts",
+          "packages/cli/src/plan-present-review-list.test.ts",
+          "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "xbrief/evaluator-surface-disposition.json",
+          "docs/RULE-MAP.md",
+          "changelog.d/7438-agy-install-wiring.md"
+        ],
+        "file_scope_confidence": "medium",
+        "depends_on": [],
+        "verify_commands": [
+          "pnpm exec vitest run --reporter=dot packages/core/src/init-deposit/host-hook-outer.test.ts packages/core/src/init-deposit/hygiene.test.ts packages/core/src/init-deposit/host-tool-coverage.test.ts packages/core/src/install-health/owned-paths.test.ts",
+          "pnpm exec vitest run --reporter=dot packages/runtime/src/setup-wiring.test.ts packages/runtime/src/setup.test.ts packages/runtime/src/doctor-diagnose.test.ts packages/runtime/src/uninstall.test.ts packages/runtime/src/install-upgrade.test.ts",
+          "pnpm exec vitest run --reporter=dot packages/cli/src/uninstall-bookend.test.ts packages/cli/src/install-bookend.test.ts packages/cli/src/plan-present-review-list.test.ts"
+        ],
+        "expected_outputs": [
+          "agy hooks installed, owned, diagnosed and uninstalled; Claude SessionEnd registered by install and upgrade"
+        ],
+        "model_tier": "standard"
+      }
+    },
+    "id": "github.issue.6639978653",
+    "updated": "2026-11-27T04:41:44Z"
+  }
+}
