@@ -1,0 +1,188 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #7440",
+    "updated": "2026-11-27T04:53:53Z"
+  },
+  "plan": {
+    "title": "[framework-gap] BLOCKER Deposited .agents/hooks.json uses grouped SessionStart shape, causing agy 1.5.18 to reject the entire file and fail open on all PreToolUse hooks",
+    "status": "running",
+    "narratives": {
+      "Description": "[framework-gap] BLOCKER Deposited .agents/hooks.json uses grouped SessionStart shape, causing agy 1.5.18 to reject the entire file and fail open on all PreToolUse hooks",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/7440",
+      "Overview": "## Acceptance Criteria\n\n- [ ] `agyDirectiveEntry()` emits `SessionStart` as a flat handler array (`[{ command, timeout }]`) and keeps `PreToolUse` grouped (`[{ matcher: \"*\", hooks: [{ command, timeout }] }]`).\n- [ ] `hasAgyRegistration()` accepts the new deposited shape, and treats an earlier grouped-`SessionStart` deposit as drifted so repair rewrites it.\n- [ ] `agyEntryCommands()`, `isManagedAgyHookEntry()` and `stripAgyHostHookConfig()` read both flat handler entries and grouped `{ hooks: [...] }` entries, so a flat `SessionStart` is recognised and stripped.\n- [ ] A test fixture asserts the deposited `.agents/hooks.json` parses under the agy contract: `SessionStart` entries carry `command` directly, and `PreToolUse` entries carry `matcher` and `hooks`.\n- [ ] The `verify:hooks-installed` success summary lists agy when it is deposited.\n\n"
+    },
+    "items": [
+      {
+        "title": "`agyDirectiveEntry()` emits `SessionStart` as a flat handler array (`[{ command, timeout }]`) and keeps `PreToolUse` grouped (`[{ matcher: \"*\", hooks: [{ command, timeout }] }]`).",
+        "status": "proposed",
+        "id": "clause.1"
+      },
+      {
+        "title": "`hasAgyRegistration()` accepts the new deposited shape, and treats an earlier grouped-`SessionStart` deposit as drifted so repair rewrites it.",
+        "status": "proposed",
+        "id": "clause.2"
+      },
+      {
+        "title": "`agyEntryCommands()`, `isManagedAgyHookEntry()` and `stripAgyHostHookConfig()` read both flat handler entries and grouped `{ hooks: [...] }` entries, so a flat `SessionStart` is recognised and stripped.",
+        "status": "proposed",
+        "id": "clause.3"
+      },
+      {
+        "title": "A test fixture asserts the deposited `.agents/hooks.json` parses under the agy contract: `SessionStart` entries carry `command` directly, and `PreToolUse` entries carry `matcher` and `hooks`.",
+        "status": "proposed",
+        "id": "clause.4"
+      },
+      {
+        "title": "The `verify:hooks-installed` success summary lists agy when it is deposited.",
+        "status": "proposed",
+        "id": "clause.5"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/7440",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #7440: [framework-gap] BLOCKER Deposited .agents/hooks.json uses grouped SessionStart shape, causing agy 1.5.18 to reject the entire file and fail open on all PreToolUse hooks"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per sentence-list entry (5), in order (#6333)",
+      "sentences": [
+        "`agyDirectiveEntry()` emits `SessionStart` as a flat handler array (`[{ command, timeout }]`) and keeps `PreToolUse` grouped (`[{ matcher: \"*\", hooks: [{ command, timeout }] }]`).",
+        "`hasAgyRegistration()` accepts the new deposited shape, and treats an earlier grouped-`SessionStart` deposit as drifted so repair rewrites it.",
+        "`agyEntryCommands()`, `isManagedAgyHookEntry()` and `stripAgyHostHookConfig()` read both flat handler entries and grouped `{ hooks: [...] }` entries, so a flat `SessionStart` is recognised and stripped.",
+        "A test fixture asserts the deposited `.agents/hooks.json` parses under the agy contract: `SessionStart` entries carry `command` directly, and `PreToolUse` entries carry `matcher` and `hooks`.",
+        "The `verify:hooks-installed` success summary lists agy when it is deposited."
+      ],
+      "admitted_source_sentences": [
+        "`agyDirectiveEntry()` emits `SessionStart` as a flat handler array (`[{ command, timeout }]`) and keeps `PreToolUse` grouped (`[{ matcher: \"*\", hooks: [{ command, timeout }] }]`).",
+        "`hasAgyRegistration()` accepts the new deposited shape, and treats an earlier grouped-`SessionStart` deposit as drifted so repair rewrites it.",
+        "`agyEntryCommands()`, `isManagedAgyHookEntry()` and `stripAgyHostHookConfig()` read both flat handler entries and grouped `{ hooks: [...] }` entries, so a flat `SessionStart` is recognised and stripped.",
+        "A test fixture asserts the deposited `.agents/hooks.json` parses under the agy contract: `SessionStart` entries carry `command` directly, and `PreToolUse` entries carry `matcher` and `hooks`.",
+        "The `verify:hooks-installed` success summary lists agy when it is deposited."
+      ],
+      "admitted_source_digest": "982a807434ca0c07997cffbe7fe26917f75cbd163d749975e7e91ff1fbd7a099",
+      "admitted_source_extractor": 2,
+      "clauses": [
+        {
+          "id": 1,
+          "text": "`agyDirectiveEntry()` emits `SessionStart` as a flat handler array (`[{ command, timeout }]`) and keeps `PreToolUse` grouped (`[{ matcher: \"*\", hooks: [{ command, timeout }] }]`).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "`hasAgyRegistration()` accepts the new deposited shape, and treats an earlier grouped-`SessionStart` deposit as drifted so repair rewrites it.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "`agyEntryCommands()`, `isManagedAgyHookEntry()` and `stripAgyHostHookConfig()` read both flat handler entries and grouped `{ hooks: [...] }` entries, so a flat `SessionStart` is recognised and stripped.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "A test fixture asserts the deposited `.agents/hooks.json` parses under the agy contract: `SessionStart` entries carry `command` directly, and `PreToolUse` entries carry `matcher` and `hooks`.",
+          "artifact_path": "packages/core/src/init-deposit/agent-hooks.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "The `verify:hooks-installed` success summary lists agy when it is deposited.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/init-deposit/agent-hooks.ts",
+          "packages/core/src/init-deposit/host-hook-outer.ts",
+          "packages/core/src/verify-env/agent-hooks.ts"
+        ],
+        "module_boundary": "packages/core/src/init-deposit",
+        "cohesion_exemption": "One agy deposit-shape fix touches only the agy entry helpers in agent-hooks.ts; a split would not reduce the touched surface"
+      },
+      "issueCommentThread": [
+        {
+          "body": "Rewriting the body to criteria-only for ingest (Scott asked to take the new agy benchmark issue through merge for 0.132.1; no arc: the fix and files are named). Runs as its own story in parallel with #7438. Prior body quoted below for the audit trail.\n\n<details><summary>Prior body</summary>\n\n## Summary\n\nDeposited .agents/hooks.json uses grouped SessionStart shape, causing agy 1.5.18 to reject the entire file and fail open on all PreToolUse hooks\n\n## Context\n\nInternal benchmark evidence (private): verified Directive 0.132.0 (maintainer dist-tag) deposited .agents/hooks.json in a fresh Antigravity (agy 1.5.18, win32) session and isolated agy CLI print-mode runs.\n\n## Expected behavior\n\nAntigravity (agy) loads .agents/hooks.json cleanly, injects the Directive SessionStart systemMessage, and executes zzzz-directive PreToolUse hooks on every tool call. Per Antigravity hooks.json contract, SessionStart is a flat array of handler objects ([{ command, timeout }]), whereas only PreToolUse/PostToolUse use grouped { matcher, hooks: [...] } entries.\n\n## Actual behavior / gap\n\nagyDirectiveEntry() in packages/core/src/init-deposit/agent-hooks.ts deposits SessionStart with a grouped wrapper ([{ hooks: [{ command, timeout }] }]). On agy 1.5.18, parsing .agents/hooks.json fails with: Failed to parse hooks file .../.agents/hooks.json: invalid hook zzzz-directive: command hook must specify 'command' (hooks.go:318). Because file parsing fails, agy loads zero hooks from the file: neither SessionStart nor PreToolUse fires, so Directive PreToolUse enforcement fails completely open in live agy sessions. Switching SessionStart to the flat array ([{ command, timeout }]) in an isolated agy 1.5.18 test immediately resolves the parse error and causes both SessionStart (systemMessage injected) and PreToolUse (run_command intercepted) to fire.\n\n## Session notes\n\nRoot cause touches at least two core helpers: (1) packages/core/src/init-deposit/agent-hooks.ts agyDirectiveEntry() must emit flat SessionStart handlers ([{ command, timeout }]) while keeping grouped PreToolUse ([{ matcher: '*', hooks: [{ command, timeout }] }]), and hasAgyRegistration() compares against agyDirectiveEntry(); (2) packages/core/src/init-deposit/host-hook-outer.ts agyEntryCommands() currently only reads group.hooks and ignores flat handler objects, so flat SessionStart entries would be missed by isManagedAgyHookEntry() / stripAgyHostHookConfig() unless updated to handle both flat handler entries and grouped { hooks: [...] } entries. Minor related note: verify:hooks-installed success summary still lists only Claude, Grok, Cursor, Codex without agy.\n\n## Adoption impact\n\nThis report is a consumer hard-stop: the consumer cannot complete an intended Directive flow and has no reasonable workaround.\n\nTitle token: `BLOCKER`. This token does not apply the `adoption-blocker` ranking label. A privileged actor applies that label after the body-evidence test.\n\n### Affected consumer flow and version\n\nAntigravity (agy 1.5.18) first-class host hooks on Directive 0.132.0\n\n### Documented alternatives attempted\n\nNo consumer workaround exists: leaving .agents/hooks.json as deposited fails open completely in agy; hand-editing SessionStart to flat format fails hasAgyRegistration() exact-JSON equality and breaks verify:hooks-installed and the gated session ritual.\n\n### Observed recovery cost\n\nFull loss of live Directive PreToolUse and SessionStart enforcement on agy until fixed in a patch release (e.g. 0.132.1).\n\n### Triage owner and date\n\n_(to be filled by a privileged actor when applying `adoption-blocker`)_\n\n---\n_Filed via `deft feedback:file` from a directive consumer project (Refs #1709 value-feedback gap escalation)._\n\n\n\n</details>\n\n",
+          "id": 7210107028,
+          "html_url": "https://github.com/deftai/directive/issues/7440#issuecomment-7210107028",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-27T04:48:13Z",
+          "updated_at": "2026-11-27T04:48:13Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "conflict_group": "agy-hooks-json-shape",
+        "size": "S",
+        "file_scope": [
+          "packages/core/src/init-deposit/agent-hooks.ts",
+          "packages/core/src/init-deposit/agent-hooks.test.ts",
+          "packages/core/src/init-deposit/host-hook-outer.ts",
+          "packages/core/src/init-deposit/host-hook-outer.test.ts",
+          "packages/core/src/verify-env/agent-hooks.ts",
+          "packages/core/src/verify-env/agent-hooks.test.ts",
+          "packages/runtime/src/gates-cli/verify-env-cli.test.ts",
+          "changelog.d/7440-agy-hooks-json-shape.md"
+        ],
+        "file_scope_confidence": "medium",
+        "depends_on": [],
+        "verify_commands": [
+          "pnpm exec vitest run --reporter=dot packages/core/src/init-deposit/agent-hooks.test.ts packages/core/src/init-deposit/host-hook-outer.test.ts packages/core/src/verify-env/agent-hooks.test.ts packages/runtime/src/gates-cli/verify-env-cli.test.ts"
+        ],
+        "expected_outputs": [
+          "agy deposit parses under the agy hooks.json contract"
+        ],
+        "model_tier": "standard"
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6640159776,
+        "origin": "deftai/directive#7440",
+        "id": "github.issue.6640159776"
+      }
+    },
+    "id": "github.issue.6640159776",
+    "updated": "2026-11-27T04:53:53Z"
+  }
+}
