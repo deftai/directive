@@ -1,0 +1,171 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #7450",
+    "updated": "2026-11-27T06:09:21Z"
+  },
+  "plan": {
+    "title": "[framework-gap] Deposited 5-second SessionStart hook timeout is routinely exceeded on Windows (4.9s-6.5s measured on agy 1.5.18)",
+    "status": "running",
+    "narratives": {
+      "Description": "[framework-gap] Deposited 5-second SessionStart hook timeout is routinely exceeded on Windows (4.9s-6.5s measured on agy 1.5.18)",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/7450",
+      "Overview": "## Acceptance Criteria\n\n- [ ] The deposited SessionStart hook timeout for every host (Claude, Grok, Codex, agy via `NESTED_HOOK_TIMEOUT_SECONDS`, and Cursor via `CURSOR_SESSION_HOOK_TIMEOUT_SECONDS`) is 30 seconds, matching the deposited `tool.before` timeout.\n- [ ] Each timeout is its own named constant, not a reused literal.\n- [ ] Repair treats a deposit carrying the old 5-second SessionStart timeout as drift and rewrites it.\n- [ ] Tests assert the SessionStart timeout in each host's deposited entry.\n\n"
+    },
+    "items": [
+      {
+        "title": "The deposited SessionStart hook timeout for every host (Claude, Grok, Codex, agy via `NESTED_HOOK_TIMEOUT_SECONDS`, and Cursor via `CURSOR_SESSION_HOOK_TIMEOUT_SECONDS`) is 30 seconds, matching the deposited `tool.before` timeout.",
+        "status": "proposed",
+        "id": "clause.1"
+      },
+      {
+        "title": "Each timeout is its own named constant, not a reused literal.",
+        "status": "proposed",
+        "id": "clause.2"
+      },
+      {
+        "title": "Repair treats a deposit carrying the old 5-second SessionStart timeout as drift and rewrites it.",
+        "status": "proposed",
+        "id": "clause.3"
+      },
+      {
+        "title": "Tests assert the SessionStart timeout in each host's deposited entry.",
+        "status": "proposed",
+        "id": "clause.4"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/7450",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #7450: [framework-gap] Deposited 5-second SessionStart hook timeout is routinely exceeded on Windows (4.9s-6.5s measured on agy 1.5.18)"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per sentence-list entry (4), in order (#6333)",
+      "sentences": [
+        "The deposited SessionStart hook timeout for every host (Claude, Grok, Codex, agy via `NESTED_HOOK_TIMEOUT_SECONDS`, and Cursor via `CURSOR_SESSION_HOOK_TIMEOUT_SECONDS`) is 30 seconds, matching the deposited `tool.before` timeout.",
+        "Each timeout is its own named constant, not a reused literal.",
+        "Repair treats a deposit carrying the old 5-second SessionStart timeout as drift and rewrites it.",
+        "Tests assert the SessionStart timeout in each host's deposited entry."
+      ],
+      "admitted_source_sentences": [
+        "The deposited SessionStart hook timeout for every host (Claude, Grok, Codex, agy via `NESTED_HOOK_TIMEOUT_SECONDS`, and Cursor via `CURSOR_SESSION_HOOK_TIMEOUT_SECONDS`) is 30 seconds, matching the deposited `tool.before` timeout.",
+        "Each timeout is its own named constant, not a reused literal.",
+        "Repair treats a deposit carrying the old 5-second SessionStart timeout as drift and rewrites it.",
+        "Tests assert the SessionStart timeout in each host's deposited entry."
+      ],
+      "admitted_source_digest": "cc28b371654c8adb078e37a2f54f21f6804b6499b9277d93631da69745171175",
+      "admitted_source_extractor": 2,
+      "clauses": [
+        {
+          "id": 1,
+          "text": "The deposited SessionStart hook timeout for every host (Claude, Grok, Codex, agy via `NESTED_HOOK_TIMEOUT_SECONDS`, and Cursor via `CURSOR_SESSION_HOOK_TIMEOUT_SECONDS`) is 30 seconds, matching the deposited `tool.before` timeout.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "Each timeout is its own named constant, not a reused literal.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "Repair treats a deposit carrying the old 5-second SessionStart timeout as drift and rewrites it.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Tests assert the SessionStart timeout in each host's deposited entry.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "Rewriting the body to criteria-only for ingest; added to the 0.132.1 maintainer release (Scott, yolo overnight). No arc: the fix and files are named. Prior body quoted below.\n\n<details><summary>Prior body</summary>\n\n## Summary\n\nDeposited 5-second SessionStart hook timeout is routinely exceeded on Windows (4.9s-6.5s measured on agy 1.5.18)\n\n## Context\n\nDirective 0.132.0 on Windows (win32) with live Antigravity (agy 1.5.18) hooks active (internal benchmark evidence (private)). Measuring wall-clock runtime of the deposited SessionStart hook command (node .agents/deft-hook-*.mjs --host agy --event session.start) across four consecutive warm runs.\n\n## Expected behavior\n\nThe deposited SessionStart hook timeout provides enough headroom on Windows for outer node + git rev-parse + inner hook-bin.js + SessionStart bookkeeping to complete reliably, inject the SessionStart notice, and publish .deft/applying-host.json.\n\n## Actual behavior / gap\n\ninit-deposit/agent-hooks.js hardcodes timeout: 5 seconds for SessionStart across hosts (NESTED_HOOK_TIMEOUT_SECONDS = 5 for Claude/Grok/Codex/AGY; CURSOR_SESSION_HOOK_TIMEOUT_SECONDS = 5 for Cursor), whereas tool.before was already raised to 30 seconds. Four consecutive warm runs of the AGY SessionStart hook on Windows measured 4913 ms, 4920 ms, 6448 ms, and 5008 ms -- half of all runs exceeded the 5-second timeout and would be killed by the host before injecting the notice or completing SessionStart bookkeeping.\n\n## Session notes\n\nObserved on win32 with Node v24.18.0 and agy 1.5.18 under the flat SessionStart schema (Refs #7440, #7347, #7416). Raising the deposited SessionStart timeout (e.g. to 15-30s on parity with tool.before) or trimming subprocess spawns in the SessionStart path prevents silent SessionStart drops on Windows. Source: internal benchmark evidence (private).\n\n---\n_Filed via `deft feedback:file` from a directive consumer project (Refs #1709 value-feedback gap escalation)._\n\n\n\n</details>\n\n",
+          "id": 7211050340,
+          "html_url": "https://github.com/deftai/directive/issues/7450#issuecomment-7211050340",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-27T05:54:38Z",
+          "updated_at": "2026-11-27T05:54:38Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": true,
+        "conflict_group": "agent-hooks-timeouts",
+        "size": "S",
+        "file_scope": [
+          "packages/core/src/init-deposit/agent-hooks.ts",
+          "packages/core/src/init-deposit/agent-hooks.test.ts",
+          "packages/core/src/init-deposit/host-hook-outer.test.ts",
+          "packages/core/src/coverage-applicability/evaluate.ts",
+          "packages/core/src/coverage-applicability/evaluate.test.ts",
+          "packages/core/src/session/ritual-state-lock.test.ts",
+          "packages/runtime/src/setup-wiring.ts",
+          "packages/runtime/src/setup-wiring.test.ts",
+          "packages/runtime/src/setup-wiring-ovpr-hooks-red.test.ts",
+          "changelog.d/7450-sessionstart-timeout-30s.md"
+        ],
+        "file_scope_confidence": "medium",
+        "depends_on": [],
+        "verify_commands": [
+          "pnpm exec vitest run --reporter=dot packages/core/src/init-deposit/agent-hooks.test.ts packages/core/src/init-deposit/host-hook-outer.test.ts packages/core/src/coverage-applicability/evaluate.test.ts packages/core/src/session/ritual-state-lock.test.ts packages/runtime/src/setup-wiring.test.ts packages/runtime/src/setup-wiring-ovpr-hooks-red.test.ts"
+        ],
+        "expected_outputs": [
+          "deposited SessionStart timeout is 30 seconds for every host; old 5-second deposits repair as drift"
+        ],
+        "model_tier": "standard"
+      },
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6640700814,
+        "origin": "deftai/directive#7450",
+        "id": "github.issue.6640700814"
+      }
+    },
+    "id": "github.issue.6640700814",
+    "updated": "2026-11-27T06:09:21Z"
+  }
+}
