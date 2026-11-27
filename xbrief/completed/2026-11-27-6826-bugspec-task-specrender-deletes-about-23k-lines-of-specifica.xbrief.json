@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #6826",
-    "updated": "2026-11-27T00:48:42Z"
+    "updated": "2026-11-27T01:34:12Z"
   },
   "plan": {
     "title": "bug(spec): task spec:render deletes about 23k lines of SPECIFICATION.md",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "bug(spec): task spec:render deletes about 23k lines of SPECIFICATION.md",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/6826",
@@ -16,18 +16,39 @@
     "items": [
       {
         "title": "`SPECIFICATION.md` on master equals the output of the default `task spec:render`, so a render on a clean checkout leaves no diff.",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "dc87ab71fd82a20a8453f6cf071d93c656259a92",
+          "recorded_at": "2026-11-27T01:34:12Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "`verify:spec-prd-fresh` fails when the committed `SPECIFICATION.md` contains a section the default render does not produce, such as `## Scope outlook` or `## LegacyArtifacts`, and names that section.",
-        "status": "proposed",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "dc87ab71fd82a20a8453f6cf071d93c656259a92",
+          "recorded_at": "2026-11-27T01:34:12Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "A test covers the stale-snapshot case: a committed file with an extra `## Scope outlook` section is reported stale.",
-        "status": "proposed",
-        "id": "clause.3"
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "dc87ab71fd82a20a8453f6cf071d93c656259a92",
+          "recorded_at": "2026-11-27T01:34:12Z",
+          "recorded_by": "scope:complete"
+        }
       }
     ],
     "tags": [
@@ -239,6 +260,35 @@
         "github_issue_id": 6503509839,
         "origin": "deftai/directive#6826",
         "id": "github.issue.6503509839"
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "944223b14a53c3a048188e76eac747dd758eb277",
+        "prNumber": 7424,
+        "prBase": "master",
+        "mergeCommit": "dc87ab71fd82a20a8453f6cf071d93c656259a92",
+        "deliveryBranch": "master",
+        "deliveryCommit": "dc87ab71fd82a20a8453f6cf071d93c656259a92",
+        "verifiedAt": "2026-11-27T01:34:12Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:YTQ2NTZlZmEtNzdjMy00ZTZhLWEyYmMtNjYxNjdkYTg5NDA4",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          7421
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-27T01:34:12Z",
+      "completedSessionId": "host:claude:v1:YTQ2NTZlZmEtNzdjMy00ZTZhLWEyYmMtNjYxNjdkYTg5NDA4",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-27T01:34:12Z"
       }
     },
     "acceptance": {
@@ -284,6 +334,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.6503509839",
-    "updated": "2026-11-27T00:48:42Z"
+    "updated": "2026-11-27T01:34:12Z"
   }
 }
