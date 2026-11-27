@@ -31,6 +31,7 @@
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
+import { readLiveDelegation } from "../authz/delegation/store.js";
 import { isDelegatedOrigin } from "../authz/origin.js";
 import { listActiveHumanGrants, listDelegatedGrants, loadAuthzState } from "../authz/store.js";
 import type { HumanOriginGrant } from "../authz/types.js";
@@ -610,7 +611,13 @@ function readPromotedSection(ctx: Ctx): string {
  * gate admits it only for its own release verb while its delegation is live.
  */
 export function defaultReleaseRunGrants(root: string): readonly HumanOriginGrant[] {
-  return [...listActiveHumanGrants(root, loadAuthzState(root)), ...listDelegatedGrants(root)];
+  // Only grants of the live delegation are candidates: a grant of an ended
+  // delegation must not shadow a replacement minted under a new one.
+  const live = readLiveDelegation(root);
+  const delegated = listDelegatedGrants(root).filter(
+    (g) => live !== null && g.origin.delegationId === live.delegationId,
+  );
+  return [...listActiveHumanGrants(root, loadAuthzState(root)), ...delegated];
 }
 
 function listGrantsOf(ctx: Ctx): (projectRoot: string) => readonly HumanOriginGrant[] {
@@ -793,7 +800,15 @@ function phaseFinish(ctx: Ctx): number {
     ...releaseConfigOf(ctx.record, ctx.projectRoot),
     runBinding: { grantId: grants.releasePublish, expectedBase: cutBase },
   };
-  const finish = ctx.seams.finish ?? ((c: ReleaseConfig) => runFinish(c, ctx.seams.release ?? {}));
+  // A delegated release grant goes to the tag gate as the only candidate, the
+  // same split as the draft flip; a human grant keeps the unchanged path.
+  const delegated = delegatedRunGrant(ctx, grants.releasePublish);
+  const releaseSeams = ctx.seams.release ?? {};
+  const finishSeams =
+    delegated === null
+      ? releaseSeams
+      : ({ ...releaseSeams, closedVerbGrants: [delegated] } as ReleaseSeams);
+  const finish = ctx.seams.finish ?? ((c: ReleaseConfig) => runFinish(c, finishSeams));
   const code = finish(config);
   if (code !== EXIT_OK) {
     line(ctx, "finish", `FAIL (finish exited ${String(code)})`);
