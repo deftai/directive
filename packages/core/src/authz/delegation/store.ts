@@ -21,11 +21,15 @@ import {
   renameSync,
   rmSync,
   unlinkSync,
-  writeFileSync,
 } from "node:fs";
 import { homedir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
-import { ContainedWriteError, containedWrite } from "../../fs/contained-write.js";
+import {
+  ContainedWriteError,
+  containedChmod,
+  containedRemove,
+  containedWrite,
+} from "../../fs/contained-write.js";
 import { assertWriteTargetSafe } from "../../fs/projection-containment.js";
 import { killSwitchRecordPath } from "../../policy/kill-switch-record.js";
 import type { GitRunner } from "../../session/git.js";
@@ -163,17 +167,35 @@ export function writeEnrolledSecret(
   secret: EnrolledSecret,
   replace: boolean,
 ): { ok: true } | { ok: false; reason: string } {
+  const root = dirname(resolve(secretPath));
+  let created = false;
   try {
-    mkdirSync(dirname(secretPath), { recursive: true });
-    writeFileSync(secretPath, `${JSON.stringify(secret, null, 2)}\n`, {
-      encoding: "utf8",
-      mode: 0o600,
-      flag: replace ? "w" : "wx",
+    mkdirSync(root, { recursive: true });
+    // Create empty, restrict the mode, then fill, so the secret is never
+    // written into a file with a wider mode.
+    containedWrite({ root, target: secretPath, data: "", mode: replace ? "replace" : "create" });
+    created = true;
+    containedChmod({ root, target: secretPath, mode: 0o600 });
+    containedWrite({
+      root,
+      target: secretPath,
+      data: `${JSON.stringify(secret, null, 2)}\n`,
+      mode: "replace",
     });
     return { ok: true };
   } catch (err) {
+    if (created && !replace) {
+      try {
+        containedRemove({ root, target: secretPath });
+      } catch {
+        /* best effort: a partial empty file is refused as unreadable on read */
+      }
+    }
     const code = (err as NodeJS.ErrnoException).code;
-    if (code === "EEXIST") {
+    if (
+      code === "EEXIST" ||
+      (err instanceof ContainedWriteError && err.code === "CONTAINED_WRITE_EXISTS")
+    ) {
       return { ok: false, reason: `a secret is already enrolled at ${secretPath}` };
     }
     return { ok: false, reason: `secret write failed: ${String(err)}` };
