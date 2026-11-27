@@ -1,3 +1,4 @@
+import { spawnSync } from "node:child_process";
 import {
   existsSync,
   mkdirSync,
@@ -12,7 +13,14 @@ import {
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { checkAgyActivation } from "../doctor/checks.js";
 import { runWithMutationLedger, snapshotMutationSummary } from "../fs/mutation-ledger.js";
+import { AGY_DIRECTIVE_HOOK_NAME } from "../hooks/classify/agy-hook-order.js";
+import {
+  AGY_ADMISSION_VERDICT,
+  type AgyAdmissionVerdict,
+  agyActivationAdmitted,
+} from "../hooks/classify/agy-observation.js";
 import {
   DIRECT_WRITE_TOOL_NAMES,
   GROK_MUTATION_TOOL_CATALOG,
@@ -22,10 +30,14 @@ import {
 } from "../hooks/tools.js";
 import {
   DEFAULT_HOST_HOOKS_POLICY,
+  disableHostHooks,
   HOST_HOOKS_REMOVED_PRINTF_REFUSAL_CAN_CLEAR,
 } from "../policy/host-hooks.js";
 import {
   AGENT_HOOK_PATHS,
+  AGY_ACTIVATION_HALT_DETAIL,
+  agyActivationWiring,
+  agyDepositAdmitted,
   CURSOR_SESSION_HOOK_TIMEOUT_SECONDS,
   CURSOR_TOOL_BEFORE_TIMEOUT_SECONDS,
   DIRECT_WRITE_HOOK_MATCHER,
@@ -46,7 +58,14 @@ import {
   SPAWN_HOOK_MATCHER,
   writeAgentHookDeposit,
 } from "./agent-hooks.js";
-import { hostHookEntryPrefix, hostHookEntryText, hostHookOuterSha8 } from "./host-hook-outer.js";
+import {
+  hostHookEntryPrefix,
+  hostHookEntryText,
+  hostHookOuterFileName,
+  hostHookOuterSha8,
+  hostHookOuterSource,
+  isManagedAgyHookEntry,
+} from "./host-hook-outer.js";
 
 const temps: string[] = [];
 afterEach(() => {
@@ -191,7 +210,7 @@ describe("writeAgentHookDeposit", () => {
     const result = writeAgentHookDeposit(root, { printf: (text) => lines.push(text) });
 
     expect(result.changed).toBe(true);
-    expect(result.changedPaths).toEqual([...AGENT_HOOK_PATHS]);
+    expect(result.changedPaths).toEqual([...AGENT_HOOK_PATHS, ".agents/hooks.json"]);
     expect(entryTexts(join(root, ".claude/settings.json"))).toContain(
       expectedOuterCmd("claude", "tool.before"),
     );
@@ -930,6 +949,7 @@ describe("inspectAgentHookDeposit", () => {
       "missing",
       "missing",
       "missing",
+      "missing",
     ]);
 
     writeAgentHookDeposit(root);
@@ -1391,5 +1411,225 @@ describe("evaluateGrokPretooluseWrapperOutcome (#5656)", () => {
         childStdout: denyBody,
       }),
     ).toEqual({ kind: "passthrough", stdout: denyBody });
+  });
+});
+
+describe("agy deposit, activation gate and doctor (#7347)", () => {
+  const PRE = { PreToolUse: [{ matcher: "*", hooks: [{ command: "x" }] }] };
+  const HOOKS = ".agents/hooks.json";
+  const NO_IO = { printf: () => undefined };
+
+  function agyProject(): string {
+    const root = project();
+    writeFileSync(join(root, "package.json"), "{}\n");
+    return root;
+  }
+
+  function readHooks(root: string): Record<string, unknown> {
+    return JSON.parse(readFileSync(join(root, HOOKS), "utf8")) as Record<string, unknown>;
+  }
+
+  function writeHooks(root: string, hooks: Record<string, unknown>): void {
+    mkdirSync(join(root, ".agents"), { recursive: true });
+    writeFileSync(join(root, HOOKS), `${JSON.stringify(hooks, null, 2)}\n`);
+  }
+
+  const outerPath = (root: string): string =>
+    join(root, ".agents", hostHookOuterFileName(hostHookOuterSha8()));
+
+  /** The real deposited outer, run the way agy runs it: cwd `.agents/`, payload on stdin. */
+  function runDepositedOuter(root: string): { decision: string; reason: string; reached: boolean } {
+    const pin = join(root, "node_modules/@deftai/directive-runtime/dist/hook-bin.js");
+    mkdirSync(join(pin, ".."), { recursive: true });
+    writeFileSync(
+      pin,
+      'process.stderr.write("RUNTIME_REACHED\\n"); process.stdout.write(\'{"decision":"allow"}\');',
+    );
+    const result = spawnSync(
+      process.execPath,
+      [hostHookOuterFileName(hostHookOuterSha8()), "--host", "agy", "--event", "tool.before"],
+      {
+        cwd: join(root, ".agents"),
+        encoding: "utf8",
+        env: { ...process.env, HOME: join(root, "home"), USERPROFILE: join(root, "home") },
+        input: JSON.stringify({
+          hookEventName: "PreToolUse",
+          workspacePaths: [root],
+          cwd: root,
+          toolCall: { id: "c1", name: "run_command", args: { CommandLine: "echo hi" } },
+        }),
+      },
+    );
+    const parsed = JSON.parse(String(result.stdout)) as { decision: string; reason?: string };
+    return {
+      decision: parsed.decision,
+      reason: parsed.reason ?? "",
+      reached: String(result.stderr).includes("RUNTIME_REACHED"),
+    };
+  }
+
+  it("deposits Directive's named entry with the outer and keeps foreign hooks", () => {
+    const root = agyProject();
+    writeHooks(root, { "aaaa-user": PRE });
+    const result = writeAgentHookDeposit(root, NO_IO);
+    expect(result.changedPaths).toContain(HOOKS);
+    const hooks = readHooks(root);
+    expect(hooks["aaaa-user"]).toEqual(PRE);
+    expect(isManagedAgyHookEntry(hooks[AGY_DIRECTIVE_HOOK_NAME])).toBe(true);
+    expect(JSON.stringify(hooks[AGY_DIRECTIVE_HOOK_NAME])).toContain(
+      `node ${hostHookOuterFileName(hostHookOuterSha8())} --host agy --event tool.before`,
+    );
+    expect(existsSync(outerPath(root))).toBe(true);
+    expect(inspectAgentHookDeposit(root).find((entry) => entry.host === "agy")?.status).toBe(
+      "healthy",
+    );
+  });
+
+  it("is idempotent and repairs a drifted entry", () => {
+    const root = agyProject();
+    writeAgentHookDeposit(root, NO_IO);
+    const before = readFileSync(join(root, HOOKS), "utf8");
+    expect(writeAgentHookDeposit(root, NO_IO).changedPaths).not.toContain(HOOKS);
+    expect(readFileSync(join(root, HOOKS), "utf8")).toBe(before);
+
+    writeHooks(root, {
+      ...readHooks(root),
+      [AGY_DIRECTIVE_HOOK_NAME]: {
+        PreToolUse: [
+          {
+            matcher: "*",
+            hooks: [{ command: "node deft-hook-00000000.mjs --host agy --event tool.before" }],
+          },
+        ],
+      },
+    });
+    expect(inspectAgentHookDeposit(root).find((entry) => entry.host === "agy")?.status).toBe(
+      "drifted",
+    );
+    writeAgentHookDeposit(root, NO_IO);
+    expect(readFileSync(join(root, HOOKS), "utf8")).toBe(before);
+  });
+
+  it("refuses to overwrite a foreign hook that uses Directive's name", () => {
+    const root = agyProject();
+    writeHooks(root, { [AGY_DIRECTIVE_HOOK_NAME]: PRE });
+    expect(() => writeAgentHookDeposit(root, NO_IO)).toThrow(/not Directive's/);
+    expect(readHooks(root)[AGY_DIRECTIVE_HOOK_NAME]).toEqual(PRE);
+  });
+
+  it("uninstalls only Directive's entry and outer, and keeps foreign hooks", () => {
+    const root = agyProject();
+    writeHooks(root, { "aaaa-user": PRE });
+    writeAgentHookDeposit(root, NO_IO);
+    writeProjectDefinition(root, { agy: true });
+    const result = disableHostHooks(root, { host: "agy", confirm: true, actor: "test" });
+    expect(result.exitCode).toBe(0);
+    expect(readHooks(root)).toEqual({ "aaaa-user": PRE });
+    expect(existsSync(outerPath(root))).toBe(false);
+  });
+
+  it("contract: admits the committed verdict with the deposited wiring and a denied later rewrite", () => {
+    const root = agyProject();
+    writeAgentHookDeposit(root, NO_IO);
+    const deposited = readHooks(root);
+    const depositedName = Object.keys(deposited).find((name) =>
+      isManagedAgyHookEntry(deposited[name]),
+    );
+
+    // Behavioural fixture: a foreign hook that sorts after Directive's is denied by the
+    // deposited outer before the runtime is reached.
+    writeHooks(root, { ...deposited, zzzzz: PRE });
+    const later = runDepositedOuter(root);
+    expect(later.decision).toBe("deny");
+    expect(later.reason).toContain('Hook "zzzzz"');
+    expect(later.reached).toBe(false);
+
+    expect(AGY_ADMISSION_VERDICT.overall).toBe("mitigated");
+    expect(
+      agyActivationAdmitted(
+        AGY_ADMISSION_VERDICT,
+        {
+          depositedName: depositedName ?? "",
+          perCallCallsPredicate: readFileSync(outerPath(root), "utf8").includes(
+            "agyHookOrderPayloadFindings(",
+          ),
+          laterRewriteDenied: later.decision === "deny",
+        },
+        AGY_DIRECTIVE_HOOK_NAME,
+      ),
+    ).toBe(true);
+    expect(agyDepositAdmitted()).toBe(true);
+  });
+
+  it("the deposited outer reaches the runtime when nothing runs after Directive's entry", () => {
+    const root = agyProject();
+    writeAgentHookDeposit(root, NO_IO);
+    const ok = runDepositedOuter(root);
+    expect(ok.decision).toBe("allow");
+    expect(ok.reached).toBe(true);
+  });
+
+  it("contract: fails closed on a fail verdict, an absent verdict, and missing wiring", () => {
+    const wiring = agyActivationWiring(hostHookOuterSource());
+    const failed: AgyAdmissionVerdict = { ...AGY_ADMISSION_VERDICT, overall: "fail" };
+    expect(agyActivationAdmitted(failed, wiring, AGY_DIRECTIVE_HOOK_NAME)).toBe(false);
+    expect(agyActivationAdmitted(undefined, wiring, AGY_DIRECTIVE_HOOK_NAME)).toBe(false);
+    for (const missing of ["laterRewriteDenied", "perCallCallsPredicate"] as const) {
+      expect(
+        agyActivationAdmitted(
+          AGY_ADMISSION_VERDICT,
+          { ...wiring, [missing]: false },
+          AGY_DIRECTIVE_HOOK_NAME,
+        ),
+      ).toBe(false);
+    }
+    expect(agyDepositAdmitted(hostHookOuterSource(), { verdict: failed })).toBe(false);
+    expect(agyDepositAdmitted(hostHookOuterSource(), { verdict: undefined })).toBe(false);
+  });
+
+  it("halts activation: a fail or absent verdict deposits nothing and says why", () => {
+    const verdicts: Array<AgyAdmissionVerdict | undefined> = [
+      undefined,
+      { ...AGY_ADMISSION_VERDICT, overall: "fail" },
+    ];
+    for (const verdict of verdicts) {
+      const root = agyProject();
+      const lines: string[] = [];
+      const result = writeAgentHookDeposit(
+        root,
+        { printf: (text) => lines.push(text) },
+        undefined,
+        {},
+        { verdict },
+      );
+      expect(result.changedPaths).not.toContain(HOOKS);
+      expect(existsSync(join(root, HOOKS))).toBe(false);
+      expect(existsSync(outerPath(root))).toBe(false);
+      expect(lines.join("")).toContain(AGY_ACTIVATION_HALT_DETAIL);
+      const inspected = inspectAgentHookDeposit(root, undefined, { verdict }).find(
+        (entry) => entry.host === "agy",
+      );
+      expect(inspected?.status).toBe("disabled");
+      expect(inspected?.detail).toBe(AGY_ACTIVATION_HALT_DETAIL);
+    }
+  });
+
+  it("strips an earlier agy deposit when the verdict stops admitting it", () => {
+    const root = agyProject();
+    writeHooks(root, { "aaaa-user": PRE });
+    writeAgentHookDeposit(root, NO_IO);
+    writeAgentHookDeposit(root, NO_IO, undefined, {}, { verdict: undefined });
+    expect(readHooks(root)).toEqual({ "aaaa-user": PRE });
+  });
+
+  it("doctor reports the gate and stays quiet when agy is opted out", () => {
+    const root = agyProject();
+    expect(checkAgyActivation(root)).toMatchObject({
+      name: "agy-activation",
+      status: "pass",
+      data: { applicable: true, admitted: true },
+    });
+    writeProjectDefinition(root, { agy: false });
+    expect(checkAgyActivation(root).data).toEqual({ applicable: false });
   });
 });

@@ -62,8 +62,8 @@ export const DEFAULT_HOST_HOOKS_POLICY: HostHooksPolicy = {
   cursor: true,
   grok: true,
   codex: true,
-  // agy stays off until the deposit-doctor slice passes the admission verdict (#7346).
-  agy: false,
+  // agy is on by default (#7347); deposit still needs the activation gate (agyActivationAdmitted).
+  agy: true,
 };
 
 export interface HostHooksPolicyField {
@@ -263,12 +263,9 @@ export function disableHostHooks(
     });
 
     // Policy/audit already saved — live strip returns operational error (#7349 / #5574).
-    // agy has no Directive deposit until the deposit-doctor slice (#7346), and its
-    // `.agents/hooks.json` is a named-object file the nested-hook strip must not rewrite.
-    const live =
-      options.host === "agy"
-        ? { touchedPaths: [] as string[], stripped: false, error: undefined }
-        : stripHostHookRegistrationInPlace(projectRoot, options.host);
+    // agy's `.agents/hooks.json` is a named-object file; the strip removes only
+    // Directive's own `zzzz-directive` entry and keeps foreign hooks (#7347).
+    const live = stripHostHookRegistrationInPlace(projectRoot, options.host);
     const stripError = live.error ?? null;
     const registration = hostHookRegistrationRelPath(options.host);
     const disclosure = hostHookRepairDisclosurePaths(options.host);

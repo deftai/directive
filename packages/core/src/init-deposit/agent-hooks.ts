@@ -2,6 +2,13 @@ import { existsSync, readFileSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import { assertDepositContained } from "../deposit/contain.js";
 import { containedRemove, containedRename, containedWrite } from "../fs/contained-write.js";
+import { AGY_DIRECTIVE_HOOK_NAME, agyHookOrderFindings } from "../hooks/classify/agy-hook-order.js";
+import {
+  AGY_ADMISSION_VERDICT,
+  type AgyActivationWiring,
+  type AgyAdmissionVerdict,
+  agyActivationAdmitted,
+} from "../hooks/classify/agy-observation.js";
 import type { HookEvent, HookHost } from "../hooks/dispatcher.js";
 import {
   DIRECT_WRITE_HOOK_MATCHER,
@@ -21,6 +28,7 @@ import {
 import type { InitDepositIo } from "./constants.js";
 import { type HookRuntimeTravelSeams, inspectHookRuntimeTravel } from "./hook-runtime-travel.js";
 import {
+  agyHookCommand,
   hostHookEntryFields,
   hostHookEntryPrefix,
   hostHookEntryText,
@@ -28,6 +36,8 @@ import {
   hostHookOuterSha8,
   hostHookOuterSource,
   isHostHookOuterCommand,
+  isManagedAgyHookEntry,
+  stripAgyHostHookConfig,
 } from "./host-hook-outer.js";
 
 export {
@@ -640,6 +650,119 @@ function mergeCursorConfig(
   return { ...config, version: 1, hooks };
 }
 
+/** The verdict the agy activation gate reads; `undefined` models an absent verdict (#7347). */
+export interface AgyActivationGate {
+  readonly verdict: AgyAdmissionVerdict | undefined;
+}
+
+const COMMITTED_AGY_GATE: AgyActivationGate = { verdict: AGY_ADMISSION_VERDICT };
+
+const AGY_PROBE_PRE = { PreToolUse: [{ matcher: "*", hooks: [{ command: "x" }] }] };
+
+/**
+ * Wiring facts the activation gate needs (#7378): the deposited entry name, the
+ * per-call outer calls the ordering predicate, and a later-running foreign hook is
+ * reported by that predicate.
+ */
+export function agyActivationWiring(outerSource: string): AgyActivationWiring {
+  const later = agyHookOrderFindings(
+    JSON.stringify({ [AGY_DIRECTIVE_HOOK_NAME]: AGY_PROBE_PRE, zzzzz: AGY_PROBE_PRE }),
+  );
+  return {
+    depositedName: AGY_DIRECTIVE_HOOK_NAME,
+    perCallCallsPredicate: outerSource.includes("agyHookOrderPayloadFindings("),
+    laterRewriteDenied: later.some((finding) => finding.name === "zzzzz"),
+  };
+}
+
+/** True when the committed verdict admits the agy deposit. One gate: #7378's (#7347). */
+export function agyDepositAdmitted(
+  outerSource: string = hostHookOuterSource(),
+  gate: AgyActivationGate = COMMITTED_AGY_GATE,
+): boolean {
+  return agyActivationAdmitted(
+    gate.verdict,
+    agyActivationWiring(outerSource),
+    AGY_DIRECTIVE_HOOK_NAME,
+  );
+}
+
+/** Operator text for a halted agy activation (#7347 clause 3). */
+export const AGY_ACTIVATION_HALT_DETAIL =
+  "agy hook activation is halted: the committed agy admission verdict is failed or absent, or the " +
+  "deposited wiring does not match it. Nothing is deposited for agy. Leftover: file an issue under " +
+  "#7332 with the verdict from packages/core/src/hooks/classify/agy-observation.ts.";
+
+/** Directive's named agy entry (#7347): SessionStart notice plus PreToolUse over every tool. */
+function agyDirectiveEntry(sha8: string): Record<string, unknown> {
+  return {
+    SessionStart: [
+      {
+        hooks: [
+          {
+            command: agyHookCommand(sha8, "session.start"),
+            timeout: NESTED_HOOK_TIMEOUT_SECONDS,
+          },
+        ],
+      },
+    ],
+    PreToolUse: [
+      {
+        matcher: "*",
+        hooks: [
+          {
+            command: agyHookCommand(sha8, "tool.before"),
+            timeout: NESTED_TOOL_BEFORE_TIMEOUT_SECONDS,
+          },
+        ],
+      },
+    ],
+  };
+}
+
+/**
+ * Merge Directive's named entry into `.agents/hooks.json` (#7347). Foreign named
+ * hooks stay. A hook with Directive's name that is not Directive's is refused.
+ */
+function mergeAgyConfig(
+  config: Record<string, unknown>,
+  path: string,
+  sha8: string,
+): Record<string, unknown> {
+  const existing = config[AGY_DIRECTIVE_HOOK_NAME];
+  if (existing !== undefined && !isManagedAgyHookEntry(existing)) {
+    throw new Error(
+      `${path}: hook "${AGY_DIRECTIVE_HOOK_NAME}" is not Directive's; refusing to overwrite user configuration.`,
+    );
+  }
+  return { ...config, [AGY_DIRECTIVE_HOOK_NAME]: agyDirectiveEntry(sha8) };
+}
+
+function agyEventGroups(config: Record<string, unknown>, event: string): unknown[] {
+  const entry = object(config[AGY_DIRECTIVE_HOOK_NAME]);
+  const groups = entry?.[event];
+  return Array.isArray(groups) ? groups : [];
+}
+
+function hasAgyRegistration(config: Record<string, unknown>, sha8: string): boolean {
+  const entry = config[AGY_DIRECTIVE_HOOK_NAME];
+  if (!isManagedAgyHookEntry(entry)) return false;
+  const commands = (event: string): string[] =>
+    agyEventGroups(config, event).flatMap((group) => {
+      const hooks = object(group)?.hooks;
+      return Array.isArray(hooks)
+        ? hooks.flatMap((hook) => {
+            const text = hostHookEntryText(hook);
+            return text === null ? [] : [text];
+          })
+        : [];
+    });
+  return (
+    commands("PreToolUse").includes(agyHookCommand(sha8, "tool.before")) &&
+    commands("SessionStart").includes(agyHookCommand(sha8, "session.start"))
+  );
+}
+
 function writeJsonIfChanged(
   projectRoot: string,
   path: string,
@@ -687,11 +810,16 @@ export function writeAgentHookDeposit(
   io: InitDepositIo = { printf: () => undefined },
   hostHooksPolicy: HostHooksPolicy = loadHostHooksPolicyFromProject(projectRoot),
   travelSeams: HookRuntimeTravelSeams = {},
+  agyGate: AgyActivationGate = COMMITTED_AGY_GATE,
 ): AgentHookDepositResult {
   const changedPaths: AgentHookPath[] = [];
   const strippedPaths: AgentHookPath[] = [];
   const outerSource = hostHookOuterSource();
   const outerSha8 = hostHookOuterSha8(outerSource);
+  // agy deposits only when policy allows it AND the one activation gate admits it (#7347).
+  const agyAdmitted = agyDepositAdmitted(outerSource, agyGate);
+  const depositEnabled = (host: HookHost): boolean =>
+    isHostHookDepositEnabled(host, hostHooksPolicy) && (host !== "agy" || agyAdmitted);
   const binFor = (host: HookHost): string => hostHookEntryPrefix(host, outerSha8);
   const definitions: Array<{
     host: HookHost;
@@ -729,6 +857,12 @@ export function writeAgentHookDeposit(
         mergeNestedConfig(config, path, "codex", binFor("codex"), { compact: false }),
       strip: (config, path) => stripManagedNestedConfig(config, path, "codex"),
     },
+    {
+      host: "agy",
+      path: AGY_HOOK_PATH,
+      merge: (config, path) => mergeAgyConfig(config, path, outerSha8),
+      strip: (config) => stripAgyHostHookConfig(config),
+    },
   ];
 
   type PreparedWrite =
@@ -743,14 +877,13 @@ export function writeAgentHookDeposit(
   const prepared: PreparedWrite[] = definitions.map((definition) => {
     const absolute = join(projectRoot, definition.path);
     assertDepositContained(projectRoot, absolute);
-    if (!isHostHookDepositEnabled(definition.host, hostHooksPolicy)) {
+    if (!depositEnabled(definition.host)) {
       if (!existsSync(absolute)) return { mode: "skip" };
-      return {
-        mode: "strip",
-        absolute,
-        path: definition.path,
-        payload: definition.strip(readConfig(absolute), absolute),
-      };
+      const current = readConfig(absolute);
+      const stripped = definition.strip(current, absolute);
+      // Nothing of Directive's to remove (agy file with only foreign hooks): keep the user's bytes.
+      if (stripped === current) return { mode: "skip" };
+      return { mode: "strip", absolute, path: definition.path, payload: stripped };
     }
     return {
       mode: "merge",
@@ -776,11 +909,11 @@ export function writeAgentHookDeposit(
   }
 
   // #5994 / AC9.1: deposit content-hashed host `.mjs` outer; remove legacy Grok `.sh`.
-  for (const host of ["claude", "grok", "cursor", "codex"] as const) {
+  for (const host of ["claude", "grok", "cursor", "codex", "agy"] as const) {
     const rel = hostHookOuterRelPath(host, outerSha8);
     const abs = join(projectRoot, rel);
     assertDepositContained(projectRoot, abs);
-    if (isHostHookDepositEnabled(host, hostHooksPolicy)) {
+    if (depositEnabled(host)) {
       const previous = existsSync(abs) ? readFileSync(abs, "utf8") : null;
       if (previous !== outerSource) {
         containedWrite({
@@ -843,6 +976,9 @@ export function writeAgentHookDeposit(
       `Removed Directive-managed agent hooks (plan.policy.hostHooks opt-out): ${strippedPaths.join(", ")}\n${HOST_HOOKS_REMOVED_PRINTF_REFUSAL_CAN_CLEAR}\n`,
     );
   }
+  if (isHostHookDepositEnabled("agy", hostHooksPolicy) && !agyAdmitted) {
+    io.printf(`${AGY_ACTIVATION_HALT_DETAIL}\n`);
+  }
   if (changedPaths.length === 0 && strippedPaths.length === 0 && adaptersRemoved === 0) {
     io.printf("Directive agent hooks already current.\n");
   }
@@ -851,7 +987,9 @@ export function writeAgentHookDeposit(
   // obtain the runtime it names.
   const travel = inspectHookRuntimeTravel(
     projectRoot,
-    definitions.map((definition) => ({ host: definition.host, path: definition.path })),
+    definitions
+      .filter((definition) => definition.host !== "agy")
+      .map((definition) => ({ host: definition.host, path: definition.path })),
     hostHooksPolicy,
     travelSeams,
   );
@@ -891,7 +1029,7 @@ function hasSessionStartRegistration(
   host: HookHost,
   bin: string,
 ): boolean {
-  if (host === "agy") return false; // named-object schema; no deposit until deposit-doctor (#7346)
+  if (host === "agy") return hasAgyRegistration(config, hostHookOuterSha8());
   return host === "cursor"
     ? hasCursorSessionStart(config, bin)
     : hasNestedSessionStart(config, host, bin);
@@ -1044,13 +1182,17 @@ export function depositedPreToolUseMatchers(
   host: HookHost,
 ): readonly string[] | null {
   const path = join(resolve(projectRoot), AGENT_HOOK_PATH_BY_HOST[host]);
-  if (host === "agy" || !existsSync(path)) return null; // agy has no deposit yet (#7346)
+  if (!existsSync(path)) return null;
   let config: Record<string, unknown>;
   try {
     config = readConfig(path);
   } catch {
     return null;
   }
+  // agy registers one `*` matcher, which agy reads as every tool (observed, #7345 s16 to
+  // s19), so there is no literal token list to audit; the audit's classifier leg is the
+  // host-keyed agy classifier (#7346), not the shared catalogs.
+  if (host === "agy") return null;
   const hooks = object(config.hooks);
   if (hooks === null) return [];
   const matcherOf = (entry: unknown): string[] => {
@@ -1091,8 +1233,10 @@ export function inspectSessionStartNotice(
 export function inspectAgentHookDeposit(
   projectRoot: string,
   hostHooksPolicy: HostHooksPolicy = loadHostHooksPolicyFromProject(projectRoot),
+  agyGate: AgyActivationGate = COMMITTED_AGY_GATE,
 ): AgentHookInspection[] {
   const outerSha8 = hostHookOuterSha8();
+  const agyAdmitted = agyDepositAdmitted(undefined, agyGate);
   const binFor = (host: HookHost): string => hostHookEntryPrefix(host, outerSha8);
   const definitions: Array<{
     host: HookHost;
@@ -1133,10 +1277,32 @@ export function inspectAgentHookDeposit(
       valid: (config) =>
         hasNestedRegistration(config, "codex", binFor("codex"), { compact: false }),
     },
+    {
+      host: "agy",
+      path: AGY_HOOK_PATH,
+      compactSupport: "unsupported",
+      sessionEndSupport: "unsupported",
+      valid: (config) => hasAgyRegistration(config, outerSha8),
+    },
   ];
 
   return definitions.map((definition) => {
     const absolute = join(projectRoot, definition.path);
+    if (
+      definition.host === "agy" &&
+      isHostHookDepositEnabled("agy", hostHooksPolicy) &&
+      !agyAdmitted
+    ) {
+      return {
+        host: definition.host,
+        path: definition.path,
+        status: "disabled",
+        compactSupport: definition.compactSupport,
+        sessionEndSupport: definition.sessionEndSupport,
+        sessionEndRegistered: null,
+        detail: AGY_ACTIVATION_HALT_DETAIL,
+      };
+    }
     const compactNote =
       definition.compactSupport === "unsupported"
         ? " Compact re-arm is not deposited for Codex (no native compact hook surface)."
