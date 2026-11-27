@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #7446",
-    "updated": "2026-11-27T05:34:20Z"
+    "updated": "2026-11-27T19:05:50Z"
   },
   "plan": {
     "title": "[framework-gap] deft verify:session-ritual -- --tier=gated prints a false foreign-occupant denial to the lease owner on Antigravity",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "[framework-gap] deft verify:session-ritual -- --tier=gated prints a false foreign-occupant denial to the lease owner on Antigravity",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/7446",
@@ -15,28 +15,63 @@
     "items": [
       {
         "title": "`deft verify:session-ritual` accepts `--session-id=<id>` and uses it as the presented session for its occupancy check.",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "31bed12bdded71aa1b110c9fa0cd80a5cb224950",
+          "recorded_at": "2026-11-27T19:05:50Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "The agy `PreToolUse` lifecycle rewrite adds `--session-id=host:agy:v1:<id>` to a bare `deft verify:session-ritual` command, as it already does for `deft session:start`.",
-        "status": "proposed",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "31bed12bdded71aa1b110c9fa0cd80a5cb224950",
+          "recorded_at": "2026-11-27T19:05:50Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "When the lease owner runs `verify:session-ritual` and a gated step fails, the output gives owner recovery guidance for that step and never the foreign-occupant refusal.",
-        "status": "proposed",
-        "id": "clause.3"
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "31bed12bdded71aa1b110c9fa0cd80a5cb224950",
+          "recorded_at": "2026-11-27T19:05:50Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "With no `--session-id` and no ambient session identity, `verify:session-ritual` does not mint a random id and report it as a foreign presenter; it says that no session identity was presented and names the flag.",
-        "status": "proposed",
-        "id": "clause.4"
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "31bed12bdded71aa1b110c9fa0cd80a5cb224950",
+          "recorded_at": "2026-11-27T19:05:50Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Tests cover the owner with a failing gated step, the rewritten agy command, and the no-identity case.",
-        "status": "proposed",
-        "id": "clause.5"
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "31bed12bdded71aa1b110c9fa0cd80a5cb224950",
+          "recorded_at": "2026-11-27T19:05:50Z",
+          "recorded_by": "scope:complete"
+        }
       }
     ],
     "references": [
@@ -141,6 +176,33 @@
         "github_issue_id": 6640511806,
         "origin": "deftai/directive#7446",
         "id": "github.issue.6640511806"
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "2e6ea813c2fde7bb5421627f012cc217b628f633",
+        "prNumber": 7478,
+        "prBase": "master",
+        "mergeCommit": "31bed12bdded71aa1b110c9fa0cd80a5cb224950",
+        "deliveryBranch": "master",
+        "deliveryCommit": "31bed12bdded71aa1b110c9fa0cd80a5cb224950",
+        "verifiedAt": "2026-11-27T19:05:50Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          7449
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-27T19:05:50Z",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-27T19:05:50Z"
       }
     },
     "acceptance": {
@@ -204,6 +266,6 @@
       "ambiguity_attestation": "none_found"
     },
     "id": "github.issue.6640511806",
-    "updated": "2026-11-27T05:34:20Z"
+    "updated": "2026-11-27T19:05:50Z"
   }
 }
