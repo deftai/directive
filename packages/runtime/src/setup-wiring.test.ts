@@ -236,6 +236,41 @@ describe("runSetup package-relative wiring (Wave 2c / R9)", { timeout: 30_000 },
     expect(existsSync(join(root, `.cursor/hooks/deft-hook-${OUTER_SHA}.mjs`))).toBe(true);
   });
 
+  it("deposits one Claude UserPromptSubmit prompt.submit group; repair keeps a user's own (#7420)", () => {
+    const root = tempRoot();
+    runSetup({ operation: "install", from: "none", root });
+    const path = join(root, ".claude/settings.json");
+    const read = () =>
+      JSON.parse(readFileSync(path, "utf8")) as {
+        hooks: {
+          UserPromptSubmit?: Array<{
+            matcher?: string;
+            hooks: Array<{ command?: unknown; args?: unknown }>;
+          }>;
+        };
+      };
+    const managed = (group: { hooks: unknown[] }) =>
+      JSON.stringify(group).includes("prompt.submit");
+    expect(read().hooks.UserPromptSubmit?.filter(managed)).toHaveLength(1);
+    expect(read().hooks.UserPromptSubmit?.[0]?.matcher).toBeUndefined();
+    for (const rel of [".grok/hooks/deft.json", ".codex/hooks.json"]) {
+      expect(readFileSync(join(root, rel), "utf8")).not.toContain("UserPromptSubmit");
+    }
+    const withUser = read();
+    withUser.hooks.UserPromptSubmit?.push({
+      hooks: [{ command: "node user-prompt.mjs" }],
+    });
+    writeFileSync(
+      path,
+      `${JSON.stringify(withUser, null, 2)}
+`,
+      "utf8",
+    );
+    runSetup({ operation: "repair", from: "0.0.0", root });
+    expect(read().hooks.UserPromptSubmit?.filter(managed)).toHaveLength(1);
+    expect(readFileSync(path, "utf8")).toContain("node user-prompt.mjs");
+  });
+
   it("rewrites existing bare deft-hook entries (AC9.2)", () => {
     const root = tempRoot();
     mkdirSync(join(root, ".claude"), { recursive: true });

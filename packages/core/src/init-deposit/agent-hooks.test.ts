@@ -204,6 +204,50 @@ describe("writeAgentHookDeposit", () => {
     expect(again.hooks.SessionEnd).toHaveLength(1);
   });
 
+  it("deposits one Claude-only UserPromptSubmit -> prompt.submit group and keeps a user's own (#7420)", () => {
+    const root = project();
+    writeAgentHookDeposit(root);
+    const path = join(root, ".claude/settings.json");
+    const parsed = JSON.parse(readFileSync(path, "utf8")) as {
+      hooks: {
+        UserPromptSubmit?: Array<{ matcher?: string; hooks: Array<Record<string, unknown>> }>;
+      };
+    };
+    expect(parsed.hooks.UserPromptSubmit).toHaveLength(1);
+    expect(parsed.hooks.UserPromptSubmit?.[0]?.matcher).toBeUndefined();
+    expect(hostHookEntryText(parsed.hooks.UserPromptSubmit?.[0]?.hooks[0])).toBe(
+      expectedOuterCmd("claude", "prompt.submit"),
+    );
+    for (const other of [".grok/hooks/deft.json", ".cursor/hooks.json", ".codex/hooks.json"]) {
+      expect(readFileSync(join(root, other), "utf8")).not.toContain("UserPromptSubmit");
+    }
+    // Repair is idempotent and keeps a user's own UserPromptSubmit group.
+    const withUser = JSON.parse(readFileSync(path, "utf8")) as {
+      hooks: { UserPromptSubmit: unknown[] };
+    };
+    withUser.hooks.UserPromptSubmit.push({
+      hooks: [{ type: "command", command: "node user-prompt.mjs" }],
+    });
+    writeFileSync(
+      path,
+      `${JSON.stringify(withUser, null, 2)}
+`,
+      "utf8",
+    );
+    writeAgentHookDeposit(root);
+    writeAgentHookDeposit(root);
+    expect(
+      entryTexts(path).filter((text) => text === expectedOuterCmd("claude", "prompt.submit")),
+    ).toHaveLength(1);
+    expect(readFileSync(path, "utf8")).toContain("node user-prompt.mjs");
+    // Opting Claude out strips the managed group only.
+    writeProjectDefinition(root, { claude: false });
+    writeAgentHookDeposit(root);
+    const stripped = readFileSync(path, "utf8");
+    expect(stripped).toContain("node user-prompt.mjs");
+    expect(stripped).not.toContain("prompt.submit");
+  });
+
   it("deposits native Claude, Grok, Cursor, and Codex SessionStart/direct-write hooks", () => {
     const root = project();
     const lines: string[] = [];

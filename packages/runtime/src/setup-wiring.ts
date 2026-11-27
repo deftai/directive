@@ -883,7 +883,13 @@ function stripNestedManaged(
   const hooks = object(existing.hooks);
   if (hooks === null) return existing;
   const nextHooks: Record<string, unknown> = {};
-  for (const key of ["SessionStart", "PreToolUse", "PreCompact", "PostCompact"] as const) {
+  for (const key of [
+    "SessionStart",
+    "PreToolUse",
+    "PreCompact",
+    "PostCompact",
+    "UserPromptSubmit",
+  ] as const) {
     if (!(key in hooks)) continue;
     const filtered = Array.isArray(hooks[key])
       ? (hooks[key] as unknown[])
@@ -937,7 +943,7 @@ function keepCustomNestedGroups(entries: unknown[], host: string): unknown[] {
 function mergeNestedHost(
   existing: Record<string, unknown>,
   host: string,
-  options: { compact: boolean },
+  options: { compact: boolean; promptSubmit?: boolean },
 ): Record<string, unknown> {
   const hooks = object(existing.hooks) ?? {};
   const session = Array.isArray(hooks.SessionStart)
@@ -963,6 +969,12 @@ function mergeNestedHost(
       : [];
     nextHooks.PreCompact = [...preCompact, nestedGroup(host, "session.compact")];
     nextHooks.PostCompact = [...postCompact, nestedGroup(host, "session.compact")];
+  }
+  if (options.promptSubmit) {
+    const promptSubmit = Array.isArray(hooks.UserPromptSubmit)
+      ? keepCustomNestedGroups(hooks.UserPromptSubmit as unknown[], host)
+      : [];
+    nextHooks.UserPromptSubmit = [...promptSubmit, nestedGroup(host, "prompt.submit")];
   }
   return { ...existing, hooks: nextHooks };
 }
@@ -1035,7 +1047,7 @@ const HOST_HOOK_SPECS: Array<{
   {
     host: "claude",
     rel: ".claude/settings.json",
-    merge: (cfg) => mergeNestedHost(cfg, "claude", { compact: true }),
+    merge: (cfg) => mergeNestedHost(cfg, "claude", { compact: true, promptSubmit: true }),
     strip: (cfg) => stripNestedManaged(cfg, "claude"),
   },
   {

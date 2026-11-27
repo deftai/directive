@@ -490,7 +490,7 @@ function mergeNestedConfig(
   path: string,
   host: NestedHookHost,
   bin: string,
-  options: { compact?: boolean; sessionEnd?: boolean } = {},
+  options: { compact?: boolean; sessionEnd?: boolean; promptSubmit?: boolean } = {},
 ): Record<string, unknown> {
   const hooks = hooksObject(config, path);
   const session = eventArray(hooks, "SessionStart", path).filter(
@@ -526,6 +526,13 @@ function mergeNestedConfig(
     // No matcher: every end reason (clear, logout, prompt_input_exit, other) releases.
     hooks.SessionEnd = [...sessionEnd, nestedGroup(bin, host, "session.end")];
   }
+  if (options.promptSubmit) {
+    // #7420: no matcher (UserPromptSubmit has none); the delegation arm prompt reads it.
+    const promptSubmit = eventArray(hooks, "UserPromptSubmit", path).filter(
+      (entry) => !isManagedNestedGroup(entry),
+    );
+    hooks.UserPromptSubmit = [...promptSubmit, nestedGroup(bin, host, "prompt.submit")];
+  }
   return { ...config, hooks };
 }
 
@@ -542,6 +549,7 @@ function stripManagedNestedConfig(
     "PreCompact",
     "PostCompact",
     "SessionEnd",
+    "UserPromptSubmit",
   ] as const) {
     if (!(key in hooks)) continue;
     const filtered =
@@ -810,6 +818,7 @@ export function writeAgentHookDeposit(
         mergeNestedConfig(config, path, "claude", binFor("claude"), {
           compact: true,
           sessionEnd: true,
+          promptSubmit: true,
         }),
       strip: (config, path) => stripManagedNestedConfig(config, path, "claude"),
     },

@@ -902,6 +902,11 @@ if (verdict === "valid") {
   quietAllow(host, event);
 }
 
+// #7420: a prompt is never blocked by the stub; a missing pin allows quietly.
+if (event === "prompt.submit" && !existsSync(join(root, PIN_REL))) {
+  quietAllow(host, event);
+}
+
 const pin = join(root, PIN_REL);
 if (!existsSync(pin)) {
   const warning = killSwitchWarning(root, verdict);

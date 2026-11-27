@@ -410,6 +410,20 @@ describe("host-hook-outer eligibility conformance (#6122)", () => {
   });
 });
 
+describe("host-hook-outer prompt.submit never blocks a prompt (#7420)", () => {
+  it.each(HOSTS)("%s: a missing pin exits 0 with empty stdout", (host) => {
+    const root = mkdtempSync(join(tmpdir(), `outer-7420-prompt-${host}-`));
+    try {
+      gitInit(root);
+      const r = runOuter(root, host, {}, "prompt.submit", [], "{}");
+      expect(r.status).toBe(0);
+      expect(String(r.stdout ?? "")).toBe("");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+});
+
 describe("host-hook-outer bytes stay put (#6613)", () => {
   it("pins the deposited outer sha8 so byte changes are deliberate", () => {
     // The outer `.mjs` bytes must not churn consumer hook paths; outer-byte
@@ -426,7 +440,9 @@ describe("host-hook-outer bytes stay put (#6613)", () => {
     // bc294904 -> eb73f41c.
     // #7347 changed them on purpose (agy missing-runtime install admit reads the
     // real `run_command` / `toolCall.args.CommandLine` payload): eb73f41c -> aee61ba9.
-    expect(hostHookOuterSha8()).toBe("aee61ba9");
+    // #7420 changed them on purpose (prompt.submit never blocks a prompt: a
+    // missing pin allows quietly): aee61ba9 -> 869d8615.
+    expect(hostHookOuterSha8()).toBe("869d8615");
   });
 });
 
@@ -563,7 +579,6 @@ describe("host-hook-outer blocks the tool call when it cannot decide (#6201 / #6
     "session.start",
     "session.compact",
     "session.end",
-    "prompt.submit",
   ])("non-tool event %s keeps exit 1 on Claude/Codex/Cursor (D-018)", (event) => {
     withProject("outer-6201-event-", (root) => {
       for (const host of ["claude", "codex", "cursor"] as const) {
