@@ -49,6 +49,12 @@
         }
       }
     ],
+    "x-directive/intentConstraint": {
+      "constraints": [
+        { "value": "30", "unit": "s-cursor-session-hook-timeout", "rejectionScope": "invocation" },
+        { "value": "30", "unit": "s-nested-session-hook-timeout", "rejectionScope": "invocation" }
+      ]
+    },
     "references": [
       {
         "uri": "https://github.com/deftai/directive/issues/7450",
@@ -160,7 +166,10 @@
           "packages/runtime/src/setup-wiring.ts",
           "packages/runtime/src/setup-wiring.test.ts",
           "packages/runtime/src/setup-wiring-ovpr-hooks-red.test.ts",
-          "changelog.d/7450-sessionstart-timeout-30s.md"
+          "changelog.d/7450-sessionstart-timeout-30s.md",
+          ".deft/intent-constraint/github.issue.6640700814.json",
+          "changelog.d/7450-intent-record.md",
+          "changelog.d/7450-remint-record.md"
         ],
         "file_scope_confidence": "medium",
         "depends_on": [],

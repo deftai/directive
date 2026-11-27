@@ -3,6 +3,17 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
+import type { AgentHookInspection } from "../init-deposit/agent-hooks.js";
+import type {
+  AgentHookReadinessHostResult,
+  AgentHookReadinessOptions,
+  AgentHookReadinessResult,
+} from "../verify-env/agent-hook-readiness.js";
+import {
+  LIVE_PROBE_UNKNOWN_HOST_DEADLINE_MS,
+  LIVE_PROBE_WRITE_BUDGET_MS,
+} from "../verify-env/agent-hooks-live-probe.js";
+import { nextAgentHookHostEntry } from "./agent-hook-allowance.js";
 import type { GitRunner } from "./git.js";
 import { defaultGitRunner } from "./git.js";
 import {
@@ -12,7 +23,13 @@ import {
   verifySessionRitual,
   writeRitualState,
 } from "./index.js";
-import { callMain, defaultRitualRunner, runCacheFreshMain } from "./ritual-entrypoint.js";
+import {
+  callMain,
+  type DefaultRitualRunnerSeams,
+  defaultRitualRunner,
+  type RitualRunContext,
+  runCacheFreshMain,
+} from "./ritual-entrypoint.js";
 
 function initRepo(): { root: string; head: string } {
   const root = mkdtempSync(join(tmpdir(), "session-default-runner-"));
@@ -203,5 +220,251 @@ describe("verifySessionRitual gated tier via defaultRitualRunner", () => {
     ]);
     expect(code).toBe(0);
     rmSync(root, { recursive: true, force: true });
+  });
+});
+
+describe("agent_hooks step scope and allowance (#7416)", () => {
+  const COMMAND = ["verify:hooks-installed", "--scope=agent", "--live"];
+  const NOW = new Date("2026-11-27T10:00:00Z");
+  const IDENTITY = { path: "/bin/deft-hook", size: 10, mtimeMs: 5 };
+  const HOSTS = ["claude", "grok", "cursor", "codex", "agy"] as const;
+
+  const registrationsFor = (): AgentHookInspection[] =>
+    HOSTS.map((host) => ({
+      host,
+      path: ".claude/settings.json" as AgentHookInspection["path"],
+      status: "healthy",
+      detail: "ok",
+      compactSupport: "deposited",
+      sessionEndSupport: "deposited",
+      sessionEndRegistered: null,
+    })) as unknown as AgentHookInspection[];
+
+  function readiness(
+    statuses: Partial<
+      Record<(typeof HOSTS)[number], AgentHookReadinessHostResult["functionality"]>
+    >,
+  ): AgentHookReadinessResult {
+    const probed = HOSTS.filter((host) => statuses[host] !== undefined);
+    const failing = probed.filter((host) => statuses[host] !== "functional");
+    const timeoutOnly =
+      failing.length > 0 && failing.every((host) => statuses[host] === "timed-out");
+    return {
+      code: failing.length === 0 ? 0 : 1,
+      message: failing.length === 0 ? "hooks ready" : "❌ hooks failed",
+      stream: failing.length === 0 ? "stdout" : "stderr",
+      skipped: false,
+      liveStatus:
+        failing.length === 0 ? "functional" : timeoutOnly ? "timed-out" : "non-functional",
+      hosts: HOSTS.map((host) => ({
+        host,
+        registration: "registered",
+        functionality: statuses[host] ?? "not-run",
+        trust: "not-applicable",
+        interception: "not-directly-verified",
+      })),
+      registrations: registrationsFor(),
+      liveProbe: {
+        code: failing.length === 0 ? 0 : 1,
+        message: "probe",
+        cases: failing.map((host) => ({
+          host,
+          event: "tool.before",
+          fixture: "allow",
+          issue: statuses[host] === "timed-out" ? "timed-out" : "empty-stdout",
+          detail: "x",
+        })),
+        hosts: probed.map((host) => ({ host, status: statuses[host] as "functional" })),
+        durationMs: 1,
+        commandIdentity: IDENTITY,
+      },
+    };
+  }
+
+  function run(
+    ready: AgentHookReadinessResult,
+    context: RitualRunContext,
+    extra: Partial<DefaultRitualRunnerSeams> = {},
+  ) {
+    const calls: { options: AgentHookReadinessOptions | undefined }[] = [];
+    const result = defaultRitualRunner(
+      COMMAND,
+      "/project",
+      {
+        evaluateAgentHookReadiness: (_root, options) => {
+          calls.push({ options });
+          return ready;
+        },
+        resolveGraceMs: () => 8 * 60 * 60 * 1000,
+        ...extra,
+      },
+      context,
+    );
+    return { result, calls };
+  }
+
+  it("a known host probes only itself under the write budget", () => {
+    const { result, calls } = run(readiness({ claude: "functional" }), {
+      surface: "write",
+      host: "claude",
+      now: NOW,
+    });
+    expect(calls[0]?.options).toMatchObject({
+      hosts: ["claude"],
+      probeDeadlineMs: LIVE_PROBE_WRITE_BUDGET_MS,
+    });
+    expect(result.code).toBe(0);
+    expect(Object.keys(result.agentHookHosts ?? {})).toEqual(["claude"]);
+    expect(result.agentHookHosts?.claude).toMatchObject({
+      status: "functional",
+      allowance_open: true,
+    });
+  });
+
+  it("an unknown host probes every host under the fallback deadline with no allowance", () => {
+    let takes = 0;
+    const { result, calls } = run(
+      readiness({ claude: "functional", grok: "timed-out" }),
+      { surface: "write", host: "not-a-host", now: NOW },
+      {
+        takeAllowance: () => {
+          takes += 1;
+          return { admitted: true, entry: null, reason: "x", saveFailed: false };
+        },
+      },
+    );
+    expect(calls[0]?.options?.hosts).toBeUndefined();
+    expect(calls[0]?.options?.probeDeadlineMs).toBe(LIVE_PROBE_UNKNOWN_HOST_DEADLINE_MS);
+    expect(takes).toBe(0);
+    expect(result.code).toBe(1);
+    expect(result.agentHookHosts?.grok).toMatchObject({ status: "timed-out", ok: false });
+  });
+
+  it("admits one applying-host timeout with a warning when the allowance is taken", () => {
+    const entry = nextAgentHookHostEntry(
+      null,
+      { status: "timed-out", ok: true, identity: null, registrationDigest: null },
+      NOW,
+    );
+    const { result } = run(
+      readiness({ grok: "timed-out" }),
+      { surface: "write", host: "grok", now: NOW },
+      { takeAllowance: () => ({ admitted: true, entry, reason: "ok", saveFailed: false }) },
+    );
+    expect(result.code).toBe(0);
+    expect(result.stdout).toContain("admitted once");
+    expect(result.agentHookHosts?.grok).toEqual(entry);
+  });
+
+  it("blocks the applying-host timeout when the allowance is refused or cannot be saved", () => {
+    const refused = run(
+      readiness({ grok: "timed-out" }),
+      { surface: "write", host: "grok", now: NOW },
+      {
+        takeAllowance: () => ({
+          admitted: false,
+          entry: null,
+          reason: "closed",
+          saveFailed: false,
+        }),
+      },
+    );
+    expect(refused.result.code).toBe(1);
+    expect(refused.result.stderr).toContain("no timeout allowance: closed");
+    const unsaved = run(
+      readiness({ grok: "timed-out" }),
+      { surface: "write", host: "grok", now: NOW },
+      { takeAllowance: () => ({ admitted: false, entry: null, reason: "lock", saveFailed: true }) },
+    );
+    expect(unsaved.result.code).toBe(1);
+    expect(unsaved.result.stderr).toContain("the write is refused: lock");
+  });
+
+  it.each([
+    "non-functional",
+    "unavailable",
+  ] as const)("blocks a %s applying host without consulting the allowance", (status) => {
+    let takes = 0;
+    const { result } = run(
+      readiness({ claude: status }),
+      { surface: "write", host: "claude", now: NOW },
+      {
+        takeAllowance: () => {
+          takes += 1;
+          return { admitted: true, entry: null, reason: "x", saveFailed: false };
+        },
+      },
+    );
+    expect(result.code).toBe(1);
+    expect(takes).toBe(0);
+    expect(result.agentHookHosts?.claude).toMatchObject({ status, allowance_open: false });
+  });
+
+  it("session:ready style runs pass with a warning on timeout-only and fail otherwise", () => {
+    const timeoutOnly = run(readiness({ claude: "functional", grok: "timed-out" }), {
+      surface: "ritual",
+      now: NOW,
+    });
+    expect(timeoutOnly.calls[0]?.options).toEqual({});
+    expect(timeoutOnly.result.code).toBe(0);
+    expect(timeoutOnly.result.stdout).toContain("⚠");
+    expect(timeoutOnly.result.agentHookHosts?.grok).toMatchObject({
+      status: "timed-out",
+      ok: true,
+      allowance_open: false,
+    });
+    expect(timeoutOnly.result.agentHookHosts?.claude).toMatchObject({ status: "functional" });
+    const mixed = run(readiness({ grok: "timed-out", cursor: "non-functional" }), {
+      surface: "ritual",
+      now: NOW,
+    });
+    expect(mixed.result.code).toBe(1);
+  });
+
+  it("a structural failure is not a timeout pass on the ritual surface", () => {
+    const result = defaultRitualRunner(
+      COMMAND,
+      "/project",
+      {
+        evaluateAgentHookReadiness: () => ({
+          code: 1,
+          message: "❌ structural drift",
+          stream: "stderr",
+          skipped: false,
+          liveStatus: "not-run",
+          hosts: [],
+          registrations: registrationsFor().map((entry) =>
+            entry.host === "grok"
+              ? ({ ...entry, status: "drifted" } as AgentHookInspection)
+              : entry,
+          ),
+          liveProbe: null,
+        }),
+      },
+      { surface: "ritual", now: NOW },
+    );
+    expect(result.code).toBe(1);
+  });
+
+  it("a failure that names no host result still records a closing entry for the applying host", () => {
+    const result = defaultRitualRunner(
+      COMMAND,
+      "/project",
+      {
+        evaluateAgentHookReadiness: () => ({
+          code: 1,
+          message: "❌ evaluator failed",
+          stream: "stderr",
+          skipped: false,
+          liveStatus: "not-run",
+          hosts: [],
+          registrations: registrationsFor(),
+          liveProbe: null,
+        }),
+      },
+      { surface: "write", host: "claude", now: NOW },
+    );
+    expect(result.code).toBe(1);
+    expect(result.agentHookHosts?.claude).toMatchObject({ ok: false, allowance_open: false });
   });
 });

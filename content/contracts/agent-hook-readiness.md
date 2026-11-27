@@ -38,7 +38,7 @@ Host sandbox ownership may remain, but Continuity requires a documented durable 
 
 - ! Structural inspection runs first. A missing or drifted enabled registration fails before any subprocess probe.
 - ! On structural green, the installed `deft-hook` shim is invoked directly for allow and deny fixtures. Resolving and running the full `deft` CLI is not a fallback.
-- ! The host-specific codecs for Claude, Grok, Cursor, and Codex are checked. Missing command, timeout, empty or invalid JSON where a decision is required, and wrong allow/deny envelopes fail closed.
+- ! The host-specific codecs for Claude, Grok, Cursor, Codex, and agy are checked. Missing command, timeout, empty or invalid JSON where a decision is required, and wrong allow/deny envelopes fail closed. A timeout is the one result with a bounded exception on a write (see **Write-path scope and the timeout allowance** below); outside that exception it blocks.
 - ! Exit `0` means all enabled hosts are structurally registered and functionally green (or every host is intentionally disabled). Exit `1` means drift/non-functional output. Exit `2` means the installed shim is unavailable or configuration cannot be evaluated.
 - ! A maintainer source checkout skips this consumer-only gate; missing consumer deposits in the Directive framework repository are not failures.
 - ⊗ Treat Codex `manual-review-required` as a default hard failure. Trust remains a distinct operator-review state in v1.
@@ -51,7 +51,7 @@ The typed opt-out is `deft policy:disable-host-hooks --host <host> --confirm`. I
 deft policy:show --field=hostHooks
 ```
 
-Only enabled hosts can fail readiness. An opted-out host reports `registration=disabled`, `functionality=disabled`, `trust=disabled`, and `interception=disabled`; it is not probed and repair output must not tell the operator to reinstall that host. When a failed enabled host is unused, recovery copy names the confirm-gated disable verb and the guardrail cost — not ungated hand-edit. Hand-edit of `plan.policy.hostHooks` plus `directive install --repair` still strips (human high-trust bypass). Timeout is not unused-host opt-out.
+Only enabled hosts can fail readiness, and on a write only the applying host is probed (below); an enabled host that the session does not use never blocks that session's writes. An opted-out host reports `registration=disabled`, `functionality=disabled`, `trust=disabled`, and `interception=disabled`; it is not probed and repair output must not tell the operator to reinstall that host. When a failed enabled host is unused, recovery copy names the confirm-gated disable verb and the guardrail cost — not ungated hand-edit. Hand-edit of `plan.policy.hostHooks` plus `directive install --repair` still strips (human high-trust bypass). Timeout is not unused-host opt-out.
 
 This policy is independent of `.githooks/` and `hostSlashCommands`.
 
@@ -59,12 +59,22 @@ This policy is independent of `.githooks/` and `hostSlashCommands`.
 
 - `directive install` and `directive install --repair` run and report readiness after depositing hooks. A readiness failure returns non-zero without rolling back the completed deposit; JSON reports `deposit_completed: true` separately from `success` and `agent_hook_readiness.ready`.
 - `deft verify:session-ritual -- --tier=gated` owns a non-deferrable `agent_hooks` step that invokes the canonical live command. It does not route through doctor.
+- ! The gated verify and `deft session:ready` still probe every enabled host and update the same per-host `agent_hooks` entries. A host whose only failure is a timeout is recorded `timed-out` with a warning and does not fail the step; non-functional, unavailable and structural failures still fail it. The printed timeout recovery says that each write re-checks its own host.
 - `deft session:ready` forces that gated hook check once even when cached gated state looked fresh, so later registration drift cannot be hidden by the fast path.
 - Cold `deft session:start` does not run the live probe. It remains the quick-tier ceremony and does not record an `agent_hooks` success.
 
+## Write-path scope and the timeout allowance (#7416)
+
+- ! The write path re-runs the check on every gated write (#3738), narrowed to the applying host: the hook call's host (`input.host`) is the only host live-probed, through the `hosts` seam. Structural registration inspection and hook-command resolution stay live on every write.
+- ! If the applying host is unknown, the write probes every enabled host, blocks on any failure (timeout included), has no timeout allowance, and runs under an overall deadline of **20 seconds**. When the deadline runs out before every host passes, the write is refused and the unfinished cases are reported `timed-out`, never `non-functional`.
+- ! On the applying host, `non-functional` and `unavailable` block. A `timed-out` result blocks unless the one-timeout allowance admits it.
+- ! Ritual state records `agent_hooks` per host (status, time, hook-command identity, allowance). A write merges only its own host's entry and keeps the others; a write by host H reads only H's entry, so one host's green never vouches for another host, granted members included.
+- ! One-timeout allowance: each host entry keeps the last `functional` result with the resolved hook-command identity (path, size, mtime) and the structural registration digest, and whether the allowance is open. Only a `functional` result opens it; a timeout never renews it. A newer `non-functional`, `unavailable` or structural result closes it until a new `functional` result. An applying-host timeout is admitted, with a warning, only when the allowance is open, the identity and digest match the current ones, and the functional record is younger than the grace window, which equals the ritual freshness window (`plan.policy.sessionRitualStalenessHours`). Checking and closing the allowance is one step inside the ritual-state lock: it re-reads the host's entry, admits only if still open, and records the timeout, which closes it. If that step cannot be saved, the write is refused. A second timeout before a new `functional` result blocks.
+- ⊗ Let a timeout renew the functional record, or let one host's entry admit another host's write.
+
 ## Probe budget
 
-Each host fixture has a hard timeout of **1.5 seconds**, **one retry** after a timeout, and each host stops after its first failed fixture. With four enabled hosts, two fixtures, and one retry, the absolute timeout ceiling is **24 seconds** (still under Cursor `tool.before` 30 seconds). A `timed-out` case is not mapped as non-functional and must not recommend reinstall or hostHooks disable. Healthy local shims are expected to finish well below that ceiling. The gate does not inherit doctor's 4-hour or 24-hour throttle.
+Each host fixture has a hard timeout of **4 seconds** (`LIVE_PROBE_CASE_TIMEOUT_MS`), **one retry** after a timeout, and each host stops after its first failed fixture. The write path stays below the `tool.before` limit of **30 seconds** minus a safety margin of **5 seconds**, so total probing in one write is capped at **25 seconds** (`LIVE_PROBE_WRITE_BUDGET_MS`). A known host runs two fixtures with one retry each, so its worst case is **16 seconds**. The unknown-host fallback has its own overall deadline of **20 seconds** (`LIVE_PROBE_UNKNOWN_HOST_DEADLINE_MS`). A `timed-out` case is not mapped as non-functional and must not recommend reinstall or hostHooks disable. Healthy local shims are expected to finish well below these ceilings. `session:ready` and the gated verify have no tool limit and probe every enabled host without that deadline. The gate does not inherit doctor's 4-hour or 24-hour throttle, and no throttle or cache stands in for the per-write check of the applying host.
 
 ## Implementation anchors
 
@@ -73,4 +83,5 @@ Each host fixture has a hard timeout of **1.5 seconds**, **one retry** after a t
 - CLI: `packages/cli/src/verify-hooks-installed.ts`
 - Mutation ritual: `packages/core/src/session/verify-session-ritual.ts`
 - One-shot readiness: `packages/core/src/session/session-ready.ts`
+- Per-host entries and the timeout allowance: `packages/core/src/session/agent-hook-allowance.ts`
 - Post-deposit reporting: `packages/core/src/init-deposit/init-deposit.ts`, `packages/core/src/init-deposit/refresh.ts`

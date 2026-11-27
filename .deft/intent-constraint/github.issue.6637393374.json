@@ -1,0 +1,35 @@
+{
+  "schema": "deft.intent-constraint.v1",
+  "planId": "github.issue.6637393374",
+  "xbriefRelPath": "xbrief/active/2026-11-27-7416-bughookswin32-agent-hooks-live-probe-timeouts-on-non-active.xbrief.json",
+  "approvedAt": "2026-11-27T06:33:11Z",
+  "constraints": [
+    {
+      "value": "4000",
+      "unit": "ms-live-probe-case-timeout",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "30000",
+      "unit": "ms-host-tool-before-limit",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "5000",
+      "unit": "ms-tool-before-safety-margin",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "20000",
+      "unit": "ms-unknown-host-probe-deadline",
+      "rejectionScope": "invocation"
+    }
+  ],
+  "humanApproval": {
+    "kind": "declared",
+    "actor": "scott-approved-values",
+    "mintedAt": "2026-11-27T06:33:11Z",
+    "mintedVia": "scope:record-intent-constraint"
+  },
+  "contractDigest": "50bd7eba2e2b7b0dd944453beb598e954947c2f0e3c29b93c7456c2843c8daf3"
+}

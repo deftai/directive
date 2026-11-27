@@ -1,7 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
   LIVE_PROBE_BROKEN_RECOVERY,
+  LIVE_PROBE_CASE_RETRY_COUNT,
+  LIVE_PROBE_CASE_TIMEOUT_MS,
+  LIVE_PROBE_HOST_TOOL_BEFORE_LIMIT_MS,
+  LIVE_PROBE_KNOWN_HOST_WORST_CASE_MS,
   LIVE_PROBE_TIMEOUT_RECOVERY,
+  LIVE_PROBE_TOOL_BEFORE_SAFETY_MARGIN_MS,
+  LIVE_PROBE_UNKNOWN_HOST_DEADLINE_MS,
+  LIVE_PROBE_WRITE_BUDGET_MS,
   probeAgentHooksLive,
   quoteWindowsCmdArg,
 } from "./agent-hooks-live-probe.js";
@@ -388,6 +395,104 @@ describe("probeAgentHooksLive", () => {
       spawnHook: () => ({ status: 0, stdout: "", stderr: "" }),
     });
     expect(result.message).toContain(LIVE_PROBE_BROKEN_RECOVERY);
+  });
+
+  describe("write budget (#7416)", () => {
+    it("keeps the named constants at the operator values and under the host limit", () => {
+      expect(LIVE_PROBE_CASE_TIMEOUT_MS).toBe(4_000);
+      expect(LIVE_PROBE_CASE_RETRY_COUNT).toBe(1);
+      expect(LIVE_PROBE_TOOL_BEFORE_SAFETY_MARGIN_MS).toBe(5_000);
+      expect(LIVE_PROBE_UNKNOWN_HOST_DEADLINE_MS).toBe(20_000);
+      expect(LIVE_PROBE_WRITE_BUDGET_MS).toBe(25_000);
+      // Worst-case known-host write probe: one host, both fixtures, retries.
+      expect(LIVE_PROBE_KNOWN_HOST_WORST_CASE_MS).toBe(16_000);
+      const limit = LIVE_PROBE_HOST_TOOL_BEFORE_LIMIT_MS - LIVE_PROBE_TOOL_BEFORE_SAFETY_MARGIN_MS;
+      expect(LIVE_PROBE_KNOWN_HOST_WORST_CASE_MS).toBeLessThan(limit);
+      expect(LIVE_PROBE_UNKNOWN_HOST_DEADLINE_MS).toBeLessThan(limit);
+    });
+
+    it("a known host that times out on every attempt spends at most the worst case", () => {
+      let spent = 0;
+      let calls = 0;
+      const result = probeAgentHooksLive("/project", {
+        hosts: ["claude"],
+        resolveCommand: () => "/usr/bin/deft-hook",
+        deadlineMs: LIVE_PROBE_WRITE_BUDGET_MS,
+        clockMs: () => spent,
+        spawnHook: ({ timeoutMs }) => {
+          calls += 1;
+          spent += timeoutMs;
+          return { status: 2, stdout: "", stderr: "", timedOut: true };
+        },
+      });
+      // The first failed fixture stops the host: allow + one retry.
+      expect(calls).toBe(LIVE_PROBE_CASE_RETRY_COUNT + 1);
+      expect(spent).toBeLessThanOrEqual(LIVE_PROBE_KNOWN_HOST_WORST_CASE_MS);
+      expect(spent).toBeLessThan(
+        LIVE_PROBE_HOST_TOOL_BEFORE_LIMIT_MS - LIVE_PROBE_TOOL_BEFORE_SAFETY_MARGIN_MS,
+      );
+      expect(result.hosts[0]).toMatchObject({ host: "claude", status: "timed-out" });
+    });
+
+    it("the unknown-host fallback stops at its overall deadline and reports timed-out", () => {
+      let spent = 0;
+      const result = probeAgentHooksLive("/project", {
+        hosts: ["claude", "grok", "cursor", "codex", "agy"],
+        resolveCommand: () => "/usr/bin/deft-hook",
+        deadlineMs: LIVE_PROBE_UNKNOWN_HOST_DEADLINE_MS,
+        clockMs: () => spent,
+        spawnHook: ({ timeoutMs, stdin }) => {
+          // Every case runs to its clamped timeout without ever finishing.
+          spent += timeoutMs;
+          return stdin.length > 0
+            ? { status: 2, stdout: "", stderr: "", timedOut: true }
+            : { status: 0, stdout: "", stderr: "" };
+        },
+      });
+      expect(spent).toBeLessThanOrEqual(LIVE_PROBE_UNKNOWN_HOST_DEADLINE_MS);
+      expect(result.code).toBe(1);
+      expect(result.hosts).toHaveLength(5);
+      for (const entry of result.hosts) expect(entry.status).toBe("timed-out");
+      for (const entry of result.cases) expect(entry.issue).toBe("timed-out");
+      expect(result.cases.some((entry) => /deadline/.test(entry.detail))).toBe(true);
+    });
+
+    it("clamps each attempt to the time left before the deadline", () => {
+      let spent = 0;
+      const seen: number[] = [];
+      probeAgentHooksLive("/project", {
+        hosts: ["claude"],
+        resolveCommand: () => "/usr/bin/deft-hook",
+        deadlineMs: 5_000,
+        clockMs: () => spent,
+        spawnHook: ({ timeoutMs }) => {
+          seen.push(timeoutMs);
+          spent += timeoutMs;
+          return { status: 2, stdout: "", stderr: "", timedOut: true };
+        },
+      });
+      expect(seen).toEqual([LIVE_PROBE_CASE_TIMEOUT_MS, 1_000]);
+    });
+
+    it("returns the resolved hook-command identity (path, size, mtime)", () => {
+      const result = probeAgentHooksLive("/project", {
+        hosts: ["claude"],
+        resolveCommand: () => "/usr/bin/deft-hook",
+        statCommand: () => ({ size: 12, mtimeMs: 3456.9 }),
+        spawnHook: ({ stdin }) => ({
+          status: 0,
+          stdout: stdin.includes("Task")
+            ? '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"x"}}'
+            : "",
+          stderr: "",
+        }),
+      });
+      expect(result.commandIdentity).toEqual({
+        path: "/usr/bin/deft-hook",
+        size: 12,
+        mtimeMs: 3456,
+      });
+    });
   });
 
   it.each([

@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #7438",
-    "updated": "2026-11-27T04:41:44Z"
+    "updated": "2026-11-27T15:57:39Z"
   },
   "plan": {
     "title": "[framework-gap] directive upgrade to 0.132.0 omits .agents/hooks.json, .agents/deft-hook-*.mjs, and Claude SessionEnd hook until verify:hooks-installed --repair runs",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "[framework-gap] directive upgrade to 0.132.0 omits .agents/hooks.json, .agents/deft-hook-*.mjs, and Claude SessionEnd hook until verify:hooks-installed --repair runs",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/7438",
@@ -15,43 +15,99 @@
     "items": [
       {
         "title": "`directive install` and `directive upgrade` deposit the agy host hooks when `plan.policy.hostHooks.agy` is on and the committed verdict admits them: the `zzzz-directive` entry in `.agents/hooks.json` and `.agents/deft-hook-<sha8>.mjs`, so `directive doctor --full` reports `agent-hooks-registration` green right after the command.",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "457ee459035d377930ea9f2349efd9d616b71878",
+          "recorded_at": "2026-11-27T15:57:39Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "`.deft/GENERATION.json` ownership records the `zzzz-directive` entry of `.agents/hooks.json` (entry-owned, not the whole file) and the agy outer `.agents/deft-hook-<sha8>.mjs` (whole-file owned).",
-        "status": "proposed",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "457ee459035d377930ea9f2349efd9d616b71878",
+          "recorded_at": "2026-11-27T15:57:39Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "`directive uninstall` removes only the `zzzz-directive` entry from `.agents/hooks.json`, keeps foreign hook entries byte for byte, deletes the file only when it would be empty, and removes the agy outer.",
-        "status": "proposed",
-        "id": "clause.3"
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "457ee459035d377930ea9f2349efd9d616b71878",
+          "recorded_at": "2026-11-27T15:57:39Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "The doctor host-config list, the removal steps, and the launcher host lists (`HOST_HOOK_RELS`, `HOST_HOOK_OUTER_DIRS`, the repair opt-out disclosure) include agy.",
-        "status": "proposed",
-        "id": "clause.4"
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "457ee459035d377930ea9f2349efd9d616b71878",
+          "recorded_at": "2026-11-27T15:57:39Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Install and upgrade register the Claude `SessionEnd` hook in `.claude/settings.json`.",
-        "status": "proposed",
-        "id": "clause.5"
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "457ee459035d377930ea9f2349efd9d616b71878",
+          "recorded_at": "2026-11-27T15:57:39Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Hygiene claims only Directive's own entries under `.agents/` (the `zzzz-directive` hook entry and Directive-managed skills); a foreign `.agents/hooks.json` entry or foreign skill is never reported or stripped as Directive's.",
-        "status": "proposed",
-        "id": "clause.6"
+        "status": "completed",
+        "id": "clause.6",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "457ee459035d377930ea9f2349efd9d616b71878",
+          "recorded_at": "2026-11-27T15:57:39Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "The host-tool-coverage audit covers agy, treating the single `*` matcher as every tool.",
-        "status": "proposed",
-        "id": "clause.7"
+        "status": "completed",
+        "id": "clause.7",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "457ee459035d377930ea9f2349efd9d616b71878",
+          "recorded_at": "2026-11-27T15:57:39Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "The outer install-admit test includes an agy `run_command` / `toolCall.args.CommandLine` payload.",
-        "status": "proposed",
-        "id": "clause.8"
+        "status": "completed",
+        "id": "clause.8",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "457ee459035d377930ea9f2349efd9d616b71878",
+          "recorded_at": "2026-11-27T15:57:39Z",
+          "recorded_by": "scope:complete"
+        }
       }
     ],
     "references": [
@@ -295,9 +351,37 @@
           "agy hooks installed, owned, diagnosed and uninstalled; Claude SessionEnd registered by install and upgrade"
         ],
         "model_tier": "standard"
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "bcedfe56016123a1bc2af62bab7f8ed495d4265f",
+        "prNumber": 7459,
+        "prBase": "master",
+        "mergeCommit": "457ee459035d377930ea9f2349efd9d616b71878",
+        "deliveryBranch": "master",
+        "deliveryCommit": "f27d3b11b65d441b225d127872eedc05695f5c9d",
+        "verifiedAt": "2026-11-27T15:57:39Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          7439,
+          7464
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-27T15:57:39Z",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-27T15:57:39Z"
       }
     },
     "id": "github.issue.6639978653",
-    "updated": "2026-11-27T04:41:44Z"
+    "updated": "2026-11-27T15:57:39Z"
   }
 }

@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "xbriefRelPath": "xbrief/active/2026-11-27-7450-framework-gap-deposited-5-second-sessionstart-hook-timeout-i.xbrief.json",
+  "planId": "github.issue.6640700814",
+  "approvedAt": "2026-11-27T17:33:04Z",
+  "fileScope": [
+    ".deft/intent-constraint/github.issue.6640700814.json",
+    "changelog.d/7450-intent-record.md",
+    "changelog.d/7450-remint-record.md",
+    "changelog.d/7450-sessionstart-timeout-30s.md",
+    "packages/core/src/coverage-applicability/evaluate.test.ts",
+    "packages/core/src/coverage-applicability/evaluate.ts",
+    "packages/core/src/init-deposit/agent-hooks.test.ts",
+    "packages/core/src/init-deposit/agent-hooks.ts",
+    "packages/core/src/init-deposit/host-hook-outer.test.ts",
+    "packages/core/src/session/ritual-state-lock.test.ts",
+    "packages/runtime/src/setup-wiring-ovpr-hooks-red.test.ts",
+    "packages/runtime/src/setup-wiring.test.ts",
+    "packages/runtime/src/setup-wiring.ts"
+  ],
+  "fileScopeDigest": "62665a5441efb8792f021c3e840a7179899335cd7a7e18e0dfb8be7403d09ca1",
+  "humanApproval": {
+    "kind": "operator",
+    "actor": "scott",
+    "mintedAt": "2026-11-27T17:33:01Z",
+    "mintedVia": "scope:record-approved-scope"
+  },
+  "intentDigest": "351491034f7ce5f9a596d69a3a523776935a38e87421db85511070719117f695",
+  "digestAlgo": "intent-extract-v1",
+  "authHashV1": "sha256:27ae6c003c385686a536dd62f349c53923348c2155a71a6c0544d60ffd3080e8"
+}
