@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #7378",
-    "updated": "2026-11-26T17:15:12Z"
+    "updated": "2026-11-27T00:31:17Z"
   },
   "plan": {
     "title": "feat(harness): admit agy hook activation under sort-last + doctor integrity mitigation (#7332)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "feat(harness): admit agy hook activation under sort-last + doctor integrity mitigation (#7332)",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/7378",
@@ -16,78 +16,189 @@
     "items": [
       {
         "title": "Directive's agy hook entry name is one constant chosen to run after ordinary names. The name is a convenience; the ordering predicate carries the safety claim. Admission rests on observations of the actual chosen name against representative adversarial neighbors (earlier, later, equal, prefix-extending, out-of-alphabet) on the observed agy version, not on a claim that the name dominates the namespace.",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e338a3159eed2efaf1bc9e7aadfe32f588a5e879",
+          "recorded_at": "2026-11-27T00:31:17Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "One pure ordering predicate reads the effective agy hook set and reports every foreign `PreToolUse` entry that runs at or after Directive's entry. It counts as at-or-after any name outside the observed alphabet, any name that equals, starts with or extends Directive's name, and any entry whose order it cannot determine. It never filters by `matcher`. An unparseable config is a finding.",
-        "status": "proposed",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e338a3159eed2efaf1bc9e7aadfe32f588a5e879",
+          "recorded_at": "2026-11-27T00:31:17Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Directive's agy `PreToolUse` path runs that predicate on every call (config resolved from the payload `workspacePaths`) and denies on any finding, with one remediation (rename or remove the named foreign hook, or `deft policy:disable-host-hooks --host agy --confirm`). `directive doctor` reports the same finding read-only. Doctor does not self-repair.",
-        "status": "proposed",
-        "id": "clause.3"
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e338a3159eed2efaf1bc9e7aadfe32f588a5e879",
+          "recorded_at": "2026-11-27T00:31:17Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "The observe verdict may record final executed argument integrity as `mitigated`, naming this mitigation and the observed agy version. `mitigated` is admissible only when the observation record also covers the hook sources the predicate does not read (user scope `~/.gemini`, plugin hooks) and mid-session reload of `.agents/hooks.json`, and those outcomes show the predicate sees every hook that can run after Directive. If any of those is unobserved, or shows a later-running source the predicate cannot read, the verdict stays `fail` and activation halts.",
-        "status": "proposed",
-        "id": "clause.4"
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/disposition": {
+          "disposition": "not_applicable",
+          "reason": "path mention only; .agents/hooks.json is the #7347 deposit; verdict and gate built in #7378",
+          "provenance": {
+            "kind": "operator-cli",
+            "actor": "operator",
+            "mintedAt": "2026-11-26T23:50:03Z",
+            "mintedVia": "deft authz:grant",
+            "eventRef": "template:acceptance-disposition",
+            "grantId": "grant-20261126235003-7b7eb9"
+          },
+          "recorded_at": "2026-11-27T00:31:17Z"
+        }
       },
       {
         "title": "The per-call path reads the agy version from a source the observation record shows is tied to the executing host, and denies when that version is unavailable, invalid, or differs from the `mitigated` record. Caching per `conversationId` is allowed only where the observed session lifetime makes that association stable. Doctor reports the same mismatch.",
-        "status": "proposed",
-        "id": "clause.5"
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e338a3159eed2efaf1bc9e7aadfe32f588a5e879",
+          "recorded_at": "2026-11-27T00:31:17Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "The agy hook outer validates child stdout as exactly one agy decision object and denies on empty or invalid output. Every intentional allow on agy, including the kill-record and install-admit `quietAllow` branches, prints an explicit allow decision. Kill-switch and recovery semantics are unchanged.",
-        "status": "proposed",
-        "id": "clause.6"
+        "status": "completed",
+        "id": "clause.6",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e338a3159eed2efaf1bc9e7aadfe32f588a5e879",
+          "recorded_at": "2026-11-27T00:31:17Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "The #7347 activation contract test admits `pass`, or `mitigated` only when the deposited name equals the predicate's constant, the per-call path calls the predicate, and a behavioral fixture shows a later-running foreign rewrite is denied. It fails closed on `fail` or an absent verdict. This is one gate: it replaces #7347 clauses 2 and 3, not a second gate beside them.",
-        "status": "proposed",
-        "id": "clause.7"
+        "status": "completed",
+        "id": "clause.7",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e338a3159eed2efaf1bc9e7aadfe32f588a5e879",
+          "recorded_at": "2026-11-27T00:31:17Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Agent writes to the agy hook config and the deletion or renaming of Directive's own entry by a hostile agent stay a stated limit (no incumbent host guards its hook config today).",
-        "status": "proposed",
-        "id": "clause.8"
+        "status": "completed",
+        "id": "clause.8",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e338a3159eed2efaf1bc9e7aadfe32f588a5e879",
+          "recorded_at": "2026-11-27T00:31:17Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Directive's agy hook entry name is one constant; the observation record shows its run order against representative adversarial neighbor names on the observed agy version, and predicate fixtures reject later, equal, prefix-extending and unknown-order names.",
-        "status": "proposed",
-        "id": "clause.9"
+        "status": "completed",
+        "id": "clause.9",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e338a3159eed2efaf1bc9e7aadfe32f588a5e879",
+          "recorded_at": "2026-11-27T00:31:17Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "One pure ordering predicate reports every foreign `PreToolUse` entry at or after Directive's entry, treats out-of-alphabet, equal, prefix-extending and undeterminable names as at-or-after, ignores `matcher`, and reports an unparseable config.",
-        "status": "proposed",
-        "id": "clause.10"
+        "status": "completed",
+        "id": "clause.10",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e338a3159eed2efaf1bc9e7aadfe32f588a5e879",
+          "recorded_at": "2026-11-27T00:31:17Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "Directive's agy `PreToolUse` path denies on every call where the predicate reports a finding, or the executing agy version (from an observation-validated source) is unavailable, invalid or differs from the `mitigated` record, with one remediation; fixtures cover unknown and mismatched versions; `directive doctor` reports the same findings read-only.",
-        "status": "proposed",
-        "id": "clause.11"
+        "status": "completed",
+        "id": "clause.11",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e338a3159eed2efaf1bc9e7aadfe32f588a5e879",
+          "recorded_at": "2026-11-27T00:31:17Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "The observe verdict record can hold `mitigated` with the mitigation and agy version named, and holds it only when user-scope, plugin and mid-session reload observations show the predicate sees every later-running hook; otherwise it records `fail`.",
-        "status": "proposed",
-        "id": "clause.12"
+        "status": "completed",
+        "id": "clause.12",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e338a3159eed2efaf1bc9e7aadfe32f588a5e879",
+          "recorded_at": "2026-11-27T00:31:17Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "The agy hook outer denies on empty or invalid child stdout, every intentional agy allow prints an explicit allow decision, and a contract test covers every outer exit path.",
-        "status": "proposed",
-        "id": "clause.13"
+        "status": "completed",
+        "id": "clause.13",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e338a3159eed2efaf1bc9e7aadfe32f588a5e879",
+          "recorded_at": "2026-11-27T00:31:17Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "The #7347 activation contract test admits `pass`, or `mitigated` only with the wiring and a behavioral later-rewrite-denied fixture, and fails closed on `fail` or an absent verdict.",
-        "status": "proposed",
-        "id": "clause.14"
+        "status": "completed",
+        "id": "clause.14",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e338a3159eed2efaf1bc9e7aadfe32f588a5e879",
+          "recorded_at": "2026-11-27T00:31:17Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "The agy host docs state the hostile self-edit limit.",
-        "status": "proposed",
-        "id": "clause.15"
+        "status": "completed",
+        "id": "clause.15",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "e338a3159eed2efaf1bc9e7aadfe32f588a5e879",
+          "recorded_at": "2026-11-27T00:31:17Z",
+          "recorded_by": "scope:complete"
+        }
       }
     ],
     "tags": [
@@ -709,9 +820,38 @@
           "agy hook outer denies empty or invalid child stdout; doctor reports the same ordering findings read-only"
         ],
         "model_tier": "standard"
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "0f815ffcc7136389908a43b4559adb7936fc8851",
+        "prNumber": 7409,
+        "prBase": "master",
+        "mergeCommit": "e338a3159eed2efaf1bc9e7aadfe32f588a5e879",
+        "deliveryBranch": "master",
+        "deliveryCommit": "012459230c25d4b7b4c28a41647ce0da5d467a87",
+        "verifiedAt": "2026-11-27T00:31:17Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:YTQ2NTZlZmEtNzdjMy00ZTZhLWEyYmMtNjYxNjdkYTg5NDA4",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          7381
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-27T00:31:17Z",
+      "completedSessionId": "host:claude:v1:YTQ2NTZlZmEtNzdjMy00ZTZhLWEyYmMtNjYxNjdkYTg5NDA4",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-27T00:31:17Z"
       }
     },
     "id": "github.issue.6630733270",
-    "updated": "2026-11-26T17:15:12Z"
+    "updated": "2026-11-27T00:31:17Z"
   }
 }
