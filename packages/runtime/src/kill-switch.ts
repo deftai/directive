@@ -16,6 +16,7 @@
  * stronger. It is hardening, not human-only authority.
  */
 import { resolve } from "node:path";
+import { endDelegation } from "@deftai/directive-core/authz";
 import { resolveAbsoluteGitDir } from "@deftai/directive-core/dist/policy/deft-directive-disable.js";
 import {
   type AbsoluteGitDirResolver,
@@ -40,6 +41,8 @@ export interface KillSwitchSeams extends HumanPresenceMintSeams {
   /** Checkout root (`git rev-parse --show-toplevel`) for a folder, or null. */
   readonly checkoutRoot?: (dir: string) => string | null;
   readonly now?: () => Date;
+  /** Delegation end on kill-switch:on (#7420). Injected in tests. */
+  readonly endDelegation?: typeof endDelegation;
   readonly writeOut?: (text: string) => void;
   readonly writeErr?: (text: string) => void;
 }
@@ -163,6 +166,12 @@ function runOn(
   if (!result.ok) {
     writeErr(`${KILL_SWITCH_ON_VERB}: could not write ${result.path}: ${result.error}\n`);
     return 1;
+  }
+  // #7420: a live delegation ends at once; the record alone already stops it admitting.
+  try {
+    (seams.endDelegation ?? endDelegation)(projectRoot, "kill-switch");
+  } catch {
+    /* best effort: the kill record already blocks every delegated consumer */
   }
   writeOut(
     `Wrote ${result.path} (bound to ${gitDir}).\n` +

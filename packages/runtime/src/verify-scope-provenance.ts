@@ -21,6 +21,7 @@
 import { appendFileSync, writeSync } from "node:fs";
 import { resolve } from "node:path";
 import { scopeProvenance } from "@deftai/directive-core";
+import { readLiveDelegation } from "@deftai/directive-core/authz";
 import { formatMintLevelAdmitBlock, type MintLevelAdmit } from "@deftai/directive-core/policy";
 import { mergeGroupSkip } from "@deftai/directive-core/pr-wait-mergeable";
 import { isDirectEntrypoint } from "./entrypoint.js";
@@ -228,6 +229,8 @@ export interface RunSeams {
   readonly gitSpawn?: scopeProvenance.GitSpawn;
   /** Mode of `scope-provenance-git-call-timeout` (default: the declared mode). */
   readonly gitTimeoutMode?: scopeProvenance.DeclaredRefusalMode;
+  /** Live TOTP delegation resolver for the fence's delegated-stamp admission (#7420 B4). */
+  readonly readLiveDelegation?: typeof readLiveDelegation;
 }
 
 function writeFd2(text: string): void {
@@ -261,6 +264,9 @@ export function run(
     ...(args.baseRef.length > 0 ? { baseRef: args.baseRef } : {}),
     enforce: args.enforce,
     ...(forgeApproval !== null ? { forgeApproval } : {}),
+    // #7420 B4: the fence is the one reader that admits a delegated stamp, and only
+    // while the delegation that minted it is live.
+    delegation: (seams.readLiveDelegation ?? readLiveDelegation)(projectRoot),
     gitTimeoutSeconds: scopeProvenance.resolveGitTimeoutSeconds(args.gitTimeoutSeconds, env),
     ...(seams.gitTimeoutMode !== undefined ? { gitTimeoutMode: seams.gitTimeoutMode } : {}),
     ...(seams.gitSpawn !== undefined ? { gitSpawn: seams.gitSpawn } : {}),
