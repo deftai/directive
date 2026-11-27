@@ -1,0 +1,185 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #7445",
+    "updated": "2026-11-27T05:34:43Z"
+  },
+  "plan": {
+    "title": "[framework-gap] Antigravity PreToolUse hook blocks writes to host artifact directory (~/.gemini/antigravity/brain/<conversation-id>) as a configuration area",
+    "status": "running",
+    "narratives": {
+      "Description": "[framework-gap] Antigravity PreToolUse hook blocks writes to host artifact directory (~/.gemini/antigravity/brain/<conversation-id>) as a configuration area",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/7445",
+      "Overview": "## Acceptance Criteria\n\n- [ ] A write whose every target is under `~/.gemini/antigravity/brain/<conversationId>/`, where `<conversationId>` is the applying agy session's conversation id, is treated as outside every checkout and needs no occupancy, gated ritual or active scope.\n- [ ] A write under another conversation's folder, or anywhere else under `~/.gemini` (for example `~/.gemini/config/`), is still treated as a configuration area and gated as today.\n- [ ] The carve-out applies only when the applying host is agy and the conversation id is known; with no agy identity the path is gated as today.\n- [ ] Path matching uses the shared canonical path identity (case, slash and 8.3 forms on win32), and a `..` or symlink escape out of the conversation folder is not admitted.\n- [ ] Tests cover the allowed current-conversation write, a sibling conversation write, a `config/` write, and an escape attempt.\n\n"
+    },
+    "items": [
+      {
+        "title": "A write whose every target is under `~/.gemini/antigravity/brain/<conversationId>/`, where `<conversationId>` is the applying agy session's conversation id, is treated as outside every checkout and needs no occupancy, gated ritual or active scope.",
+        "status": "proposed",
+        "id": "clause.1"
+      },
+      {
+        "title": "A write under another conversation's folder, or anywhere else under `~/.gemini` (for example `~/.gemini/config/`), is still treated as a configuration area and gated as today.",
+        "status": "proposed",
+        "id": "clause.2"
+      },
+      {
+        "title": "The carve-out applies only when the applying host is agy and the conversation id is known; with no agy identity the path is gated as today.",
+        "status": "proposed",
+        "id": "clause.3"
+      },
+      {
+        "title": "Path matching uses the shared canonical path identity (case, slash and 8.3 forms on win32), and a `..` or symlink escape out of the conversation folder is not admitted.",
+        "status": "proposed",
+        "id": "clause.4"
+      },
+      {
+        "title": "Tests cover the allowed current-conversation write, a sibling conversation write, a `config/` write, and an escape attempt.",
+        "status": "proposed",
+        "id": "clause.5"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/7445",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #7445: [framework-gap] Antigravity PreToolUse hook blocks writes to host artifact directory (~/.gemini/antigravity/brain/<conversation-id>) as a configuration area"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per sentence-list entry (5), in order (#6333)",
+      "sentences": [
+        "A write whose every target is under `~/.gemini/antigravity/brain/<conversationId>/`, where `<conversationId>` is the applying agy session's conversation id, is treated as outside every checkout and needs no occupancy, gated ritual or active scope.",
+        "A write under another conversation's folder, or anywhere else under `~/.gemini` (for example `~/.gemini/config/`), is still treated as a configuration area and gated as today.",
+        "The carve-out applies only when the applying host is agy and the conversation id is known; with no agy identity the path is gated as today.",
+        "Path matching uses the shared canonical path identity (case, slash and 8.3 forms on win32), and a `..` or symlink escape out of the conversation folder is not admitted.",
+        "Tests cover the allowed current-conversation write, a sibling conversation write, a `config/` write, and an escape attempt."
+      ],
+      "admitted_source_sentences": [
+        "A write whose every target is under `~/.gemini/antigravity/brain/<conversationId>/`, where `<conversationId>` is the applying agy session's conversation id, is treated as outside every checkout and needs no occupancy, gated ritual or active scope.",
+        "A write under another conversation's folder, or anywhere else under `~/.gemini` (for example `~/.gemini/config/`), is still treated as a configuration area and gated as today.",
+        "The carve-out applies only when the applying host is agy and the conversation id is known; with no agy identity the path is gated as today.",
+        "Path matching uses the shared canonical path identity (case, slash and 8.3 forms on win32), and a `..` or symlink escape out of the conversation folder is not admitted.",
+        "Tests cover the allowed current-conversation write, a sibling conversation write, a `config/` write, and an escape attempt."
+      ],
+      "admitted_source_digest": "8ad01b46275dfef126330949a949a8e01d74c3ca9cb420c1e3009b8b1d4f1e2b",
+      "admitted_source_extractor": 2,
+      "clauses": [
+        {
+          "id": 1,
+          "text": "A write whose every target is under `~/.gemini/antigravity/brain/<conversationId>/`, where `<conversationId>` is the applying agy session's conversation id, is treated as outside every checkout and needs no occupancy, gated ritual or active scope.",
+          "artifact_path": "packages/core/src/hooks/outside-every-checkout.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "A write under another conversation's folder, or anywhere else under `~/.gemini` (for example `~/.gemini/config/`), is still treated as a configuration area and gated as today.",
+          "artifact_path": "packages/core/src/hooks/outside-every-checkout.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "The carve-out applies only when the applying host is agy and the conversation id is known; with no agy identity the path is gated as today.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Path matching uses the shared canonical path identity (case, slash and 8.3 forms on win32), and a `..` or symlink escape out of the conversation folder is not admitted.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Tests cover the allowed current-conversation write, a sibling conversation write, a `config/` write, and an escape attempt.",
+          "artifact_path": "packages/core/src/hooks/outside-every-checkout.test.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/hooks/outside-every-checkout.ts",
+          "packages/core/src/hooks/dispatcher.ts"
+        ],
+        "module_boundary": "packages/core/src/hooks",
+        "cohesion_exemption": "The agy conversation-folder carve-out in the location classifier, the dispatcher call that passes the applying agy conversation id, and their tests co-travel"
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": false,
+        "conflict_group": "agy-hook-path",
+        "size": "S",
+        "file_scope": [
+          "packages/core/src/hooks/outside-every-checkout.ts",
+          "packages/core/src/hooks/outside-every-checkout.test.ts",
+          "packages/core/src/hooks/dispatcher.ts",
+          "packages/core/src/hooks/dispatcher-outside-every-checkout.test.ts",
+          "changelog.d/7445-agy-conversation-folder-writes.md"
+        ],
+        "file_scope_confidence": "high",
+        "depends_on": [],
+        "verify_commands": [
+          "pnpm exec vitest run --reporter=dot packages/core/src/hooks/outside-every-checkout.test.ts",
+          "pnpm exec vitest run --reporter=dot packages/core/src/hooks/dispatcher-outside-every-checkout.test.ts"
+        ],
+        "expected_outputs": [
+          "A write under the applying agy conversation folder is outside every checkout; sibling conversations, config/ and escapes stay gated"
+        ],
+        "model_tier": "standard"
+      },
+      "issueCommentThread": [
+        {
+          "body": "Rewriting the body to criteria-only for ingest. Scott: \"add both to 0.132.1\" (with #7446). Operator decision for the carve-out: allow pre-ritual writes **only** under the current Antigravity conversation folder, `~/.gemini/antigravity/brain/<conversationId>/`, where `<conversationId>` matches the applying session; every other path under `~/.gemini` (including `config/` and the deposited hook files) stays a protected configuration area. No arc. Prior body quoted below.\n\n<details><summary>Prior body</summary>\n\n## Summary\n\nAntigravity PreToolUse hook blocks writes to host artifact directory (~/.gemini/antigravity/brain/<conversation-id>) as a configuration area\n\n## Context\n\nDirective 0.132.0 on Antigravity (agy 1.5.18, win32) with live PreToolUse hooks active (internal benchmark evidence (private)). Calling Antigravity write_file targeting the host conversation artifact directory (~/.gemini/antigravity/brain/<conversation-id>/scratch/probe.txt) while in read-only or pre-ritual posture.\n\n## Expected behavior\n\nWrites scoped to the current Antigravity conversation artifact directory (~/.gemini/antigravity/brain/<conversation-id>/...) are allowed without requiring repository occupancy or a gated session ritual (similar to OS temp / outside-every-checkout writes under #6376), so Antigravity can create plans, walkthroughs, and scratch artifacts during read-only or pre-ritual turns.\n\n## Actual behavior / gap\n\nPreToolUse denies write_file into ~/.gemini/antigravity/brain/<conversation-id>/... and routes it through full repository mutation gates (occupancy + gated session ritual + active scope). Root cause: outside-every-checkout.js classifies any first path segment under home starting with '.' (.gemini) as 'inside a configuration area' (locationVerdict), so allTargetsOutsideEveryCheckout returns false even though write_file to OS temp passes the same check.\n\n## Session notes\n\nObserved in live AGY 1.5.18 session under flat SessionStart hook schema (Refs #6376, #7346, #7440). A narrow carve-out for the active host conversation artifact subtree (not all of ~/.gemini) would keep ~/.gemini config files protected while letting Antigravity write its own conversation artifacts. Source: internal benchmark evidence (private).\n\n---\n_Filed via `deft feedback:file` from a directive consumer project (Refs #1709 value-feedback gap escalation)._\n\n\n\n</details>\n\n",
+          "id": 7210582970,
+          "html_url": "https://github.com/deftai/directive/issues/7445#issuecomment-7210582970",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-27T05:22:38Z",
+          "updated_at": "2026-11-27T05:22:38Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6640509178,
+        "origin": "deftai/directive#7445",
+        "id": "github.issue.6640509178"
+      }
+    },
+    "id": "github.issue.6640509178",
+    "updated": "2026-11-27T05:34:43Z"
+  }
+}
