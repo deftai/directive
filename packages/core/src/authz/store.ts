@@ -11,11 +11,11 @@ import { isDelegatedOrigin, isHumanOrigin } from "./origin.js";
 import { authzAuditPath, authzGrantPath, authzGrantsDir, authzStatePath } from "./paths.js";
 import {
   AUTHZ_OPERATIONS,
-  DELEGATED_GRANT_MINTED_VIA,
-  DELEGATED_ORIGIN_KIND,
   type AuthzAuditRecord,
   type AuthzOperation,
   type AuthzState,
+  DELEGATED_GRANT_MINTED_VIA,
+  DELEGATED_ORIGIN_KIND,
   type GrantOrigin,
   type GrantScope,
   type GrantSemantics,

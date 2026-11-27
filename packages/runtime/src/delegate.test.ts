@@ -28,9 +28,9 @@ import {
 } from "@deftai/directive-core/authz";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { main as authzMain } from "./authz.js";
-import { DELEGATE_ALIAS_SUBCOMMANDS, resolveCanonicalVerb } from "./dispatch.js";
 import { routeArgv } from "./cli-router/route-argv.js";
 import { parseArgs, run } from "./delegate.js";
+import { DELEGATE_ALIAS_SUBCOMMANDS, resolveCanonicalVerb } from "./dispatch.js";
 import {
   completeHarnessAttendedMintRequest,
   openHarnessAttendedMintRequest,

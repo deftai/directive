@@ -2,6 +2,7 @@
 import { readFileSync, realpathSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { endDelegation } from "@deftai/directive-core/authz";
 import { isShellTool } from "@deftai/directive-core/dist/hooks/tools.js";
 import { checkCheapInSync } from "@deftai/directive-core/dist/install-health/cheap.js";
 import {
@@ -56,7 +57,6 @@ import {
   toolInputRecord,
 } from "@deftai/directive-core/hooks";
 import { sameRepoGitCommonDir } from "@deftai/directive-core/session";
-import { endDelegation } from "@deftai/directive-core/authz";
 import { readProjectDataStatus } from "./data-status.js";
 import { extractClaudeSessionEnd, runClaudeDelegateAdapter } from "./delegate-adapter-claude.js";
 import { maybeSelfCompleteSetup } from "./self-complete.js";
