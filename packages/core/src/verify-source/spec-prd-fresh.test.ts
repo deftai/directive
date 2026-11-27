@@ -56,7 +56,7 @@ describe("evaluateSpecPrdFresh", () => {
     expect(result.findings).toHaveLength(0);
   });
 
-  it("ignores LegacyArtifacts when matching compact task spec:render (#4086)", () => {
+  it("reports a committed LegacyArtifacts section as stale versus the compact render (#6826)", () => {
     const root = project();
     const xbrief = join(root, "xbrief");
     mkdirSync(xbrief, { recursive: true });
@@ -101,8 +101,10 @@ describe("evaluateSpecPrdFresh", () => {
       "utf8",
     );
     const result = evaluateSpecPrdFresh(root);
-    expect(result.code).toBe(0);
-    expect(result.findings.filter((f) => f.artifact === "SPECIFICATION.md")).toEqual([]);
+    const spec = result.findings.filter((f) => f.artifact === "SPECIFICATION.md");
+    expect(result.code).toBe(1);
+    expect(spec[0]?.detail).toContain('"## LegacyArtifacts"');
+    expect(spec[0]?.detail).toContain('"## Scope outlook"');
   });
 
   it("fails banner-canon when SPECIFICATION.md still names the legacy source", () => {
@@ -259,7 +261,7 @@ describe("evaluateSpecPrdFresh", () => {
     ).toBe(true);
   });
 
-  it("does not recut scope outlook: prefix match is enough for SPECIFICATION.md", () => {
+  it("reports a stale snapshot with a frozen Scope outlook section and names it (#6826)", () => {
     const root = project();
     const specPath = writeSpec(root);
     const specRender = renderSpecMarkdown(specPath, {
@@ -274,8 +276,10 @@ describe("evaluateSpecPrdFresh", () => {
       "utf8",
     );
     const result = evaluateSpecPrdFresh(root);
-    expect(result.findings.filter((f) => f.artifact === "SPECIFICATION.md")).toEqual([]);
-    expect(result.code).toBe(0);
+    const spec = result.findings.filter((f) => f.artifact === "SPECIFICATION.md");
+    expect(result.code).toBe(1);
+    expect(spec).toHaveLength(1);
+    expect(spec[0]?.detail).toContain('"## Scope outlook"');
   });
 
   it("exits 0 for greenfield PRD when PROJECT-DEFINITION exists and spec does not (#4086)", () => {
