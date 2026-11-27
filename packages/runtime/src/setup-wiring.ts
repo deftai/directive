@@ -868,7 +868,7 @@ function nestedGroup(host: string, event: string, matcher?: string): Record<stri
       {
         type: "command",
         ...hostHookEntryFields(nestedToolCommand(host, event)),
-        timeout: event === "tool.before" ? 30 : 30,
+        timeout: 30,
       },
     ],
   };
