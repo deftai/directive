@@ -463,7 +463,9 @@
           "packages/runtime/src/kill-switch.ts",
           ".deft/intent-constraint/github.issue.6637624220.json",
           "changelog.d/7420-intent-record.md",
-          "changelog.d/7420-remint-record.md"
+          "changelog.d/7420-remint-record.md",
+          "packages/core/src/release-publish/pipeline.ts",
+          "packages/core/src/release/closed-verb-gate.ts"
         ],
         "file_scope_confidence": "high",
         "depends_on": [],
