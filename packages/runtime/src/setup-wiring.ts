@@ -5,7 +5,7 @@
 
 import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, realpathSync } from "node:fs";
-import { dirname, isAbsolute, join, resolve } from "node:path";
+import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { isFrameworkSourceCheckoutAt } from "@deftai/directive-core/dist/doctor/paths.js";
 import {
@@ -37,7 +37,10 @@ import {
   isHostHookOuterCommand,
   mergeAgyConfig,
 } from "@deftai/directive-core/dist/init-deposit/agent-hooks.js";
-import { stripAgyHostHookConfig } from "@deftai/directive-core/dist/init-deposit/host-hook-outer.js";
+import {
+  referencedHostHookOuterNames,
+  stripAgyHostHookConfig,
+} from "@deftai/directive-core/dist/init-deposit/host-hook-outer.js";
 import {
   DESIRED_GITATTRIBUTES_LINES,
   ensureGitattributes,
@@ -1197,9 +1200,11 @@ function ensureAgyHostHook(
     }
     return;
   }
+  let keptConfig: Record<string, unknown> | null = null;
   if (prior !== null) {
     const cfg = readAgyHookConfig(abs);
     const stripped = stripAgyHostHookConfig(cfg);
+    keptConfig = Object.keys(stripped).length === 0 ? null : stripped;
     if (stripped !== cfg) {
       if (Object.keys(stripped).length === 0) {
         containedRemove({ root: projectRoot, target: AGY_HOOK_PATH });
@@ -1209,7 +1214,9 @@ function ensureAgyHostHook(
       modified.push(AGY_HOOK_PATH);
     }
   }
-  if (existsSync(join(projectRoot, outerRel))) {
+  // A kept entry (a user command chained onto Directive's) still runs the outer: keep the file.
+  const stillReferenced = referencedHostHookOuterNames(keptConfig).has(basename(outerRel));
+  if (!stillReferenced && existsSync(join(projectRoot, outerRel))) {
     try {
       containedRemove({ root: projectRoot, target: outerRel });
       modified.push(outerRel);

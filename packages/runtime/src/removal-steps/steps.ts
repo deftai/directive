@@ -597,14 +597,16 @@ export function clearOwnedHookEntries(root: string): StepResult {
     const next = `${JSON.stringify(stripped, null, 2)}\n`;
     if (next === prior) continue;
     const keys = Object.keys(stripped);
+    // agy keys are hook names, so a `hooks` or `version` key there is a user's: only an empty file goes.
     const emptyAfterStrip =
       keys.length === 0 ||
-      (keys.length === 1 && keys[0] === "hooks" && isEmptyishObject(stripped.hooks)) ||
-      (keys.length === 1 && keys[0] === "version") ||
-      (keys.length === 2 &&
-        keys.includes("version") &&
-        keys.includes("hooks") &&
-        isEmptyishObject(stripped.hooks));
+      (rel !== AGY_HOOK_REL &&
+        ((keys.length === 1 && keys[0] === "hooks" && isEmptyishObject(stripped.hooks)) ||
+          (keys.length === 1 && keys[0] === "version") ||
+          (keys.length === 2 &&
+            keys.includes("version") &&
+            keys.includes("hooks") &&
+            isEmptyishObject(stripped.hooks))));
     if (emptyAfterStrip) {
       if (safeContainedRemove(root, rel)) {
         removed.push(toPosix(rel));

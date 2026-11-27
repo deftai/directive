@@ -622,6 +622,51 @@ describe("agy host hooks and Claude SessionEnd on install and upgrade (#7438)", 
     expect(existsSync(join(root, AGY))).toBe(false);
   });
 
+  describe("a command chained onto Directive's agy entry is the user's (#7438)", () => {
+    const chainedBytes = (): string =>
+      `${JSON.stringify(
+        {
+          "zzzz-directive": {
+            PreToolUse: [
+              {
+                matcher: "*",
+                hooks: [
+                  {
+                    command: `node deft-hook-${OUTER_SHA}.mjs --host agy --event tool.before && node mine.mjs`,
+                  },
+                ],
+              },
+            ],
+          },
+        },
+        null,
+        2,
+      )}
+`;
+
+    it("install and upgrade keep the entry as written", () => {
+      const root = tempRoot();
+      mkdirSync(join(root, ".agents"), { recursive: true });
+      const bytes = chainedBytes();
+      writeFileSync(join(root, AGY), bytes);
+      runSetup({ operation: "install", from: "none", root });
+      expect(readFileSync(join(root, AGY), "utf8")).toBe(bytes);
+      runSetup({ operation: "upgrade", from: "0.131.5", root });
+      expect(readFileSync(join(root, AGY), "utf8")).toBe(bytes);
+    });
+
+    it("an agy opt-out keeps the entry and the outer file it runs", () => {
+      const root = tempRoot();
+      mkdirSync(join(root, ".agents"), { recursive: true });
+      const bytes = chainedBytes();
+      writeFileSync(join(root, AGY), bytes);
+      writeFileSync(join(root, AGY_OUTER), "// outer\n");
+      ensureHostHooks(root, { ...DEFAULT_HOST_HOOKS_POLICY, agy: false });
+      expect(readFileSync(join(root, AGY), "utf8")).toBe(bytes);
+      expect(existsSync(join(root, AGY_OUTER))).toBe(true);
+    });
+  });
+
   it("a foreign-only agy file is left byte for byte and not claimed when agy is opted out", () => {
     const root = tempRoot();
     mkdirSync(join(root, ".agents"), { recursive: true });

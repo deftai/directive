@@ -1,5 +1,13 @@
 import { spawnSync } from "node:child_process";
-import { chmodSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { delimiter, join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -18,6 +26,7 @@ import {
   isHostHookOuterCommand,
   isManagedAgyHookEntry,
   stripAgyHostHookConfig,
+  stripHostHookRegistrationInPlace,
 } from "./host-hook-outer.js";
 
 type Host = "grok" | "claude" | "cursor" | "codex" | "agy";
@@ -1208,5 +1217,72 @@ describe("agy entry readers accept flat and grouped handlers (#7440)", () => {
     expect(stripAgyHostHookConfig({ [AGY_DIRECTIVE_HOOK_NAME]: flat, aaaa: foreign })).toEqual({
       aaaa: foreign,
     });
+  });
+});
+
+describe("agy strip keeps the outer a kept entry still runs (#7438)", () => {
+  const sha8 = "abcdef12";
+  const outerRel = `.agents/${hostHookOuterFileName(sha8)}`;
+  const chained = {
+    [AGY_DIRECTIVE_HOOK_NAME]: {
+      PreToolUse: [
+        {
+          matcher: "*",
+          hooks: [
+            {
+              command: `node ${hostHookOuterFileName(sha8)} --host agy --event tool.before && node mine.mjs`,
+            },
+          ],
+        },
+      ],
+    },
+  };
+
+  function projectWith(registration: Record<string, unknown>): string {
+    const root = mkdtempSync(join(tmpdir(), "outer-strip-keep-"));
+    mkdirSync(join(root, ".agents"), { recursive: true });
+    writeFileSync(join(root, ".agents", "hooks.json"), `${JSON.stringify(registration)}\n`);
+    writeFileSync(join(root, outerRel), "// outer\n");
+    return root;
+  }
+
+  it("keeps the outer file when the entry is kept", () => {
+    const root = projectWith(chained);
+    try {
+      const result = stripHostHookRegistrationInPlace(root, "agy");
+      expect(result.error).toBeUndefined();
+      expect(existsSync(join(root, outerRel))).toBe(true);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("removes the outer file when Directive's entry is stripped", () => {
+    const managed = {
+      [AGY_DIRECTIVE_HOOK_NAME]: {
+        PreToolUse: [
+          {
+            matcher: "*",
+            hooks: [
+              { command: `node ${hostHookOuterFileName(sha8)} --host agy --event tool.before` },
+            ],
+          },
+        ],
+      },
+    };
+    const root = projectWith(managed);
+    try {
+      stripHostHookRegistrationInPlace(root, "agy");
+      expect(existsSync(join(root, outerRel))).toBe(false);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("matches a long run of dashes in linear time (no backtracking blow-up)", () => {
+    const attack = `node ${hostHookOuterFileName(sha8)} --host agy${" ---".repeat(30000)} !`;
+    const started = Date.now();
+    expect(isManagedAgyHookEntry({ PreToolUse: [{ hooks: [{ command: attack }] }] })).toBe(false);
+    expect(Date.now() - started).toBeLessThan(1000);
   });
 });

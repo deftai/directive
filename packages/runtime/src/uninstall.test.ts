@@ -8,6 +8,7 @@ import {
   readdirSync,
   readFileSync,
   rmSync,
+  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -17,6 +18,7 @@ import {
   HOST_HOOK_OUTER_DIRS,
 } from "@deftai/directive-core/dist/install-health/index.js";
 import { afterEach, describe, expect, it } from "vitest";
+import { clearOwnedHookEntries } from "./removal-steps/steps.js";
 import { runSetup } from "./setup.js";
 import { runUninstall } from "./uninstall.js";
 
@@ -180,6 +182,61 @@ describe("runUninstall (AC11.5 / AC11.7)", () => {
       writeFileSync(join(root, AGY), foreignBytes);
       runUninstall({ root });
       expect(readFileSync(join(root, AGY), "utf8")).toBe(foreignBytes);
+    });
+
+    const managedAgy = (): Record<string, unknown> => ({
+      PreToolUse: [
+        {
+          matcher: "*",
+          hooks: [{ command: "node deft-hook-1a2b3c4d.mjs --host agy --event tool.before" }],
+        },
+      ],
+    });
+
+    /** A shared hook file outside the project, linked in at `link`. Null when links are not allowed. */
+    function linkSharedFile(root: string, link: string, dirLink: boolean): string | null {
+      const outside = tempRoot();
+      const sharedBytes = `${JSON.stringify({ ...FOREIGN, "zzzz-directive": managedAgy() }, null, 2)}
+`;
+      try {
+        if (dirLink) {
+          writeFileSync(join(outside, "hooks.json"), sharedBytes);
+          symlinkSync(outside, join(root, ".agents"), "junction");
+        } else {
+          mkdirSync(join(root, ".agents"), { recursive: true });
+          writeFileSync(join(outside, "hooks.json"), sharedBytes);
+          symlinkSync(join(outside, "hooks.json"), join(root, link));
+        }
+      } catch {
+        return null;
+      }
+      return join(outside, "hooks.json");
+    }
+
+    for (const dirLink of [false, true]) {
+      it(`never rewrites a shared file reached through a linked ${dirLink ? "directory" : "file"} (uninstall and fallback)`, () => {
+        const root = tempRoot();
+        const shared = linkSharedFile(root, AGY, dirLink);
+        if (shared === null) return;
+        const before = readFileSync(shared, "utf8");
+        runUninstall({ root });
+        expect(readFileSync(shared, "utf8")).toBe(before);
+        clearOwnedHookEntries(root);
+        expect(readFileSync(shared, "utf8")).toBe(before);
+      });
+    }
+
+    it("keeps an agy hook that is named version when the upgrade clears Directive's entry", () => {
+      const root = tempRoot();
+      mkdirSync(join(root, ".agents"), { recursive: true });
+      const hooks = { version: { PreToolUse: [{ command: "node mine.mjs" }] } };
+      writeFileSync(
+        join(root, AGY),
+        `${JSON.stringify({ ...hooks, "zzzz-directive": managedAgy() }, null, 2)}
+`,
+      );
+      clearOwnedHookEntries(root);
+      expect(JSON.parse(readFileSync(join(root, AGY), "utf8"))).toEqual(hooks);
     });
 
     it("works with the entry in grouped and flat SessionStart shapes", () => {
