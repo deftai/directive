@@ -26,7 +26,8 @@ export const LIVE_PROBE_WRITE_BUDGET_MS =
 /** Overall deadline for the unknown-applying-host fallback, which probes every enabled host. */
 export const LIVE_PROBE_UNKNOWN_HOST_DEADLINE_MS = 20_000;
 /** Fixtures run per host: one allow case and one deny case. */
-export const LIVE_PROBE_FIXTURES_PER_HOST = 2;
+const LIVE_PROBE_FIXTURES = ["allow", "deny"] as const;
+export const LIVE_PROBE_FIXTURES_PER_HOST = LIVE_PROBE_FIXTURES.length;
 /** Worst case for one known host: both fixtures, each retried. Must stay under the write budget. */
 export const LIVE_PROBE_KNOWN_HOST_WORST_CASE_MS =
   LIVE_PROBE_FIXTURES_PER_HOST * (LIVE_PROBE_CASE_RETRY_COUNT + 1) * LIVE_PROBE_CASE_TIMEOUT_MS;
@@ -495,7 +496,7 @@ export function probeAgentHooksLive(
   const hostResults: AgentHookLiveProbeHostResult[] = [];
   for (const host of hosts) {
     let hostFailure: AgentHookLiveProbeCase | null = null;
-    for (const fixture of ["allow", "deny"] as const) {
+    for (const fixture of LIVE_PROBE_FIXTURES) {
       hostFailure = runFixtureProbe(command, host, root, fixture, spawnHook, budget);
       if (hostFailure !== null) {
         failures.push(hostFailure);
