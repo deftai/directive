@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #7440",
-    "updated": "2026-11-27T04:53:53Z"
+    "updated": "2026-11-27T05:52:37Z"
   },
   "plan": {
     "title": "[framework-gap] BLOCKER Deposited .agents/hooks.json uses grouped SessionStart shape, causing agy 1.5.18 to reject the entire file and fail open on all PreToolUse hooks",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "[framework-gap] BLOCKER Deposited .agents/hooks.json uses grouped SessionStart shape, causing agy 1.5.18 to reject the entire file and fail open on all PreToolUse hooks",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/7440",
@@ -15,28 +15,63 @@
     "items": [
       {
         "title": "`agyDirectiveEntry()` emits `SessionStart` as a flat handler array (`[{ command, timeout }]`) and keeps `PreToolUse` grouped (`[{ matcher: \"*\", hooks: [{ command, timeout }] }]`).",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c2efa6719764fc9880d5de88093266d1659c66dd",
+          "recorded_at": "2026-11-27T05:52:37Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "`hasAgyRegistration()` accepts the new deposited shape, and treats an earlier grouped-`SessionStart` deposit as drifted so repair rewrites it.",
-        "status": "proposed",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c2efa6719764fc9880d5de88093266d1659c66dd",
+          "recorded_at": "2026-11-27T05:52:37Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "`agyEntryCommands()`, `isManagedAgyHookEntry()` and `stripAgyHostHookConfig()` read both flat handler entries and grouped `{ hooks: [...] }` entries, so a flat `SessionStart` is recognised and stripped.",
-        "status": "proposed",
-        "id": "clause.3"
+        "status": "completed",
+        "id": "clause.3",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c2efa6719764fc9880d5de88093266d1659c66dd",
+          "recorded_at": "2026-11-27T05:52:37Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "A test fixture asserts the deposited `.agents/hooks.json` parses under the agy contract: `SessionStart` entries carry `command` directly, and `PreToolUse` entries carry `matcher` and `hooks`.",
-        "status": "proposed",
-        "id": "clause.4"
+        "status": "completed",
+        "id": "clause.4",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c2efa6719764fc9880d5de88093266d1659c66dd",
+          "recorded_at": "2026-11-27T05:52:37Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "The `verify:hooks-installed` success summary lists agy when it is deposited.",
-        "status": "proposed",
-        "id": "clause.5"
+        "status": "completed",
+        "id": "clause.5",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c2efa6719764fc9880d5de88093266d1659c66dd",
+          "recorded_at": "2026-11-27T05:52:37Z",
+          "recorded_by": "scope:complete"
+        }
       }
     ],
     "references": [
@@ -180,9 +215,38 @@
         "github_issue_id": 6640159776,
         "origin": "deftai/directive#7440",
         "id": "github.issue.6640159776"
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "70ab46c3b3ace315147db79e4effb6042fd3cbe1",
+        "prNumber": 7447,
+        "prBase": "master",
+        "mergeCommit": "c2efa6719764fc9880d5de88093266d1659c66dd",
+        "deliveryBranch": "master",
+        "deliveryCommit": "2ee16c1f991ac91b05406808c8ed0a2f53f87736",
+        "verifiedAt": "2026-11-27T05:52:37Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:YTQ2NTZlZmEtNzdjMy00ZTZhLWEyYmMtNjYxNjdkYTg5NDA4",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          7441
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-27T05:52:37Z",
+      "completedSessionId": "host:claude:v1:YTQ2NTZlZmEtNzdjMy00ZTZhLWEyYmMtNjYxNjdkYTg5NDA4",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-27T05:52:37Z"
       }
     },
     "id": "github.issue.6640159776",
-    "updated": "2026-11-27T04:53:53Z"
+    "updated": "2026-11-27T05:52:37Z"
   }
 }
