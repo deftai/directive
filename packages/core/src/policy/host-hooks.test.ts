@@ -69,16 +69,16 @@ describe("hostHooks policy (#2752)", () => {
     );
   });
 
-  it("keeps agy default-off and still disables it without touching .agents/hooks.json (#7346)", () => {
-    expect(DEFAULT_HOST_HOOKS_POLICY.agy).toBe(false);
-    expect(resolveHostHooksPolicy(undefined).agy).toBe(false);
-    expect(resolveHostHooksPolicy({ agy: true }).agy).toBe(true);
+  it("turns agy on by default and disables it without touching foreign hooks (#7347)", () => {
+    expect(DEFAULT_HOST_HOOKS_POLICY.agy).toBe(true);
+    expect(resolveHostHooksPolicy(undefined).agy).toBe(true);
+    expect(resolveHostHooksPolicy({ agy: false }).agy).toBe(false);
     expect(validateHostHooks({ agy: false })).toEqual([]);
     expect(validateHostHooks({ agy: "yes" })).toContain(
       "plan.policy.hostHooks.agy must be a boolean",
     );
     expect(parseHookHost("agy")).toBe("agy");
-    expect(isHostHookDepositEnabled("agy")).toBe(false);
+    expect(isHostHookDepositEnabled("agy")).toBe(true);
     expect(hostHookRegistrationRelPath("agy")).toBe(".agents/hooks.json");
 
     const root = project();
@@ -89,7 +89,7 @@ describe("hostHooks policy (#2752)", () => {
     const result = disableHostHooks(root, { host: "agy", confirm: true, actor: "test" });
     expect(result.exitCode).toBe(0);
     expect(result.changed).toBe(true);
-    expect(result.touchedPaths).toEqual([]);
+    expect(result.touchedPaths).toEqual([".agents/hooks.json", ".agents/deft-hook-*.mjs"]);
     expect(loadHostHooksPolicyFromProject(root).agy).toBe(false);
     expect(readFileSync(join(root, ".agents/hooks.json"), "utf8")).toBe(foreign);
   });

@@ -145,7 +145,7 @@ function fixtureProject(): { root: string; head: string } {
       xBRIEFInfo: { version: "0.8" },
       plan: {
         policy: {
-          hostHooks: { claude: false, grok: false, cursor: false, codex: false },
+          hostHooks: { claude: false, grok: false, cursor: false, codex: false, agy: false },
         },
       },
     })}\n`,

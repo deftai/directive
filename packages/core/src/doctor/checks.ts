@@ -12,6 +12,7 @@ import {
   collectAgyHookOrderFindings,
   formatAgyHookOrderDenial,
 } from "../hooks/classify/agy-hook-order.js";
+import { AGY_ACTIVATION_HALT_DETAIL, agyDepositAdmitted } from "../init-deposit/agent-hooks.js";
 import { CANONICAL_GITIGNORE_BASELINE } from "../init-deposit/gitignore.js";
 import { bareVersionMarkerTargets } from "../init-deposit/hygiene.js";
 import {
@@ -44,6 +45,7 @@ import {
 } from "../platform/platform-capabilities.js";
 import { resolveCheckResume } from "../policy/check-resume.js";
 import { resolveCoverageDebt } from "../policy/coverage-debt.js";
+import { isHostHookDepositEnabled, loadHostHooksPolicyFromProject } from "../policy/host-hooks.js";
 import { resolveReviewers } from "../policy/reviewers.js";
 import {
   evaluateReviewerExpectation,
@@ -2133,6 +2135,37 @@ export function checkReviewerPresence(projectRoot: string, seams: CheckSeams = {
 }
 
 /**
+ * #7347 agy activation gate, read-only. When agy hooks are enabled by policy but the
+ * one activation gate (#7378) does not admit the committed verdict, activation is
+ * halted: nothing is deposited, and this check fails with the leftover route.
+ */
+export function checkAgyActivation(projectRoot: string): CheckResult {
+  const name = "agy-activation";
+  if (!isHostHookDepositEnabled("agy", loadHostHooksPolicyFromProject(projectRoot))) {
+    return {
+      name,
+      status: "pass",
+      detail: "plan.policy.hostHooks.agy is false; agy activation not applicable.",
+      data: { applicable: false },
+    };
+  }
+  if (agyDepositAdmitted()) {
+    return {
+      name,
+      status: "pass",
+      detail: "The committed agy admission verdict admits activation.",
+      data: { applicable: true, admitted: true },
+    };
+  }
+  return {
+    name,
+    status: "fail",
+    detail: AGY_ACTIVATION_HALT_DETAIL,
+    data: { applicable: true, admitted: false },
+  };
+}
+
+/**
  * #7378 agy hook ordering, read-only. When `.agents/hooks.json` carries Directive's
  * entry, report every foreign `PreToolUse` hook that runs at or after it (the same
  * predicate the per-call outer path uses). Doctor never edits the file.
@@ -2318,6 +2351,7 @@ export function runChecksImpl(
     checks.push(checkReviewerPresence(projectRoot, seams));
     checks.push(checkCursorSdkAuth());
     checks.push(checkWslOwnershipGuard(projectRoot));
+    checks.push(checkAgyActivation(projectRoot));
     checks.push(checkAgyHookOrder(projectRoot, seams));
     checks.push(checkDanglingNodeModulesLinks(projectRoot, seams));
     return {
@@ -2347,6 +2381,7 @@ export function runChecksImpl(
   checks.push(checkReviewerPresence(projectRoot, seams));
   checks.push(checkCursorSdkAuth());
   checks.push(checkWslOwnershipGuard(projectRoot));
+  checks.push(checkAgyActivation(projectRoot));
   checks.push(checkAgyHookOrder(projectRoot, seams));
   checks.push(checkDanglingNodeModulesLinks(projectRoot, seams));
   return {

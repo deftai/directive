@@ -23,7 +23,10 @@ import { createHash } from "node:crypto";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import { containedRemove, containedRename, containedWrite } from "../fs/contained-write.js";
-import { agyHookOrderOuterSource } from "../hooks/classify/agy-hook-order.js";
+import {
+  AGY_DIRECTIVE_HOOK_NAME,
+  agyHookOrderOuterSource,
+} from "../hooks/classify/agy-hook-order.js";
 import type { HookHost } from "../hooks/dispatcher.js";
 import { SHELL_TOOL_NAMES } from "../hooks/tools.js";
 import { ENTRY_GUARD_MESSAGES } from "../install-health/constants.js";
@@ -244,6 +247,53 @@ function stripCursorHostHookConfig(config: Record<string, unknown>): Record<stri
   return { ...config, version: 1, hooks: nextHooks };
 }
 
+/**
+ * agy hook command (#7347). agy runs a hook through the shell with the working
+ * folder set to `.agents/` (observed, #7345 s01), so the outer path is the bare
+ * file name, not `.agents/<file>`.
+ */
+export function agyHookCommand(sha8: string, event: "session.start" | "tool.before"): string {
+  return `node ${hostHookOuterFileName(sha8)} --host agy --event ${event}`;
+}
+
+/** Every command text of one named agy hook entry (all events, all groups). */
+export function agyEntryCommands(entry: unknown): string[] {
+  const record = objectRecord(entry);
+  if (record === null) return [];
+  return Object.values(record).flatMap((groups) =>
+    Array.isArray(groups)
+      ? groups.flatMap((group) => {
+          const hooks = objectRecord(group)?.hooks;
+          return Array.isArray(hooks)
+            ? hooks.flatMap((hook) => {
+                const text = hostHookEntryText(hook);
+                return text === null ? [] : [text];
+              })
+            : [];
+        })
+      : [],
+  );
+}
+
+/**
+ * True when a named agy entry is Directive's: it has commands, and every one is
+ * a Directive outer command for agy (key name plus command marker, #7347).
+ */
+export function isManagedAgyHookEntry(entry: unknown): boolean {
+  const commands = agyEntryCommands(entry);
+  return (
+    commands.length > 0 &&
+    commands.every((text) => isHostHookOuterCommand(text) && text.includes("--host agy"))
+  );
+}
+
+/** Drop Directive's named entry from an agy hook file; foreign entries stay (#7347). */
+export function stripAgyHostHookConfig(config: Record<string, unknown>): Record<string, unknown> {
+  if (!isManagedAgyHookEntry(config[AGY_DIRECTIVE_HOOK_NAME])) return config;
+  const { [AGY_DIRECTIVE_HOOK_NAME]: _managed, ...rest } = config;
+  return rest;
+}
+
 /** Operational write outcome — I/O deny stays returned-failure (#5574 Prefer-A). */
 function writeJsonAtomic(
   projectRoot: string,
@@ -326,9 +376,12 @@ export function stripHostHookRegistrationInPlace(
     const next =
       host === "cursor"
         ? stripCursorHostHookConfig(config)
-        : stripNestedHostHookConfig(config, host);
+        : host === "agy"
+          ? stripAgyHostHookConfig(config)
+          : stripNestedHostHookConfig(config, host);
     const after = `${JSON.stringify(next, null, 2)}\n`;
-    if (after !== before) {
+    // An unchanged object (agy file with no Directive entry) keeps the user's bytes.
+    if (next !== config && after !== before) {
       const wrote = writeJsonAtomic(projectRoot, regAbs, regRel, next);
       if (!wrote.ok) {
         return { touchedPaths: [], stripped: false, error: wrote.error };
@@ -812,6 +865,21 @@ function shellRunDirectories(host, payload) {
 /** Admit exact simple project-root installs when pin hook-bin is missing (#7275). */
 function admitMissingPinInstall(host, event, projectRoot, payload) {
   if (event !== "tool.before") return false;
+  if (host === "agy") {
+    // agy shell calls are run_command with toolCall.args.CommandLine (#7347).
+    const record = asRecord(payload);
+    const call = record === null ? null : asRecord(record.toolCall);
+    const args = call === null ? null : asRecord(call.args);
+    if (
+      call !== null &&
+      args !== null &&
+      call.name === "run_command" &&
+      matchRecoveryCommand(firstString([args.CommandLine])) !== null
+    ) {
+      const dir = firstString([record.cwd]);
+      return dir !== null && rootsMatch(dir, projectRoot);
+    }
+  }
   const toolName = hookToolName(payload);
   if (toolName === null || !isShellToolName(toolName)) return false;
   if (matchRecoveryCommand(hookShellCommand(payload)) === null) return false;
