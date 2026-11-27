@@ -1,0 +1,813 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #7416",
+    "updated": "2026-11-27T05:03:03Z"
+  },
+  "plan": {
+    "title": "bug(hooks,win32): agent_hooks live-probe timeouts on non-active hosts block every gated write, and session:ready cannot recover",
+    "status": "running",
+    "narratives": {
+      "Description": "bug(hooks,win32): agent_hooks live-probe timeouts on non-active hosts block every gated write, and session:ready cannot recover",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/7416",
+      "Overview": "\n\n1. The write-path `agent_hooks` check receives the applying hook host (`input.host`) and live-probes only that host, through the existing `hosts` seam. If the applying host is unknown, it probes every enabled host and blocks on any failure, timeout included, as today, with no timeout allowance. Structural registration inspection and hook-command resolution stay live on every write.\n2. On the applying host, `non-functional` and `unavailable` block as today. A `timed-out` result blocks unless B3 admits it.\n3. One-timeout allowance: each host's entry keeps the last `functional` result with the resolved hook-command identity (path, size, mtime) and the structural registration digest, plus whether the allowance is open. Only a `functional` result opens it; a timeout never renews it. Any `non-functional`, `unavailable` or structural failure on that host closes it until a new `functional` result. An applying-host timeout is admitted, with a warning, only when the allowance is open, the identity and digest match the current ones, and the record is younger than a named grace window no longer than the ritual freshness window. Checking and closing the allowance is one step inside the existing ritual-state lock: the step re-reads the host's current entry, admits only if it is still open, and records the timeout, which closes it. If that step cannot be saved, the write is refused. A second timeout before a new `functional` result blocks.\n4. Ritual state records `agent_hooks` per host (status, time, identity, allowance) instead of one aggregate result, and a write merges only its own host's entry, keeping the others. A write by host H reads only H's entry, so one host's green never vouches for another host, granted members included.\n5. `session:ready` and the CLI gated verify still probe every enabled host and update the same per-host entries. A host whose only failure is a timeout is recorded `timed-out` with a warning and does not fail the step. Non-functional, unavailable and structural failures still fail it. The printed timeout recovery says that each write re-checks its own host.\n6. The per-case timeout and retry stay named constants, sized so the worst-case known-host write probe (one host, both fixtures, retries, plus the surrounding write-path work) stays below the 30 s host `tool.before` limit minus a stated margin. The unknown-host fallback runs under a named overall deadline inside the same limit and margin; when it runs out before every host passes, the write is refused. Budget exhaustion is reported as `timed-out`, never `non-functional`.\n7. `content/contracts/agent-hook-readiness.md` is amended in the same change (timeout fail-closed, unused-host, `session:ready` and no-throttle lines) to match B1-B6. The re-run-every-write rule (#3738) stays, narrowed to the applying host.\n\n## Acceptance Criteria\n\n\n- [ ] A Claude-host write whose Claude probe is functional is admitted when Grok, Cursor, Codex or agy would time out, and the write path does not spawn their probes.\n- [ ] A write with an unknown applying host probes every enabled host and blocks on any failure, timeout included, with no timeout allowance.\n- [ ] After a functional result inside the grace window with unchanged hook-command identity and registration digest, one applying-host timeout admits with a warning; a second timeout before a new functional result blocks; a changed identity or digest, or an expired window, blocks on the first timeout; a timeout does not renew the functional record.\n- [ ] The sequence functional, then non-functional (or unavailable, or a structural failure), then timeout blocks on the timeout; the allowance reopens only after a new functional result.\n- [ ] Two concurrent same-host writes that both time out after one functional result admit at most one; a failure to save the allowance step refuses the write; other hosts' entries are preserved.\n- [ ] A non-functional or unavailable result on the applying host blocks, and a structural registration failure blocks (no change).\n- [ ] `session:ready` passes with a warning when the only failures are timeouts, and fails on non-functional, unavailable or structural failures.\n- [ ] Tests assert that the worst-case known-host write probe and the unknown-host fallback both stay below the host `tool.before` limit minus the stated margin, and that the fallback refuses when its overall deadline runs out.\n- [ ] The readiness contract text matches the new behavior, and ritual state holds per-host `agent_hooks` entries so a Grok-host write is not admitted by a Claude-host functional entry.\r\n\n",
+      "Labels": "design-critique:ingest-ready"
+    },
+    "items": [
+      {
+        "title": "The write-path `agent_hooks` check receives the applying hook host (`input.host`) and live-probes only that host, through the existing `hosts` seam. If the applying host is unknown, it probes every enabled host and blocks on any failure, timeout included, as today, with no timeout allowance. Structural registration inspection and hook-command resolution stay live on every write.",
+        "status": "proposed",
+        "id": "clause.1"
+      },
+      {
+        "title": "On the applying host, `non-functional` and `unavailable` block as today. A `timed-out` result blocks unless B3 admits it.",
+        "status": "proposed",
+        "id": "clause.2"
+      },
+      {
+        "title": "One-timeout allowance: each host's entry keeps the last `functional` result with the resolved hook-command identity (path, size, mtime) and the structural registration digest, plus whether the allowance is open. Only a `functional` result opens it; a timeout never renews it. Any `non-functional`, `unavailable` or structural failure on that host closes it until a new `functional` result. An applying-host timeout is admitted, with a warning, only when the allowance is open, the identity and digest match the current ones, and the record is younger than a named grace window no longer than the ritual freshness window. Checking and closing the allowance is one step inside the existing ritual-state lock: the step re-reads the host's current entry, admits only if it is still open, and records the timeout, which closes it. If that step cannot be saved, the write is refused. A second timeout before a new `functional` result blocks.",
+        "status": "proposed",
+        "id": "clause.3"
+      },
+      {
+        "title": "Ritual state records `agent_hooks` per host (status, time, identity, allowance) instead of one aggregate result, and a write merges only its own host's entry, keeping the others. A write by host H reads only H's entry, so one host's green never vouches for another host, granted members included.",
+        "status": "proposed",
+        "id": "clause.4"
+      },
+      {
+        "title": "`session:ready` and the CLI gated verify still probe every enabled host and update the same per-host entries. A host whose only failure is a timeout is recorded `timed-out` with a warning and does not fail the step. Non-functional, unavailable and structural failures still fail it. The printed timeout recovery says that each write re-checks its own host.",
+        "status": "proposed",
+        "id": "clause.5"
+      },
+      {
+        "title": "The per-case timeout and retry stay named constants, sized so the worst-case known-host write probe (one host, both fixtures, retries, plus the surrounding write-path work) stays below the 30 s host `tool.before` limit minus a stated margin. The unknown-host fallback runs under a named overall deadline inside the same limit and margin; when it runs out before every host passes, the write is refused. Budget exhaustion is reported as `timed-out`, never `non-functional`.",
+        "status": "proposed",
+        "id": "clause.6"
+      },
+      {
+        "title": "`content/contracts/agent-hook-readiness.md` is amended in the same change (timeout fail-closed, unused-host, `session:ready` and no-throttle lines) to match B1-B6. The re-run-every-write rule (#3738) stays, narrowed to the applying host.",
+        "status": "proposed",
+        "id": "clause.7"
+      },
+      {
+        "title": "A Claude-host write whose Claude probe is functional is admitted when Grok, Cursor, Codex or agy would time out, and the write path does not spawn their probes.",
+        "status": "proposed",
+        "id": "clause.8"
+      },
+      {
+        "title": "A write with an unknown applying host probes every enabled host and blocks on any failure, timeout included, with no timeout allowance.",
+        "status": "proposed",
+        "id": "clause.9"
+      },
+      {
+        "title": "After a functional result inside the grace window with unchanged hook-command identity and registration digest, one applying-host timeout admits with a warning; a second timeout before a new functional result blocks; a changed identity or digest, or an expired window, blocks on the first timeout; a timeout does not renew the functional record.",
+        "status": "proposed",
+        "id": "clause.10"
+      },
+      {
+        "title": "The sequence functional, then non-functional (or unavailable, or a structural failure), then timeout blocks on the timeout; the allowance reopens only after a new functional result.",
+        "status": "proposed",
+        "id": "clause.11"
+      },
+      {
+        "title": "Two concurrent same-host writes that both time out after one functional result admit at most one; a failure to save the allowance step refuses the write; other hosts' entries are preserved.",
+        "status": "proposed",
+        "id": "clause.12"
+      },
+      {
+        "title": "A non-functional or unavailable result on the applying host blocks, and a structural registration failure blocks (no change).",
+        "status": "proposed",
+        "id": "clause.13"
+      },
+      {
+        "title": "`session:ready` passes with a warning when the only failures are timeouts, and fails on non-functional, unavailable or structural failures.",
+        "status": "proposed",
+        "id": "clause.14"
+      },
+      {
+        "title": "Tests assert that the worst-case known-host write probe and the unknown-host fallback both stay below the host `tool.before` limit minus the stated margin, and that the fallback refuses when its overall deadline runs out.",
+        "status": "proposed",
+        "id": "clause.15"
+      },
+      {
+        "title": "The readiness contract text matches the new behavior, and ritual state holds per-host `agent_hooks` entries so a Grok-host write is not admitted by a Claude-host functional entry.",
+        "status": "proposed",
+        "id": "clause.16"
+      }
+    ],
+    "tags": [
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/7416",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #7416: bug(hooks,win32): agent_hooks live-probe timeouts on non-active hosts block every gated write, and session:ready cannot recover"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/3570",
+        "type": "x-xbrief/refs",
+        "title": "Issue #3570"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per harvested lean item (16), in list order (#6333)",
+      "sentences": [
+        "The write-path `agent_hooks` check receives the applying hook host (`input.host`) and live-probes only that host, through the existing `hosts` seam. If the applying host is unknown, it probes every enabled host and blocks on any failure, timeout included, as today, with no timeout allowance. Structural registration inspection and hook-command resolution stay live on every write.",
+        "On the applying host, `non-functional` and `unavailable` block as today. A `timed-out` result blocks unless B3 admits it.",
+        "One-timeout allowance: each host's entry keeps the last `functional` result with the resolved hook-command identity (path, size, mtime) and the structural registration digest, plus whether the allowance is open. Only a `functional` result opens it; a timeout never renews it. Any `non-functional`, `unavailable` or structural failure on that host closes it until a new `functional` result. An applying-host timeout is admitted, with a warning, only when the allowance is open, the identity and digest match the current ones, and the record is younger than a named grace window no longer than the ritual freshness window. Checking and closing the allowance is one step inside the existing ritual-state lock: the step re-reads the host's current entry, admits only if it is still open, and records the timeout, which closes it. If that step cannot be saved, the write is refused. A second timeout before a new `functional` result blocks.",
+        "Ritual state records `agent_hooks` per host (status, time, identity, allowance) instead of one aggregate result, and a write merges only its own host's entry, keeping the others. A write by host H reads only H's entry, so one host's green never vouches for another host, granted members included.",
+        "`session:ready` and the CLI gated verify still probe every enabled host and update the same per-host entries. A host whose only failure is a timeout is recorded `timed-out` with a warning and does not fail the step. Non-functional, unavailable and structural failures still fail it. The printed timeout recovery says that each write re-checks its own host.",
+        "The per-case timeout and retry stay named constants, sized so the worst-case known-host write probe (one host, both fixtures, retries, plus the surrounding write-path work) stays below the 30 s host `tool.before` limit minus a stated margin. The unknown-host fallback runs under a named overall deadline inside the same limit and margin; when it runs out before every host passes, the write is refused. Budget exhaustion is reported as `timed-out`, never `non-functional`.",
+        "`content/contracts/agent-hook-readiness.md` is amended in the same change (timeout fail-closed, unused-host, `session:ready` and no-throttle lines) to match B1-B6. The re-run-every-write rule (#3738) stays, narrowed to the applying host.",
+        "A Claude-host write whose Claude probe is functional is admitted when Grok, Cursor, Codex or agy would time out, and the write path does not spawn their probes.",
+        "A write with an unknown applying host probes every enabled host and blocks on any failure, timeout included, with no timeout allowance.",
+        "After a functional result inside the grace window with unchanged hook-command identity and registration digest, one applying-host timeout admits with a warning; a second timeout before a new functional result blocks; a changed identity or digest, or an expired window, blocks on the first timeout; a timeout does not renew the functional record.",
+        "The sequence functional, then non-functional (or unavailable, or a structural failure), then timeout blocks on the timeout; the allowance reopens only after a new functional result.",
+        "Two concurrent same-host writes that both time out after one functional result admit at most one; a failure to save the allowance step refuses the write; other hosts' entries are preserved.",
+        "A non-functional or unavailable result on the applying host blocks, and a structural registration failure blocks (no change).",
+        "`session:ready` passes with a warning when the only failures are timeouts, and fails on non-functional, unavailable or structural failures.",
+        "Tests assert that the worst-case known-host write probe and the unknown-host fallback both stay below the host `tool.before` limit minus the stated margin, and that the fallback refuses when its overall deadline runs out.",
+        "The readiness contract text matches the new behavior, and ritual state holds per-host `agent_hooks` entries so a Grok-host write is not admitted by a Claude-host functional entry."
+      ],
+      "admitted_source_sentences": [
+        "The write-path `agent_hooks` check receives the applying hook host (`input.host`) and live-probes only that host, through the existing `hosts` seam. If the applying host is unknown, it probes every enabled host and blocks on any failure, timeout included, as today, with no timeout allowance. Structural registration inspection and hook-command resolution stay live on every write.",
+        "On the applying host, `non-functional` and `unavailable` block as today. A `timed-out` result blocks unless B3 admits it.",
+        "One-timeout allowance: each host's entry keeps the last `functional` result with the resolved hook-command identity (path, size, mtime) and the structural registration digest, plus whether the allowance is open. Only a `functional` result opens it; a timeout never renews it. Any `non-functional`, `unavailable` or structural failure on that host closes it until a new `functional` result. An applying-host timeout is admitted, with a warning, only when the allowance is open, the identity and digest match the current ones, and the record is younger than a named grace window no longer than the ritual freshness window. Checking and closing the allowance is one step inside the existing ritual-state lock: the step re-reads the host's current entry, admits only if it is still open, and records the timeout, which closes it. If that step cannot be saved, the write is refused. A second timeout before a new `functional` result blocks.",
+        "Ritual state records `agent_hooks` per host (status, time, identity, allowance) instead of one aggregate result, and a write merges only its own host's entry, keeping the others. A write by host H reads only H's entry, so one host's green never vouches for another host, granted members included.",
+        "`session:ready` and the CLI gated verify still probe every enabled host and update the same per-host entries. A host whose only failure is a timeout is recorded `timed-out` with a warning and does not fail the step. Non-functional, unavailable and structural failures still fail it. The printed timeout recovery says that each write re-checks its own host.",
+        "The per-case timeout and retry stay named constants, sized so the worst-case known-host write probe (one host, both fixtures, retries, plus the surrounding write-path work) stays below the 30 s host `tool.before` limit minus a stated margin. The unknown-host fallback runs under a named overall deadline inside the same limit and margin; when it runs out before every host passes, the write is refused. Budget exhaustion is reported as `timed-out`, never `non-functional`.",
+        "`content/contracts/agent-hook-readiness.md` is amended in the same change (timeout fail-closed, unused-host, `session:ready` and no-throttle lines) to match B1-B6. The re-run-every-write rule (#3738) stays, narrowed to the applying host.",
+        "A Claude-host write whose Claude probe is functional is admitted when Grok, Cursor, Codex or agy would time out, and the write path does not spawn their probes.",
+        "A write with an unknown applying host probes every enabled host and blocks on any failure, timeout included, with no timeout allowance.",
+        "After a functional result inside the grace window with unchanged hook-command identity and registration digest, one applying-host timeout admits with a warning; a second timeout before a new functional result blocks; a changed identity or digest, or an expired window, blocks on the first timeout; a timeout does not renew the functional record.",
+        "The sequence functional, then non-functional (or unavailable, or a structural failure), then timeout blocks on the timeout; the allowance reopens only after a new functional result.",
+        "Two concurrent same-host writes that both time out after one functional result admit at most one; a failure to save the allowance step refuses the write; other hosts' entries are preserved.",
+        "A non-functional or unavailable result on the applying host blocks, and a structural registration failure blocks (no change).",
+        "`session:ready` passes with a warning when the only failures are timeouts, and fails on non-functional, unavailable or structural failures.",
+        "Tests assert that the worst-case known-host write probe and the unknown-host fallback both stay below the host `tool.before` limit minus the stated margin, and that the fallback refuses when its overall deadline runs out.",
+        "The readiness contract text matches the new behavior, and ritual state holds per-host `agent_hooks` entries so a Grok-host write is not admitted by a Claude-host functional entry."
+      ],
+      "admitted_source_digest": "1f118ca4062927252759d2eee99be1351bf5b82362e64f867d2a84998455d727",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "The write-path `agent_hooks` check receives the applying hook host (`input.host`) and live-probes only that host, through the existing `hosts` seam. If the applying host is unknown, it probes every enabled host and blocks on any failure, timeout included, as today, with no timeout allowance. Structural registration inspection and hook-command resolution stay live on every write.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "On the applying host, `non-functional` and `unavailable` block as today. A `timed-out` result blocks unless B3 admits it.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "One-timeout allowance: each host's entry keeps the last `functional` result with the resolved hook-command identity (path, size, mtime) and the structural registration digest, plus whether the allowance is open. Only a `functional` result opens it; a timeout never renews it. Any `non-functional`, `unavailable` or structural failure on that host closes it until a new `functional` result. An applying-host timeout is admitted, with a warning, only when the allowance is open, the identity and digest match the current ones, and the record is younger than a named grace window no longer than the ritual freshness window. Checking and closing the allowance is one step inside the existing ritual-state lock: the step re-reads the host's current entry, admits only if it is still open, and records the timeout, which closes it. If that step cannot be saved, the write is refused. A second timeout before a new `functional` result blocks.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Ritual state records `agent_hooks` per host (status, time, identity, allowance) instead of one aggregate result, and a write merges only its own host's entry, keeping the others. A write by host H reads only H's entry, so one host's green never vouches for another host, granted members included.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "`session:ready` and the CLI gated verify still probe every enabled host and update the same per-host entries. A host whose only failure is a timeout is recorded `timed-out` with a warning and does not fail the step. Non-functional, unavailable and structural failures still fail it. The printed timeout recovery says that each write re-checks its own host.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "The per-case timeout and retry stay named constants, sized so the worst-case known-host write probe (one host, both fixtures, retries, plus the surrounding write-path work) stays below the 30 s host `tool.before` limit minus a stated margin. The unknown-host fallback runs under a named overall deadline inside the same limit and margin; when it runs out before every host passes, the write is refused. Budget exhaustion is reported as `timed-out`, never `non-functional`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "`content/contracts/agent-hook-readiness.md` is amended in the same change (timeout fail-closed, unused-host, `session:ready` and no-throttle lines) to match B1-B6. The re-run-every-write rule (#3738) stays, narrowed to the applying host.",
+          "artifact_path": "content/contracts/agent-hook-readiness.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "A Claude-host write whose Claude probe is functional is admitted when Grok, Cursor, Codex or agy would time out, and the write path does not spawn their probes.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "A write with an unknown applying host probes every enabled host and blocks on any failure, timeout included, with no timeout allowance.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "After a functional result inside the grace window with unchanged hook-command identity and registration digest, one applying-host timeout admits with a warning; a second timeout before a new functional result blocks; a changed identity or digest, or an expired window, blocks on the first timeout; a timeout does not renew the functional record.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "The sequence functional, then non-functional (or unavailable, or a structural failure), then timeout blocks on the timeout; the allowance reopens only after a new functional result.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "Two concurrent same-host writes that both time out after one functional result admit at most one; a failure to save the allowance step refuses the write; other hosts' entries are preserved.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "A non-functional or unavailable result on the applying host blocks, and a structural registration failure blocks (no change).",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "`session:ready` passes with a warning when the only failures are timeouts, and fails on non-functional, unavailable or structural failures.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "Tests assert that the worst-case known-host write probe and the unknown-host fallback both stay below the host `tool.before` limit minus the stated margin, and that the fallback refuses when its overall deadline runs out.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "The readiness contract text matches the new behavior, and ritual state holds per-host `agent_hooks` entries so a Grok-host write is not admitted by a Claude-host functional entry.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": false,
+        "size": "large",
+        "file_scope_confidence": "medium",
+        "depends_on": [],
+        "conflict_group": "agent-hook-readiness",
+        "model_tier": "high",
+        "file_scope": [
+          "packages/core/src/verify-env/agent-hooks-live-probe.ts",
+          "packages/core/src/verify-env/agent-hook-readiness.ts",
+          "packages/core/src/verify-env/agent-hooks.ts",
+          "packages/core/src/session/ritual-entrypoint.ts",
+          "packages/core/src/session/verify-session-ritual.ts",
+          "packages/core/src/session/ritual-sentinel.ts",
+          "packages/core/src/session/session-start.ts",
+          "packages/core/src/session/session-ready.ts",
+          "packages/core/src/session/agent-hook-allowance.ts",
+          "packages/core/src/hooks/dispatcher.ts",
+          "packages/core/src/doctor/main.ts",
+          "packages/runtime/src/verify-hooks-installed.ts",
+          "packages/core/src/verify-env/agent-hooks-live-probe.test.ts",
+          "packages/core/src/verify-env/agent-hook-readiness.test.ts",
+          "packages/core/src/doctor/agent-hooks.test.ts",
+          "packages/core/src/session/agent-hook-allowance.test.ts",
+          "packages/core/src/session/verify-session-ritual-default-runner.test.ts",
+          "packages/core/src/session/verify-session-ritual-write-gate.test.ts",
+          "packages/core/src/session/verify-session-ritual-messages.test.ts",
+          "packages/core/src/session/verify-session-ritual-branches.test.ts",
+          "packages/core/src/session/verify-session-ritual-bound-session.test.ts",
+          "packages/core/src/session/verify-session-ritual.test.ts",
+          "packages/core/src/session/ritual-sentinel.test.ts",
+          "packages/core/src/session/ritual-state-lock.test.ts",
+          "packages/core/src/session/ritual-state-lock.concurrency.test.ts",
+          "packages/core/src/session/session-ready.test.ts",
+          "packages/core/src/session/session-start.test.ts",
+          "packages/core/src/session/branches.test.ts",
+          "packages/core/src/session/compact-ritual.test.ts",
+          "packages/core/src/session/inspect-session-ritual.test.ts",
+          "packages/core/src/session/occupancy.test.ts",
+          "packages/core/src/session/occupancy-stale-ritual-recovery.test.ts",
+          "packages/core/src/session/path-identity.test.ts",
+          "packages/core/src/session/active-cli-ritual.test.ts",
+          "packages/core/src/session/session-start-rearm.test.ts",
+          "packages/core/src/hooks/dispatcher-write-gate.test.ts",
+          "packages/core/src/hooks/dispatcher-extra-path-budget.test.ts",
+          "packages/core/src/hooks/dispatcher-continue-checkpoint.test.ts",
+          "packages/core/src/hooks/dispatcher.test.ts",
+          "packages/core/src/hooks/cursor-hooks.test.ts",
+          "packages/core/src/content-contracts/standards/agent_hook_readiness_docs.test.ts",
+          "packages/runtime/src/verify-hooks-installed.test.ts",
+          "content/contracts/agent-hook-readiness.md",
+          "content/commands.md",
+          "changelog.d/7416-agent-hooks-write-probe-scope.md",
+          "docs/RULE-MAP.md",
+          "xbrief/PROJECT-DEFINITION.xbrief.json",
+          "xbrief/evaluator-surface-disposition.json"
+        ],
+        "verify_commands": [
+          "npx vitest run packages/core/src/verify-env/agent-hooks-live-probe.test.ts packages/core/src/verify-env/agent-hook-readiness.test.ts packages/core/src/doctor/agent-hooks.test.ts packages/runtime/src/verify-hooks-installed.test.ts",
+          "npx vitest run packages/core/src/session/agent-hook-allowance.test.ts packages/core/src/session/ritual-sentinel.test.ts packages/core/src/session/ritual-state-lock.test.ts packages/core/src/session/ritual-state-lock.concurrency.test.ts",
+          "npx vitest run packages/core/src/session/verify-session-ritual-default-runner.test.ts packages/core/src/session/verify-session-ritual-write-gate.test.ts packages/core/src/session/verify-session-ritual-messages.test.ts packages/core/src/session/verify-session-ritual-branches.test.ts packages/core/src/session/verify-session-ritual.test.ts",
+          "npx vitest run packages/core/src/session/session-ready.test.ts packages/core/src/session/session-start.test.ts packages/core/src/session/branches.test.ts packages/core/src/session/inspect-session-ritual.test.ts packages/core/src/session/compact-ritual.test.ts",
+          "npx vitest run packages/core/src/hooks/dispatcher-write-gate.test.ts packages/core/src/hooks/dispatcher-extra-path-budget.test.ts packages/core/src/hooks/dispatcher-continue-checkpoint.test.ts packages/core/src/content-contracts/standards/agent_hook_readiness_docs.test.ts"
+        ],
+        "expected_outputs": [
+          "the write-path agent_hooks step probes only the applying host (input.host) through the existing hosts seam; an unknown host probes every enabled host under a named overall deadline and blocks on any failure",
+          "ritual state keeps agent_hooks per host (status, time, hook-command identity, registration digest, allowance), merged per write under the ritual lock; a new session/agent-hook-allowance.ts holds the one-timeout allowance and its atomic check-and-close",
+          "session:ready and the CLI gated verify still probe every enabled host; a timeout-only result is recorded timed-out with a warning and passes",
+          "NEW CONSTANTS needing Scott's mint (each its own named constant, never a reused literal): the timeout-allowance grace window (no longer than the ritual freshness window), the unknown-host fallback overall deadline, the tool.before safety margin, and the retuned per-case timeout / retry values in agent-hooks-live-probe.ts (LIVE_PROBE_CASE_TIMEOUT_MS, LIVE_PROBE_CASE_RETRY_COUNT); budgets stay below the 30 s host tool.before limit minus the margin",
+          "content/contracts/agent-hook-readiness.md amended (timeout fail-closed, unused-host, session:ready and no-throttle lines; #3738 re-run rule narrowed to the applying host), with matching RULE-MAP line and changelog fragment 7416-agent-hooks-write-probe-scope.md"
+        ],
+        "acceptance_criteria_justification": "16 criteria because ingest harvests one clause per item of the arc's bound lean (comment 7206863160): 8 Bound remedy items and 8 Acceptance Criteria. The admitted source is digest-pinned by the arc record, so the criteria are kept whole rather than split."
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because #7416 changes when the `agent_hooks` safety gate refuses gated writes: it decides whether a live-probe timeout (on a host the session is not using, or once after a fresh functional result) may stop blocking writes, and the gate must still catch a hook that really does not work. The mechanism space is open (per-host scope, budget sizing, result caching, recovery path).\n\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nspend-recommend: N≥3\nspend: N≥3\nspend-ask: resolved\ncharter: refutation\nrefutation-target: A timeout-only live-probe result (on a host the session is not using, or one slow probe after a fresh functional result) is not evidence of a broken hook, so it can stop refusing gated writes without weakening detection of a real non-functional or unavailable hook on the active host.\nstop-2-why: refutation (the body asserts that a timeout is not a broken hook and proposes advisory timeouts on that basis); N≥3 panel permission applies because the target relaxes a fail-closed gate on every gated write, so a wrong call either keeps blocking all writes or lets a broken hook pass unseen.\ndest: C:\\Repos\\deft\\directive\\.deft-scratch\\worktrees\\arc-7416\norigin-ref: origin/HEAD\ndispatch-sha: bec07b1ef3cd57d8dbe2a74f2088280a7150410d\nverification-path: pin-read git show bec07b1ef3cd57d8dbe2a74f2088280a7150410d:; dest cwd-without-occupy\ndual-stop-reserved: first post-lean pain-audit of asserted coverage in-cap via evaluateDualStopParentPath; raise after reserved spent\nparent-posture: read-only. The primary checkout's occupancy lease belongs to the coordinator session; this arc leaves it in place and writes nothing in the primary (comments and catalog chips only).\n\npain: P1, P2, P3\n\n- **P1**: A timeout-only live-probe result on a host the session is not using (for example Grok, Cursor or Codex in a Claude Code session whose own probe is `functional`) fails `agent_hooks` and refuses every gated write.\n- **P2**: The write path re-runs the live probe on every gated write, so one slow probe mid-session revokes a ritual that `session:ready` just reported fresh and refuses the next write.\n- **P3**: `session:ready` forces the same live probe, so a timeout makes the recovery fail the same way, and the printed recovery leaves only waiting.\n\nkeep: a non-functional or unavailable hook on the active host still refuses gated writes (no change).\n\nRelated open issue with the same failure class: #6816 (0.130.0). Prior budget work: #3570 (closed).\n\n",
+          "id": 7206587577,
+          "html_url": "https://github.com/deftai/directive/issues/7416#issuecomment-7206587577",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-27T00:35:29Z",
+          "updated_at": "2026-11-27T00:35:29Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 3\ninput-ceiling: this comment (round-start snapshot taken after POST; the envelope id ceiling is authoritative)\nfamilies: grok, claude, codex\nseat: grok launcher: grok\nseat: claude launcher: claude\nseat: codex launcher: codex\nverification-path: pin-read git show bec07b1ef3cd57d8dbe2a74f2088280a7150410d:; dest cwd-without-occupy\nlaunch-probe: pass. Codex exec with the read-only sandbox and the dest as its working root; the Grok CLI with the dest as cwd in auto permission mode; the Claude CLI in print mode with dontAsk permission and a read-only tool allowlist, spawned with the dest as cwd by a Node supervisor per the playbook Critic-spawn hygiene recipe (stdin closed, parent waits, hard timeout). All three replied pong at rc 0. The parent runs as a Claude Code sub-agent in auto mode, so read-only launcher forms stand in for the bypass argv, and the Claude seat uses the Node supervisor because the hook takes the Claude dest from the payload cwd, which a sub-agent shell cannot set. Disclosed here. Critics read only; the parent posts each critic body verbatim.\n\n",
+          "id": 7206597983,
+          "html_url": "https://github.com/deftai/directive/issues/7416#issuecomment-7206597983",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-27T00:36:14Z",
+          "updated_at": "2026-11-27T00:36:14Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\nThe refutation target fails as stated. A timeout establishes uncertainty, not functionality. Scoping readiness to the invoking host can address P1, but accepting an active-host timeout after earlier success introduces a detection gap that must be acknowledged and bounded.\n\n### F1 — blocks-the-design — A timeout can conceal a broken deny path\n\n**Evidence:** At `bec07b1ef3cd57d8dbe2a74f2088280a7150410d`, `packages/core/src/verify-env/agent-hooks-live-probe.ts`, `runFixtureProbe` returns `timed-out` before validating output. `probeAgentHooksLive` stops a host after its first failed fixture. Thus an allow timeout leaves the deny fixture untested. `verify-session-ritual.ts:828–836` explicitly reruns readiness to detect registration/shim drift after earlier success.\n\n**Failure mode:** A previously functional shim changes or develops a hang. Its allow fixture times out, concealing a deny-path regression. Reusing the previous success admits writes without detecting that regression. Structural registration can remain healthy throughout.\n\n**Disposition consequence:** Reject the claim that active-host timeout fallback preserves detection unchanged. The keep line must distinguish refusing **observed** non-functional/unavailable results from guaranteeing detection during an inconclusive probe. A bounded stale-success policy may be acceptable, but it is an explicit availability tradeoff. Specify expiration, invalidation, and refusal after grace exhaustion; timeout fallback must not renew its own successful-validation timestamp.\n\n### F2 — blocks-the-design — Host-scoped admission needs invocation identity and scoped results\n\n**Evidence:** `agent-hook-readiness.ts` evaluates all enabled registrations and probes all enabled hosts; its options have no active-host input. `dispatcher.ts:2780–2803` invokes the ritual without forwarding `input.host`. The same dispatcher permits admitted members to use the owner’s ceremony (`dispatcher.ts`, immediately following that invocation). `runGatedStep` persists one aggregate `agent_hooks` result. The readiness contract defines exit zero as all enabled hosts green.\n\n**Failure mode:** A Claude invocation receives scoped success while Cursor times out. If that becomes an ordinary aggregate ritual success, a Cursor member sharing the ceremony can inherit an assurance that never established Cursor functionality. Using the owner’s host also misidentifies a child running under another host.\n\n**Disposition consequence:** Proposal 1 needs a defined identity and result boundary before it can bind:\n\n- Derive the required host from the invoking hook’s host context.\n- Keep per-host observations distinct from invocation-specific admission.\n- Specify conservative behavior for missing host identity and standalone readiness commands.\n- Preserve current structural failures and explicit non-functional/unavailable failures unless separately changed.\n\nThis can address P1 without pretending that a scoped admission is an all-host health result.\n\n### F3 — sharpens-framing — Larger case budgets require an end-to-end budget decision\n\n**Evidence:** `agent-hooks-live-probe.ts:14–16` sets 1.5 seconds and one retry; the probe serially runs two fixtures per host. The readiness contract’s #3570 ceiling is arithmetic—24 seconds across four hosts—not an independently enforced overall deadline in the probe. Elapsed time is reported afterward.\n\n**Failure mode:** Raising the constant to five seconds gives an 80-second nominal all-host ceiling. Active-host-first ordering alone does not reduce that ceiling. Even active-host-only probing can consume 20 seconds, before surrounding gate work.\n\n**Disposition consequence:** Proposal 2 can bind with explicit scheduling and budget semantics. Preserve a whole-operation budget including retries and surrounding work; distinguish budget exhaustion from observed bad output. “Others only at session start” must identify the gated initialization boundary: the existing contract deliberately excludes live probing from cold `session:start`.\n\n### F4 — sharpens-framing — Recovery must share the new admission policy\n\n**Evidence:** `session-ready.ts:347–390` forces `agent_hooks` even on its fresh fast path and returns a remaining-blocker failure when verification fails. `verify-session-ritual.ts` also always executes this step. Existing mechanisms already provide structural-first checking, timeout classification, one retry, per-host early stopping, and ownership-checked ritual writes.\n\n**Failure mode:** Changing only write admission relieves P1/P2 while `session:ready` continues to reject the same timeout, leaving P3 intact. Conversely, caching the entire readiness result can skip structural drift detection that recovery intentionally performs.\n\n**Disposition consequence:** Route recovery and writes through the same explicit host/timeout policy while retaining structural inspection. Add acceptance cases for fresh recovery, cold recovery without prior success, expired success, and concurrent callers. The present evaluator-only acceptance test does not establish P2 or P3.\n\nThe strongest case for stale-success reuse is avoiding repeated cold starts under ordinary multi-session load. I favor host scoping and budget repair first because they reduce unnecessary work without treating an inconclusive active-host probe as current proof. A bounded, identity-specific reuse policy with explicit detection limits would change my assessment of proposal 3.\n\n**Verification:** Read the supplied snapshot through comment 7206597983 and the required critique-contract sections. Independently read the pinned probe, readiness evaluator, readiness contract, ritual execution, dispatcher wiring, and recovery path. Internal benchmark evidence (private) was treated as reported evidence, not reproduced. No live thread, working-tree code, tests, session/install commands, file writes, posts, or agents were used. Critique complete; this body is ready for parent collection.",
+          "id": 7206652414,
+          "html_url": "https://github.com/deftai/directive/issues/7416#issuecomment-7206652414",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-27T00:40:13Z",
+          "updated_at": "2026-11-27T00:40:13Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4-5\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n**Verdict on the refutation target:** Partial refute. The first clause is already institutional under #3570 (`timed-out` is a distinct functionality state and must not be mapped or remediated as a broken hook). The second clause overclaims: letting timeout-only results stop refusing gated writes is a deliberate fail-open on ambiguous evidence, and as written it does open detection windows against applying-host hangs and mid-ritual shim breakage unless Prefer-A narrows host scope, keeps non-functional/unavailable hard-fail, and treats any freshness cache as a #3738 recut rather than a free corollary of “timeout ≠ broken.”\n\n### F1 — blocks-the-design — “Without weakening detection” does not follow from “timeout ≠ broken”\n\n**Evidence:** `packages/core/src/verify-env/agent-hooks-live-probe.ts` already exports `LIVE_PROBE_CASE_TIMEOUT_MS = 1_500`, `LIVE_PROBE_CASE_RETRY_COUNT = 1`, distinct `timed-out` issue/host status, and `LIVE_PROBE_TIMEOUT_RECOVERY` (“Do not reinstall … or disable hostHooks for a timeout”). `evaluateAgentHookReadiness` maps timeout-only live results to `liveStatus: \"timed-out\"` while still returning the live probe’s non-zero `code` (`agent-hook-readiness.ts`; test “maps live timeouts as timed-out rather than non-functional (#3570)”). `content/contracts/agent-hook-readiness.md` Gate behavior still says timeout fails closed and Exit 0 means **all enabled hosts** are functionally green. `verify-session-ritual.ts` intentionally **re-runs** `agent_hooks` at every gated boundary (“not a cacheable doctor result”); `writeGateRitualOptions` executes only `WRITE_GATED_EXECUTE_STEPS = [\"agent_hooks\"]`; `session:ready` sets `forceGatedSteps: [\"agent_hooks\", \"cache_fresh\"]` even when inspect was green. Proposal 3 (cache a recent `functional` across the freshness window) and proposal 1’s “one slow probe after a fresh functional” both admit writes while an applying-host hang presents as `timed-out` inside that window — a class the keep line names only as non-functional/unavailable, not as timeout-shaped unavailability.\n\n**Failure mode:** A lean that binds the target’s second clause verbatim treats ambiguous timeout as costless soft-fail and can ship a freshness cache that reopens the exact drift class #3738 closed, while still claiming the keep line is intact.\n\n**Disposition consequence:** Prefer-A must not endorse “stop refusing without weakening” as a free inference. Restate as: timeout is ambiguous; soft-fail is allowed only where detection of applying-host non-functional/unavailable stays hard on the write path, and any cache is an explicit #3738 scope change with a named window.\n\n### F2 — sharpens-framing — “Session’s own host” must mean the applying hook host on the write path\n\n**Evidence:** Mutation denial already runs inside the applying host’s `tool.before` (`dispatcher.ts` write-gate arm calls `verifySessionRitual(writeGateRitualOptions(...))` with `input.host` available on that path). `probeAgentHooksLive` already accepts `seams.hosts`, but `evaluateAgentHookReadiness` always passes **all** policy-enabled hosts and `liveProbeSeams` is typed as `Omit<..., \"hosts\">`, so today’s readiness surface cannot narrow without a caller change. Host identity is already a load-bearing authority surface (`resolveHookHostIdentity`, argv `--host`, #4409-class child identity).\n\n**Failure mode:** Soft-fail keyed on a guessed “session host” (ambient env, wrong `--host`, swarm/member presentation) advisories away a timeout on the host that will actually apply the next codec, or hard-fails the wrong set under multi-session load — the same concurrency the issue’s evidence describes.\n\n**Disposition consequence:** Frame Prefer-A write-path probing as **applying `input.host` only** (reuse the existing `hosts` seam), with full multi-host live probe retained on `session:ready` / full gated verify. Do not invent a second host-identity oracle.\n\n### F3 — sharpens-framing — Proposal 1 alone does not cover P2, P3, or the active-host timeout rows\n\n**Evidence:** Stop 1 P2 is exactly the every-boundary re-run above; P3 is `session:ready`’s forced `agent_hooks` refresh. The issue’s own table includes active-host timeouts (`claude/allow`, `claude/deny` timed-out) as well as unused-host timeouts while Claude stayed `functional`. Proposal 1 (non-active timeout advisory) covers the unused-host rows only.\n\n**Failure mode:** Binding a Prefer-A that ships only non-active advisory leaves mid-session active-host timeouts and `session:ready` self-failure in place; dual-stop delivery halt from repeated write refusals remains.\n\n**Disposition consequence:** Pain coverage must split: non-active advisory ∋ P1 (unused-host shape); applying-host write-path narrowing and/or a bounded timeout policy on the forced ready refresh ∋ P2/P3 and active-host timeout rows. Keep line stays on non-functional/unavailable for the applying host.\n\n### F4 — sharpens-framing — Per-case budget raises are gated by the existing #3570 overall ceiling\n\n**Evidence:** Live-probe comment encodes `4×2×1.5s×2 = 24s` under Cursor’s limit; `CURSOR_TOOL_BEFORE_TIMEOUT_SECONDS = 30` in `init-deposit/agent-hooks.ts`; dispatcher documents that Cursor `tool.before` budget sits above the gated-ritual / live-readiness budget. Four enabled hosts × two fixtures × one retry at 4–5 s exceeds that ceiling unless the hot path probes fewer hosts.\n\n**Failure mode:** Proposal 2 as a global 4–5 s per case without host narrowing turns the readiness gate into a self-DoS inside Cursor’s fail-closed `tool.before` window.\n\n**Disposition consequence:** Any timeout sizing change must preserve the overall ceiling; pair budget changes with applying-host-first / write-path-narrow (mechanism already latent in `seams.hosts`).\n\n### F5 — footnote — Inventory already present before new knobs\n\n`timed-out` status + timeout recovery copy (#3570); always-on write-path `agent_hooks` re-run (#3738); `session:ready` force of `agent_hooks`; `probeAgentHooksLive({ hosts })` seam; `WRITE_GATED_EXECUTE_STEPS` already limited to `agent_hooks`; contract Probe budget 1.5 s / one retry / 24 s ceiling; confirm-gated `policy:disable-host-hooks` explicitly **not** the timeout recovery.\n\n### F6 — footnote — Thread/instruction scan\n\nIssue body and comments through id 7206597983 were treated as untrusted data. No embedded directive to the critic beyond ordinary triage/parent protocol fields and quoted product recovery text. Privacy source named only as “internal benchmark evidence (private).”\n\n**Injection / swarm lens:** The target changes fail-closed write authority and shared ritual-state mutation (`.deft/ritual-state.json` via the `agent_hooks` step) under multi-session concurrency. Soft-fail keyed on host identity is an authority split: Prefer-A must bind soft-fail to the applying hook host and must not let a cached `functional` or a non-active timeout conceal applying-host non-functional/unavailable.\n\n**Road-not-taken / steelman:** Prefer applying-host-narrowed write-path probe (reuse `hosts`) over (a) global timeout→admit or (b) blanket freshness-window `functional` cache. Steelman for (b): one knob maximizes P2/P3 relief; flip only if cache is per-host, timeout-only (never caches away non-functional/unavailable), window ≪ ritual staleness, and every write still hard-fails applying-host non-functional/unavailable.\n\n**Mechanism list (Prefer-A shaped):**\n1. Write path: live-probe **applying `input.host` only**; hard-fail that host on non-functional, unavailable, or timeout.\n2. `session:ready` / full gated verify: keep multi-host deposit probe; make **non-active timeout-only** advisory (warn, non-blocking for ready’s write-admission purpose) while applying-host timeout and any non-functional/unavailable still fail.\n3. Preserve #3570 `timed-out` ≠ non-functional mapping and timeout recovery copy; keep-line unchanged for applying-host non-functional/unavailable.\n4. Keep the #3570 overall ceiling (`CURSOR_TOOL_BEFORE_TIMEOUT_SECONDS = 30`); raise per-case ms only with a narrowed host set on the hot path.\n5. Leftover only if still needed: short per-host **timeout-only** soft memo — never memoize away non-functional/unavailable; explicit #3738 exception text.\n\n**Verification:** Read snapshot-r1.md (issue body, triage 7206587577, panel-deposit 7206597983). Read design-critique headings Critic method, Comment lead, Reserved line-starts, Security context (#480), and agent-hook-readiness contract Probe budget / Gate behavior / Mutation-path wiring. Read working-tree sources at the named anchors: `agent-hooks-live-probe.ts`, `agent-hook-readiness.ts` (+ timeout unit test), `verify-session-ritual.ts` (`GATED_ENTRYPOINT_COMMANDS`, write-gate options, always-rerun `agent_hooks`), `session-ready.ts` (`forceGatedSteps`), `session-start.ts` (`WRITE_GATED_*`), `dispatcher.ts` write-gate arm and Cursor budget comment, `init-deposit/agent-hooks.ts` (`CURSOR_TOOL_BEFORE_TIMEOUT_SECONDS`). Dest HEAD file showed `012459230c25d4b7b4c28a41647ce0da5d467a87`, which differs from dispatch SHA `bec07b1ef3cd57d8dbe2a74f2088280a7150410d`. Shell `git show` / `git grep` at the pin were hook-denied (`@deftai/directive-runtime` missing; install refused by envelope). Therefore these code reads were working-tree file reads, not successful pin-reads. Did not post to GitHub, edit or create repo files, run tests, run session/install commands, or spawn agents. Did not read the live thread past the id ceiling.\n\n\n",
+          "id": 7206678076,
+          "html_url": "https://github.com/deftai/directive/issues/7416#issuecomment-7206678076",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-27T00:41:58Z",
+          "updated_at": "2026-11-27T00:41:58Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n**Verdict on the refutation target: it partly survives.** For P1 it holds. A timeout on a host the session is not using says nothing about the active host's codec. Every host runs the same PATH `deft-hook` shim, and the codec is checked only after the spawn finishes. For P2 it is overstated. \"Without weakening detection\" is true only because the probe sorts results into `functional | non-functional | unavailable | timed-out`. An active-host hook that keeps hanging is a real broken hook whose only symptom is a timeout. A freshness-window cache hides that hook unless the cache has limits. P3 is not fixed by proposal 1 at all, because `session:ready` does not know which host is active.\n\n### F1 — sharpens-framing — The keep line does not cover a hook that keeps hanging; the cache needs limits\n\n- **Evidence:**\n  - `agent-hooks-live-probe.ts:242-248` maps any timeout to the separate status `timed-out`, never `non-functional`.\n  - `agent-hook-readiness.md:41` says a timeout fails closed. `:67` says the gate \"does not inherit doctor's … throttle\".\n  - `verify-session-ritual.ts:829-834` re-runs `agent_hooks` at every gated boundary \"so registration/shim drift cannot remain hidden behind an earlier green ritual record\".\n- **Failure mode:** Proposal 3 caches a `functional` result for the freshness window (hours, from `sessionRitualStalenessHours`). Mid-session, the shim is replaced (`npm i -g`), or a lock or stdin wait makes the active host's fixture path hang. Every later probe times out, the cache keeps admitting, and the keep line never fires. \"Non-functional or unavailable\" never includes a hang. On hosts that treat a killed hook as non-blocking, the guardrail is already open. The probe is the only out-of-band signal, and the cache silences it.\n- **Disposition consequence:** The direction can be accepted, but the target sentence should say what it gives up. Limit the cache:\n  - (a) Key it on the resolved shim identity (path plus mtime/size or runtime version) and on the structural registration digest. Any change invalidates it.\n  - (b) Admit at most one timeout in a row per host. A second timeout in a row blocks as today.\n  - (c) Keep structural inspection (`agent-hook-readiness.ts:173-186`) and `resolveCommandOnPath` (`live-probe.ts:320-337`) live on every write. Both are cheap, and they keep the drift detection that the `:829` comment is protecting.\n\n### F2 — sharpens-framing — Proposal 1 needs a host identity that the ritual path does not have; P3 needs its own rule\n\n- **Evidence:**\n  - The write path knows the host: `dispatcher.ts:2585`, `:2758` use `input.host`.\n  - The host is lost before the evaluator. `writeGateRitualOptions` (`verify-session-ritual.ts:582-600`), `GATED_ENTRYPOINT_COMMANDS.agent_hooks` (`:68`, no host argv), `defaultRitualRunner` (`ritual-entrypoint.ts:106-123`) and `evaluateAgentHookReadiness` (`agent-hook-readiness.ts:152`) all take no active-host input.\n  - `session-ready.ts:348-358` forces `agent_hooks` with no host.\n- **Failure mode:** Proposal 1 is implemented by passing the host only through the write path. `session:ready` still sees `liveProbe.code === 1` for a timeout on a non-active host, and P3 stays: the recovery still refuses, as in evidence row 4.\n- **Disposition consequence:** State a separate rule for host-less surfaces. Recommended: a timeout-only result (`timeoutOnly`, already computed at `agent-hook-readiness.ts:214-215`) records the step as passed with a warning on `session:ready` and the CLI gated verify. Non-timeout failures still block. The active-host check then happens per write, where the host is known. Without this rule the acceptance criteria do not cover P3; none of the four ACs mentions `session:ready`.\n\n### F3 — sharpens-framing — The ritual-state record does not say which host it vouches for (swarm / shared state)\n\n- **Evidence:**\n  - `runGatedStep` (`verify-session-ritual.ts:300-331`) writes a single `gated_steps.agent_hooks` record `{ok, exitCode, message}` into the owner's ritual-state.\n  - Granted members write under the owner's record (`dispatcher.ts:2825-2837`, #3755).\n  - `inspectSessionRitual` and the `session:ready` fast path (`session-ready.ts:361-371`) trust that persisted record through `stepPasses` (`:499`).\n- **Failure mode:**\n  - In a mixed-host cohort in one checkout (Claude parent, Grok child admitted as a member), a Claude write records `ok: true` under a rule that ignores Grok timeouts. Inspect readers on the Grok side then see green.\n  - The reverse also happens. One member's timeout writes `ok: false`. That knocks `session:ready` off its fast path and decorates occupancy denials with \"ritual-not-ready\" for every member, until a later write overwrites the record.\n  - Under parallel writes, the last writer wins. A cache stored in that same field (proposal 3) is wiped by any timed-out run.\n- **Disposition consequence:**\n  - Record per-host results, or at least `vouched_host` plus the per-host status.\n  - Store the cached `last_functional_at` (with the F1 key) per host, in a field that a timed-out run never overwrites.\n  - State that inspect readers must not treat one host's green as another host's green.\n\n### F4 — sharpens-framing — Proposal 2's budget raise works against the host kill budget; the probe partly creates its own load\n\n- **Evidence:**\n  - The worst case at the pinned SHA is 4 hosts × 2 fixtures × 1.5 s × 2 = 24 s (`live-probe.ts:15`, contract `:67`). That sits under `NESTED_TOOL_BEFORE_TIMEOUT_SECONDS = CURSOR_TOOL_BEFORE_TIMEOUT_SECONDS = 30` (`init-deposit/agent-hooks.ts:256-266`).\n  - The comment there records that a host kill under Cursor `failClosed` shows up as an opaque exit 1 with no Directive decision (#3246 / #3739).\n  - Each gated write runs the hook cold starts one after another (`live-probe.ts:344-354`, up to 16 with retries). In evidence rows 1–2, three to five parallel Edits each launch that series at once.\n- **Failure mode:**\n  - With 5 s per case and probing only the active host, the worst case is 1 × 2 × 5 × 2 = 20 s. On the same loaded Windows box, the hook's own cold start and ritual overhead also grow. The total moves toward 30 s.\n  - Past 30 s, a clean Directive timeout deny becomes a host kill. On Cursor that is an opaque fail-closed deny. On hosts that treat the kill as non-blocking, it is fail-open.\n  - Keeping all hosts at 4–5 s per write breaks #3570 outright (4 × 2 × 5 × 2 = 80 s).\n- **Disposition consequence:**\n  - Make the write-path change \"probe the active host only; probe other hosts only on `session:ready` / cold boundaries (advisory)\". That alone removes up to 75% of the cold starts the gate itself causes per write.\n  - If the budget changes, size it from the host budget minus measured overhead, not as a flat raise.\n  - Add an AC that the worst-case write-path probe stays below the host `tool.before` timeout minus a stated margin.\n\n### F5 — footnote — The probe tests the PATH shim, which may not be the registered command\n\n`resolveAgentHookCommandBin` (`init-deposit/agent-hooks.ts:65-75`) registers `node node_modules/@deftai/directive-runtime/dist/hook-bin.js` when the local runtime exists. The probe always resolves the bare `deft-hook` on PATH (`live-probe.ts:88-90`). For package-relative consumers, a PATH-shim timeout or pass says little about the command the host actually runs. On the write path, the hook invocation that is running proves that the registered command spawned within the host budget for this host. A design could use that as the active host's spawn evidence and keep a probe only for the codec. I did not choose that route; see the steelman below.\n\n### F6 — footnote — The contract text must change with the code\n\nThese contract lines say the opposite of the proposals:\n\n- `agent-hook-readiness.md:41`: a timeout fails closed.\n- `:54`: \"Timeout is not unused-host opt-out\".\n- `:62`: `session:ready` forces the gated hook check.\n- `:67`: no throttle.\n\nUnder #3156 this is a deliberate gate change and is lawful through issue/PR. The ACs should name the contract amendment so the change is not made in code only.\n\n### F7 — footnote — Record hygiene\n\n- The panel-deposit (comment 7206597983) writes `input-ceiling: this comment (…)`, not a numeric id. The contract (`design-critique.md:247-248`) calls for the shared GitHub comment id. The envelope's numeric ceiling is authoritative, so this is a deposit-form finding, not a re-ceiling.\n- The triage names open #6816 as the same failure class. Disposition should decide whether one issue supersedes the other, so that two fixes do not race on the same gate.\n- I found no embedded instructions directed at critics in the issue body or comments.\n\n**Road not taken:** for the active host on the write path, I considered dropping the live spawn altogether and relying on the running hook as proof of spawn (F5). I rejected it because it leaves codec drift after a shim swap unseen. The probe is the only thing that runs the deny fixture end to end.\n\n**Steelman:** \"The running hook already proves the active host. Keep the codec check deterministic and in-process, and move the live spawn to session boundaries only.\" That design removes P2 completely and costs no cold starts per write. Two things would make me pick it over F1's limited cache:\n\n- evidence that the registered command and the PATH shim never differ in practice, or\n- an in-process codec self-test that exercises the same bytes the host receives.\n\n**Bound-remedy mechanisms (short list):**\n\n1. On the write path, thread `input.host` into the readiness evaluation. Probe that host only, and let it block on non-timeout failures. Probe the other hosts only at session boundaries, as advisory.\n2. On `session:ready` and the CLI gated verify, record a timeout-only result as passed with a warning. Non-timeout failures and structural failures still block.\n3. Keep a per-host `last_functional` cache, keyed on shim identity and registration digest. It admits a single active-host timeout and blocks on a second consecutive one.\n4. Record ritual-state `agent_hooks` per host, and amend the contract at `:41/:54/:62/:67`.\n5. Add an AC for the worst-case probe time under the host `tool.before` timeout.\n\n**Verification.**\n\n- **Read:** the envelope, the snapshot (issue body plus comments 7206587577 and 7206597983), the `design-critique.md` sections the envelope named, and `agent-hook-readiness.md`. I also read these files in the parent-extracted pin tree for `bec07b1ef3cd57d8dbe2a74f2088280a7150410d`:\n  - `verify-env/agent-hooks-live-probe.ts` and `verify-env/agent-hook-readiness.ts`\n  - `session/verify-session-ritual.ts` (lines 50-90, 300-389, 560-943)\n  - `session/ritual-entrypoint.ts` (lines 80-138) and `session/session-ready.ts` (lines 320-379)\n  - `hooks/dispatcher.ts` (lines 2570-2630, 2750-2840)\n  - `init-deposit/agent-hooks.ts` (lines 55-84, 238-273)\n- **Not done:** I ran no shell commands, `git show` or tests. The extracted tree is parent-supplied bytes, and I could not hash-check them against the SHA. I did not read the live thread, #6816, #3570, #3738 or #3755. The claim that some hosts let a tool run when its hook times out comes from host behaviour I know of, not from code in this repo. I posted nothing and wrote no files.\n\n",
+          "id": 7206696115,
+          "html_url": "https://github.com/deftai/directive/issues/7416#issuecomment-7206696115",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-27T00:43:13Z",
+          "updated_at": "2026-11-27T00:43:13Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nBefore every gated write, Directive re-runs a live check of the installed agent hooks. It spawns the hook once with an allow input and once with a deny input for every enabled host (Claude, Grok, Cursor, Codex, agy), with 1.5 s per case and one retry. On a loaded Windows machine each spawn pays a node cold start through the `cmd` shim, so a case often runs past 1.5 s. Any timeout on any host fails the check and refuses the write. That happens even when the host is one the session is not using and its own host passed. The check runs again on every write, so one slow spawn takes away a ritual that `session:ready` just called fresh. `session:ready` runs the same check, so it cannot recover, and the recovery text only says to wait.\n\nAll three critics agreed that a timeout is not proof of a broken hook, but it is not proof of a working one either. A hook that keeps hanging on the host in use is broken, and a timeout is its only symptom. So the issue's claim that timeouts can stop blocking \"without weakening detection\" holds for hosts the session is not using. For the host in use, it holds only inside a small, stated limit. The critics also found three more gaps. The ritual path does not know which host is writing. Ritual state keeps one result for all hosts, so one host's green could vouch for another. And a flat larger timeout would push the probe past the 30 s limit a host gives a hook.\n\nThe updated design checks only the writing host on each write. The host is already known in the hook call. If it is not known, the write checks every host as it does today. On that host a non-functional or unavailable hook still blocks. One timeout is let through, with a warning, only right after a working result on the same hook command and registration, and a second timeout in a row blocks. A timeout never counts as a working result. Ritual state keeps one result per host, so no host vouches for another. `session:ready` still checks every host, but a host whose only problem is a timeout gives a warning, not a failure, so recovery works again. Timeouts stay sized under the host hook limit, and the readiness contract is amended in the same change. This removes up to four of the five host checks from each write and adds no new stop.\n\nForward verdict and disposition: all 12 classified findings (Codex `7206652414` F1-F4, Grok `7206678076` F1-F4, Claude `7206696115` F1-F4) are accepted into the contract; zero disagree, zero defer. Non-self-arbitration disclosure: this parent authored the Stop 1 write-back `7206587577` and the takes below, and every take is a reading of a critic finding; no new premise is introduced. This arc does not ingest, does not edit #6816 (open, same failure class), and does not change the hostHooks opt-out.\n\n**Lean:** Accept all Round-1 findings from the `siblings: 3` panel and recut #7416 into the applying-host write check with a bounded timeout grace below.\n\nSupersedes Stop 1 write-back 7206587577.\nSpec-path: harvest `## Bound remedy` and `## Acceptance Criteria` below (supersedes the unamended #7416 body).\nTarget-digest: sha256:041d5e4d4a18b990b5487d50530a2d7f763d2bc0ea30e6d31e83cf39249c08ce\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nP1 is relieved by B1 and B5: writes no longer probe hosts the session is not using, and `session:ready` reports their timeouts as warnings. P2 is relieved by B1 (one host per write, so fewer cold starts) and B3 (one timeout after a fresh functional result admits). P3 is relieved by B5. The keep line stays: B2 and the unknown-host fallback in B1.\n\n## Per-heading takes (Round 1, `siblings: 3`)\n\nDispatched Round-1 siblings: 3. Codex `7206652414` (`gpt-6`), Grok `7206678076` (`grok-4-5`), Claude `7206696115` (`claude-opus-5-5`). Input ceiling `7206597983`.\n\n- `7206652414` F1 (`blocks-the-design`: a timeout can conceal a broken deny path): `accept-into-contract` (B3, A3).\n- `7206652414` F2 (`blocks-the-design`: host-scoped admission needs invocation identity and scoped results): `accept-into-contract` (B1, B4, A2, A5).\n- `7206652414` F3 (`sharpens-framing`: larger case budgets need an end-to-end budget decision): `accept-into-contract` (B6, A7).\n- `7206652414` F4 (`sharpens-framing`: recovery must share the new admission policy): `accept-into-contract` (B5, A6).\n- `7206678076` F1 (`blocks-the-design`: \"without weakening detection\" does not follow from \"timeout is not broken\"): `accept-into-contract` (B2, B3, B7, A3, A8).\n- `7206678076` F2 (`sharpens-framing`: the session's own host must mean the applying hook host on the write path): `accept-into-contract` (B1, A1, A2).\n- `7206678076` F3 (`sharpens-framing`: proposal 1 alone does not cover P2, P3 or active-host timeouts): `accept-into-contract` (B3, B5, A3, A6).\n- `7206678076` F4 (`sharpens-framing`: per-case budget raises are gated by the overall ceiling): `accept-into-contract` (B6, A7).\n- `7206696115` F1 (`sharpens-framing`: the keep line does not cover a hook that keeps hanging; the cache needs limits): `accept-into-contract` (B1, B3, A3).\n- `7206696115` F2 (`sharpens-framing`: proposal 1 needs a host identity the ritual path lacks; P3 needs its own rule): `accept-into-contract` (B1, B5, A1, A6).\n- `7206696115` F3 (`sharpens-framing`: the ritual-state record does not say which host it vouches for): `accept-into-contract` (B4, A5).\n- `7206696115` F4 (`sharpens-framing`: the budget raise works against the host kill budget): `accept-into-contract` (B1, B6, A7).\n\nStill-open residual: none (`disagree`: 0, `defer`: 0).\n\nFootnotes recorded (non-denominator census): Grok F5 (inventory) and F6 (thread scan); Claude F5 (the probe runs the PATH shim, which may differ from the registered command; kept as an implementation note, not harvested), F6 (contract lines to amend; folded into B7) and F7 (the panel-deposit `input-ceiling:` was prose, not a numeric id; the envelope ceiling `7206597983` was authoritative; #6816 overlap noted above).\n\nSeat disclosures: the Claude seat's first launch could not run any shell call in the process-only dest (the Directive hook refused it because the runtime is not installed there) and returned no findings; that output was not posted. The seat was relaunched once with the same envelope and ceiling, reading a parent-extracted `git archive` of the dispatch SHA. The Grok seat read working-tree files at dest HEAD `012459230c25d4b7b4c28a41647ce0da5d467a87`; `git diff bec07b1ef3cd57d8dbe2a74f2088280a7150410d 012459230c25d4b7b4c28a41647ce0da5d467a87` is empty for `packages/core/src/verify-env`, `packages/core/src/session`, `packages/core/src/hooks/dispatcher.ts`, `packages/core/src/init-deposit/agent-hooks.ts` and `content/contracts`, so those reads match the pin.\n\n## Bound remedy\n\n1. The write-path `agent_hooks` check receives the applying hook host (`input.host`) and live-probes only that host, through the existing `hosts` seam. If the applying host is unknown, it probes every enabled host and blocks on any failure, timeout included, as today. Structural registration inspection and hook-command resolution stay live on every write.\n2. On the applying host, `non-functional` and `unavailable` block as today. A `timed-out` result blocks unless B3 admits it.\n3. Timeout grace: a per-host record keeps the last `functional` result with the resolved hook-command identity (path, size, mtime) and the structural registration digest. An applying-host timeout is admitted with a warning only when that record exists, its identity and digest match the current ones, it is younger than a named grace window no longer than the ritual freshness window, and the previous probe of that host was not a timeout. A second consecutive timeout blocks. Only a `functional` result writes the record; a timeout never renews it.\n4. Ritual state records `agent_hooks` per host (status, time, identity) instead of one aggregate result. A write by host H reads only H's entry, so one host's green never vouches for another host, granted members included.\n5. `session:ready` and the CLI gated verify still probe every enabled host. A host whose only failure is a timeout is recorded `timed-out` with a warning and does not fail the step. Non-functional, unavailable and structural failures still fail it. The printed timeout recovery says that each write re-checks its own host.\n6. The per-case timeout and retry stay named constants, sized so the worst-case write-path probe (one host, both fixtures, retries) stays below the 30 s host `tool.before` limit minus a stated margin. Budget exhaustion is reported as `timed-out`, never `non-functional`.\n7. `content/contracts/agent-hook-readiness.md` is amended in the same change (timeout fail-closed, unused-host, `session:ready` and no-throttle lines) to match B1-B6. The re-run-every-write rule (#3738) stays, narrowed to the applying host.\n\n## Acceptance Criteria\n\n- [ ] A Claude-host write whose Claude probe is functional is admitted when Grok, Cursor, Codex or agy would time out, and the write path does not spawn their probes.\n- [ ] A write with an unknown applying host probes every enabled host and blocks on any failure, timeout included.\n- [ ] After a functional result inside the grace window with unchanged hook-command identity and registration digest, one applying-host timeout admits with a warning; a second consecutive timeout blocks; a changed identity or digest, or an expired window, blocks on the first timeout; a timeout does not renew the functional record.\n- [ ] A non-functional or unavailable result on the applying host blocks, and a structural registration failure blocks (no change).\n- [ ] Ritual state holds per-host `agent_hooks` entries, and a fixture shows a Grok-host write is not admitted by a Claude-host functional entry.\n- [ ] `session:ready` passes with a warning when the only failures are timeouts, and fails on non-functional, unavailable or structural failures.\n- [ ] A test asserts the worst-case write-path probe time stays below the host `tool.before` limit minus the stated margin.\n- [ ] The readiness contract text matches the new behavior.\r\n\n",
+          "id": 7206731995,
+          "html_url": "https://github.com/deftai/directive/issues/7416#issuecomment-7206731995",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-27T00:45:47Z",
+          "updated_at": "2026-11-27T00:45:47Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3\nharvest-digest: sha256:657e4ece66b1f550faa3c9dedc83328ce56998faec5ba75f43a2189318be951e\nfinding-classes: blocking, sharpening\nharvest-changed: true\n\n### F1 — blocks-the-design — A newer functional failure does not revoke timeout grace\n\n**Evidence:** B3 requires an unexpired functional record, matching identity and registration, and a previous probe that “was not a timeout.” It does not invalidate grace after `non-functional` or `unavailable`. B2 blocks those results only on the invocation observing them. At the pinned SHA, `agent-hooks-live-probe.ts:253–298` distinguishes timeout, spawn failure and invalid output; none requires a command-identity change.\n\n**Failure mode:** For one unchanged host and command, the sequence is `functional → non-functional → timed-out`. The middle probe detects a broken deny envelope and refuses its write. The third probe satisfies B3: the older functional record remains fresh and the previous result was not a timeout. It admits despite newer evidence of breakage. Alternating non-functional results and timeouts can repeatedly reopen admission until expiration. This exceeds the stated allowance of one uncertain observation immediately after working evidence.\n\n**Disposition consequence:** B3 and A3 must make a non-functional, unavailable or structural failure revoke eligibility until a new functional result. Keep historical success for diagnostics if useful, but do not use it as admission authority after contradictory evidence. Add the sequence above as an acceptance case. This is necessary to preserve the keep line while providing bounded P2 relief.\n\n### F2 — blocks-the-design — Per-host storage does not make the one-time allowance safe under concurrent writes\n\n**Evidence:** B3 bounds grace to one timeout; B4 specifies per-host entries but no atomic admission transition. The existing `verify-session-ritual.ts:811–849` reads state and runs the probe before persistence. `ritual-sentinel.ts:358–408` locks persistence and checks ownership, but `mergeSameOwnerRitualPayload:287–305` merges step maps with incoming entries winning. It does not atomically evaluate or consume timeout grace. Granted members share the owner’s ceremony (`dispatcher.ts:2825–2837`). The snapshot’s evidence includes concurrent Edits, and accepted Codex F4 explicitly requested concurrent-caller acceptance cases; the harvest omits them.\n\n**Failure mode:** Two same-host writes read the same fresh functional record before either records a timeout. Both probes time out; both observe the previous persisted result as functional and admit. Per-host separation prevents Claude from vouching for Grok, but does not prevent two Claude callers from spending the same allowance. Locking only publication preserves valid JSON while leaving this admission race intact.\n\n**Disposition consequence:** Specify that checking and consuming grace is atomic per host and owner, using the existing ritual lock or an equivalent conditional update. A later caller must evaluate the current record before admission; persistence failure must not grant grace. Add a concurrent timeout case proving at most one admission without an intervening functional result, plus preservation of unrelated host entries. This carries the accepted concurrency requirement into actual B/A text.\n\n### F3 — sharpens-framing — The budget criterion excludes the conservative fallback\n\n**Evidence:** B1 retains all-enabled-host probing when host identity is unknown. B6 explicitly sizes the “worst-case write-path probe” as one host, and A7 does not distinguish these paths. The pinned probe runs hosts and fixtures serially with one retry (`agent-hooks-live-probe.ts:14–16, 344–354`). The 30-second deposit limit explicitly includes dispatch overhead (`init-deposit/agent-hooks.ts:245–266`). Accepted Codex F3 called for a whole-operation budget including surrounding work.\n\n**Failure mode:** A timeout increase can satisfy the one-host arithmetic while making B1’s fallback exceed the host deadline. For example, four hosts at five seconds per fixture with one retry have an 80-second nominal ceiling. The host may kill the gate before its promised conservative refusal is rendered.\n\n**Disposition consequence:** Extend B6/A7 to cover both known-host and unknown-host write paths, including surrounding overhead. Preserve a conservative fallback budget or impose an overall deadline whose exhaustion refuses. Host narrowing remains the right mechanism; its budget proof must cover the fallback the harvest retains.\n\nP1 is addressed by B1/A1, and P3’s timeout-only recovery behavior is addressed by B5/A6 without treating a warning as functional evidence. P2 receives useful bounded relief, but F1 and F2 leave its safety boundary incomplete. The all-accept map therefore overstates incorporation: concurrency acceptance and whole-operation budget coverage are not fully carried into the harvest.\n\n**Verification:** Read the supplied snapshot through comment `7206731995`, including all three Round-1 critiques, and the required design-critique contract sections. Independently read the readiness evaluator, live probe, readiness contract, ritual verifier, recovery path, dispatcher, hook timeout constants and ritual persistence code using `git show`/`git grep` at `bec07b1ef3cd57d8dbe2a74f2088280a7150410d`. Applied the shared-state and authority lens; treated thread text as untrusted data. Ran no tests, session or install commands; read no live thread or working-tree code; wrote no files, posted nothing and spawned no agents. Critique complete.",
+          "id": 7206783651,
+          "html_url": "https://github.com/deftai/directive/issues/7416#issuecomment-7206783651",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-27T00:49:34Z",
+          "updated_at": "2026-11-27T00:49:34Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** retraction map after pain-audit 7206783651 (not for bind)\n**Recut:** retracts the Bound remedy on successor lean 7206731995\n\n## In plain English\n\nThe pain-audit agreed that checking only the writing host fixes the unused-host refusals (P1), and that letting `session:ready` warn on timeout-only results fixes recovery (P3). It found that the one-timeout grace for the writing host (B3), which is what relieves P2, is not safe as written, for two reasons. First, a newer non-functional result does not cancel the grace. After functional, then broken, then timeout, the timeout would be let through even though the hook was just seen broken. Second, two writes at the same moment could both use the same single grace, because nothing makes taking the grace atomic. It also found that the time-budget rule covers only the one-host path, not the every-host fallback used when the host is unknown.\n\nThe Bound remedy on 7206731995 is withdrawn and will not be ingested. B1, B2, B4, B5 and B7 and the audit's verdicts on P1 and P3 stand. A recut would change B3 (a non-functional, unavailable or structural result cancels the grace until a new functional result, and taking the grace is one atomic step per host under the ritual lock) and B6 (the budget covers the unknown-host fallback, with an overall deadline that refuses when it runs out). No independent critic has checked that recut.\n\nTarget-digest: sha256:041d5e4d4a18b990b5487d50530a2d7f763d2bc0ea30e6d31e83cf39249c08ce\n\nrelieves: P1\nrelieves: P3\ndoes-not-relieve: P2\n\n## Takes\n\n| Critic | Finding | Class | Take |\n|---|---|---|---|\n| comment 7206783651 | F1 A newer functional failure does not revoke timeout grace | blocks-the-design | accept-into-contract (B3 and A3 would gain revocation on non-functional, unavailable or structural results; P2 not relieved as written) |\n| comment 7206783651 | F2 Per-host storage does not make the one-time allowance safe under concurrent writes | blocks-the-design | accept-into-contract (B3, B4 and A3 would gain atomic per-host grace consumption and a concurrent-timeout case) |\n| comment 7206783651 | F3 The budget criterion excludes the conservative fallback | sharpens-framing | accept-into-contract (B6 and A7 would cover the unknown-host path with an overall deadline that refuses) |\n\nAudit verdicts recorded: `pain-P1` and `pain-P3` hold; `pain-P2` does not hold as written.\r\n\n",
+          "id": 7206788577,
+          "html_url": "https://github.com/deftai/directive/issues/7416#issuecomment-7206788577",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-27T00:49:56Z",
+          "updated_at": "2026-11-27T00:49:56Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\nHandoff: after retraction map 7206788577 (`does-not-relieve: P2` on a Recut map).\nopen-question: Is a one-timeout grace on the writing host safe once any non-functional, unavailable or structural result cancels it until a new functional result and taking it is atomic per host under the ritual lock, or should the grace be dropped and the active-host timeout part of P2 be split off?\n\n## In plain English\n\nThe host-scoped write check and the `session:ready` warning rule passed the audit. The open part is the grace that lets one writing-host timeout through. Either it gets the two limits the audit asked for and a fresh critic checks it, or it is removed and that part of P2 moves to its own issue, which is the simpler rule.\r\n\n",
+          "id": 7206792679,
+          "html_url": "https://github.com/deftai/directive/issues/7416#issuecomment-7206792679",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-27T00:50:12Z",
+          "updated_at": "2026-11-27T00:50:12Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\ndesign-critique: halted, because the Dual-stop budget is spent (N≥3 panel: Round-1 posts 7206652414, 7206678076 and 7206696115, plus the reserved pain-audit 7206783651), and that audit returned two blocking findings and one sharpening against successor lean 7206731995. The standing one-raise rule covers a single narrow blocking finding only, and both blocks question whether the gate still refuses a broken hook on the writing host, so resuming is the operator's call.\n\n## In plain English\n\nThis arc stops one step short of an accepted design. Three critics agreed on the direction: each write checks only the host that is writing (every host when that is unknown), a non-functional or unavailable hook still blocks, ritual state keeps one result per host, and `session:ready` warns instead of failing when the only problem is a timeout. The audit accepted that this fixes the unused-host refusals and the recovery failure. It found that the one-timeout grace for the writing host can be reused after the hook was seen broken, and can be used twice by two writes at once, and that the time budget did not cover the every-host fallback. Nothing from this arc is ready to ingest.\n\nWhat the operator decides: either raise the cap by one post for an audit of a recut that adds the two grace limits and the fallback budget, or drop the grace, bind the rest, and split the writing-host timeout part of P2 into its own issue.\n\nRetracted lean: 7206731995. Retraction map: 7206788577. Handoff: 7206792679. Stop 1: 7206587577.\r\n\n",
+          "id": 7206796487,
+          "html_url": "https://github.com/deftai/directive/issues/7416#issuecomment-7206796487",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-27T00:50:28Z",
+          "updated_at": "2026-11-27T00:50:28Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\nOperator resume after halt 7206796487.\ndual-stop-raise: operator\nraise-words: \"Raise cap, recut\" (Scott, live turn on 2026-11-26, relayed by the coordinating session)\nraise-reading: +1 critic post on this arc, for one pain-audit of the recut lean that follows (targets `pain-P1`, `pain-P2`, `pain-P3`). No further raise: if that audit blocks, the arc halts.\n\n## In plain English\n\nScott allowed one more critic post. The next comment is a recut that cancels the one-timeout allowance after any newer failure, makes taking it atomic per host, and gives the every-host fallback an overall deadline. One fresh critic then audits it.\r\n\n",
+          "id": 7206841020,
+          "html_url": "https://github.com/deftai/directive/issues/7416#issuecomment-7206841020",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-27T00:53:43Z",
+          "updated_at": "2026-11-27T00:53:43Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nBefore every gated write, Directive re-runs a live check of the installed agent hooks. It spawns the hook once with an allow input and once with a deny input for every enabled host (Claude, Grok, Cursor, Codex, agy), with 1.5 s per case and one retry. On a loaded Windows machine each spawn pays a node cold start through the `cmd` shim, so a case often runs past 1.5 s. Any timeout on any host refuses the write, even for a host the session is not using. The check runs again on every write, so one slow spawn takes away a ritual that `session:ready` just called fresh. `session:ready` runs the same check, so it cannot recover.\n\nThe three critics agreed that a timeout is not proof of a broken hook, and not proof of a working one either. So the fix checks only the writing host on each write, keeps one result per host, and lets `session:ready` warn on timeout-only results. The pain-audit accepted that part. It found that the one-timeout allowance for the writing host was not safe as first written. A newer failure did not cancel it, and two writes at once could both use it. The budget rule also missed the every-host fallback. The operator allowed one more audit for this recut.\n\nThe recut keeps the design and closes those three gaps. Each write checks only its own host, which the hook call already knows. If the host is unknown, the write checks every host as today, and an overall deadline makes it refuse rather than run past the host's hook limit. A non-functional or unavailable hook still blocks. One timeout is let through, with a warning, only right after a working result on the same hook command and registration. Any newer non-functional, unavailable or structural result cancels that allowance until a new working result. Taking the allowance is one locked step per host, so two writes at once cannot both use it, and if the step cannot be saved the write is refused. A second timeout in a row blocks. Ritual state keeps one result per host, and no host vouches for another. `session:ready` still checks every host, but a timeout-only result gives a warning, not a failure. The readiness contract is amended in the same change. This removes up to four of the five host checks from each write and adds no new stop.\n\nForward verdict and disposition: all 15 classified findings (Round 1: Codex `7206652414` F1-F4, Grok `7206678076` F1-F4, Claude `7206696115` F1-F4; pain-audit Codex `7206783651` F1-F3) are accepted into the contract; zero disagree, zero defer. Non-self-arbitration disclosure: this parent authored the Stop 1 write-back `7206587577`, the retracted lean and the takes below, and every take is a reading of a critic finding; no new premise is introduced. This arc does not ingest, does not edit #6816 (open, same failure class), and does not change the hostHooks opt-out.\n\n**Lean:** Recut bind lean after pain-audit 7206783651 and operator raise 7206841020: the applying-host write check with a revocable, atomic one-timeout allowance and a fallback deadline below.\n\nSupersedes retraction map 7206788577 and successor lean 7206731995.\nSpec-path: harvest `## Bound remedy` and `## Acceptance Criteria` below (supersedes the unamended #7416 body).\nRecut: supersedes retraction map 7206788577 and successor lean 7206731995. Stop 1 write-back: comment 7206587577. Handoff: comment 7206792679. Panel deposit: comment 7206597983.\nTarget-digest: sha256:041d5e4d4a18b990b5487d50530a2d7f763d2bc0ea30e6d31e83cf39249c08ce\n\nrelieves: P1\nrelieves: P2\nrelieves: P3\n\nP1 is relieved by B1 and B5: writes no longer probe hosts the session is not using, and `session:ready` reports their timeouts as warnings. P2 is relieved by B1 (one host per write, so fewer cold starts) and B3 (one timeout after a fresh functional result admits, revoked by any newer failure and taken atomically). P3 is relieved by B5. The keep line stays: B2, the revocation in B3, and the unknown-host fallback in B1 and B6.\n\n## Per-heading takes (`siblings: 3` Round 1 plus pain-audit)\n\nDispatched Round-1 siblings: 3. Codex `7206652414` (`gpt-6`), Grok `7206678076` (`grok-4-5`), Claude `7206696115` (`claude-opus-5-5`). Input ceiling `7206597983`. Pain-audit: Codex `7206783651` (`gpt-6`).\n\n- `7206652414` F1 (`blocks-the-design`: a timeout can conceal a broken deny path): `accept-into-contract` (B3, A3, A4).\n- `7206652414` F2 (`blocks-the-design`: host-scoped admission needs invocation identity and scoped results): `accept-into-contract` (B1, B4, A2, A9).\n- `7206652414` F3 (`sharpens-framing`: larger case budgets need an end-to-end budget decision): `accept-into-contract` (B6, A8).\n- `7206652414` F4 (`sharpens-framing`: recovery must share the new admission policy): `accept-into-contract` (B3, B5, A5, A7).\n- `7206678076` F1 (`blocks-the-design`: \"without weakening detection\" does not follow from \"timeout is not broken\"): `accept-into-contract` (B2, B3, B7, A3, A6, A9).\n- `7206678076` F2 (`sharpens-framing`: the session's own host must mean the applying hook host on the write path): `accept-into-contract` (B1, A1, A2).\n- `7206678076` F3 (`sharpens-framing`: proposal 1 alone does not cover P2, P3 or active-host timeouts): `accept-into-contract` (B3, B5, A3, A7).\n- `7206678076` F4 (`sharpens-framing`: per-case budget raises are gated by the overall ceiling): `accept-into-contract` (B6, A8).\n- `7206696115` F1 (`sharpens-framing`: the keep line does not cover a hook that keeps hanging; the cache needs limits): `accept-into-contract` (B1, B3, A3).\n- `7206696115` F2 (`sharpens-framing`: proposal 1 needs a host identity the ritual path lacks; P3 needs its own rule): `accept-into-contract` (B1, B5, A1, A7).\n- `7206696115` F3 (`sharpens-framing`: the ritual-state record does not say which host it vouches for): `accept-into-contract` (B4, A9).\n- `7206696115` F4 (`sharpens-framing`: the budget raise works against the host kill budget): `accept-into-contract` (B1, B6, A8).\n- `7206783651` F1 (`blocks-the-design`: a newer functional failure does not revoke timeout grace): `accept-into-contract` (B3, A4).\n- `7206783651` F2 (`blocks-the-design`: per-host storage does not make the one-time allowance safe under concurrent writes): `accept-into-contract` (B3, B4, A5).\n- `7206783651` F3 (`sharpens-framing`: the budget criterion excludes the conservative fallback): `accept-into-contract` (B6, A8).\n\nStill-open residual: none (`disagree`: 0, `defer`: 0).\n\nFootnotes recorded (non-denominator census): Grok F5 (inventory) and F6 (thread scan); Claude F5 (the probe runs the PATH shim, which may differ from the registered command; kept as an implementation note, not harvested), F6 (contract lines to amend; folded into B7) and F7 (the panel-deposit `input-ceiling:` was prose, not a numeric id; the envelope ceiling `7206597983` was authoritative; #6816 overlap noted above).\n\nSeat disclosures (unchanged from the retracted lean): the Claude seat's first launch could not run any shell call in the process-only dest (the Directive hook refused it because the runtime is not installed there) and returned no findings; that output was not posted, and the seat was relaunched once with the same envelope and ceiling on a parent-extracted `git archive` of the dispatch SHA. The Grok seat read working-tree files at dest HEAD `012459230c25d4b7b4c28a41647ce0da5d467a87`, and `git diff` against the dispatch SHA is empty for the paths it read.\n\n## Bound remedy\n\n1. The write-path `agent_hooks` check receives the applying hook host (`input.host`) and live-probes only that host, through the existing `hosts` seam. If the applying host is unknown, it probes every enabled host and blocks on any failure, timeout included, as today, with no timeout allowance. Structural registration inspection and hook-command resolution stay live on every write.\n2. On the applying host, `non-functional` and `unavailable` block as today. A `timed-out` result blocks unless B3 admits it.\n3. One-timeout allowance: each host's entry keeps the last `functional` result with the resolved hook-command identity (path, size, mtime) and the structural registration digest, plus whether the allowance is open. Only a `functional` result opens it; a timeout never renews it. Any `non-functional`, `unavailable` or structural failure on that host closes it until a new `functional` result. An applying-host timeout is admitted, with a warning, only when the allowance is open, the identity and digest match the current ones, and the record is younger than a named grace window no longer than the ritual freshness window. Checking and closing the allowance is one step inside the existing ritual-state lock: the step re-reads the host's current entry, admits only if it is still open, and records the timeout, which closes it. If that step cannot be saved, the write is refused. A second timeout before a new `functional` result blocks.\n4. Ritual state records `agent_hooks` per host (status, time, identity, allowance) instead of one aggregate result, and a write merges only its own host's entry, keeping the others. A write by host H reads only H's entry, so one host's green never vouches for another host, granted members included.\n5. `session:ready` and the CLI gated verify still probe every enabled host and update the same per-host entries. A host whose only failure is a timeout is recorded `timed-out` with a warning and does not fail the step. Non-functional, unavailable and structural failures still fail it. The printed timeout recovery says that each write re-checks its own host.\n6. The per-case timeout and retry stay named constants, sized so the worst-case known-host write probe (one host, both fixtures, retries, plus the surrounding write-path work) stays below the 30 s host `tool.before` limit minus a stated margin. The unknown-host fallback runs under a named overall deadline inside the same limit and margin; when it runs out before every host passes, the write is refused. Budget exhaustion is reported as `timed-out`, never `non-functional`.\n7. `content/contracts/agent-hook-readiness.md` is amended in the same change (timeout fail-closed, unused-host, `session:ready` and no-throttle lines) to match B1-B6. The re-run-every-write rule (#3738) stays, narrowed to the applying host.\n\n## Acceptance Criteria\n\n- [ ] A Claude-host write whose Claude probe is functional is admitted when Grok, Cursor, Codex or agy would time out, and the write path does not spawn their probes.\n- [ ] A write with an unknown applying host probes every enabled host and blocks on any failure, timeout included, with no timeout allowance.\n- [ ] After a functional result inside the grace window with unchanged hook-command identity and registration digest, one applying-host timeout admits with a warning; a second timeout before a new functional result blocks; a changed identity or digest, or an expired window, blocks on the first timeout; a timeout does not renew the functional record.\n- [ ] The sequence functional, then non-functional (or unavailable, or a structural failure), then timeout blocks on the timeout; the allowance reopens only after a new functional result.\n- [ ] Two concurrent same-host writes that both time out after one functional result admit at most one; a failure to save the allowance step refuses the write; other hosts' entries are preserved.\n- [ ] A non-functional or unavailable result on the applying host blocks, and a structural registration failure blocks (no change).\n- [ ] `session:ready` passes with a warning when the only failures are timeouts, and fails on non-functional, unavailable or structural failures.\n- [ ] Tests assert that the worst-case known-host write probe and the unknown-host fallback both stay below the host `tool.before` limit minus the stated margin, and that the fallback refuses when its overall deadline runs out.\n- [ ] The readiness contract text matches the new behavior, and ritual state holds per-host `agent_hooks` entries so a Grok-host write is not admitted by a Claude-host functional entry.\r\n\n",
+          "id": 7206863160,
+          "html_url": "https://github.com/deftai/directive/issues/7416#issuecomment-7206863160",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-27T00:55:21Z",
+          "updated_at": "2026-11-27T00:55:21Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2, pain-P3\nharvest-digest: sha256:4c07dcc3b5b2d29c28a208cfd0e520da000933e01e2e45a7c4bb0f83ba0e1416\nfinding-classes: footnote\nharvest-changed: false\n\nThe recut addresses all three named pains within its stated bounds. I found no remaining blocking or sharpening finding. The accepted findings are carried into the actual Bound remedy and Acceptance Criteria, not merely the take map.\n\n- **P1:** B1/A1 eliminate unrelated-host live probes on a known-host write. B1/A2 retain conservative admission when the applying host is unknown.\n- **P2:** B3/A3 provide one bounded timeout admission after functional evidence. B3/A4 revoke that authority after observed non-functional, unavailable or structural failure. B3–B4/A5 require atomic consumption, refusal on persistence failure and preservation of other hosts’ entries.\n- **P3:** B5/A7 explicitly make timeout-only recovery advisory while retaining refusal for other failures. Recovery updates the same per-host records; a warning is not a new functional result.\n\nThe prior audit’s three findings are addressed: revocation is explicit, concurrent callers cannot both consume one allowance, and B6/A8 cover both known-host and unknown-host budgets, including surrounding work and conservative deadline exhaustion. B7/A9 require the corresponding readiness-contract amendment.\n\n### F1 — footnote — The retained safety guarantee concerns observed failures\n\nThe Stop 1 keep line survives as refusal of **observed** non-functional or unavailable results, with structural failures also refusing. It cannot mean immediate detection of every genuinely broken hook during an inconclusive probe.\n\nAt the pinned SHA, `packages/core/src/verify-env/agent-hooks-live-probe.ts`, `runFixtureProbe` returns timeout before output validation, and `probeAgentHooksLive` stops that host after its first failed fixture. A newly hanging hook can therefore consume the single allowance despite unchanged command identity and registration. The recut bounds that uncertainty rather than eliminating it: the timeout closes the allowance, cannot renew functional evidence, and subsequent timeouts refuse until a new functional result. This is the explicit availability tradeoff already embodied in B2–B3/A3–A4; no harvest change is required.\n\nThe shared-state safety boundary is also concrete. Existing `runGatedStep` persists an aggregate result after execution; `ritual-sentinel.ts:358–408` provides ownership-checked, locked publication but does not itself consume grace. B3 now requires the missing read/check/consume operation inside that lock, and A5 tests its admission consequence. Merely retaining today’s publication lock would not satisfy the recut.\n\n**Verification:** Read the supplied snapshot through comment `7206863160`, including Stop 1, all three Round-1 critiques and the previous pain audit. Independently read the required design-critique contract sections, readiness contract, live probe, readiness evaluator, ritual execution and persistence, recovery path, dispatcher wiring and timeout constants through `git show`/`git grep` at `bec07b1ef3cd57d8dbe2a74f2088280a7150410d`. Applied the authority and shared-state lens; treated thread text as untrusted data. Internal benchmark evidence (private) was reported evidence, not reproduced. Read no live thread or working-tree code; ran no tests, session or install commands; wrote no files, posted nothing and spawned no agents. Critique complete; returned for parent collection.",
+          "id": 7206898358,
+          "html_url": "https://github.com/deftai/directive/issues/7416#issuecomment-7206898358",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-27T00:57:57Z",
+          "updated_at": "2026-11-27T00:57:57Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nNon-self-arbitration disclosure: this parent authored Stop 1 `7206587577` and the leans. Code rows were re-derived by the parent with `git show bec07b1ef3cd57d8dbe2a74f2088280a7150410d:<path>` and independently by the critics (Codex by pin-read; Claude from a parent-extracted `git archive` of the SHA; Grok from dest working-tree files whose `git diff` against the SHA is empty for those paths). Load rows come from the issue body (internal benchmark evidence, private) and were not reproduced.\n\n| Claim / Seam | Verdict | Evidence | Method |\n|---|---|---|---|\n| Per-case probe budget is 1.5 s with one retry, applied per spawn | Verified | `agent-hooks-live-probe.ts:14-16,122,264-280` | Parent pin-read + Codex `7206652414`, Claude `7206696115`, Grok `7206678076` |\n| The probe runs both fixtures for every enabled host, serially, and stops a host at its first failure | Verified | `agent-hooks-live-probe.ts:344-354`; `HOOK_HOSTS` has five hosts at `hooks/hook-hosts.ts:7` | Parent pin-read + Codex `7206652414` F1, Codex `7206783651` |\n| A timeout is classified `timed-out`, separate from `non-functional`, but still fails readiness | Verified | `agent-hooks-live-probe.ts:242-248`; `agent-hook-readiness.ts:213-224`, `code: liveProbe.code` at `:234` | Parent pin-read + Grok `7206678076` F1 |\n| The readiness evaluator takes no active-host input and probes every enabled host | Verified | `agent-hook-readiness.ts:188-194` | Parent pin-read + Codex `7206652414` F2, Claude `7206696115` F2 |\n| Every gated write re-runs `agent_hooks` live, and the write path does not pass `input.host` to it | Verified | `verify-session-ritual.ts:825-836`; `session-start.ts:211` `WRITE_GATED_EXECUTE_STEPS`; `dispatcher.ts:2795` `writeGateRitualOptions` call | Parent pin-read + all three Round-1 critics |\n| `session:ready` forces `agent_hooks` even on its fresh fast path | Verified | `session-ready.ts:356,374-399` | Parent pin-read + Codex `7206652414` F4, Claude `7206696115` F2 |\n| Ritual state keeps one aggregate `agent_hooks` result, published under a lock that merges step maps but does not consume any allowance | Verified | `ritual-sentinel.ts:287-305` `mergeSameOwnerRitualPayload`, `:358-408` `writeRitualStateIfStillOwned` | Parent pin-read + Claude `7206696115` F3, Codex `7206783651` F2 |\n| The host gives a hook a 30 s `tool.before` limit | Verified | `init-deposit/agent-hooks.ts:256` `CURSOR_TOOL_BEFORE_TIMEOUT_SECONDS = 30` | Parent pin-read + Grok `7206678076` F4, Claude `7206696115` F4 |\n| Recut harvest carries all 15 accepted findings and honestly covers P1, P2 and P3 with the keep line intact | Verified | Pain-audit `7206898358`: `finding-classes: footnote`, `harvest-changed: false`, `harvest-digest: sha256:4c07dcc3b5b2d29c28a208cfd0e520da000933e01e2e45a7c4bb0f83ba0e1416` | Independent pain-audit after operator raise `7206841020` |\r\n\n",
+          "id": 7206910950,
+          "html_url": "https://github.com/deftai/directive/issues/7416#issuecomment-7206910950",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-27T00:58:54Z",
+          "updated_at": "2026-11-27T00:58:54Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nBefore every gated write, Directive re-ran a live check of the installed hooks for every enabled host, at 1.5 s per case. On a loaded Windows machine a node cold start often runs past that, so any timeout on any host refused the write, even for hosts the session was not using. The check ran again on every write, so one slow spawn took away a ritual `session:ready` had just called fresh, and `session:ready` failed the same way. The panel agreed a timeout proves neither a broken nor a working hook. The first design's one-timeout allowance could be reused after a failure or used twice by two writes at once, and its budget missed the every-host fallback.\n\nThe accepted design checks only the writing host on each write, as the hook call already knows it. An unknown host gets every host checked as today, under an overall deadline that refuses when it runs out. A non-functional or unavailable hook still blocks. One timeout is let through with a warning only right after a working result on the same hook command and registration; any newer failure cancels that allowance until a new working result, taking it is one locked step per host, and a second timeout in a row blocks. Ritual state keeps one result per host, so no host vouches for another. `session:ready` still checks every host but warns, rather than fails, on timeout-only results. The readiness contract is amended in the same change. Leftover next-build is this harvest; it removes up to four of five host checks per write and adds no new stop.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 7206863160 and verified-claims table 7206910950.\n\n",
+          "id": 7206920283,
+          "html_url": "https://github.com/deftai/directive/issues/7416#issuecomment-7206920283",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-27T00:59:35Z",
+          "updated_at": "2026-11-27T00:59:35Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Summary\n\nThe `agent_hooks` gated ritual step fails when the hook live probe times out (`LIVE_PROBE_CASE_TIMEOUT_MS = 1_500`, `LIVE_PROBE_CASE_RETRY_COUNT = 1`, `verify-env/agent-hooks-live-probe.js`). On Windows under ordinary multi-session load this happens often, and a timeout blocks every gated write. The blocked hosts include hosts the session is not using: a Claude Code session is refused because the Grok, Cursor or Codex probe was slow, while the Claude probe itself reports `functional`. The printed recovery (\"retry the gated ritual when load is lower. Do not reinstall … or disable hostHooks for a timeout\") leaves no way forward except waiting, and `session:ready` fails the same way.\n\nSource: internal benchmark evidence (private). Windows 11, Claude Code desktop, Directive 0.131.4 and 0.131.5, global launcher on PATH (`deft-hook.cmd` shim).\n\n## Evidence\n\nSix refusals over two sessions, all with the same text pattern:\n\n`Directive denied Edit: session ritual gated step 'agent_hooks' failed: ❌ deft agent hook readiness: deft agent hooks live probe FAILED: <host>/<case>: timed-out (hook command exceeded 1500ms after 2 attempts) …`\n\n| When | Version | Probe cases that timed out | Claude probe | What was blocked |\n|---|---|---|---|---|\n| 2026-11-23 | 0.131.4 | `grok/allow`, `cursor/allow` | functional | sub-agent Edit (5 parallel Edits, 4 admitted) |\n| 2026-11-23 | 0.131.4 | `claude/deny`, `grok/deny` | timed-out | sub-agent Edit (3 parallel Edits, 1 admitted) |\n| 2026-11-23 | 0.131.4 | `claude/allow` | timed-out | sub-agent Edit, one tool call in the message |\n| 2026-11-26 | 0.131.5 | `grok/deny`, `cursor/allow`, `codex/allow` | functional | Edit of a file outside the repo, and `deft session:ready` recovery itself (twice) |\n\n- Between refusals, `deft session:ready` reported \"gated ritual already fresh\" and the next Edits were admitted, so the probe result changes from one call to the next under the same load.\n- Load at the 2026-11-23 refusals: CPU about 42%, 11 `node` processes and about a dozen `claude` processes (other open sessions). This is normal for an operator with several sessions open, not a stress case.\n- In the 2026-11-26 case, all three timed-out hosts were hosts the session was not using. Every probe case spawns the installed hook through the Windows `cmd` shim, so each case pays a node cold start.\n- A sub-agent builder hit the limit three times in one story. Under the dual-stop rule this halted delivery, although nothing was wrong with any hook.\n\n## Why it matters\n\nA timeout is not a broken hook: the recovery text itself says so. But the gate treats it as a hard block, on every host, with no lawful continuation, and the only operator escape (`policy:disable-host-hooks`) is the action the recovery says not to take. Agents that follow the rules stop; agents that do not are tempted to write through an ungated shell form.\n\n## Proposal (maintainer's choice)\n\n1. Make a timeout-only result advisory for hosts other than the session's own host. Only a non-functional or unavailable result, or a timeout of the active host, blocks.\n2. Size the per-case budget for Windows `cmd` shim cold starts (for example 4–5 s, or adaptive from the measured spawn time), keeping the #3570 overall limit by probing the active host first and the others only at session start.\n3. Cache a recent `functional` result per host for the ritual's freshness window, so one slow probe mid-session does not revoke a fresh ritual.\n\n## Acceptance criteria\n\n- Given a Claude Code session whose Claude probe is functional, when the Grok, Cursor or Codex probe times out, then gated writes are admitted and the timeout is reported as a warning.\n- Given the active host's probe times out once after a functional result inside the freshness window, then gated writes are still admitted.\n- Given a non-functional or unavailable hook for the active host, then gated writes are still refused (no change).\n- A test drives the readiness evaluator with timeout-only results on non-active hosts and asserts no block.\n\n## Related\n\n#3570 (probe budget under the Cursor 30 s limit), #3785 (hook can't run), #4711, #4716 (other `agent_hooks` gate blocks).\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6637393374,
+        "origin": "deftai/directive#7416",
+        "id": "github.issue.6637393374"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "041d5e4d4a18b990b5487d50530a2d7f763d2bc0ea30e6d31e83cf39249c08ce"
+      },
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 7416,
+        "leanCommentId": 7206863160,
+        "harvestDigest": "4c07dcc3b5b2d29c28a208cfd0e520da000933e01e2e45a7c4bb0f83ba0e1416",
+        "slice": null
+      }
+    },
+    "id": "github.issue.6637393374",
+    "updated": "2026-11-27T05:03:03Z"
+  }
+}
