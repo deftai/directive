@@ -2,6 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { nextAgentHookHostEntry, readAgentHookHostEntries } from "./agent-hook-allowance.js";
 import type { GitRunner } from "./git.js";
 import {
   DRIFT_PROBE_SKIPPED_NO_WORK_SELECTION,
@@ -222,5 +223,135 @@ describe("write-gate ritual surface (#3738)", () => {
     expect(commands.filter((command) => command[0] === "verify:cache-fresh")).toEqual([
       ["verify:cache-fresh", "--work-selection"],
     ]);
+  });
+});
+
+describe("write-gate agent_hooks host scope (#7416)", () => {
+  const now = new Date("2026-11-27T12:00:00Z");
+  const functionalFor = (at: Date) =>
+    nextAgentHookHostEntry(
+      null,
+      {
+        status: "functional",
+        ok: true,
+        identity: { path: "/bin/deft-hook", size: 1, mtimeMs: 2 },
+        registrationDigest: "d",
+      },
+      at,
+    );
+
+  it("threads the applying host and write surface to the runner", () => {
+    const root = tempRoot();
+    seedRitual(root, now);
+    const contexts: unknown[] = [];
+    const result = verifySessionRitual(
+      root,
+      writeGateRitualOptions({
+        now,
+        runGit: fakeGit(root),
+        applyingHost: "grok",
+        runner: (_command, _root, context) => {
+          contexts.push(context);
+          return { code: 0, stdout: "hooks ready", stderr: "" };
+        },
+      }),
+    );
+    expect(result.code).toBe(0);
+    expect(contexts).toEqual([{ surface: "write", host: "grok", now }]);
+  });
+
+  it("gated verify without a write surface runs for the ritual surface", () => {
+    const root = tempRoot();
+    seedRitual(root, now);
+    const contexts: unknown[] = [];
+    verifySessionRitual(root, {
+      tier: "gated",
+      posture: "mutation",
+      now,
+      envSkip: "",
+      runGit: fakeGit(root),
+      runner: (_command, _root, context) => {
+        contexts.push(context);
+        return { code: 0, stdout: "ok", stderr: "" };
+      },
+    });
+    expect(contexts[0]).toEqual({ surface: "ritual", now });
+  });
+
+  it("merges only the writing host's entry and keeps the others", () => {
+    const root = tempRoot();
+    seedRitual(root, now);
+    const claudeAt = new Date(now.getTime() - 60_000);
+    const seeded = readRitualState(root)[0];
+    writeRitualState(root, {
+      ...(seeded?.raw as Record<string, unknown>),
+      gated_steps: {
+        ...(seeded?.raw.gated_steps as Record<string, unknown>),
+        agent_hooks: {
+          ...ritualStep({ ok: true, ts: claudeAt }),
+          hosts: { claude: functionalFor(claudeAt) },
+        },
+      },
+    });
+    const result = verifySessionRitual(
+      root,
+      writeGateRitualOptions({
+        now,
+        runGit: fakeGit(root),
+        applyingHost: "grok",
+        runner: () => ({
+          code: 0,
+          stdout: "hooks ready",
+          stderr: "",
+          agentHookHosts: { grok: functionalFor(now) },
+        }),
+      }),
+    );
+    expect(result.code).toBe(0);
+    const hosts = readAgentHookHostEntries(readRitualState(root)[0]?.gatedSteps.agent_hooks);
+    expect(Object.keys(hosts).sort()).toEqual(["claude", "grok"]);
+    expect(hosts.claude?.ts).toBe(claudeAt.toISOString());
+  });
+
+  it("a Claude functional entry does not admit a failing Grok write", () => {
+    const root = tempRoot();
+    seedRitual(root, now);
+    const result = verifySessionRitual(
+      root,
+      writeGateRitualOptions({
+        now,
+        runGit: fakeGit(root),
+        applyingHost: "grok",
+        runner: () => ({
+          code: 1,
+          stdout: "",
+          stderr: "grok probe timed out",
+          agentHookHosts: {
+            grok: nextAgentHookHostEntry(
+              null,
+              { status: "timed-out", ok: false, identity: null, registrationDigest: null },
+              now,
+            ),
+          },
+        }),
+      }),
+    );
+    expect(result.code).not.toBe(0);
+    expect(result.message).toContain("agent_hooks");
+  });
+
+  it("admits a write whose own host run passes", () => {
+    const root = tempRoot();
+    seedRitual(root, now);
+    const result = verifySessionRitual(
+      root,
+      writeGateRitualOptions({
+        now,
+        runGit: fakeGit(root),
+        applyingHost: "claude",
+        runner: () => ({ code: 0, stdout: "hooks ready", stderr: "" }),
+      }),
+    );
+    expect(result.code).toBe(0);
   });
 });

@@ -19,11 +19,18 @@ describe("agent-hook functional readiness docs (#3100)", () => {
       "manual-review-required",
       "not-directly-verified",
       "maintainer source checkout",
-      "1.5 seconds",
-      "24 seconds",
+      "**4 seconds**",
+      "**25 seconds**",
+      "**16 seconds**",
+      "**20 seconds**",
       "one retry",
       "disable-host-hooks",
       "deft policy:disable-host-hooks --host <host> --confirm",
+      "Write-path scope and the timeout allowance (#7416)",
+      "applying host",
+      "One-timeout allowance",
+      "per-host `agent_hooks` entries",
+      "each write re-checks its own host",
     ]) {
       expect(text, `readiness contract missing ${token}`).toContain(token);
     }
