@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #7450",
-    "updated": "2026-11-27T06:09:21Z"
+    "updated": "2026-11-27T20:09:41Z"
   },
   "plan": {
     "title": "[framework-gap] Deposited 5-second SessionStart hook timeout is routinely exceeded on Windows (4.9s-6.5s measured on agy 1.5.18)",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "Raise the deposited SessionStart hook timeout from 5 to 30 seconds for every host (Claude, Grok, Codex, agy, Cursor), matching the deposited tool.before timeout. On Windows, agy SessionStart runs measured 4.9s-6.5s, so half of them were killed before injecting the notice.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/7450",
@@ -18,41 +18,77 @@
     "items": [
       {
         "title": "The deposited SessionStart hook timeout for every host (Claude, Grok, Codex, agy via `NESTED_HOOK_TIMEOUT_SECONDS`, and Cursor via `CURSOR_SESSION_HOOK_TIMEOUT_SECONDS`) is 30 seconds, matching the deposited `tool.before` timeout.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.1",
         "narrative": {
           "Acceptance": "Deposited SessionStart timeout is 30 in each host's entry."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c416f9a4734b135945e9f7516bace0f68487e833",
+          "recorded_at": "2026-11-27T20:09:41Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Each timeout is its own named constant, not a reused literal.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.2",
         "narrative": {
           "Acceptance": "SessionStart timeouts are named constants separate from the tool.before constants."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c416f9a4734b135945e9f7516bace0f68487e833",
+          "recorded_at": "2026-11-27T20:09:41Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Repair treats a deposit carrying the old 5-second SessionStart timeout as drift and rewrites it.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.3",
         "narrative": {
           "Acceptance": "A deposit with the old 5-second SessionStart timeout is reported as drift and rewritten by repair."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c416f9a4734b135945e9f7516bace0f68487e833",
+          "recorded_at": "2026-11-27T20:09:41Z",
+          "recorded_by": "scope:complete"
         }
       },
       {
         "title": "Tests assert the SessionStart timeout in each host's deposited entry.",
-        "status": "proposed",
+        "status": "completed",
         "id": "clause.4",
         "narrative": {
           "Acceptance": "Tests assert the SessionStart timeout for each host's deposited entry."
+        },
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "c416f9a4734b135945e9f7516bace0f68487e833",
+          "recorded_at": "2026-11-27T20:09:41Z",
+          "recorded_by": "scope:complete"
         }
       }
     ],
     "x-directive/intentConstraint": {
       "constraints": [
-        { "value": "30", "unit": "s-cursor-session-hook-timeout", "rejectionScope": "invocation" },
-        { "value": "30", "unit": "s-nested-session-hook-timeout", "rejectionScope": "invocation" }
+        {
+          "value": "30",
+          "unit": "s-cursor-session-hook-timeout",
+          "rejectionScope": "invocation"
+        },
+        {
+          "value": "30",
+          "unit": "s-nested-session-hook-timeout",
+          "rejectionScope": "invocation"
+        }
       ]
     },
     "references": [
@@ -187,9 +223,39 @@
         "github_issue_id": 6640700814,
         "origin": "deftai/directive#7450",
         "id": "github.issue.6640700814"
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "eaadeb2052f21dc22b4c09990a020671bf1a742a",
+        "prNumber": 7483,
+        "prBase": "master",
+        "mergeCommit": "c416f9a4734b135945e9f7516bace0f68487e833",
+        "deliveryBranch": "master",
+        "deliveryCommit": "c416f9a4734b135945e9f7516bace0f68487e833",
+        "verifiedAt": "2026-11-27T20:09:41Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          7454,
+          7470,
+          7474,
+          7476
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-27T20:09:41Z",
+      "capacityBucket": "new-capability",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-27T20:09:41Z"
       }
     },
     "id": "github.issue.6640700814",
-    "updated": "2026-11-27T06:09:21Z"
+    "updated": "2026-11-27T20:09:41Z"
   }
 }
