@@ -33,34 +33,12 @@ function committedBanner(content: string): string {
   return content.split("\n").slice(0, 4).join("\n");
 }
 
-/** Drop `## LegacyArtifacts` so the gate matches compact `task spec:render` (#1566 / #4086). */
-function stripLegacyArtifactsSection(content: string): string {
-  const lines = content.split("\n");
-  const out: string[] = [];
-  let skipping = false;
-  for (const line of lines) {
-    if (!skipping) {
-      if (line === "## LegacyArtifacts" || line.startsWith("## LegacyArtifacts ")) {
-        skipping = true;
-        continue;
-      }
-      out.push(line);
-      continue;
-    }
-    if (line.startsWith("## ")) {
-      skipping = false;
-      out.push(line);
-    }
-  }
-  return out.join("\n");
+function normalizeSpec(content: string): string {
+  return `${content.replace(/[ \t]+$/gmu, "").replace(/\n+$/u, "")}\n`;
 }
 
-function specProductPrefix(content: string): string {
-  const withoutLegacy = stripLegacyArtifactsSection(content);
-  const marker = "\n## Scope outlook";
-  const idx = withoutLegacy.indexOf(marker);
-  const prefix = idx === -1 ? withoutLegacy : withoutLegacy.slice(0, idx);
-  return `${prefix.replace(/[ \t]+$/gmu, "").replace(/\n+$/u, "")}\n`;
+function sectionHeadings(content: string): string[] {
+  return content.split("\n").filter((line) => line.startsWith("## "));
 }
 
 function tryResolveExistingSpecPath(root: string): string | null {
@@ -109,26 +87,27 @@ export function evaluateSpecPrdFresh(projectRoot: string): SpecPrdFreshResult {
         assertion: "projection-fresh",
         detail: `re-render failed: ${rendered.message}`,
       });
-    } else if (committed.includes("\n## Scope outlook")) {
-      // Full spec projection (scope outlook) belongs to #1567. Re-render the
-      // compact product-narrative buffer and compare the committed prefix.
-      const expectedPrefix = specProductPrefix(rendered.markdown);
-      const committedPrefix = specProductPrefix(committed);
-      if (expectedPrefix !== committedPrefix) {
+    } else {
+      // The default render writes Overview..OpenQuestions only. A committed section it
+      // does not produce (e.g. a frozen `## Scope outlook`) marks a stale snapshot (#6826).
+      const known = new Set(sectionHeadings(rendered.markdown));
+      const extra = [...new Set(sectionHeadings(committed))].filter((h) => !known.has(h));
+      if (extra.length > 0) {
+        findings.push({
+          artifact: "SPECIFICATION.md",
+          assertion: "projection-fresh",
+          detail: `contains section(s) the default \`task spec:render\` does not produce: ${extra
+            .map((h) => `"${h}"`)
+            .join(", ")}; run \`task spec:render\``,
+        });
+      } else if (normalizeSpec(rendered.markdown) !== normalizeSpec(committed)) {
         findings.push({
           artifact: "SPECIFICATION.md",
           assertion: "projection-fresh",
           detail:
-            "product-narrative prefix is stale versus a compact `task spec:render` buffer (scope outlook is owned by #1567 and is not compared)",
+            "SPECIFICATION.md differs from a fresh compact render buffer; run `task spec:render`",
         });
       }
-    } else if (specProductPrefix(rendered.markdown) !== specProductPrefix(committed)) {
-      findings.push({
-        artifact: "SPECIFICATION.md",
-        assertion: "projection-fresh",
-        detail:
-          "SPECIFICATION.md differs from a fresh compact render buffer; run `task spec:render`",
-      });
     }
   }
 
@@ -194,7 +173,7 @@ export function evaluateSpecPrdFresh(projectRoot: string): SpecPrdFreshResult {
         `verify_spec_prd_fresh: ${findings.length} generated-view freshness error(s) (#4086).\n` +
         "  Banner canon and full projection freshness are separate assertions.\n" +
         `${body}\n` +
-        "  Recovery: restore banners via `buildGeneratedArtifactBanner` from the resolved path; re-render PRD.md; do not recut SPECIFICATION.md scope outlook (#1567).",
+        "  Recovery: restore banners via `buildGeneratedArtifactBanner` from the resolved path; re-render PRD.md; run `task spec:render` for SPECIFICATION.md (#6826).",
     };
   }
   return {
