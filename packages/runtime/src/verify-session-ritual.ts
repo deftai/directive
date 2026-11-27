@@ -9,6 +9,7 @@ import {
   formatCacheFreshDeferSoftPath,
   formatRitualRecoveryInstruction,
   occupancyAwareDenialMessage,
+  resolveOccupancySessionClaim,
   resolvePresentedIdentity,
   type VerifyResult,
   verifySessionRitual,
@@ -122,6 +123,15 @@ export function parseArgs(argv: string[]): ParsedArgs {
   return parsed;
 }
 
+/** The session the occupancy check judges: the claim's owner, else the presented id. */
+function judgedSessionId(explicit: string | null, presented: string): string {
+  const claim = resolveOccupancySessionClaim({
+    sessionId: explicit ?? undefined,
+    env: process.env,
+  });
+  return claim.status === "ok" && claim.sessionId.length > 0 ? claim.sessionId : presented;
+}
+
 /** Notice for a failed ritual run that presented no session identity (#7446). */
 export function formatNoSessionIdentityNotice(tier: "quick" | "gated"): string {
   return (
@@ -181,7 +191,9 @@ export function run(argv: string[], deps: VerifySessionRitualRunDeps = {}): numb
                 { env: process.env, sessionId: args.sessionId ?? undefined },
                 recoveryTier,
               ),
-              presented.sessionId,
+              // Name the owner the occupancy check judged, which a host-published
+              // owner can override over a stale inherited DEFT_SESSION_ID.
+              judgedSessionId(args.sessionId, presented.sessionId),
             ),
           ];
     if (isCacheFreshFailureMessage(result.message)) {

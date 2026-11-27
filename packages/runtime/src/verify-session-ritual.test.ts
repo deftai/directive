@@ -1,7 +1,11 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { applyWorktreeOccupancy, type VerifyResult } from "@deftai/directive-core/session";
+import {
+  applyWorktreeOccupancy,
+  canonicalHostSessionId,
+  type VerifyResult,
+} from "@deftai/directive-core/session";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { useCleanHostEnv } from "./__tests__/clean-host-env.js";
 import { parseArgs, run } from "./verify-session-ritual.js";
@@ -154,6 +158,26 @@ describe("run --session-id and occupancy (#7446)", () => {
     expect(stderr).not.toContain("Worktree occupied");
     expect(stderr).not.toContain("neither holds that lease");
     expect(stderr).not.toContain("Use another worktree");
+  });
+
+  it("fills recovery with the host owner the check judged, not a stale DEFT_SESSION_ID", () => {
+    const err = vi.spyOn(process.stderr, "write").mockReturnValue(true);
+    const root = isolatedProjectRoot();
+    const hostOwner = canonicalHostSessionId("grok", "grok-session-a");
+    applyWorktreeOccupancy(root, { sessionId: hostOwner });
+    process.env.GROK_SESSION_ID = "grok-session-a";
+    process.env.DEFT_SESSION_ID = "stale-inherited-id";
+    try {
+      expect(
+        run(["--tier=gated", "--project-root", root], { verifySessionRitual: doctorFailure }),
+      ).toBe(1);
+    } finally {
+      delete process.env.GROK_SESSION_ID;
+      delete process.env.DEFT_SESSION_ID;
+    }
+    const stderr = err.mock.calls.join("");
+    expect(stderr).toContain(`--session-id=${hostOwner}`);
+    expect(stderr).not.toContain("stale-inherited-id");
   });
 
   it("still refuses a presenter that is not the lease owner", () => {
