@@ -117,6 +117,23 @@ describe("each end condition ends the record (#7420 B2 / clause 11)", () => {
     expect(st.ok && st.state.record?.endedReason).toBe("ttl-expired");
   });
 
+  it("an end bound to a delegation id leaves a freshly armed record alone", () => {
+    const { root, delegationId } = armed();
+    const stale = endDelegation(root, "ttl-expired", {
+      now: later,
+      storeRoot: root,
+      expectDelegationId: `${delegationId}-old`,
+    });
+    expect(stale.ok && stale.ended).toBe(false);
+    expect(readDelegationLiveness(root, { now: later, storeRoot: root }).live).toBe(true);
+    const match = endDelegation(root, "operator-off", {
+      now: later,
+      storeRoot: root,
+      expectDelegationId: delegationId,
+    });
+    expect(match.ok && match.ended).toBe(true);
+  });
+
   it("session end (only the arming session)", () => {
     const { root } = armed();
     const other = endDelegation(root, "session-end", {
@@ -208,6 +225,24 @@ describe("store lock (one locked step)", () => {
       delegationLockPath(root),
       JSON.stringify({ pid: process.pid, token: "someone-else", startedAt: "x" }),
     );
+    let ran = false;
+    const res = withDelegationLock(
+      root,
+      () => {
+        ran = true;
+      },
+      { timeoutMs: 100 },
+    );
+    expect(res.ok).toBe(false);
+    expect(ran).toBe(false);
+    expect(existsSync(delegationLockPath(root))).toBe(true);
+  });
+
+  it("does not reclaim a fresh unreadable lock (a holder may be mid-write)", () => {
+    const root = mkdtempSync(join(tmpdir(), "deleg-lock-fresh-"));
+    roots.push(root);
+    mkdirSync(join(root, ...DELEGATION_STORE_REL.split("/")), { recursive: true });
+    writeFileSync(delegationLockPath(root), "");
     let ran = false;
     const res = withDelegationLock(
       root,

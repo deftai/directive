@@ -349,10 +349,23 @@ function pidAlive(pid: number): boolean {
   }
 }
 
+/**
+ * An unreadable lock may be a live holder between create and body write, so it
+ * is reclaimable only once it is older than the lock wait (the holder is stuck).
+ */
+function unreadableLockIsStale(path: string): boolean {
+  try {
+    return Date.now() - lstatSync(path).mtimeMs > DELEGATION_LOCK_TIMEOUT_MS;
+  } catch {
+    return false;
+  }
+}
+
 /** Rename-away reclaim of a dead holder's lock; refuses to steal a live replacement. */
 function reclaimDeadLock(path: string): boolean {
   const seen = readLockBody(path);
   if (seen !== null && pidAlive(seen.pid)) return false;
+  if (seen === null && !unreadableLockIsStale(path)) return false;
   const side = `${path}.reclaim.${randomBytes(6).toString("hex")}`;
   try {
     renameSync(path, side);
@@ -504,7 +517,11 @@ export function readDelegationLiveness(
       verdict.reason === "ttl-expired")
   ) {
     try {
-      endDelegation(projectRoot, verdict.reason, { now, storeRoot });
+      endDelegation(projectRoot, verdict.reason, {
+        now,
+        storeRoot,
+        expectDelegationId: rec.delegationId,
+      });
     } catch {
       /* the verdict already refuses */
     }
@@ -540,6 +557,8 @@ export function endDelegation(
     readonly storeRoot?: string;
     readonly runGit?: GitRunner;
     readonly hostSessionId?: string;
+    /** End only this record; a replaced (freshly armed) record is left alone. */
+    readonly expectDelegationId?: string;
   } = {},
 ):
   | { readonly ok: true; readonly ended: boolean; readonly record: DelegationRecord | null }
@@ -552,6 +571,9 @@ export function endDelegation(
     if (!load.ok) return { ok: false as const, reason: load.reason };
     const rec = load.state.record;
     if (rec === null || rec.endedAt !== null) {
+      return { ok: true as const, ended: false, record: rec };
+    }
+    if (opts.expectDelegationId !== undefined && opts.expectDelegationId !== rec.delegationId) {
       return { ok: true as const, ended: false, record: rec };
     }
     if (opts.hostSessionId !== undefined && opts.hostSessionId !== rec.hostSessionId) {
