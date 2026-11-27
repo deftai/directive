@@ -123,7 +123,8 @@
           "changelog.d/7347-agy-host-deposit-doctor.md",
           "packages/core/src/init-deposit/agent-hooks.ts",
           "packages/core/src/policy/host-hooks.ts",
-          "packages/core/src/verify-env/agent-hooks-live-probe.ts"
+          "packages/core/src/verify-env/agent-hooks-live-probe.ts",
+          "packages/core/src/hooks/cursor-hooks.test.ts"
         ],
         "file_scope_confidence": "medium",
         "depends_on": [
