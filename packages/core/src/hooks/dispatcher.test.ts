@@ -3283,6 +3283,46 @@ describe("launcher-family argv classification (#4219)", () => {
     expect(decision.message).toMatch(/claude/);
   });
 
+  it.each([
+    ["agy -i", "agy -i 'Read and follow /e.md'"],
+    ["agy --prompt-interactive", "agy --prompt-interactive 'Read and follow /e.md'"],
+    [
+      "agy --dangerously-skip-permissions",
+      "agy --dangerously-skip-permissions --output-format stream-json 'Read and follow /e.md'",
+    ],
+    ["agy -p", "agy -p 'Read and follow /e.md'"],
+  ])("denies dest-absent %s worker argv (#7451)", (_label, command) => {
+    const decision = decideHook(
+      {
+        host: "grok",
+        event: "tool.before",
+        projectRoot: "/project",
+        payload: {
+          toolName: "run_terminal_command",
+          tool_input: { command },
+        },
+      },
+      readySeams(),
+    );
+    expect(decision).toMatchObject({ verdict: "deny", code: "spawn-not-ready" });
+    expect(decision.message).toMatch(/agy/);
+  });
+
+  it("does not gate agy --version or --help as launcher argv (#7451)", () => {
+    for (const command of ["agy --version", "agy --help"]) {
+      const decision = decideHook(
+        {
+          host: "grok",
+          event: "tool.before",
+          projectRoot: "/project",
+          payload: { toolName: "run_terminal_command", tool_input: { command } },
+        },
+        readySeams(),
+      );
+      expect(decision.code).not.toBe("spawn-not-ready");
+    }
+  });
+
   it("denies dest-absent codex exec argv", () => {
     const decision = decideHook(
       {
