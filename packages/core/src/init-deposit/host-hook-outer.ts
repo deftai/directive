@@ -256,7 +256,10 @@ export function agyHookCommand(sha8: string, event: "session.start" | "tool.befo
   return `node ${hostHookOuterFileName(sha8)} --host agy --event ${event}`;
 }
 
-/** Every command text of one named agy hook entry (all events, all groups). */
+/**
+ * Every command text of one named agy hook entry (all events). Reads a flat handler
+ * (`{ command }`, agy `SessionStart`) and a grouped one (`{ hooks: [...] }`, `PreToolUse`).
+ */
 export function agyEntryCommands(entry: unknown): string[] {
   const record = objectRecord(entry);
   if (record === null) return [];
@@ -264,12 +267,11 @@ export function agyEntryCommands(entry: unknown): string[] {
     Array.isArray(groups)
       ? groups.flatMap((group) => {
           const hooks = objectRecord(group)?.hooks;
-          return Array.isArray(hooks)
-            ? hooks.flatMap((hook) => {
-                const text = hostHookEntryText(hook);
-                return text === null ? [] : [text];
-              })
-            : [];
+          const handlers = Array.isArray(hooks) ? hooks : [group];
+          return handlers.flatMap((hook) => {
+            const text = hostHookEntryText(hook);
+            return text === null ? [] : [text];
+          });
         })
       : [],
   );

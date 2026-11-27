@@ -3,16 +3,21 @@ import { chmodSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync }
 import { tmpdir } from "node:os";
 import { delimiter, join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { AGY_DIRECTIVE_HOOK_NAME } from "../hooks/classify/agy-hook-order.js";
 import { KILL_SWITCH_BARE_FLAG_WARNING } from "../policy/kill-switch-record.js";
 import {
+  agyEntryCommands,
   HOST_HOOK_MISSING_PIN_INSTALL_EXCEPTION,
   HOST_HOOK_MISSING_PIN_PROJECT_PM_GUIDANCE,
   HOST_HOOK_NONDECISION_REASON,
   hostHookOuterCommand,
+  hostHookOuterFileName,
   hostHookOuterRelPath,
   hostHookOuterSha8,
   hostHookOuterSource,
   isHostHookOuterCommand,
+  isManagedAgyHookEntry,
+  stripAgyHostHookConfig,
 } from "./host-hook-outer.js";
 
 type Host = "grok" | "claude" | "cursor" | "codex";
@@ -1146,6 +1151,35 @@ describe("host-hook-outer agy exit paths and hook ordering (#7378)", () => {
       const r = runOuter(root, "grok", {}, "tool.before", [], agyPayload(root));
       expect(r.status).toBe(0);
       expect(String(r.stdout)).toBe("");
+    });
+  });
+});
+
+describe("agy entry readers accept flat and grouped handlers (#7440)", () => {
+  const cmd = (event: string): string =>
+    `node ${hostHookOuterFileName("abcdef12")} --host agy --event ${event}`;
+  const flat = { SessionStart: [{ command: cmd("session.start"), timeout: 5 }] };
+  const grouped = { PreToolUse: [{ matcher: "*", hooks: [{ command: cmd("tool.before") }] }] };
+
+  it("reads commands from a flat SessionStart and a grouped PreToolUse", () => {
+    expect(agyEntryCommands({ ...flat, ...grouped })).toEqual([
+      cmd("session.start"),
+      cmd("tool.before"),
+    ]);
+  });
+
+  it("still reads an earlier grouped SessionStart", () => {
+    expect(agyEntryCommands({ SessionStart: [{ hooks: flat.SessionStart }] })).toEqual([
+      cmd("session.start"),
+    ]);
+  });
+
+  it("recognises and strips a flat-only entry, and keeps foreign flat entries", () => {
+    expect(isManagedAgyHookEntry(flat)).toBe(true);
+    const foreign = { SessionStart: [{ command: "echo hi" }] };
+    expect(isManagedAgyHookEntry(foreign)).toBe(false);
+    expect(stripAgyHostHookConfig({ [AGY_DIRECTIVE_HOOK_NAME]: flat, aaaa: foreign })).toEqual({
+      aaaa: foreign,
     });
   });
 });

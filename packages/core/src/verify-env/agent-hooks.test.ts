@@ -36,6 +36,16 @@ describe("evaluateAgentHooks", () => {
     expect(result.message).not.toMatch(/open\s+`\/hooks`/i);
   });
 
+  it("lists agy in the success summary when it is deposited (#7440)", () => {
+    const root = project();
+    writeFileSync(join(root, "package.json"), "{}\n");
+    writeAgentHookDeposit(root);
+    const result = evaluateAgentHooks(root);
+    expect(result.code).toBe(0);
+    expect(result.registrations.find((entry) => entry.host === "agy")?.status).toBe("healthy");
+    expect(result.message).toContain("Claude, Grok, Cursor, Codex, agy ");
+  });
+
   it("reports the Claude SessionEnd registration as present (#6274)", () => {
     const root = project();
     writeAgentHookDeposit(root);

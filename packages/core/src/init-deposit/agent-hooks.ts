@@ -693,17 +693,17 @@ export const AGY_ACTIVATION_HALT_DETAIL =
   "deposited wiring does not match it. Nothing is deposited for agy. Leftover: file an issue under " +
   "#7332 with the verdict from packages/core/src/hooks/classify/agy-observation.ts.";
 
-/** Directive's named agy entry (#7347): SessionStart notice plus PreToolUse over every tool. */
+/**
+ * Directive's named agy entry (#7347): SessionStart notice plus PreToolUse over every tool.
+ * agy 1.5.18 reads `SessionStart` as flat handlers and `PreToolUse` as matcher groups; a
+ * grouped `SessionStart` makes it reject the whole file (#7440).
+ */
 function agyDirectiveEntry(sha8: string): Record<string, unknown> {
   return {
     SessionStart: [
       {
-        hooks: [
-          {
-            command: agyHookCommand(sha8, "session.start"),
-            timeout: NESTED_HOOK_TIMEOUT_SECONDS,
-          },
-        ],
+        command: agyHookCommand(sha8, "session.start"),
+        timeout: NESTED_HOOK_TIMEOUT_SECONDS,
       },
     ],
     PreToolUse: [

@@ -206,10 +206,15 @@ export function evaluateAgentHooks(
   const disabledHosts = registrations
     .filter((entry) => entry.status === "disabled")
     .map((entry) => entry.host[0]?.toUpperCase() + entry.host.slice(1));
+  const agyDeposited = registrations.some(
+    (entry) => entry.host === "agy" && entry.status === "healthy",
+  );
   return {
     code: 0,
     message:
-      "✓ deft agent hooks registered and structurally valid for Claude, Grok, Cursor, Codex " +
+      "✓ deft agent hooks registered and structurally valid for Claude, Grok, Cursor, Codex" +
+      (agyDeposited ? ", agy" : "") +
+      " " +
       "(SessionStart + PreToolUse direct-write and spawn/Task tools; compact re-arm deposited for Claude/Grok/Cursor; " +
       "Codex has no native compact hook — re-run session ritual manually after compaction). " +
       'Read-only explore: prefer Grok role `default_capability_mode = "read-only"`; hooks also honor ' +

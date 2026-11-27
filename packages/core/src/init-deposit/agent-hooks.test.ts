@@ -1485,6 +1485,49 @@ describe("agy deposit, activation gate and doctor (#7347)", () => {
     );
   });
 
+  it("contract (#7440): SessionStart entries are flat handlers and PreToolUse entries are matcher groups", () => {
+    const root = agyProject();
+    writeAgentHookDeposit(root, NO_IO);
+    const entry = readHooks(root)[AGY_DIRECTIVE_HOOK_NAME] as {
+      SessionStart: Array<Record<string, unknown>>;
+      PreToolUse: Array<Record<string, unknown>>;
+    };
+    expect(entry.SessionStart).toHaveLength(1);
+    for (const handler of entry.SessionStart) {
+      expect(typeof handler.command).toBe("string");
+      expect(typeof handler.timeout).toBe("number");
+      expect(handler).not.toHaveProperty("hooks");
+    }
+    expect(entry.PreToolUse).toHaveLength(1);
+    for (const group of entry.PreToolUse) {
+      expect(group.matcher).toBe("*");
+      expect(Array.isArray(group.hooks)).toBe(true);
+      expect(group).not.toHaveProperty("command");
+    }
+  });
+
+  it("treats an earlier grouped SessionStart deposit as drift and repairs it (#7440)", () => {
+    const root = agyProject();
+    writeAgentHookDeposit(root, NO_IO);
+    const healthy = readFileSync(join(root, HOOKS), "utf8");
+    const current = readHooks(root);
+    const entry = current[AGY_DIRECTIVE_HOOK_NAME] as {
+      SessionStart: Array<{ command: string; timeout: number }>;
+    };
+    writeHooks(root, {
+      ...current,
+      [AGY_DIRECTIVE_HOOK_NAME]: {
+        ...entry,
+        SessionStart: [{ hooks: entry.SessionStart }],
+      },
+    });
+    // Still recognised as Directive's own entry, but not the current shape.
+    expect(isManagedAgyHookEntry(readHooks(root)[AGY_DIRECTIVE_HOOK_NAME])).toBe(true);
+    expect(inspectAgentHookDeposit(root).find((e) => e.host === "agy")?.status).toBe("drifted");
+    writeAgentHookDeposit(root, NO_IO);
+    expect(readFileSync(join(root, HOOKS), "utf8")).toBe(healthy);
+  });
+
   it("is idempotent and repairs a drifted entry", () => {
     const root = agyProject();
     writeAgentHookDeposit(root, NO_IO);
