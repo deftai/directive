@@ -4,6 +4,8 @@
  */
 
 import {
+  DELEGATED_GRANT_MINTED_VIA,
+  DELEGATED_ORIGIN_KIND,
   type GrantOrigin,
   HUMAN_ORIGIN_KINDS,
   type HumanOriginGrant,
@@ -70,6 +72,25 @@ export function evidenceSatisfiesImplementationApproval(evidence: {
   void evidence.dispatchEnvelope;
   void evidence.lifecycleAdvancedBy;
   return false;
+}
+
+/**
+ * Structural check for a grant origin minted under a TOTP delegation (#7420 B4).
+ * True only for kind `operator-delegated`, `mintedVia` `delegated-totp`, a
+ * delegation id and a non-agent actor. This is NOT human origin: callers other
+ * than `evaluateClosedVerb` must keep using {@link isHumanOrigin}, which
+ * refuses it.
+ */
+export function isDelegatedOrigin(origin: GrantOrigin | null | undefined): boolean {
+  if (origin === null || origin === undefined) return false;
+  if ((origin.kind ?? "").trim().toLowerCase() !== DELEGATED_ORIGIN_KIND) return false;
+  if (origin.mintedVia !== DELEGATED_GRANT_MINTED_VIA) return false;
+  const id = origin.delegationId;
+  if (typeof id !== "string" || id.trim().length === 0) return false;
+  const actor = (origin.actor ?? "").trim().toLowerCase();
+  if (actor.length === 0) return false;
+  if (actor === "agent" || actor.startsWith("agent:") || actor === "self") return false;
+  return true;
 }
 
 /**
