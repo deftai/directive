@@ -190,6 +190,65 @@ describe("writes in the class (#6376)", () => {
   });
 });
 
+describe("agy conversation-folder writes before the ritual (#7445)", () => {
+  const ID = "conv-7445-aaaa";
+
+  function agyWrite(target: string, extra: Record<string, unknown> = {}): HookDispatchInput {
+    return {
+      host: "agy",
+      event: "tool.before",
+      projectRoot: primary,
+      payload: {
+        conversationId: ID,
+        cwd: primary,
+        hookEventName: "PreToolUse",
+        toolCall: { name: "write_file", args: { Path: target, Content: "x" } },
+        ...extra,
+      },
+      environ: { DEFT_SESSION_ID: "owner" },
+    };
+  }
+
+  it("allows the current conversation folder, gates a sibling and config/", () => {
+    const own = join(home, ".gemini", "antigravity", "brain", ID);
+    mkdirSync(own, { recursive: true });
+    mkdirSync(join(home, ".gemini", "antigravity", "brain", "conv-other"), { recursive: true });
+    mkdirSync(join(home, ".gemini", "config"), { recursive: true });
+    const { seams } = staleSeams();
+    expect(decideHook(agyWrite(join(own, "plan.md")), seams)).toMatchObject({
+      verdict: "allow",
+      code: OUTSIDE_EVERY_CHECKOUT_READY_CODE,
+    });
+    expect(
+      decideHook(agyWrite(join(own, "plan.md"), { artifactDirectoryPath: own }), seams),
+    ).toMatchObject({ verdict: "allow", code: OUTSIDE_EVERY_CHECKOUT_READY_CODE });
+    const gated = [
+      decideHook(
+        agyWrite(join(home, ".gemini", "antigravity", "brain", "conv-other", "x.md")),
+        seams,
+      ),
+      decideHook(agyWrite(join(home, ".gemini", "config", "x.json")), seams),
+      decideHook(
+        agyWrite(join(own, "plan.md"), {
+          artifactDirectoryPath: join(home, ".gemini", "antigravity", "brain", "conv-other"),
+        }),
+        seams,
+      ),
+    ];
+    for (const decision of gated) expect(decision.code).not.toBe(OUTSIDE_EVERY_CHECKOUT_READY_CODE);
+  });
+
+  it("gates a non-agy host and an agy payload with no identity", () => {
+    const own = join(home, ".gemini", "antigravity", "brain", ID);
+    mkdirSync(own, { recursive: true });
+    const { seams } = staleSeams();
+    const asGrok = { ...agyWrite(join(own, "plan.md")), host: "grok" };
+    const noId = agyWrite(join(own, "plan.md"), { conversationId: undefined });
+    expect(decideHook(asGrok, seams).code).not.toBe(OUTSIDE_EVERY_CHECKOUT_READY_CODE);
+    expect(decideHook(noId, seams).code).not.toBe(OUTSIDE_EVERY_CHECKOUT_READY_CODE);
+  });
+});
+
 describe("the gates that still run on a write in the class (#6376)", () => {
   it("keeps the kill switch and the read-only deny", () => {
     const killed = staleSeams({

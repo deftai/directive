@@ -229,6 +229,7 @@ import {
   withMergeGateWarnings,
 } from "./merge-gate-signal.js";
 import {
+  agyConversationSeam,
   allTargetsOutsideEveryCheckout,
   OUTSIDE_EVERY_CHECKOUT_READY_CODE,
   type OutsideEveryCheckoutSeams,
@@ -2531,6 +2532,7 @@ function inspectMutationGates(
     targetsKeepOriginalSpelling(input.payload, mutationTargets) &&
     allTargetsOutsideEveryCheckout(payloadRoot, mutationTargets, environ, {
       runGit: dispatchGit,
+      agyConversation: agyConversationSeam(input.host, input.payload, environ),
       ...seams.outsideEveryCheckout,
     })
   ) {

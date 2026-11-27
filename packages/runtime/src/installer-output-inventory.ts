@@ -61,6 +61,7 @@ export const INSTALLER_OUTPUT_INVENTORY: readonly InstallerOutputInventoryEntry[
       ".cursor/hooks.json",
       ".codex/hooks.json",
       ".grok/hooks/deft.json",
+      ".agents/hooks.json (zzzz-directive entry)",
     ],
     ovprTarget: "node …/dist/hook-bin.js --host <host> --event <event> (AC9.1)",
     disposition: "rewired",

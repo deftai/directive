@@ -693,17 +693,17 @@ export const AGY_ACTIVATION_HALT_DETAIL =
   "deposited wiring does not match it. Nothing is deposited for agy. Leftover: file an issue under " +
   "#7332 with the verdict from packages/core/src/hooks/classify/agy-observation.ts.";
 
-/** Directive's named agy entry (#7347): SessionStart notice plus PreToolUse over every tool. */
+/**
+ * Directive's named agy entry (#7347): SessionStart notice plus PreToolUse over every tool.
+ * agy 1.5.18 reads `SessionStart` as flat handlers and `PreToolUse` as matcher groups; a
+ * grouped `SessionStart` makes it reject the whole file (#7440).
+ */
 function agyDirectiveEntry(sha8: string): Record<string, unknown> {
   return {
     SessionStart: [
       {
-        hooks: [
-          {
-            command: agyHookCommand(sha8, "session.start"),
-            timeout: NESTED_HOOK_TIMEOUT_SECONDS,
-          },
-        ],
+        command: agyHookCommand(sha8, "session.start"),
+        timeout: NESTED_HOOK_TIMEOUT_SECONDS,
       },
     ],
     PreToolUse: [
@@ -724,7 +724,10 @@ function agyDirectiveEntry(sha8: string): Record<string, unknown> {
  * Merge Directive's named entry into `.agents/hooks.json` (#7347). Foreign named
  * hooks stay. A hook with Directive's name that is not Directive's is left alone.
  */
-function mergeAgyConfig(config: Record<string, unknown>, sha8: string): Record<string, unknown> {
+export function mergeAgyConfig(
+  config: Record<string, unknown>,
+  sha8: string,
+): Record<string, unknown> {
   const existing = config[AGY_DIRECTIVE_HOOK_NAME];
   // A foreign hook that uses Directive's name is never overwritten. The file stays as
   // is; inspect reports the registration as drifted and the ordering predicate flags it.
@@ -1165,16 +1168,20 @@ export function depositedPreToolUseMatchers(
   } catch {
     return null;
   }
-  // agy registers one `*` matcher, which agy reads as every tool (observed, #7345 s16 to
-  // s19), so there is no literal token list to audit; the audit's classifier leg is the
-  // host-keyed agy classifier (#7346), not the shared catalogs.
-  if (host === "agy") return null;
-  const hooks = object(config.hooks);
-  if (hooks === null) return [];
   const matcherOf = (entry: unknown): string[] => {
     const matcher = object(entry)?.matcher;
     return typeof matcher === "string" ? [matcher] : [];
   };
+  // agy registers one `*` matcher, which agy reads as every tool (observed, #7345 s16 to
+  // s19). The audit treats that matcher as covering every tool name (#7438). No Directive
+  // entry in the shared file is an absent deposit, not a coverage gap.
+  if (host === "agy") {
+    const entry = object(config[AGY_DIRECTIVE_HOOK_NAME]);
+    if (entry === null || !isManagedAgyHookEntry(entry)) return null;
+    return Array.isArray(entry.PreToolUse) ? entry.PreToolUse.flatMap(matcherOf) : [];
+  }
+  const hooks = object(config.hooks);
+  if (hooks === null) return [];
   if (host === "cursor") {
     const entries = Array.isArray(hooks.preToolUse) ? hooks.preToolUse : [];
     return entries.filter(isManagedCursorEntry).flatMap(matcherOf);

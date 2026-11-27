@@ -6,8 +6,11 @@
  */
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { containedRemove } from "@deftai/directive-core/dist/fs/contained-write.js";
-import { hostHookEntryText } from "@deftai/directive-core/dist/init-deposit/host-hook-outer.js";
+import { containedRemove, containedWrite } from "@deftai/directive-core/dist/fs/contained-write.js";
+import {
+  hostHookEntryText,
+  stripAgyHostHookConfig,
+} from "@deftai/directive-core/dist/init-deposit/host-hook-outer.js";
 import {
   type DirectiveOwnedPath,
   HOST_HOOK_OUTER_DIRS,
@@ -172,6 +175,52 @@ function stripHostHooks(cfg: Record<string, unknown>): Record<string, unknown> {
   return { ...cfg, hooks: nextHooks };
 }
 
+const AGY_HOOK_REL = ".agents/hooks.json";
+
+/**
+ * Strip Directive's registrations from one host hook file and write the result.
+ * `.agents/hooks.json` is entry-owned (#7438): only the `zzzz-directive` entry goes, a
+ * file with only foreign hooks keeps its bytes, and the file is deleted when nothing
+ * else is left in it.
+ */
+function stripHostHookFile(
+  root: string,
+  rel: string,
+  cfg: Record<string, unknown>,
+  tag: string,
+  modified: string[],
+  removed: string[],
+): void {
+  const abs = join(root, rel);
+  const isAgy = rel === AGY_HOOK_REL;
+  const stripped = isAgy ? stripAgyHostHookConfig(cfg) : stripHostHooks(cfg);
+  if (isAgy && stripped === cfg) return;
+  if (isAgy && Object.keys(stripped).length === 0) {
+    safeRemove(root, rel, removed);
+    return;
+  }
+  const prior = readText(abs) ?? "";
+  const next = `${JSON.stringify(stripped, null, 2)}\n`;
+  if (next === prior) return;
+  if (isAgy) {
+    // The agy file may be a link to a shared file outside the project: write only inside it.
+    try {
+      containedWrite({
+        root,
+        target: abs,
+        data: next,
+        mode: "replace",
+        mutation: { kind: "stripped", path: rel },
+      });
+    } catch {
+      return;
+    }
+  } else {
+    writeFileSync(abs, next);
+  }
+  modified.push(`${rel}#${tag}`);
+}
+
 function removeManagedSection(body: string): { next: string; removed: boolean } {
   const start = body.indexOf(MANAGED_SECTION_OPEN_PREFIX);
   if (start < 0) return { next: body, removed: false };
@@ -273,13 +322,7 @@ export function runUninstall(options: { readonly root: string }): UninstallResul
         remaining.push(art.path);
         continue;
       }
-      const stripped = stripHostHooks(cfg);
-      const prior = readText(abs) ?? "";
-      const next = `${JSON.stringify(stripped, null, 2)}\n`;
-      if (next !== prior) {
-        writeFileSync(abs, next);
-        modified.push(`${art.path}#${art.entryKey ?? "hooks"}`);
-      }
+      stripHostHookFile(root, art.path, cfg, art.entryKey ?? "hooks", modified, removed);
       continue;
     }
 
@@ -298,15 +341,7 @@ export function runUninstall(options: { readonly root: string }): UninstallResul
       }
       const abs = join(root, art.path);
       const cfg = readJsonObject(abs);
-      if (cfg !== null) {
-        const stripped = stripHostHooks(cfg);
-        const prior = readText(abs) ?? "";
-        const next = `${JSON.stringify(stripped, null, 2)}\n`;
-        if (next !== prior) {
-          writeFileSync(abs, next);
-          modified.push(`${art.path}#hooks`);
-        }
-      }
+      if (cfg !== null) stripHostHookFile(root, art.path, cfg, "hooks", modified, removed);
       continue;
     }
 
@@ -404,13 +439,7 @@ export function runUninstall(options: { readonly root: string }): UninstallResul
     if (modified.some((m) => m.startsWith(`${rel}#`))) continue;
     const cfg = readJsonObject(abs);
     if (cfg === null) continue;
-    const stripped = stripHostHooks(cfg);
-    const prior = readText(abs) ?? "";
-    const next = `${JSON.stringify(stripped, null, 2)}\n`;
-    if (next !== prior) {
-      writeFileSync(abs, next);
-      modified.push(`${rel}#hooks`);
-    }
+    stripHostHookFile(root, rel, cfg, "hooks", modified, removed);
   }
   // AC11.4: the `.mjs` outers go only once no registration still points at one.
   // If a config could not be cleaned (unreadable, invalid JSON, write failed),

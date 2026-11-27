@@ -95,6 +95,14 @@
         "id": "clause.16"
       }
     ],
+    "x-directive/intentConstraint": {
+      "constraints": [
+        { "value": "4000", "unit": "ms-live-probe-case-timeout", "rejectionScope": "invocation" },
+        { "value": "30000", "unit": "ms-host-tool-before-limit", "rejectionScope": "invocation" },
+        { "value": "5000", "unit": "ms-tool-before-safety-margin", "rejectionScope": "invocation" },
+        { "value": "20000", "unit": "ms-unknown-host-probe-deadline", "rejectionScope": "invocation" }
+      ]
+    },
     "tags": [
       "design-critique:ingest-ready"
     ],
@@ -325,7 +333,8 @@
           "changelog.d/7416-agent-hooks-write-probe-scope.md",
           "docs/RULE-MAP.md",
           "xbrief/PROJECT-DEFINITION.xbrief.json",
-          "xbrief/evaluator-surface-disposition.json"
+          "xbrief/evaluator-surface-disposition.json",
+          ".deft/intent-constraint/github.issue.6637393374.json"
         ],
         "verify_commands": [
           "npx vitest run packages/core/src/verify-env/agent-hooks-live-probe.test.ts packages/core/src/verify-env/agent-hook-readiness.test.ts packages/core/src/doctor/agent-hooks.test.ts packages/runtime/src/verify-hooks-installed.test.ts",

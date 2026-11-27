@@ -23,6 +23,7 @@ import {
 import { afterEach, describe, expect, it } from "vitest";
 import {
   type DoctorDiagnosis,
+  directiveFilesToCheck,
   FORBIDDEN_DOCTOR_REMEDY_PATTERNS,
   formatDoctorReport,
   runDoctorDiagnosis,
@@ -282,6 +283,27 @@ describe("runDoctorDiagnosis (AC12.3 surfaces)", { timeout: 30_000 }, () => {
       expect(next!.hash, rel).toBe(prev.hash);
       expect(next!.mtimeMs, rel).toBe(prev.mtimeMs);
     }
+  });
+});
+
+describe("doctor checks the agy hook file only while it holds Directive's entry (#7438)", () => {
+  it("lists the agy outer and hook file after an install, and not for a foreign-only file", () => {
+    const installed = tempRoot();
+    pinRuntime(installed, "9.9.9");
+    runSetup({ operation: "install", from: "none", root: installed });
+    const files = directiveFilesToCheck(installed);
+    expect(files).toContain(".agents/hooks.json");
+    expect(files.some((rel) => /^\.agents\/deft-hook-[a-f0-9]{8}\.mjs$/.test(rel))).toBe(true);
+
+    const foreign = tempRoot();
+    mkdirSync(join(foreign, ".agents"), { recursive: true });
+    writeFileSync(
+      join(foreign, ".agents", "hooks.json"),
+      `${JSON.stringify({ mine: { PreToolUse: [{ matcher: "x", hooks: [{ command: "node mine.mjs" }] }] } })}\n`,
+    );
+    const foreignFiles = directiveFilesToCheck(foreign);
+    expect(foreignFiles).not.toContain(".agents/hooks.json");
+    expect(foreignFiles.filter((rel) => rel.startsWith(".agents/"))).toEqual([]);
   });
 });
 

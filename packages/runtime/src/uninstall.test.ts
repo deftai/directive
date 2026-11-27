@@ -8,6 +8,7 @@ import {
   readdirSync,
   readFileSync,
   rmSync,
+  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -17,6 +18,7 @@ import {
   HOST_HOOK_OUTER_DIRS,
 } from "@deftai/directive-core/dist/install-health/index.js";
 import { afterEach, describe, expect, it } from "vitest";
+import { clearOwnedHookEntries } from "./removal-steps/steps.js";
 import { runSetup } from "./setup.js";
 import { runUninstall } from "./uninstall.js";
 
@@ -110,6 +112,163 @@ describe("runUninstall (AC11.5 / AC11.7)", () => {
     ).toBeFalsy();
   });
 
+  describe("agy hook file is entry-owned (#7438)", () => {
+    const AGY = ".agents/hooks.json";
+    const FOREIGN = {
+      mine: { PreToolUse: [{ matcher: "x", hooks: [{ command: "node mine.mjs" }] }] },
+    };
+
+    function agyOuters(root: string): string[] {
+      return existsSync(join(root, ".agents"))
+        ? readdirSync(join(root, ".agents")).filter((n) => /^deft-hook-[a-f0-9]{8}\.mjs$/.test(n))
+        : [];
+    }
+
+    it("strips only the zzzz-directive entry, keeps foreign hooks, and removes the outer", () => {
+      const root = tempRoot();
+      mkdirSync(join(root, ".agents"), { recursive: true });
+      writeFileSync(join(root, AGY), `${JSON.stringify(FOREIGN, null, 2)}\n`);
+      runSetup({ operation: "install", from: "none", root });
+      expect(agyOuters(root)).toHaveLength(1);
+      expect(Object.keys(JSON.parse(readFileSync(join(root, AGY), "utf8")))).toContain(
+        "zzzz-directive",
+      );
+
+      const result = runUninstall({ root });
+      expect(JSON.parse(readFileSync(join(root, AGY), "utf8"))).toEqual(FOREIGN);
+      expect(agyOuters(root)).toEqual([]);
+      expect(result.removed.filter((p) => p.startsWith(".agents/deft-hook-"))).toHaveLength(1);
+      expect(result.remaining).toEqual([]);
+    });
+
+    it("deletes the file only when Directive's entry was all it held", () => {
+      const root = tempRoot();
+      runSetup({ operation: "install", from: "none", root });
+      expect(existsSync(join(root, AGY))).toBe(true);
+      const result = runUninstall({ root });
+      expect(existsSync(join(root, AGY))).toBe(false);
+      expect(agyOuters(root)).toEqual([]);
+      expect(result.removed).toContain(AGY);
+    });
+
+    it("keeps a named entry that a user chained another command onto", () => {
+      const root = tempRoot();
+      mkdirSync(join(root, ".agents"), { recursive: true });
+      const chained = {
+        "zzzz-directive": {
+          PreToolUse: [
+            {
+              matcher: "*",
+              hooks: [
+                {
+                  command:
+                    "node deft-hook-1a2b3c4d.mjs --host agy --event tool.before && node mine.mjs",
+                },
+              ],
+            },
+          ],
+        },
+      };
+      const bytes = `${JSON.stringify(chained, null, 2)}\n`;
+      writeFileSync(join(root, AGY), bytes);
+      runUninstall({ root });
+      expect(readFileSync(join(root, AGY), "utf8")).toBe(bytes);
+    });
+
+    it("leaves a foreign-only file byte for byte", () => {
+      const root = tempRoot();
+      runSetup({ operation: "install", from: "none", root });
+      const foreignBytes = `${JSON.stringify(FOREIGN)}\n`;
+      writeFileSync(join(root, AGY), foreignBytes);
+      runUninstall({ root });
+      expect(readFileSync(join(root, AGY), "utf8")).toBe(foreignBytes);
+    });
+
+    const managedAgy = (): Record<string, unknown> => ({
+      PreToolUse: [
+        {
+          matcher: "*",
+          hooks: [{ command: "node deft-hook-1a2b3c4d.mjs --host agy --event tool.before" }],
+        },
+      ],
+    });
+
+    /** A shared hook file outside the project, linked in at `link`. Null when links are not allowed. */
+    function linkSharedFile(root: string, link: string, dirLink: boolean): string | null {
+      const outside = tempRoot();
+      const sharedBytes = `${JSON.stringify({ ...FOREIGN, "zzzz-directive": managedAgy() }, null, 2)}
+`;
+      try {
+        if (dirLink) {
+          writeFileSync(join(outside, "hooks.json"), sharedBytes);
+          symlinkSync(outside, join(root, ".agents"), "junction");
+        } else {
+          mkdirSync(join(root, ".agents"), { recursive: true });
+          writeFileSync(join(outside, "hooks.json"), sharedBytes);
+          symlinkSync(join(outside, "hooks.json"), join(root, link));
+        }
+      } catch {
+        return null;
+      }
+      return join(outside, "hooks.json");
+    }
+
+    for (const dirLink of [false, true]) {
+      it(`never rewrites a shared file reached through a linked ${dirLink ? "directory" : "file"} (uninstall and fallback)`, () => {
+        const root = tempRoot();
+        const shared = linkSharedFile(root, AGY, dirLink);
+        if (shared === null) return;
+        const before = readFileSync(shared, "utf8");
+        runUninstall({ root });
+        expect(readFileSync(shared, "utf8")).toBe(before);
+        clearOwnedHookEntries(root);
+        expect(readFileSync(shared, "utf8")).toBe(before);
+      });
+    }
+
+    it("keeps an agy hook that is named version when the upgrade clears Directive's entry", () => {
+      const root = tempRoot();
+      mkdirSync(join(root, ".agents"), { recursive: true });
+      const hooks = { version: { PreToolUse: [{ command: "node mine.mjs" }] } };
+      writeFileSync(
+        join(root, AGY),
+        `${JSON.stringify({ ...hooks, "zzzz-directive": managedAgy() }, null, 2)}
+`,
+      );
+      clearOwnedHookEntries(root);
+      expect(JSON.parse(readFileSync(join(root, AGY), "utf8"))).toEqual(hooks);
+    });
+
+    it("works with the entry in grouped and flat SessionStart shapes", () => {
+      const cmd = (event: string): string =>
+        `node deft-hook-1a2b3c4d.mjs --host agy --event ${event}`;
+      const shapes = [
+        { SessionStart: [{ hooks: [{ command: cmd("session.start") }] }] },
+        { SessionStart: [{ command: cmd("session.start") }] },
+      ];
+      for (const sessionStart of shapes) {
+        const root = tempRoot();
+        mkdirSync(join(root, ".agents"), { recursive: true });
+        writeFileSync(
+          join(root, AGY),
+          `${JSON.stringify(
+            {
+              ...FOREIGN,
+              "zzzz-directive": {
+                ...sessionStart,
+                PreToolUse: [{ matcher: "*", hooks: [{ command: cmd("tool.before") }] }],
+              },
+            },
+            null,
+            2,
+          )}\n`,
+        );
+        runUninstall({ root });
+        expect(JSON.parse(readFileSync(join(root, AGY), "utf8"))).toEqual(FOREIGN);
+      }
+    });
+  });
+
   it("prunes empty skill/command/.githooks husks and keeps package.json for the package manager (F-012/F-013, #5999)", () => {
     const root = tempRoot();
     mkdirSync(join(root, "xbrief"), { recursive: true });
@@ -148,11 +307,11 @@ describe("runUninstall (AC11.5 / AC11.7)", () => {
     expect(emptyHostDirs).toEqual([]);
   });
 
-  it("removes v261027 .mjs hook registrations and the .mjs files on all four hosts (AC11.4)", () => {
+  it("removes v261027 .mjs hook registrations and the .mjs files on all five hosts (AC11.4 / #7438)", () => {
     const root = tempRoot();
     runSetup({ operation: "install", from: "none", root });
     const outers = mjsOuters(root);
-    expect(outers.length).toBe(4);
+    expect(outers.length).toBe(5);
     for (const rel of HOST_HOOK_CONFIG_RELS) {
       expect(readFileSync(join(root, rel), "utf8")).toMatch(/deft-hook-[a-f0-9]{8}\.mjs/);
     }
@@ -218,7 +377,7 @@ describe("runUninstall (AC11.5 / AC11.7)", () => {
     const result = runUninstall({ root });
     expect(readFileSync(rel, "utf8")).toContain("&& node scripts/check.mjs");
     // Still registered by the user's entry: the .mjs files stay and are reported.
-    expect(mjsOuters(root)).toHaveLength(4);
+    expect(mjsOuters(root)).toHaveLength(5);
     expect(result.remaining).toEqual(expect.arrayContaining([".codex/hooks.json#hooks"]));
   });
 
@@ -229,9 +388,9 @@ describe("runUninstall (AC11.5 / AC11.7)", () => {
     const rel = join(root, ".codex", "hooks.json");
     writeFileSync(rel, `${readFileSync(rel, "utf8")}\n{ broken`);
     const result = runUninstall({ root });
-    expect(mjsOuters(root)).toHaveLength(4);
+    expect(mjsOuters(root)).toHaveLength(5);
     expect(result.remaining).toEqual(expect.arrayContaining([".codex/hooks.json#hooks"]));
-    expect(result.remaining.filter((r) => r.endsWith(".mjs"))).toHaveLength(4);
+    expect(result.remaining.filter((r) => r.endsWith(".mjs"))).toHaveLength(5);
   });
 });
 

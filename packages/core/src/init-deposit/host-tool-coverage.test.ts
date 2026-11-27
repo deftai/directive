@@ -123,6 +123,46 @@ describe("host tool-surface coverage (#3987)", () => {
     const optedOut = { ...DEFAULT_HOST_HOOKS_POLICY, grok: false };
     expect(inspectHostToolCoverage(root, optedOut)).toEqual([]);
   });
+
+  describe("agy (#7438)", () => {
+    function agyPath(root: string): string {
+      return join(root, AGENT_HOOK_PATH_BY_HOST.agy);
+    }
+
+    it("reads the single * matcher from Directive's agy entry", () => {
+      expect(depositedPreToolUseMatchers(depositedProject(), "agy")).toEqual(["*"]);
+    });
+
+    it("counts * as covering every audited agy tool, each in its own group", () => {
+      const audit = HOST_TOOL_SURFACE_AUDIT.agy;
+      expect(audit.mutation.shell).toContain("run_command");
+      expect(inspectHostToolCoverage(depositedProject(), DEFAULT_HOST_HOOKS_POLICY)).toEqual([]);
+    });
+
+    it("fails closed when the agy matcher narrows to a literal list", () => {
+      const root = depositedProject();
+      writeFileSync(
+        agyPath(root),
+        readFileSync(agyPath(root), "utf8").replace('"matcher": "*"', '"matcher": "write_file"'),
+        "utf8",
+      );
+      const findings = inspectHostToolCoverage(root, DEFAULT_HOST_HOOKS_POLICY);
+      expect(findings).toContainEqual(
+        expect.objectContaining({ host: "agy", kind: "uncovered-tool", toolName: "run_command" }),
+      );
+      expect(findings).not.toContainEqual(
+        expect.objectContaining({ host: "agy", toolName: "write_file", kind: "uncovered-tool" }),
+      );
+    });
+
+    it("skips an agy file that holds only foreign hooks (a registration failure, not coverage)", () => {
+      const root = depositedProject();
+      const foreign = { mine: { PreToolUse: [{ matcher: "x", hooks: [{ command: "y" }] }] } };
+      writeFileSync(agyPath(root), JSON.stringify(foreign), "utf8");
+      expect(depositedPreToolUseMatchers(root, "agy")).toBeNull();
+      expect(inspectHostToolCoverage(root, DEFAULT_HOST_HOOKS_POLICY)).toEqual([]);
+    });
+  });
 });
 
 describe("agent_hooks fail still surfaces pin/engine skew (#4692)", () => {

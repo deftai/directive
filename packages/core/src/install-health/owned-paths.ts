@@ -24,9 +24,11 @@
  */
 
 import {
+  AGY_HOOK_PATH,
   GROK_PRETOOLUSE_WRAPPER_REL_PATH,
   hostHookEntryText,
 } from "../init-deposit/agent-hooks.js";
+import { stripAgyHostHookConfig } from "../init-deposit/host-hook-outer.js";
 import {
   isDirectiveDependencyKey,
   isUpgradePinPathContentAllowed,
@@ -207,10 +209,17 @@ export const HOST_HOOK_CONFIG_RELS = [
   ".cursor/hooks.json",
   ".codex/hooks.json",
   ".grok/hooks/deft.json",
+  AGY_HOOK_PATH,
 ] as const;
 
 /** Host directories that hold the committed `deft-hook-<sha8>.mjs` outers (AC9.1). */
-export const HOST_HOOK_OUTER_DIRS = [".claude", ".codex", ".cursor/hooks", ".grok/hooks"] as const;
+export const HOST_HOOK_OUTER_DIRS = [
+  ".claude",
+  ".codex",
+  ".cursor/hooks",
+  ".grok/hooks",
+  ".agents",
+] as const;
 
 /** Wholly owned git hook files setup writes. */
 export const DIRECTIVE_GITHOOK_RELS = [
@@ -550,11 +559,15 @@ function parseJsonObjectOrEmpty(text: string | null): Record<string, unknown> | 
   }
 }
 
-function classifyHostHookConfig(before: string | null, after: string | null): DirectiveOwnedChange {
+function classifyHostHookConfig(
+  before: string | null,
+  after: string | null,
+  strip: (cfg: Record<string, unknown>) => Record<string, unknown> = stripDirectiveHooks,
+): DirectiveOwnedChange {
   const b = parseJsonObjectOrEmpty(before);
   const a = parseJsonObjectOrEmpty(after);
   if (b === undefined || a === undefined) return "mixed";
-  return deepEqual(stripDirectiveHooks(b), stripDirectiveHooks(a)) ? "directive-only" : "mixed";
+  return deepEqual(strip(b), strip(a)) ? "directive-only" : "mixed";
 }
 
 /** Remove the Directive marked section (open prefix … close marker). */
@@ -866,8 +879,10 @@ export function classifyDirectiveOwnedChange(
     case "marked-section":
       return classifyAgentsMd(before, after);
     case "structured-entry":
-      return rel === "Taskfile.yml"
-        ? classifyTaskfile(before, after)
+      if (rel === "Taskfile.yml") return classifyTaskfile(before, after);
+      // `.agents/hooks.json` is entry-owned: only the `zzzz-directive` key is Directive's (#7438).
+      return rel === AGY_HOOK_PATH
+        ? classifyHostHookConfig(before, after, stripAgyHostHookConfig)
         : classifyHostHookConfig(before, after);
     case "managed-lines":
       return classifyManagedLines(rel as ManagedLineRel, before, after);

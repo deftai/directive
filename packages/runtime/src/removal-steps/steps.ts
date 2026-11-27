@@ -6,7 +6,8 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, lstatSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, sep } from "node:path";
-import { containedRemove } from "@deftai/directive-core/dist/fs/contained-write.js";
+import { containedRemove, containedWrite } from "@deftai/directive-core/dist/fs/contained-write.js";
+import { stripAgyHostHookConfig } from "@deftai/directive-core/dist/init-deposit/host-hook-outer.js";
 import { bareVersionMarkerRelativePaths } from "@deftai/directive-core/dist/init-deposit/hygiene.js";
 import {
   CONSUMER_HEADER_PLACEHOLDER_ONELINER,
@@ -76,7 +77,10 @@ const HOST_HOOK_RELS = [
   ".cursor/hooks.json",
   ".codex/hooks.json",
   ".grok/hooks/deft.json",
+  ".agents/hooks.json",
 ] as const;
+
+const AGY_HOOK_REL = ".agents/hooks.json";
 
 const DIRECTIVE_PACKAGE_NAMES = new Set(["@deftai/directive", "@deftai/directive-runtime"]);
 
@@ -586,19 +590,23 @@ export function clearOwnedHookEntries(root: string): StepResult {
     if (!existsSync(abs)) continue;
     const cfg = readJsonObject(abs);
     if (cfg === null) continue;
-    const stripped = stripHostHooks(cfg);
+    // `.agents/hooks.json` is entry-owned: only `zzzz-directive` goes; a foreign-only file is untouched (#7438).
+    const stripped = rel === AGY_HOOK_REL ? stripAgyHostHookConfig(cfg) : stripHostHooks(cfg);
+    if (rel === AGY_HOOK_REL && stripped === cfg) continue;
     const prior = readText(abs) ?? "";
     const next = `${JSON.stringify(stripped, null, 2)}\n`;
     if (next === prior) continue;
     const keys = Object.keys(stripped);
+    // agy keys are hook names, so a `hooks` or `version` key there is a user's: only an empty file goes.
     const emptyAfterStrip =
       keys.length === 0 ||
-      (keys.length === 1 && keys[0] === "hooks" && isEmptyishObject(stripped.hooks)) ||
-      (keys.length === 1 && keys[0] === "version") ||
-      (keys.length === 2 &&
-        keys.includes("version") &&
-        keys.includes("hooks") &&
-        isEmptyishObject(stripped.hooks));
+      (rel !== AGY_HOOK_REL &&
+        ((keys.length === 1 && keys[0] === "hooks" && isEmptyishObject(stripped.hooks)) ||
+          (keys.length === 1 && keys[0] === "version") ||
+          (keys.length === 2 &&
+            keys.includes("version") &&
+            keys.includes("hooks") &&
+            isEmptyishObject(stripped.hooks))));
     if (emptyAfterStrip) {
       if (safeContainedRemove(root, rel)) {
         removed.push(toPosix(rel));
@@ -606,7 +614,22 @@ export function clearOwnedHookEntries(root: string): StepResult {
       }
       continue;
     }
-    writeFileSync(abs, next);
+    if (rel === AGY_HOOK_REL) {
+      // The agy file may be a link to a shared file outside the project: write only inside it.
+      try {
+        containedWrite({
+          root,
+          target: abs,
+          data: next,
+          mode: "replace",
+          mutation: { kind: "stripped", path: rel },
+        });
+      } catch {
+        continue;
+      }
+    } else {
+      writeFileSync(abs, next);
+    }
     modified.push(`${toPosix(rel)}#hooks`);
   }
   for (const rel of GITHOOK_RELS) {

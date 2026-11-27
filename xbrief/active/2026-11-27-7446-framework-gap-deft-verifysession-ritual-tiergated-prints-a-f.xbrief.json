@@ -1,0 +1,209 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #7446",
+    "updated": "2026-11-27T05:34:20Z"
+  },
+  "plan": {
+    "title": "[framework-gap] deft verify:session-ritual -- --tier=gated prints a false foreign-occupant denial to the lease owner on Antigravity",
+    "status": "running",
+    "narratives": {
+      "Description": "[framework-gap] deft verify:session-ritual -- --tier=gated prints a false foreign-occupant denial to the lease owner on Antigravity",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/7446",
+      "Overview": "## Acceptance Criteria\n\n- [ ] `deft verify:session-ritual` accepts `--session-id=<id>` and uses it as the presented session for its occupancy check.\n- [ ] The agy `PreToolUse` lifecycle rewrite adds `--session-id=host:agy:v1:<id>` to a bare `deft verify:session-ritual` command, as it already does for `deft session:start`.\n- [ ] When the lease owner runs `verify:session-ritual` and a gated step fails, the output gives owner recovery guidance for that step and never the foreign-occupant refusal.\n- [ ] With no `--session-id` and no ambient session identity, `verify:session-ritual` does not mint a random id and report it as a foreign presenter; it says that no session identity was presented and names the flag.\n- [ ] Tests cover the owner with a failing gated step, the rewritten agy command, and the no-identity case.\n\n"
+    },
+    "items": [
+      {
+        "title": "`deft verify:session-ritual` accepts `--session-id=<id>` and uses it as the presented session for its occupancy check.",
+        "status": "proposed",
+        "id": "clause.1"
+      },
+      {
+        "title": "The agy `PreToolUse` lifecycle rewrite adds `--session-id=host:agy:v1:<id>` to a bare `deft verify:session-ritual` command, as it already does for `deft session:start`.",
+        "status": "proposed",
+        "id": "clause.2"
+      },
+      {
+        "title": "When the lease owner runs `verify:session-ritual` and a gated step fails, the output gives owner recovery guidance for that step and never the foreign-occupant refusal.",
+        "status": "proposed",
+        "id": "clause.3"
+      },
+      {
+        "title": "With no `--session-id` and no ambient session identity, `verify:session-ritual` does not mint a random id and report it as a foreign presenter; it says that no session identity was presented and names the flag.",
+        "status": "proposed",
+        "id": "clause.4"
+      },
+      {
+        "title": "Tests cover the owner with a failing gated step, the rewritten agy command, and the no-identity case.",
+        "status": "proposed",
+        "id": "clause.5"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/7446",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #7446: [framework-gap] deft verify:session-ritual -- --tier=gated prints a false foreign-occupant denial to the lease owner on Antigravity"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "deft verify:session-ritual",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L5"
+        },
+        {
+          "command": "deft session:start",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L6"
+        }
+      ],
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": false,
+        "conflict_group": "verify-session-ritual",
+        "size": "S",
+        "file_scope": [
+          "packages/runtime/src/verify-session-ritual.ts",
+          "packages/runtime/src/verify-session-ritual.test.ts",
+          "packages/runtime/src/gates-cli/session-ritual-cli.test.ts",
+          "packages/core/src/session/verify-session-ritual.ts",
+          "packages/core/src/session/verify-session-ritual-messages.test.ts",
+          "packages/core/src/session/occupancy-recovery.ts",
+          "packages/core/src/session/occupancy-recovery.test.ts",
+          "packages/core/src/session/occupancy.ts",
+          "packages/core/src/session/occupancy.test.ts",
+          "packages/core/src/hooks/classify/host-session-identity.ts",
+          "packages/core/src/hooks/classify/host-session-identity.test.ts",
+          "changelog.d/7446-verify-session-ritual-session-id.md"
+        ],
+        "file_scope_confidence": "medium",
+        "depends_on": [],
+        "verify_commands": [
+          "pnpm exec vitest run --reporter=dot packages/runtime/src/verify-session-ritual.test.ts packages/runtime/src/gates-cli/session-ritual-cli.test.ts",
+          "pnpm exec vitest run --reporter=dot packages/core/src/session/verify-session-ritual-messages.test.ts packages/core/src/session/occupancy-recovery.test.ts packages/core/src/session/occupancy.test.ts",
+          "pnpm exec vitest run --reporter=dot packages/core/src/hooks/classify/host-session-identity.test.ts"
+        ],
+        "expected_outputs": [
+          "verify:session-ritual takes --session-id; agy rewrite adds it; owner gets owner guidance on a failing gated step; no identity gives a no-identity message, not a foreign-occupant refusal"
+        ],
+        "model_tier": "standard",
+        "build_after": "7416 (rewrites packages/core/src/session/verify-session-ritual.ts)"
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/runtime/src/verify-session-ritual.ts",
+          "packages/core/src/session/verify-session-ritual.ts",
+          "packages/core/src/session/occupancy-recovery.ts",
+          "packages/core/src/session/occupancy.ts",
+          "packages/core/src/hooks/classify/host-session-identity.ts"
+        ],
+        "module_boundary": "packages/core/src/session",
+        "cohesion_exemption": "The CLI argv, the owner-aware denial text, the no-identity refusal and the agy lifecycle rewrite for one verb co-travel with their tests"
+      },
+      "issueCommentThread": [
+        {
+          "body": "Rewriting the body to criteria-only for ingest. Scott: \"add both to 0.132.1\" (with #7445). Builds after #7416 merges, because both change verify-session-ritual.ts. No arc. Prior body quoted below.\n\n<details><summary>Prior body</summary>\n\n## Summary\n\ndeft verify:session-ritual -- --tier=gated prints a false foreign-occupant denial to the lease owner on Antigravity\n\n## Context\n\nDirective 0.132.0 on Antigravity (agy 1.5.18, win32) with live PreToolUse hooks active (internal benchmark evidence (private)). Session claimed occupancy via bare deft session:start (PreToolUse rewrote CommandLine with --session-id=host:agy:v1:<id>), then ran deft verify:session-ritual -- --tier=gated as instructed by the SessionStart notice.\n\n## Expected behavior\n\nWhen verify:session-ritual exits 1 on a gated step failure (e.g. cache_fresh or agent_hooks), the lease owner receives owner-appropriate recovery guidance rather than a foreign-occupant refusal.\n\n## Actual behavior / gap\n\nWhen verify:session-ritual exits 1, dist/verify-session-ritual.js calls occupancyAwareDenialMessage(projectRoot, result.message, { env: process.env }, recoveryTier). Because Antigravity does not export an ambient DEFT_SESSION_ID env var to run_command shells and verify:session-ritual rejects --session-id (and is not in LIFECYCLE_ARGUMENT_POLICIES), evaluateOccupancyCeremonyEligibility mints a random UUID and reports: 'Worktree occupied by session host:agy:v1:<id>... This process presented session <random-uuid>, which neither holds that lease nor has a write grant on it. Use another worktree. Stay read-only.' This misdirects the owning agent into believing another session holds the worktree.\n\n## Session notes\n\nObserved in live AGY 1.5.18 session while .deft/occupancy.json and .deft/applying-host.json both named this session (host:agy:v1:<id>) (Refs #4290, #7346, #7440). Supporting --session-id on verify:session-ritual (plus lifecycle rewrite via PreToolUse) or consulting same-host identity avoids minting a random UUID for the owning session. Source: internal benchmark evidence (private).\n\n---\n_Filed via `deft feedback:file` from a directive consumer project (Refs #1709 value-feedback gap escalation)._\n\n\n\n</details>\n\n",
+          "id": 7210583675,
+          "html_url": "https://github.com/deftai/directive/issues/7446#issuecomment-7210583675",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-27T05:22:41Z",
+          "updated_at": "2026-11-27T05:22:41Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6640511806,
+        "origin": "deftai/directive#7446",
+        "id": "github.issue.6640511806"
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per sentence-list entry (5), in order (#6333)",
+      "sentences": [
+        "`deft verify:session-ritual` accepts `--session-id=<id>` and uses it as the presented session for its occupancy check.",
+        "The agy `PreToolUse` lifecycle rewrite adds `--session-id=host:agy:v1:<id>` to a bare `deft verify:session-ritual` command, as it already does for `deft session:start`.",
+        "When the lease owner runs `verify:session-ritual` and a gated step fails, the output gives owner recovery guidance for that step and never the foreign-occupant refusal.",
+        "With no `--session-id` and no ambient session identity, `verify:session-ritual` does not mint a random id and report it as a foreign presenter; it says that no session identity was presented and names the flag.",
+        "Tests cover the owner with a failing gated step, the rewritten agy command, and the no-identity case."
+      ],
+      "admitted_source_sentences": [
+        "`deft verify:session-ritual` accepts `--session-id=<id>` and uses it as the presented session for its occupancy check.",
+        "The agy `PreToolUse` lifecycle rewrite adds `--session-id=host:agy:v1:<id>` to a bare `deft verify:session-ritual` command, as it already does for `deft session:start`.",
+        "When the lease owner runs `verify:session-ritual` and a gated step fails, the output gives owner recovery guidance for that step and never the foreign-occupant refusal.",
+        "With no `--session-id` and no ambient session identity, `verify:session-ritual` does not mint a random id and report it as a foreign presenter; it says that no session identity was presented and names the flag.",
+        "Tests cover the owner with a failing gated step, the rewritten agy command, and the no-identity case."
+      ],
+      "admitted_source_digest": "139d3828b50249a748cd9268723f39e58f97268b6fba3e9a1e4e8677044fdb15",
+      "admitted_source_extractor": 2,
+      "clauses": [
+        {
+          "id": 1,
+          "text": "`deft verify:session-ritual` accepts `--session-id=<id>` and uses it as the presented session for its occupancy check.",
+          "artifact_path": "packages/runtime/src/verify-session-ritual.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "The agy `PreToolUse` lifecycle rewrite adds `--session-id=host:agy:v1:<id>` to a bare `deft verify:session-ritual` command, as it already does for `deft session:start`.",
+          "artifact_path": "packages/core/src/hooks/classify/host-session-identity.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "When the lease owner runs `verify:session-ritual` and a gated step fails, the output gives owner recovery guidance for that step and never the foreign-occupant refusal.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "With no `--session-id` and no ambient session identity, `verify:session-ritual` does not mint a random id and report it as a foreign presenter; it says that no session identity was presented and names the flag.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Tests cover the owner with a failing gated step, the rewritten agy command, and the no-identity case.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.6640511806",
+    "updated": "2026-11-27T05:34:20Z"
+  }
+}

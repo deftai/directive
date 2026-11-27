@@ -389,6 +389,30 @@ describe("checkWiringTargetsRuntime companion probes (coverage for #5796 headroo
     expect(result.mismatched).toContain(".cursor/hooks.json");
   });
 
+  it("counts Directive's agy entry as wiring evidence, and never mismatches foreign agy hooks (#7438)", () => {
+    const foreign = tempRoot("wiring-agy-foreign-");
+    mkdirSync(join(foreign, ".agents"), { recursive: true });
+    writeFileSync(
+      join(foreign, ".agents", "hooks.json"),
+      '{"mine":{"PreToolUse":[{"matcher":"x","hooks":[{"command":"node mine.mjs"}]}]}}\n',
+      "utf8",
+    );
+    expect(checkWiringTargetsRuntime(foreign).ok).toBe(true);
+    expect(hasDirectiveWiringEvidence(foreign)).toBe(false);
+
+    const ours = tempRoot("wiring-agy-ours-");
+    mkdirSync(join(ours, ".agents"), { recursive: true });
+    writeFileSync(
+      join(ours, ".agents", "hooks.json"),
+      '{"zzzz-directive":{"PreToolUse":[{"matcher":"*","hooks":[{"command":"node deft-hook-deadbeef.mjs --host agy --event tool.before"}]}]}}\n',
+      "utf8",
+    );
+    const result = checkWiringTargetsRuntime(ours);
+    expect(result.ok).toBe(true);
+    expect(result.inspected).toContain(".agents/hooks.json");
+    expect(hasDirectiveWiringEvidence(ours)).toBe(true);
+  });
+
   it("marks unreadable present probes as mismatched via seams", () => {
     const root = tempRoot("wiring-unread-");
     writeFileSync(join(root, "Taskfile.yml"), "version: '3'\n", "utf8");
