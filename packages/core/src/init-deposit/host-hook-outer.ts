@@ -865,6 +865,21 @@ function shellRunDirectories(host, payload) {
 /** Admit exact simple project-root installs when pin hook-bin is missing (#7275). */
 function admitMissingPinInstall(host, event, projectRoot, payload) {
   if (event !== "tool.before") return false;
+  if (host === "agy") {
+    // agy shell calls are run_command with toolCall.args.CommandLine (#7347).
+    const record = asRecord(payload);
+    const call = record === null ? null : asRecord(record.toolCall);
+    const args = call === null ? null : asRecord(call.args);
+    if (
+      call !== null &&
+      args !== null &&
+      call.name === "run_command" &&
+      matchRecoveryCommand(firstString([args.CommandLine])) !== null
+    ) {
+      const dir = firstString([record.cwd]);
+      return dir !== null && rootsMatch(dir, projectRoot);
+    }
+  }
   const toolName = hookToolName(payload);
   if (toolName === null || !isShellToolName(toolName)) return false;
   if (matchRecoveryCommand(hookShellCommand(payload)) === null) return false;

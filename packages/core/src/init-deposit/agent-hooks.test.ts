@@ -1510,11 +1510,31 @@ describe("agy deposit, activation gate and doctor (#7347)", () => {
     expect(readFileSync(join(root, HOOKS), "utf8")).toBe(before);
   });
 
-  it("refuses to overwrite a foreign hook that uses Directive's name", () => {
+  it("never overwrites a foreign hook that uses Directive's name, and reports drift", () => {
     const root = agyProject();
     writeHooks(root, { [AGY_DIRECTIVE_HOOK_NAME]: PRE });
-    expect(() => writeAgentHookDeposit(root, NO_IO)).toThrow(/not Directive's/);
+    writeAgentHookDeposit(root, NO_IO);
     expect(readHooks(root)[AGY_DIRECTIVE_HOOK_NAME]).toEqual(PRE);
+    expect(inspectAgentHookDeposit(root).find((entry) => entry.host === "agy")?.status).toBe(
+      "drifted",
+    );
+  });
+
+  it("reports a changed matcher or a shortened timeout as drift", () => {
+    const root = agyProject();
+    writeAgentHookDeposit(root, NO_IO);
+    const healthy = readFileSync(join(root, HOOKS), "utf8");
+    const status = (): string | undefined =>
+      inspectAgentHookDeposit(root).find((entry) => entry.host === "agy")?.status;
+    for (const [from, to] of [
+      ['"matcher": "*"', '"matcher": "write_file"'],
+      [`"timeout": ${NESTED_TOOL_BEFORE_TIMEOUT_SECONDS}`, '"timeout": 1'],
+    ] as const) {
+      writeFileSync(join(root, HOOKS), healthy.replace(from, to));
+      expect(status()).toBe("drifted");
+    }
+    writeFileSync(join(root, HOOKS), healthy);
+    expect(status()).toBe("healthy");
   });
 
   it("uninstalls only Directive's entry and outer, and keeps foreign hooks", () => {

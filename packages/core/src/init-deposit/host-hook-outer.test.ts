@@ -419,7 +419,9 @@ describe("host-hook-outer bytes stay put (#6613)", () => {
     // #7378 changed them on purpose (agy: explicit allow, one-decision check,
     // per-call hook-order check over workspace, plugin and user-scope hook files):
     // bc294904 -> eb73f41c.
-    expect(hostHookOuterSha8()).toBe("eb73f41c");
+    // #7347 changed them on purpose (agy missing-runtime install admit reads the
+    // real `run_command` / `toolCall.args.CommandLine` payload): eb73f41c -> aee61ba9.
+    expect(hostHookOuterSha8()).toBe("aee61ba9");
   });
 });
 
@@ -975,6 +977,19 @@ describe("host-hook-outer agy exit paths and hook ordering (#7378)", () => {
         cwd: root,
       });
       expect(decisionOf(runAgy(root, payload))).toEqual({ decision: "allow" });
+    });
+  });
+
+  it("admits the project install from a real agy run_command payload (#7347)", () => {
+    withRoot((root) => {
+      const install = JSON.stringify({
+        hookEventName: "PreToolUse",
+        workspacePaths: [root],
+        cwd: root,
+        toolCall: { id: "c1", name: "run_command", args: { CommandLine: "npm install" } },
+      });
+      expect(decisionOf(runAgy(root, install))).toEqual({ decision: "allow" });
+      expect(decisionOf(runAgy(root, agyPayload(root))).decision).toBe("deny");
     });
   });
 

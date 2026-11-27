@@ -722,45 +722,21 @@ function agyDirectiveEntry(sha8: string): Record<string, unknown> {
 
 /**
  * Merge Directive's named entry into `.agents/hooks.json` (#7347). Foreign named
- * hooks stay. A hook with Directive's name that is not Directive's is refused.
+ * hooks stay. A hook with Directive's name that is not Directive's is left alone.
  */
-function mergeAgyConfig(
-  config: Record<string, unknown>,
-  path: string,
-  sha8: string,
-): Record<string, unknown> {
+function mergeAgyConfig(config: Record<string, unknown>, sha8: string): Record<string, unknown> {
   const existing = config[AGY_DIRECTIVE_HOOK_NAME];
-  if (existing !== undefined && !isManagedAgyHookEntry(existing)) {
-    throw new Error(
-      `${path}: hook "${AGY_DIRECTIVE_HOOK_NAME}" is not Directive's; refusing to overwrite user configuration.`,
-    );
-  }
+  // A foreign hook that uses Directive's name is never overwritten. The file stays as
+  // is; inspect reports the registration as drifted and the ordering predicate flags it.
+  if (existing !== undefined && !isManagedAgyHookEntry(existing)) return config;
   return { ...config, [AGY_DIRECTIVE_HOOK_NAME]: agyDirectiveEntry(sha8) };
-}
-
-function agyEventGroups(config: Record<string, unknown>, event: string): unknown[] {
-  const entry = object(config[AGY_DIRECTIVE_HOOK_NAME]);
-  const groups = entry?.[event];
-  return Array.isArray(groups) ? groups : [];
 }
 
 function hasAgyRegistration(config: Record<string, unknown>, sha8: string): boolean {
   const entry = config[AGY_DIRECTIVE_HOOK_NAME];
   if (!isManagedAgyHookEntry(entry)) return false;
-  const commands = (event: string): string[] =>
-    agyEventGroups(config, event).flatMap((group) => {
-      const hooks = object(group)?.hooks;
-      return Array.isArray(hooks)
-        ? hooks.flatMap((hook) => {
-            const text = hostHookEntryText(hook);
-            return text === null ? [] : [text];
-          })
-        : [];
-    });
-  return (
-    commands("PreToolUse").includes(agyHookCommand(sha8, "tool.before")) &&
-    commands("SessionStart").includes(agyHookCommand(sha8, "session.start"))
-  );
+  // Exact match with what the deposit writes: commands, the `*` matcher and timeouts.
+  return JSON.stringify(entry) === JSON.stringify(agyDirectiveEntry(sha8));
 }
 
 function writeJsonIfChanged(
@@ -860,7 +836,7 @@ export function writeAgentHookDeposit(
     {
       host: "agy",
       path: AGY_HOOK_PATH,
-      merge: (config, path) => mergeAgyConfig(config, path, outerSha8),
+      merge: (config) => mergeAgyConfig(config, outerSha8),
       strip: (config) => stripAgyHostHookConfig(config),
     },
   ];

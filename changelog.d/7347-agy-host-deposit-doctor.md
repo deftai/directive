@@ -1,2 +1,2 @@
 section: Added
-- agy hook deposit, repair and uninstall (#7347): `.agents/hooks.json` gets Directive's `zzzz-directive` entry (foreign hooks kept), `plan.policy.hostHooks.agy` is on by default, activation is gated on the committed admission verdict (a fail or absent verdict deposits nothing and `directive doctor` reports `agy-activation`), and `deft policy:disable-host-hooks --host agy --confirm` removes only Directive's entry.
+- Antigravity (agy) hooks are installed, repaired and removed with the other hosts and are on by default. Install only runs when the recorded host check passes, `directive doctor` reports a halted install, and turning the host off removes only Directive's own hook.
