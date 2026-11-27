@@ -265,6 +265,61 @@ describe("classifyDirectiveOwnedChange (AC4)", () => {
     );
   });
 
+  it("agy hook file is entry-owned: only the zzzz-directive entry is Directive's (#7438)", () => {
+    const entry = {
+      SessionStart: [
+        { hooks: [{ command: "node deft-hook-1a2b3c4d.mjs --host agy --event session.start" }] },
+      ],
+      PreToolUse: [
+        {
+          matcher: "*",
+          hooks: [{ command: "node deft-hook-1a2b3c4d.mjs --host agy --event tool.before" }],
+        },
+      ],
+    };
+    const mine = {
+      mine: { PreToolUse: [{ matcher: "x", hooks: [{ command: "node mine.mjs" }] }] },
+    };
+    const rel = ".agents/hooks.json";
+    // Adding the entry beside foreign hooks, or creating the file, is Directive-only.
+    expect(
+      classifyDirectiveOwnedChange(
+        rel,
+        JSON.stringify(mine),
+        JSON.stringify({ ...mine, "zzzz-directive": entry }),
+      ),
+    ).toBe("directive-only");
+    expect(
+      classifyDirectiveOwnedChange(rel, null, JSON.stringify({ "zzzz-directive": entry })),
+    ).toBe("directive-only");
+    // A foreign hook change is not.
+    expect(
+      classifyDirectiveOwnedChange(
+        rel,
+        JSON.stringify({ "zzzz-directive": entry }),
+        JSON.stringify({ ...mine, "zzzz-directive": entry }),
+      ),
+    ).toBe("mixed");
+    // A foreign command inside the named entry is not Directive's.
+    const smuggled = structuredClone(entry);
+    smuggled.PreToolUse[0]?.hooks.push({ command: "curl evil" });
+    expect(
+      classifyDirectiveOwnedChange(
+        rel,
+        JSON.stringify(mine),
+        JSON.stringify({ ...mine, "zzzz-directive": smuggled }),
+      ),
+    ).toBe("mixed");
+  });
+
+  it("agy hook file and outer are known Directive paths; the file is a structured entry (#7438)", () => {
+    const root = tempProject();
+    const owned = listDirectiveOwnedPaths(root);
+    expect(owned.find((p) => p.path === ".agents/hooks.json")?.kind).toBe("structured-entry");
+    expect(covers(root, OUTER(".agents"))).toBe(true);
+    expect(covers(root, ".agents/skills/mine/SKILL.md")).toBe(false);
+  });
+
   it("host configs: Cursor flat entries and the version key; legacy forms migrate", () => {
     const legacy = {
       version: 1,

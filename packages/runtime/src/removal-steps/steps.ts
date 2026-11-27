@@ -7,6 +7,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, lstatSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, sep } from "node:path";
 import { containedRemove } from "@deftai/directive-core/dist/fs/contained-write.js";
+import { stripAgyHostHookConfig } from "@deftai/directive-core/dist/init-deposit/host-hook-outer.js";
 import { bareVersionMarkerRelativePaths } from "@deftai/directive-core/dist/init-deposit/hygiene.js";
 import {
   CONSUMER_HEADER_PLACEHOLDER_ONELINER,
@@ -76,7 +77,10 @@ const HOST_HOOK_RELS = [
   ".cursor/hooks.json",
   ".codex/hooks.json",
   ".grok/hooks/deft.json",
+  ".agents/hooks.json",
 ] as const;
+
+const AGY_HOOK_REL = ".agents/hooks.json";
 
 const DIRECTIVE_PACKAGE_NAMES = new Set(["@deftai/directive", "@deftai/directive-runtime"]);
 
@@ -586,7 +590,9 @@ export function clearOwnedHookEntries(root: string): StepResult {
     if (!existsSync(abs)) continue;
     const cfg = readJsonObject(abs);
     if (cfg === null) continue;
-    const stripped = stripHostHooks(cfg);
+    // `.agents/hooks.json` is entry-owned: only `zzzz-directive` goes; a foreign-only file is untouched (#7438).
+    const stripped = rel === AGY_HOOK_REL ? stripAgyHostHookConfig(cfg) : stripHostHooks(cfg);
+    if (rel === AGY_HOOK_REL && stripped === cfg) continue;
     const prior = readText(abs) ?? "";
     const next = `${JSON.stringify(stripped, null, 2)}\n`;
     if (next === prior) continue;

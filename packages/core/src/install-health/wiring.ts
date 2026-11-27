@@ -11,9 +11,11 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parseTaskfileIncludes } from "../check/consumer-gate-integrity.js";
+import { AGY_DIRECTIVE_HOOK_NAME } from "../hooks/classify/agy-hook-order.js";
 import {
   hostHookConfigEntryLines,
   isHostHookOuterCommand,
+  isManagedAgyHookEntry,
 } from "../init-deposit/host-hook-outer.js";
 import {
   KILL_SWITCH_GITHOOK_MARKER,
@@ -48,6 +50,7 @@ export const WIRING_PROBE_RELS: readonly string[] = [
   ".cursor/hooks.json",
   ".codex/hooks.json",
   ".grok/hooks/deft.json",
+  ".agents/hooks.json",
   "Taskfile.yml",
   ".githooks/pre-commit",
   ".githooks/pre-push",
@@ -210,6 +213,20 @@ const HOST_HOOK_REGISTRATION_RELS: ReadonlySet<string> = new Set([
   ".grok/hooks/deft.json",
 ]);
 
+/** `.agents/hooks.json` is shared with other agy hooks; only the named Directive entry counts (#7438). */
+const AGY_HOOK_REL = ".agents/hooks.json";
+
+/** True when the agy hook file holds Directive's own entry in the `.mjs` outer form. */
+function agyFileHoldsDirectiveEntry(text: string): boolean {
+  try {
+    const parsed: unknown = JSON.parse(text);
+    if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) return false;
+    return isManagedAgyHookEntry((parsed as Record<string, unknown>)[AGY_DIRECTIVE_HOOK_NAME]);
+  } catch {
+    return false;
+  }
+}
+
 /** #5994 / F2: host registration success form is content-hashed `.mjs` outer only. */
 function isHostHookOuterRegistration(text: string): boolean {
   if (text.includes(".deft/core/")) return false;
@@ -234,6 +251,8 @@ function inspectProbe(rel: string, text: string): boolean {
     return inspectTaskfileIncludesDeft(text);
   }
   if (isGitHookShim(rel, text)) return true;
+  // A foreign agy hook file is not Directive wiring, so it never mismatches (#7438).
+  if (rel === AGY_HOOK_REL) return true;
   if (HOST_HOOK_REGISTRATION_RELS.has(rel)) {
     return isHostHookOuterRegistration(hostHookConfigEntryLines(text));
   }
@@ -263,6 +282,10 @@ export function hasDirectiveWiringEvidence(projectRoot: string, seams: FsSeams =
       continue;
     }
     if (isGitHookShim(rel, text)) return true;
+    if (rel === AGY_HOOK_REL) {
+      if (agyFileHoldsDirectiveEntry(text)) return true;
+      continue;
+    }
     if (HOST_HOOK_REGISTRATION_RELS.has(rel)) {
       if (isHostHookOuterRegistration(hostHookConfigEntryLines(text))) return true;
       continue;

@@ -20,8 +20,9 @@ import {
   stripAgyHostHookConfig,
 } from "./host-hook-outer.js";
 
-type Host = "grok" | "claude" | "cursor" | "codex";
+type Host = "grok" | "claude" | "cursor" | "codex" | "agy";
 
+/** The four hosts whose payloads share the Claude-style shape; agy has its own tests. */
 const HOSTS: Host[] = ["grok", "claude", "cursor", "codex"];
 
 /** The outer's missing-runtime text in a project with no lockfile (#6620). */
@@ -728,6 +729,32 @@ describe("host-hook-outer missing-runtime project-install admit (#7275)", () => 
         shellPayload(host, "npm install", { cwd: root }),
       );
       expectQuietAllow(r);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("agy: admits npm install from a run_command CommandLine payload on missing pin (#7438)", () => {
+    const root = mkdtempSync(join(tmpdir(), "outer-7275-admit-agy-"));
+    try {
+      writeFileSync(join(root, "package.json"), "{}\n");
+      // agy merges user-scope hook files into its order check: keep the real home out.
+      const home = join(root, "home");
+      mkdirSync(home, { recursive: true });
+      const env = { HOME: home, USERPROFILE: home };
+      const payload = (commandLine: string): string =>
+        JSON.stringify({
+          hookEventName: "PreToolUse",
+          workspacePaths: [root],
+          cwd: root,
+          toolCall: { id: "c1", name: "run_command", args: { CommandLine: commandLine } },
+        });
+      const admitted = runOuter(root, "agy", env, "tool.before", [], payload("npm install"));
+      expect(admitted.status).toBe(0);
+      expect(JSON.parse(String(admitted.stdout))).toEqual({ decision: "allow" });
+      const refused = runOuter(root, "agy", env, "tool.before", [], payload("rm -rf build"));
+      expect(refused.status).toBe(0);
+      expect(JSON.parse(String(refused.stdout)).decision).toBe("deny");
     } finally {
       rmSync(root, { recursive: true, force: true });
     }

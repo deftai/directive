@@ -25,6 +25,7 @@ import {
   RUNTIME_PIN_PACKAGE,
 } from "@deftai/directive-core/dist/install-health/index.js";
 import { resolveAbsoluteGitDir } from "@deftai/directive-core/dist/policy/deft-directive-disable.js";
+import { DEFAULT_HOST_HOOKS_POLICY } from "@deftai/directive-core/dist/policy/host-hooks.js";
 import {
   KILL_SWITCH_BARE_FLAG_NAME,
   KILL_SWITCH_GITHOOK_MARKER,
@@ -39,6 +40,7 @@ import {
 } from "./installer-output-inventory.js";
 import { runSetup } from "./setup.js";
 import {
+  ensureHostHooks,
   listSkillPointerPaths,
   resolveDeftSkillTargetRel,
   resolveRuntimeAgentsEntryTemplatePath,
@@ -522,6 +524,118 @@ describe("runSetup package-relative wiring (Wave 2c / R9)", { timeout: 30_000 },
     expect(cursor?.kind).toBe("structured-entry");
     expect(taskfile?.kind).toBe("structured-entry");
     expect(taskfile?.entryKey).toBe("includes.deft");
+  });
+});
+
+describe("agy host hooks and Claude SessionEnd on install and upgrade (#7438)", () => {
+  const AGY = ".agents/hooks.json";
+  const AGY_OUTER = `.agents/deft-hook-${OUTER_SHA}.mjs`;
+  const FOREIGN = {
+    mine: { PreToolUse: [{ matcher: "x", hooks: [{ command: "node mine.mjs" }] }] },
+  };
+
+  function readJson(root: string, rel: string): Record<string, unknown> {
+    return JSON.parse(readFileSync(join(root, rel), "utf8")) as Record<string, unknown>;
+  }
+
+  function ownership(root: string): Array<{ path: string; kind: string; entryKey?: string }> {
+    return (
+      JSON.parse(readFileSync(join(root, ".deft", "GENERATION.json"), "utf8")) as {
+        ownership: Array<{ path: string; kind: string; entryKey?: string }>;
+      }
+    ).ownership;
+  }
+
+  function claudeSessionEnd(root: string): string {
+    const hooks = readJson(root, ".claude/settings.json").hooks as Record<string, unknown>;
+    return JSON.stringify(hooks.SessionEnd ?? []);
+  }
+
+  it("install deposits the agy entry, the agy outer and the Claude SessionEnd hook", () => {
+    const root = tempRoot();
+    runSetup({ operation: "install", from: "none", root });
+    expect(Object.keys(readJson(root, AGY))).toEqual(["zzzz-directive"]);
+    expect(readFileSync(join(root, AGY), "utf8")).toContain(
+      `node deft-hook-${OUTER_SHA}.mjs --host agy --event tool.before`,
+    );
+    expect(existsSync(join(root, AGY_OUTER))).toBe(true);
+    // Claude registers through the no-shell locator, so the event is one of its `args`.
+    expect(claudeSessionEnd(root)).toContain('"--host","claude","--event","session.end"');
+  });
+
+  it("GENERATION records the zzzz-directive entry, not the file, and the agy outer whole-file", () => {
+    const root = tempRoot();
+    runSetup({ operation: "install", from: "none", root });
+    const record = ownership(root);
+    const hooks = record.find((a) => a.path === AGY);
+    expect(hooks?.kind).toBe("structured-entry");
+    expect(hooks?.entryKey).toBe("zzzz-directive");
+    expect(record.find((a) => a.path === AGY_OUTER)?.kind).toBe("whole-file");
+  });
+
+  it("upgrade over an install that lacks agy and SessionEnd adds both, and keeps foreign hooks", () => {
+    const root = tempRoot();
+    mkdirSync(join(root, ".agents"), { recursive: true });
+    writeFileSync(join(root, AGY), `${JSON.stringify(FOREIGN, null, 2)}\n`);
+    runSetup({ operation: "install", from: "none", root });
+    // Simulate the 0.131-era install: no agy outer, no agy entry, no SessionEnd.
+    rmSync(join(root, AGY_OUTER));
+    writeFileSync(join(root, AGY), `${JSON.stringify(FOREIGN, null, 2)}\n`);
+    const settings = readJson(root, ".claude/settings.json");
+    const hooks = { ...(settings.hooks as Record<string, unknown>) };
+    delete hooks.SessionEnd;
+    writeFileSync(
+      join(root, ".claude/settings.json"),
+      `${JSON.stringify({ ...settings, hooks }, null, 2)}\n`,
+    );
+    runSetup({ operation: "upgrade", from: "0.131.5", root });
+    const agy = readJson(root, AGY);
+    expect(agy.mine).toEqual(FOREIGN.mine);
+    expect(agy["zzzz-directive"]).toBeDefined();
+    expect(existsSync(join(root, AGY_OUTER))).toBe(true);
+    expect(claudeSessionEnd(root)).toContain('"--event","session.end"');
+  });
+
+  it("a second run changes nothing", () => {
+    const root = tempRoot();
+    runSetup({ operation: "install", from: "none", root });
+    const before = readFileSync(join(root, AGY), "utf8");
+    const again = ensureHostHooks(root);
+    expect([...again.created, ...again.modified]).toEqual([]);
+    expect(readFileSync(join(root, AGY), "utf8")).toBe(before);
+  });
+
+  it("an agy opt-out strips only Directive's entry and outer, keeping foreign hooks", () => {
+    const root = tempRoot();
+    mkdirSync(join(root, ".agents"), { recursive: true });
+    writeFileSync(join(root, AGY), `${JSON.stringify(FOREIGN, null, 2)}\n`);
+    runSetup({ operation: "install", from: "none", root });
+    ensureHostHooks(root, { ...DEFAULT_HOST_HOOKS_POLICY, agy: false });
+    expect(readJson(root, AGY)).toEqual(FOREIGN);
+    expect(existsSync(join(root, AGY_OUTER))).toBe(false);
+  });
+
+  it("an agy opt-out deletes the file when Directive's entry was all it held", () => {
+    const root = tempRoot();
+    runSetup({ operation: "install", from: "none", root });
+    ensureHostHooks(root, { ...DEFAULT_HOST_HOOKS_POLICY, agy: false });
+    expect(existsSync(join(root, AGY))).toBe(false);
+  });
+
+  it("a foreign-only agy file is left byte for byte and not claimed when agy is opted out", () => {
+    const root = tempRoot();
+    mkdirSync(join(root, ".agents"), { recursive: true });
+    const foreignBytes = `${JSON.stringify(FOREIGN)}\n`;
+    writeFileSync(join(root, AGY), foreignBytes);
+    mkdirSync(join(root, "xbrief"), { recursive: true });
+    writeFileSync(
+      join(root, "xbrief", "PROJECT-DEFINITION.xbrief.json"),
+      `${JSON.stringify({ plan: { policy: { hostHooks: { agy: false } } } }, null, 2)}\n`,
+    );
+    runSetup({ operation: "install", from: "none", root });
+    expect(readFileSync(join(root, AGY), "utf8")).toBe(foreignBytes);
+    expect(existsSync(join(root, AGY_OUTER))).toBe(false);
+    expect(ownership(root).some((a) => a.path === AGY)).toBe(false);
   });
 });
 

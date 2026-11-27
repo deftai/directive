@@ -23,6 +23,8 @@ import {
   SPAWN_HOOK_MATCHER,
 } from "@deftai/directive-core/dist/hooks/tools.js";
 import {
+  AGY_HOOK_PATH,
+  agyDepositAdmitted,
   GROK_PRETOOLUSE_WRAPPER_REL_PATH,
   hostHookEntryFields,
   hostHookEntryPrefix,
@@ -33,7 +35,9 @@ import {
   hostHookOuterSource,
   isGrokWrapperCommand,
   isHostHookOuterCommand,
+  mergeAgyConfig,
 } from "@deftai/directive-core/dist/init-deposit/agent-hooks.js";
+import { stripAgyHostHookConfig } from "@deftai/directive-core/dist/init-deposit/host-hook-outer.js";
 import {
   DESIRED_GITATTRIBUTES_LINES,
   ensureGitattributes,
@@ -883,7 +887,13 @@ function stripNestedManaged(
   const hooks = object(existing.hooks);
   if (hooks === null) return existing;
   const nextHooks: Record<string, unknown> = {};
-  for (const key of ["SessionStart", "PreToolUse", "PreCompact", "PostCompact"] as const) {
+  for (const key of [
+    "SessionStart",
+    "PreToolUse",
+    "PreCompact",
+    "PostCompact",
+    "SessionEnd",
+  ] as const) {
     if (!(key in hooks)) continue;
     const filtered = Array.isArray(hooks[key])
       ? (hooks[key] as unknown[])
@@ -937,7 +947,7 @@ function keepCustomNestedGroups(entries: unknown[], host: string): unknown[] {
 function mergeNestedHost(
   existing: Record<string, unknown>,
   host: string,
-  options: { compact: boolean },
+  options: { compact: boolean; sessionEnd?: boolean },
 ): Record<string, unknown> {
   const hooks = object(existing.hooks) ?? {};
   const session = Array.isArray(hooks.SessionStart)
@@ -963,6 +973,13 @@ function mergeNestedHost(
       : [];
     nextHooks.PreCompact = [...preCompact, nestedGroup(host, "session.compact")];
     nextHooks.PostCompact = [...postCompact, nestedGroup(host, "session.compact")];
+  }
+  if (options.sessionEnd) {
+    // Releases the session lease on every end reason (no matcher), as `verify:hooks-installed` does (#6274 / #7438).
+    const sessionEnd = Array.isArray(hooks.SessionEnd)
+      ? keepCustomNestedGroups(hooks.SessionEnd as unknown[], host)
+      : [];
+    nextHooks.SessionEnd = [...sessionEnd, nestedGroup(host, "session.end")];
   }
   return { ...existing, hooks: nextHooks };
 }
@@ -1035,7 +1052,7 @@ const HOST_HOOK_SPECS: Array<{
   {
     host: "claude",
     rel: ".claude/settings.json",
-    merge: (cfg) => mergeNestedHost(cfg, "claude", { compact: true }),
+    merge: (cfg) => mergeNestedHost(cfg, "claude", { compact: true, sessionEnd: true }),
     strip: (cfg) => stripNestedManaged(cfg, "claude"),
   },
   {
@@ -1113,6 +1130,7 @@ export function ensureHostHooks(
       }
     }
   }
+  ensureAgyHostHook(projectRoot, hostHooksPolicy, outerSource, outerSha8, created, modified);
   const wrapperRel = GROK_PRETOOLUSE_WRAPPER_REL_PATH;
   if (existsSync(join(projectRoot, wrapperRel))) {
     try {
@@ -1124,6 +1142,81 @@ export function ensureHostHooks(
   }
 
   return { created, modified };
+}
+
+/** agy hook file as written, with no command rewrite: the file is shared with the user's hooks. */
+function readAgyHookConfig(abs: string): Record<string, unknown> {
+  const raw = readFileSync(abs, "utf8");
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (cause) {
+    throw new Error(`${abs} is not valid JSON; refusing to overwrite user configuration: ${cause}`);
+  }
+  const obj = object(parsed);
+  if (obj === null) throw new Error(`${abs} must contain a JSON object; refusing to overwrite.`);
+  return obj;
+}
+
+/**
+ * agy deposit (#7347 / #7438): the `zzzz-directive` entry of `.agents/hooks.json` and the
+ * `.agents/deft-hook-<sha8>.mjs` outer. Deposits only when policy enables agy and the
+ * committed admission verdict admits it. The hook file is entry-owned: foreign entries stay,
+ * and an opt-out removes only Directive's entry (the file goes when nothing else is left).
+ */
+function ensureAgyHostHook(
+  projectRoot: string,
+  hostHooksPolicy: HostHooksPolicy,
+  outerSource: string,
+  outerSha8: string,
+  created: string[],
+  modified: string[],
+): void {
+  const enabled =
+    isHostHookDepositEnabled("agy", hostHooksPolicy) && agyDepositAdmitted(outerSource);
+  const abs = join(projectRoot, AGY_HOOK_PATH);
+  const prior = readText(abs);
+  const outerRel = hostHookOuterRelPath("agy", outerSha8);
+  if (enabled) {
+    const base = prior === null ? {} : readAgyHookConfig(abs);
+    const merged = mergeAgyConfig(base, outerSha8);
+    // A foreign hook that uses Directive's name is left as is (same object back).
+    if (prior === null || merged !== base) {
+      const next = `${JSON.stringify(merged, null, 2)}\n`;
+      if (prior === null || !contentsEqualIgnoringEol(prior, next)) {
+        writeContained(projectRoot, AGY_HOOK_PATH, next);
+        if (prior === null) created.push(AGY_HOOK_PATH);
+        else modified.push(AGY_HOOK_PATH);
+      }
+    }
+    const priorOuter = readText(join(projectRoot, outerRel));
+    if (priorOuter === null || !contentsEqualIgnoringEol(priorOuter, outerSource)) {
+      writeContained(projectRoot, outerRel, outerSource);
+      if (priorOuter === null) created.push(outerRel);
+      else modified.push(outerRel);
+    }
+    return;
+  }
+  if (prior !== null) {
+    const cfg = readAgyHookConfig(abs);
+    const stripped = stripAgyHostHookConfig(cfg);
+    if (stripped !== cfg) {
+      if (Object.keys(stripped).length === 0) {
+        containedRemove({ root: projectRoot, target: AGY_HOOK_PATH });
+      } else {
+        writeContained(projectRoot, AGY_HOOK_PATH, `${JSON.stringify(stripped, null, 2)}\n`);
+      }
+      modified.push(AGY_HOOK_PATH);
+    }
+  }
+  if (existsSync(join(projectRoot, outerRel))) {
+    try {
+      containedRemove({ root: projectRoot, target: outerRel });
+      modified.push(outerRel);
+    } catch {
+      /* best-effort strip */
+    }
+  }
 }
 
 /** Escape `text` for use inside a double-quoted sh string. */
