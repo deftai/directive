@@ -222,6 +222,9 @@ export const EXACT_LIFECYCLE_VERBS = [
   // be run by the occupant had no way to be told who the occupant is.
   "occupancy:grant",
   "swarm:launch",
+  // #7446: the ritual verifier names the presenting session for its occupancy
+  // check, so the host rewrite binds the owner onto a bare invocation too.
+  "verify:session-ritual",
 ] as const;
 export type ExactLifecycleVerb = (typeof EXACT_LIFECYCLE_VERBS)[number];
 
@@ -234,6 +237,7 @@ const DIRECT_LIFECYCLE_VERBS: Readonly<Record<string, ExactLifecycleVerb>> = {
   "occupancy:heartbeat": "occupancy:heartbeat",
   "occupancy:grant": "occupancy:grant",
   "swarm-launch": "swarm:launch",
+  "verify:session-ritual": "verify:session-ritual",
 };
 
 export interface ExactLifecycleCommandRewrite {
@@ -376,6 +380,11 @@ const LIFECYCLE_ARGUMENT_POLICIES: Readonly<Record<ExactLifecycleVerb, Lifecycle
     // path/destination flags kept outside the auto-approved rewrite surface.
     rewriteUnsafeFlags: new Set(["--project-root", "--worktree"]),
   },
+  "verify:session-ritual": {
+    booleanFlags: new Set(["--json"]),
+    valueFlags: new Set(["--tier", "--posture", "--project-root", "--session-id"]),
+    rewriteUnsafeFlags: new Set(["--project-root"]),
+  },
   "swarm:launch": {
     booleanFlags: new Set([
       "--autonomous",
@@ -462,6 +471,17 @@ function analyzeLifecycleArguments(
   let readOnly = false;
   for (let index = 0; index < args.length; index += 1) {
     const token = args[index] ?? "";
+    // #7446: `deft verify:session-ritual -- --tier=gated` is the documented form;
+    // the verifier skips a lone `--`, so it is not an unknown forwarded arg here.
+    if (verb === "verify:session-ritual" && token === "--") continue;
+    if (verb === "verify:session-ritual" && token === "--posture=read-only") readOnly = true;
+    if (
+      verb === "verify:session-ritual" &&
+      token === "--posture" &&
+      args[index + 1] === "read-only"
+    ) {
+      readOnly = true;
+    }
     if (policy.booleanFlags.has(token)) {
       if (verb === "session:start" && token === "--read-only") readOnly = true;
       if (policy.rewriteUnsafeFlags.has(token)) rewriteSafe = false;
@@ -509,7 +529,7 @@ function analyzeLifecycleArguments(
 
 /** #4660: read-only session:start, including four-token `-- --read-only`, stays non-claiming. */
 function lifecycleRequiresOwner(verb: ExactLifecycleVerb, readOnly: boolean): boolean {
-  return verb !== "session:start" || !readOnly;
+  return (verb !== "session:start" && verb !== "verify:session-ritual") || !readOnly;
 }
 
 /**
@@ -702,7 +722,12 @@ function lifecycleInvocationWindows(
     if (LIFECYCLE_EXECUTABLES.has(exe)) {
       let verbTok = tokens[i + 1] ?? "";
       if (verbTok === "swarm-launch") verbTok = "swarm:launch";
-      if ((EXACT_LIFECYCLE_VERBS as readonly string[]).includes(verbTok)) {
+      // #7446: the ritual verifier is rewritten only as an exact command; compound
+      // forms (| tee, 2>&1) keep their prior allow rather than the uninspectable deny.
+      if (
+        verbTok !== "verify:session-ritual" &&
+        (EXACT_LIFECYCLE_VERBS as readonly string[]).includes(verbTok)
+      ) {
         const args: string[] = [];
         let j = i + 2;
         for (; j < tokens.length; j += 1) {
