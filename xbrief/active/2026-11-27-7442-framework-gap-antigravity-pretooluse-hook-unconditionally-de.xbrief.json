@@ -1,0 +1,208 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #7442",
+    "updated": "2026-11-27T05:08:35Z"
+  },
+  "plan": {
+    "title": "[framework-gap] Antigravity PreToolUse hook unconditionally denies ask_question because normalizeAgyHookPayload drops toolCall.args.questions",
+    "status": "running",
+    "narratives": {
+      "Description": "[framework-gap] Antigravity PreToolUse hook unconditionally denies ask_question because normalizeAgyHookPayload drops toolCall.args.questions",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/7442",
+      "Overview": "## Acceptance Criteria\n\n- [ ] `normalizeAgyHookPayload` forwards structured arguments from agy `toolCall.args` onto `tool_input`, including `questions` (each `{ question, options: string[], is_multi_select }`), not only the five string keys.\n- [ ] `toolInputRecord` falls back to `toolCall.args` as well as `toolCall.arguments`.\n- [ ] An agy `ask_question` whose final two options are `Discuss` and `Back` is allowed by the question-hatch gate, and one without them is still denied with `question-hatch-missing`.\n- [ ] `decideSpendRecommendGate` reads the options of an agy `ask_question`.\n- [ ] `ask_question` has an entry in `AGY_TOOL_DISPOSITIONS`.\n- [ ] A test drives `decideHook` with a real-shaped agy `ask_question` payload for both the allow and deny cases.\n\n"
+    },
+    "items": [
+      {
+        "title": "`normalizeAgyHookPayload` forwards structured arguments from agy `toolCall.args` onto `tool_input`, including `questions` (each `{ question, options: string[], is_multi_select }`), not only the five string keys.",
+        "status": "proposed",
+        "id": "clause.1"
+      },
+      {
+        "title": "`toolInputRecord` falls back to `toolCall.args` as well as `toolCall.arguments`.",
+        "status": "proposed",
+        "id": "clause.2"
+      },
+      {
+        "title": "An agy `ask_question` whose final two options are `Discuss` and `Back` is allowed by the question-hatch gate, and one without them is still denied with `question-hatch-missing`.",
+        "status": "proposed",
+        "id": "clause.3"
+      },
+      {
+        "title": "`decideSpendRecommendGate` reads the options of an agy `ask_question`.",
+        "status": "proposed",
+        "id": "clause.4"
+      },
+      {
+        "title": "`ask_question` has an entry in `AGY_TOOL_DISPOSITIONS`.",
+        "status": "proposed",
+        "id": "clause.5"
+      },
+      {
+        "title": "A test drives `decideHook` with a real-shaped agy `ask_question` payload for both the allow and deny cases.",
+        "status": "proposed",
+        "id": "clause.6"
+      }
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/7442",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #7442: [framework-gap] Antigravity PreToolUse hook unconditionally denies ask_question because normalizeAgyHookPayload drops toolCall.args.questions"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per sentence-list entry (6), in order (#6333)",
+      "sentences": [
+        "`normalizeAgyHookPayload` forwards structured arguments from agy `toolCall.args` onto `tool_input`, including `questions` (each `{ question, options: string[], is_multi_select }`), not only the five string keys.",
+        "`toolInputRecord` falls back to `toolCall.args` as well as `toolCall.arguments`.",
+        "An agy `ask_question` whose final two options are `Discuss` and `Back` is allowed by the question-hatch gate, and one without them is still denied with `question-hatch-missing`.",
+        "`decideSpendRecommendGate` reads the options of an agy `ask_question`.",
+        "`ask_question` has an entry in `AGY_TOOL_DISPOSITIONS`.",
+        "A test drives `decideHook` with a real-shaped agy `ask_question` payload for both the allow and deny cases."
+      ],
+      "admitted_source_sentences": [
+        "`normalizeAgyHookPayload` forwards structured arguments from agy `toolCall.args` onto `tool_input`, including `questions` (each `{ question, options: string[], is_multi_select }`), not only the five string keys.",
+        "`toolInputRecord` falls back to `toolCall.args` as well as `toolCall.arguments`.",
+        "An agy `ask_question` whose final two options are `Discuss` and `Back` is allowed by the question-hatch gate, and one without them is still denied with `question-hatch-missing`.",
+        "`decideSpendRecommendGate` reads the options of an agy `ask_question`.",
+        "`ask_question` has an entry in `AGY_TOOL_DISPOSITIONS`.",
+        "A test drives `decideHook` with a real-shaped agy `ask_question` payload for both the allow and deny cases."
+      ],
+      "admitted_source_digest": "2fd5b4cde3abbab2a6e68ab64aebfe3fe1b3b12744fd0723371553cf329ea67c",
+      "admitted_source_extractor": 2,
+      "clauses": [
+        {
+          "id": 1,
+          "text": "`normalizeAgyHookPayload` forwards structured arguments from agy `toolCall.args` onto `tool_input`, including `questions` (each `{ question, options: string[], is_multi_select }`), not only the five string keys.",
+          "artifact_path": "packages/core/src/hooks/classify/agy-wire.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "`toolInputRecord` falls back to `toolCall.args` as well as `toolCall.arguments`.",
+          "artifact_path": "packages/core/src/hooks/classify/payload.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "An agy `ask_question` whose final two options are `Discuss` and `Back` is allowed by the question-hatch gate, and one without them is still denied with `question-hatch-missing`.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "`decideSpendRecommendGate` reads the options of an agy `ask_question`.",
+          "artifact_path": "packages/core/src/hooks/dispatcher-plan-choice.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "`ask_question` has an entry in `AGY_TOOL_DISPOSITIONS`.",
+          "artifact_path": "packages/core/src/hooks/classify/agy-wire.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "A test drives `decideHook` with a real-shaped agy `ask_question` payload for both the allow and deny cases.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/hooks/classify/agy-wire.ts",
+          "packages/core/src/hooks/classify/payload.ts",
+          "packages/core/src/hooks/dispatcher-plan-choice.ts",
+          "packages/core/src/hooks/tools.ts"
+        ],
+        "module_boundary": "packages/core/src/hooks",
+        "cohesion_exemption": "Agy payload forwarding, the shared tool-input reader, the question gates and the tool audit table co-travel with their tests"
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": false,
+        "conflict_group": "agy-hook-payload",
+        "size": "S",
+        "file_scope": [
+          "packages/core/src/hooks/classify/agy-wire.ts",
+          "packages/core/src/hooks/classify/agy-wire.test.ts",
+          "packages/core/src/hooks/classify/payload.ts",
+          "packages/core/src/hooks/classify/payload.test.ts",
+          "packages/core/src/hooks/classify/host-session-identity.test.ts",
+          "packages/core/src/hooks/classify/agy-observation.test.ts",
+          "packages/core/src/hooks/dispatcher-plan-choice.ts",
+          "packages/core/src/hooks/dispatcher-plan-choice.test.ts",
+          "packages/core/src/hooks/dispatcher.test.ts",
+          "packages/core/src/hooks/tools.ts",
+          "packages/core/src/hooks/tools.test.ts",
+          "changelog.d/7442-agy-ask-question-payload.md"
+        ],
+        "file_scope_confidence": "high",
+        "depends_on": [],
+        "verify_commands": [
+          "pnpm exec vitest run --reporter=dot packages/core/src/hooks/classify/agy-wire.test.ts packages/core/src/hooks/classify/payload.test.ts packages/core/src/hooks/classify/host-session-identity.test.ts packages/core/src/hooks/classify/agy-observation.test.ts",
+          "pnpm exec vitest run --reporter=dot packages/core/src/hooks/dispatcher-plan-choice.test.ts packages/core/src/hooks/dispatcher.test.ts packages/core/src/hooks/tools.test.ts"
+        ],
+        "expected_outputs": [
+          "agy ask_question carries toolCall.args.questions onto tool_input; Discuss/Back menus allowed, others denied"
+        ],
+        "model_tier": "standard"
+      },
+      "issueCommentThread": [
+        {
+          "body": "Rewriting the body to criteria-only for ingest (taking it through merge for 0.132.1 with #7438, #7440, #7416; no arc: root cause and files are named). Prior body quoted below for the audit trail.\n\n<details><summary>Prior body</summary>\n\n## Summary\n\nAntigravity PreToolUse hook unconditionally denies ask_question because normalizeAgyHookPayload drops toolCall.args.questions\n\n## Context\n\nDirective 0.132.0 on Antigravity (agy 1.5.18, win32) with live PreToolUse hooks active (internal benchmark evidence (private)). Calling Antigravity native ask_question with Discuss and Back as the final two options.\n\n## Expected behavior\n\nnormalizeAgyHookPayload forwards toolCall.args.questions (and options if present) onto tool_input so extractQuestionOptionGroups reads the option labels, decideQuestionHatchGate allows valid Discuss/Back menus, and decideSpendRecommendGate inspects spend-shaped options.\n\n## Actual behavior / gap\n\nPreToolUse unconditionally denies ask_question with question-hatch-missing ('Directive denied ask_question: structured question missing hard-stop hatch') even when Discuss and Back are the final two options. Root cause: isQuestionToolName('ask_question') matches QUESTION_TOOL_NAMES ('askquestion'), normalizeAgyHookPayload in hooks/classify/agy-wire.js only copies 5 string keys (CommandLine, Path, Content, Target, Replacement) from toolCall.args into tool_input (producing tool_input: {}), and toolInputRecord in hooks/classify/payload.js only falls back to toolCall.arguments (not toolCall.args). extractQuestionOptionGroups therefore returns [] on every AGY ask_question call.\n\n## Session notes\n\nObserved in live AGY 1.5.18 session under flat SessionStart hook schema (Refs #7440, #7346, #5373). Also note ask_question is not listed in AGY_TOOL_DISPOSITIONS in agy-wire.js, and Antigravity ask_question passes questions: [{ question, options: string[], is_multi_select }] inside toolCall.args. Source: internal benchmark evidence (private).\n\n---\n_Filed via `deft feedback:file` from a directive consumer project (Refs #1709 value-feedback gap escalation)._\n\n\n\n</details>\n\n",
+          "id": 7210292370,
+          "html_url": "https://github.com/deftai/directive/issues/7442#issuecomment-7210292370",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-27T05:02:01Z",
+          "updated_at": "2026-11-27T05:02:01Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6640307441,
+        "origin": "deftai/directive#7442",
+        "id": "github.issue.6640307441"
+      }
+    },
+    "id": "github.issue.6640307441",
+    "updated": "2026-11-27T05:08:35Z"
+  }
+}
