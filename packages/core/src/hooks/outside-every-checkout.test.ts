@@ -743,6 +743,41 @@ describe("agy conversation-folder carve-out (#7445)", () => {
     ).toBe(false);
   });
 
+  it("accepts the antigravity-cli root for the current id only", () => {
+    const cli = join(home, ".gemini", "antigravity-cli", "brain");
+    mkdirSync(join(cli, ID), { recursive: true });
+    mkdirSync(join(cli, "conv-bbbb-2222"), { recursive: true });
+    mkdirSync(join(home, ".gemini", "antigravity-cli", "config"), { recursive: true });
+    expect(allowed(join(cli, ID, "plan.md"))).toBe(true);
+    expect(
+      allowed(join(cli, ID, "plan.md"), {
+        conversationId: ID,
+        artifactDirectoryPath: join(cli, ID),
+      }),
+    ).toBe(true);
+    expect(allowed(join(cli, "conv-bbbb-2222", "x.md"))).toBe(false);
+    expect(allowed(join(home, ".gemini", "antigravity-cli", "config", "x.json"))).toBe(false);
+    expect(allowed(join(home, ".gemini", "antigravity-cli", "x.md"))).toBe(false);
+    // Mismatched artifactDirectoryPath: other id, the other root's folder, a parent.
+    for (const artifactDirectoryPath of [
+      join(cli, "conv-bbbb-2222"),
+      own,
+      cli,
+      join(home, ".gemini"),
+    ]) {
+      expect(allowed(join(cli, ID, "p.md"), { conversationId: ID, artifactDirectoryPath })).toBe(
+        false,
+      );
+    }
+    // The same cross-check holds for the desktop root.
+    expect(
+      allowed(join(own, "p.md"), { conversationId: ID, artifactDirectoryPath: join(cli, ID) }),
+    ).toBe(false);
+    // A third root under ~/.gemini is never admitted.
+    mkdirSync(join(home, ".gemini", "other", "brain", ID), { recursive: true });
+    expect(allowed(join(home, ".gemini", "other", "brain", ID, "x.md"))).toBe(false);
+  });
+
   it("requires every target in a set to qualify", () => {
     expect(
       allTargetsOutsideEveryCheckout(

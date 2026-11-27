@@ -81,8 +81,14 @@ export interface AgyConversationSeam {
   readonly artifactDirectoryPath: string | null;
 }
 
-/** Folder under a home directory that holds one directory per agy conversation. */
-const AGY_BRAIN_PARTS = [".gemini", "antigravity", "brain"] as const;
+/**
+ * The two folders under a home directory that hold one directory per agy
+ * conversation: the desktop app's and the CLI's. Nothing else under `~/.gemini`.
+ */
+const AGY_BRAIN_ROOTS = [
+  [".gemini", "antigravity", "brain"],
+  [".gemini", "antigravity-cli", "brain"],
+] as const;
 
 /** A conversation id is one plain path component. */
 const AGY_CONVERSATION_ID_RE = /^[A-Za-z0-9][A-Za-z0-9_-]*$/;
@@ -669,7 +675,7 @@ function strictlyInside(
 
 /**
  * Agy conversation-folder carve-out (#7445). A target is admitted only when it
- * is strictly inside `<home>/.gemini/antigravity/brain/<conversationId>/` for the
+ * is strictly inside `<home>/.gemini/{antigravity,antigravity-cli}/brain/<conversationId>/` for the
  * applying session's own id, by typed and by physical path. A conversation
  * folder that is itself a link out of the brain folder, another conversation,
  * `config/`, a `..` step and a link out all stay gated. A present payload
@@ -696,37 +702,40 @@ function isAgyConversationFolderTarget(
   if (!isOutsideProjectRootWrite(payloadRoot, target)) return false;
   for (const home of ctx.homes) {
     for (const form of home.forms) {
-      const brain = join(form, ...AGY_BRAIN_PARTS);
-      const folder = join(brain, agy.conversationId);
-      if (!strictlyInside(typed, [folder], platform)) continue;
-      const brainPhysical = physicalOf(brain, ctx.realpath);
-      const folderPhysical = physicalOf(folder, ctx.realpath);
-      if (brainPhysical === null || folderPhysical === null) continue;
-      // The folder must be a real child of the brain folder, not a link elsewhere.
-      if (!strictlyInside(folderPhysical, [brainPhysical], platform)) continue;
-      if (folderPhysical !== join(brainPhysical, agy.conversationId)) continue;
-      if (!strictlyInside(physical.path, [folderPhysical], platform)) continue;
-      if (components(typed).some((part) => doubtfulComponent(part) !== null)) continue;
-      if (agy.artifactDirectoryPath !== null) {
-        const claimed = agy.artifactDirectoryPath;
-        if (
-          claimed.length === 0 ||
-          hasDeviceOrSharePrefix(claimed) ||
-          !isHostAbsolute(claimed, platform)
-        ) {
-          continue;
+      for (const rootParts of AGY_BRAIN_ROOTS) {
+        const brain = join(form, ...rootParts);
+        const folder = join(brain, agy.conversationId);
+        if (!strictlyInside(typed, [folder], platform)) continue;
+        const brainPhysical = physicalOf(brain, ctx.realpath);
+        const folderPhysical = physicalOf(folder, ctx.realpath);
+        if (brainPhysical === null || folderPhysical === null) continue;
+        // The folder must be a real child of the brain folder, not a link elsewhere.
+        if (!strictlyInside(folderPhysical, [brainPhysical], platform)) continue;
+        if (folderPhysical !== join(brainPhysical, agy.conversationId)) continue;
+        if (!strictlyInside(physical.path, [folderPhysical], platform)) continue;
+        if (components(typed).some((part) => doubtfulComponent(part) !== null)) continue;
+        if (agy.artifactDirectoryPath !== null) {
+          const claimed = agy.artifactDirectoryPath;
+          if (
+            claimed.length === 0 ||
+            hasDeviceOrSharePrefix(claimed) ||
+            !isHostAbsolute(claimed, platform)
+          ) {
+            continue;
+          }
+          const claimedPath = resolve(claimed);
+          const same = (a: string): boolean =>
+            pathInside(a, folder, platform, "exact")?.length === 0;
+          const claimedPhysical = physicalOf(claimedPath, ctx.realpath);
+          if (
+            !same(claimedPath) &&
+            !(claimedPhysical !== null && claimedPhysical === folderPhysical)
+          ) {
+            continue;
+          }
         }
-        const claimedPath = resolve(claimed);
-        const same = (a: string): boolean => pathInside(a, folder, platform, "exact")?.length === 0;
-        const claimedPhysical = physicalOf(claimedPath, ctx.realpath);
-        if (
-          !same(claimedPath) &&
-          !(claimedPhysical !== null && claimedPhysical === folderPhysical)
-        ) {
-          continue;
-        }
+        return true;
       }
-      return true;
     }
   }
   return false;
