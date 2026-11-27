@@ -105,6 +105,7 @@ import {
   computeFileScopeDigest,
   extractFileScope,
   extractPlanId,
+  isDelegatedApprovalStamp,
   isHumanApprovalStamp,
   listApprovedScopeRecords,
   normalizeFileScope,
@@ -201,6 +202,15 @@ export interface ScopeProvenanceOptions {
   readonly baseApprovedRecords?: ReadonlyMap<string, ApprovedScopeRecord>;
   /** Inject renewed-approval stamps keyed by planId (test seam). */
   readonly renewedApprovals?: ReadonlyMap<string, ApprovedScopeRecord["humanApproval"]>;
+  /**
+   * Live TOTP delegation for the fence's delegated-stamp admission (#7420 B4).
+   * Scope-provenance never reads the authz store itself: the caller resolves
+   * the live delegation and passes it. Absent or null = none live, so a
+   * delegated stamp does not admit.
+   */
+  readonly delegation?: FenceDelegationView | null;
+  /** Clock for delegated-stamp expiry (tests). */
+  readonly now?: Date;
   /** Inject `git show <base>:<rel>` (test seam; never working-tree). */
   readonly readAtBase?: (relPath: string) => string | null;
   /**
@@ -758,6 +768,31 @@ export function baseApprovalAuthorizesCurrent(input: {
   return true;
 }
 
+/**
+ * Stamp admission for the production fence's merge-base mint lookup (#7420 B4).
+ * A human stamp admits as before. A delegated stamp admits only while the
+ * delegation that minted it is the live one and before the stamp's expiry.
+ * This is the ONE reader that accepts a delegated stamp; every other
+ * approved-scope reader keeps calling {@link isHumanApprovalStamp}.
+ */
+export function fenceAdmitsApprovalStamp(
+  stamp: ApprovedScopeRecord["humanApproval"] | null | undefined,
+  delegation: FenceDelegationView | null,
+  now: Date,
+): boolean {
+  if (isHumanApprovalStamp(stamp)) return true;
+  if (!isDelegatedApprovalStamp(stamp) || stamp === null || stamp === undefined) return false;
+  const exp = Date.parse(stamp.expiresAt ?? "");
+  if (Number.isNaN(exp) || exp <= now.getTime()) return false;
+  if (delegation === null || typeof stamp.delegationId !== "string") return false;
+  return stamp.delegationId.length > 0 && delegation.delegationId === stamp.delegationId;
+}
+
+/** The part of a live delegation the fence needs (structural; no authz import). */
+export interface FenceDelegationView {
+  readonly delegationId: string;
+}
+
 function configError(message: string): ScopeProvenanceResult {
   return { exitCode: 2, findings: [], message };
 }
@@ -822,6 +857,11 @@ function evaluateWithRunner(
   const root = resolve(projectRoot);
   // `enforce` retained for CLI/API compat; it is a no-op after #4956 / #5002 (#5057).
   void (options.enforce ?? false);
+  // Delegated-stamp admission uses the caller-resolved live delegation (#7420 B4).
+  const fenceNow = options.now ?? new Date();
+  const fenceDelegation: FenceDelegationView | null = options.delegation ?? null;
+  const fenceStampOk = (stamp: ApprovedScopeRecord["humanApproval"] | undefined): boolean =>
+    fenceAdmitsApprovalStamp(stamp, fenceDelegation, fenceNow);
   recoverApprovedScopePairs(root);
   /** Name the phase for timeout lines and announce it (#6378 item 7). */
   const announce = (phase: ScopeProvenancePhase, label: string = phase): void => {
@@ -1450,7 +1490,7 @@ function evaluateWithRunner(
       if (options.baseApprovedRecords !== undefined) {
         const injected = options.baseApprovedRecords.get(resolvedPlanId);
         if (injected === undefined) return { kind: "missing" };
-        if (!isHumanApprovalStamp(injected.humanApproval)) {
+        if (!fenceStampOk(injected.humanApproval)) {
           return { kind: "invalid", detail: `mint for ${resolvedPlanId} lacks human stamp` };
         }
         if (injected.planId !== resolvedPlanId) {
@@ -1472,7 +1512,7 @@ function evaluateWithRunner(
       if (parsed === null) {
         return { kind: "invalid", detail: `unreadable approved-scope at ${approvalRel}` };
       }
-      if (!isHumanApprovalStamp(parsed.humanApproval)) {
+      if (!fenceStampOk(parsed.humanApproval)) {
         return { kind: "invalid", detail: `mint at ${approvalRel} lacks human stamp` };
       }
       if (parsed.planId !== resolvedPlanId) {
@@ -1489,7 +1529,7 @@ function evaluateWithRunner(
       if (options.baseApprovedRecords !== undefined) {
         const injected = options.baseApprovedRecords.get(key);
         if (injected === undefined) return { kind: "missing" };
-        if (!isHumanApprovalStamp(injected.humanApproval)) {
+        if (!fenceStampOk(injected.humanApproval)) {
           return { kind: "invalid", detail: `basename mint for ${key} lacks human stamp` };
         }
         if (!basenameMintPathOk(injected.xbriefRelPath, headPath)) {
@@ -1519,7 +1559,7 @@ function evaluateWithRunner(
       if (parsed === null) {
         return { kind: "invalid", detail: `unreadable approved-scope at ${approvalRel}` };
       }
-      if (!isHumanApprovalStamp(parsed.humanApproval)) {
+      if (!fenceStampOk(parsed.humanApproval)) {
         return { kind: "invalid", detail: `mint at ${approvalRel} lacks human stamp` };
       }
       // Basename key is the only planId that may authorize this lookup.

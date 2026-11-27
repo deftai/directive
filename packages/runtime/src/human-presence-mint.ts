@@ -20,7 +20,12 @@ import {
   writeFileSync,
 } from "node:fs";
 import { join } from "node:path";
-import { loadAuthzState } from "@deftai/directive-core/authz";
+import {
+  DELEGATED_TOTP_PROVENANCE,
+  type DelegatedCompletion,
+  loadAuthzState,
+  resolveDelegatedCompletion,
+} from "@deftai/directive-core/authz";
 import {
   formatOperatorCommand,
   type OperatorStopInput,
@@ -122,6 +127,35 @@ export interface HumanPresenceMintSeams {
    * `recordOperatorStop`, which writes nothing while the notifier is off.
    */
   readonly recordOperatorStop?: (input: OperatorStopInput) => void;
+  /**
+   * Live TOTP delegation lookup for a delegable harness-attended request
+   * (#7420 B3). Default: core `resolveDelegatedCompletion` (allowlist + live
+   * record). Tests inject a fixed answer.
+   */
+  readonly readDelegatedConfirm?: (input: DelegatedConfirmQuery) => DelegatedConfirmAnswer;
+}
+
+/** Query for a delegated completion (#7420). */
+export interface DelegatedConfirmQuery {
+  readonly projectRoot: string;
+  readonly verb: string;
+  readonly template: string | null;
+  readonly requestId: string;
+  readonly now: Date;
+}
+
+export type DelegatedConfirmAnswer =
+  | { readonly ok: true; readonly completion: DelegatedCompletion }
+  | { readonly ok: false; readonly reason: string };
+
+function defaultReadDelegatedConfirm(query: DelegatedConfirmQuery): DelegatedConfirmAnswer {
+  return resolveDelegatedCompletion({
+    projectRoot: query.projectRoot,
+    verb: query.verb,
+    template: query.template,
+    requestId: query.requestId,
+    now: query.now,
+  });
 }
 
 function defaultRecordOperatorStop(input: OperatorStopInput): void {
@@ -217,6 +251,7 @@ export function resolveHumanPresenceMintSeams(
     readHostAuthenticatedConfirm:
       seams.readHostAuthenticatedConfirm ?? defaultReadHostAuthenticatedConfirm,
     recordOperatorStop: seams.recordOperatorStop ?? defaultRecordOperatorStop,
+    readDelegatedConfirm: seams.readDelegatedConfirm ?? defaultReadDelegatedConfirm,
   };
 }
 
@@ -255,7 +290,9 @@ export interface HarnessAttendedMintRequest {
   readonly expiresAt: string;
   status: HarnessAttendedMintRequestStatus;
   completedAt?: string;
-  completedVia?: "controlling-tty-phrase" | "host-user-event";
+  completedVia?: "controlling-tty-phrase" | "host-user-event" | typeof DELEGATED_TOTP_PROVENANCE;
+  /** Delegation that completed the request (`completedVia: delegated-totp` only, #7420). */
+  delegationId?: string;
 }
 
 /** Options that route a kept-mint verb through harness-attended confirm (#7279). */
@@ -273,6 +310,15 @@ export interface HarnessAttendedMintOptions {
   readonly now?: () => Date;
   readonly newRequestId?: () => string;
   readonly storeRoot?: string;
+  /**
+   * Ask for a delegated completion (#7420 B3). Set only by callers whose mint
+   * may be delegable; the allowlist in core still decides (approved-scope, or
+   * `authz:grant` with one of the four release templates). `template` is the
+   * `--template` value or null.
+   */
+  readonly delegation?: { readonly template: string | null };
+  /** Called once when the request completes with provenance `delegated-totp`. */
+  readonly onDelegatedCompletion?: (completion: DelegatedCompletion) => void;
 }
 
 /**
@@ -418,6 +464,55 @@ function saveHarnessAttendedMintRequest(
   );
 }
 
+/** Marker whose exclusive create is the open→completed compare-and-set (#7420 B3). */
+export function harnessAttendedMintCompletionMarkerPath(
+  storeRoot: string,
+  requestId: string,
+): string {
+  return `${harnessAttendedMintRequestPath(storeRoot, requestId).replace(/\.json$/, "")}.completed`;
+}
+
+/**
+ * Complete a request in one compare-and-set from open to completed (#7420 B3).
+ * The exclusive create of the completion marker is the set: of two concurrent
+ * completions exactly one creates it; the other sees it and refuses. The
+ * request is re-read after the marker is held and must still be open.
+ */
+export function completeHarnessAttendedMintRequest(input: {
+  readonly projectRoot: string;
+  readonly requestId: string;
+  readonly via: NonNullable<HarnessAttendedMintRequest["completedVia"]>;
+  readonly at: Date;
+  readonly storeRoot?: string;
+  readonly delegationId?: string;
+}): { ok: true; request: HarnessAttendedMintRequest } | { ok: false; reason: string } {
+  const store = harnessAttendedMintStoreRoot(input.projectRoot, input.storeRoot);
+  const marker = harnessAttendedMintCompletionMarkerPath(store, input.requestId);
+  try {
+    mkdirSync(store, { recursive: true });
+    writeFileSync(marker, `${toIsoZ(input.at)} ${input.via}\n`, { encoding: "utf8", flag: "wx" });
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === "EEXIST") {
+      return { ok: false, reason: "already completed" };
+    }
+    return { ok: false, reason: `completion marker write failed: ${String(err)}` };
+  }
+  const current = loadHarnessAttendedMintRequest(
+    input.projectRoot,
+    input.requestId,
+    input.storeRoot,
+  );
+  if (current === null || current.status !== "open") {
+    return { ok: false, reason: `request is ${current?.status ?? "missing"}, not open` };
+  }
+  current.status = "completed";
+  current.completedAt = toIsoZ(input.at);
+  current.completedVia = input.via;
+  if (input.delegationId !== undefined) current.delegationId = input.delegationId;
+  saveHarnessAttendedMintRequest(input.projectRoot, current, input.storeRoot);
+  return { ok: true, request: current };
+}
+
 /**
  * Refresh status for expiry without completing. Returns the loaded request or
  * null when missing.
@@ -477,6 +572,10 @@ export function admitHarnessAttendedMint(input: {
   readonly readHostAuthenticatedConfirm: (requestId: string) => HostAuthenticatedUserEvent | null;
   readonly environ: NodeJS.ProcessEnv;
   readonly operatorStop?: MintOperatorStopContext;
+  /** Delegable-mint request (#7420); absent = no delegated completion. */
+  readonly delegation?: { readonly template: string | null };
+  readonly onDelegatedCompletion?: (completion: DelegatedCompletion) => void;
+  readonly readDelegatedConfirm?: (query: DelegatedConfirmQuery) => DelegatedConfirmAnswer;
 }): number | null {
   const { verb, confirm, projectRoot } = input;
   const requestOpenOnly = input.requestOpenOnly === true || !confirm;
@@ -589,15 +688,58 @@ export function admitHarnessAttendedMint(input: {
       );
       return 2;
     }
-    request.status = "completed";
-    request.completedAt = toIsoZ(input.now?.() ?? new Date());
-    request.completedVia = "host-user-event";
-    saveHarnessAttendedMintRequest(projectRoot, request, input.storeRoot);
+    const done = completeHarnessAttendedMintRequest({
+      projectRoot,
+      requestId: request.requestId,
+      via: "host-user-event",
+      at: input.now?.() ?? new Date(),
+      storeRoot: input.storeRoot,
+    });
+    if (!done.ok) {
+      process.stderr.write(
+        `${verb}: harness-attended request ${request.requestId} not completed: ${done.reason} (#7279).\n`,
+      );
+      return 2;
+    }
     process.stderr.write(
       `${verb}: harness-attended confirm via host-authenticated user-event ` +
         `(requestId=${request.requestId}; markers may stay set) (#7279).\n`,
     );
     return null;
+  }
+
+  // Delegated completion (#7420 B3): a live TOTP delegation completes a
+  // delegable request with provenance `delegated-totp` (never host-user-event).
+  if (input.delegation !== undefined) {
+    const at = input.now?.() ?? new Date();
+    const answer = (input.readDelegatedConfirm ?? defaultReadDelegatedConfirm)({
+      projectRoot,
+      verb,
+      template: input.delegation.template,
+      requestId: request.requestId,
+      now: at,
+    });
+    if (answer.ok) {
+      const done = completeHarnessAttendedMintRequest({
+        projectRoot,
+        requestId: request.requestId,
+        via: DELEGATED_TOTP_PROVENANCE,
+        at,
+        storeRoot: input.storeRoot,
+        delegationId: answer.completion.delegationId,
+      });
+      if (!done.ok) {
+        process.stderr.write(
+          `${verb}: harness-attended request ${request.requestId} not completed: ${done.reason} (#7420).\n`,
+        );
+        return 2;
+      }
+      input.onDelegatedCompletion?.(answer.completion);
+      return null;
+    }
+    process.stderr.write(
+      `${verb}: delegated completion not available: ${answer.reason} (#7420).\n`,
+    );
   }
 
   if (!input.isTty()) {
@@ -627,10 +769,19 @@ export function admitHarnessAttendedMint(input: {
     );
     return 2;
   }
-  request.status = "completed";
-  request.completedAt = toIsoZ(input.now?.() ?? new Date());
-  request.completedVia = "controlling-tty-phrase";
-  saveHarnessAttendedMintRequest(projectRoot, request, input.storeRoot);
+  const done = completeHarnessAttendedMintRequest({
+    projectRoot,
+    requestId: request.requestId,
+    via: "controlling-tty-phrase",
+    at: input.now?.() ?? new Date(),
+    storeRoot: input.storeRoot,
+  });
+  if (!done.ok) {
+    process.stderr.write(
+      `\n${verb}: harness-attended request ${request.requestId} not completed: ${done.reason} (#7279).\n`,
+    );
+    return 2;
+  }
   return null;
 }
 
@@ -756,6 +907,8 @@ export function refuseNonInteractiveMint(input: {
    * when omitted; harness-attended callers pass the resolved seam.
    */
   readonly readHostAuthenticatedConfirm?: (requestId: string) => HostAuthenticatedUserEvent | null;
+  /** Delegated-confirm seam (#7420); defaults to the live delegation store. */
+  readonly readDelegatedConfirm?: (query: DelegatedConfirmQuery) => DelegatedConfirmAnswer;
   /**
    * Caller context for the #6275 operator-stop record: the mint argv (after the
    * verb) and the project root. Used on agent-marker refuse and request-open.
@@ -795,6 +948,13 @@ export function refuseNonInteractiveMint(input: {
           input.readHostAuthenticatedConfirm ?? defaultReadHostAuthenticatedConfirm,
         environ: input.environ,
         operatorStop: input.operatorStop,
+        ...(harness.delegation !== undefined ? { delegation: harness.delegation } : {}),
+        ...(harness.onDelegatedCompletion !== undefined
+          ? { onDelegatedCompletion: harness.onDelegatedCompletion }
+          : {}),
+        ...(input.readDelegatedConfirm !== undefined
+          ? { readDelegatedConfirm: input.readDelegatedConfirm }
+          : {}),
       });
     }
     const named = matchedMarkers.join(", ");

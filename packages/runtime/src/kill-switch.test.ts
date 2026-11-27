@@ -75,6 +75,47 @@ describe("kill-switch:on (#6740)", () => {
     expect(c.out.join("")).toContain("kill-switch:off --confirm");
   });
 
+  it("ends a live delegation at once with the kill-switch reason (#7420)", () => {
+    const root = repo();
+    const c = capture();
+    const calls: Array<{ root: string; reason: string }> = [];
+    const endDelegation = ((r: string, reason: string) => {
+      calls.push({ root: r, reason });
+      return { ok: true, ended: true, record: null };
+    }) as unknown as KillSwitchSeams["endDelegation"];
+    expect(run(["on", "--confirm", "--project-root", root], operator(c, { endDelegation }))).toBe(
+      0,
+    );
+    expect(calls).toHaveLength(1);
+    expect(calls[0]?.reason).toBe("kill-switch");
+  });
+
+  it("still writes the record and exits 0 when ending the delegation throws (#7420)", () => {
+    const root = repo();
+    const c = capture();
+    const endDelegation = (() => {
+      throw new Error("store down");
+    }) as unknown as KillSwitchSeams["endDelegation"];
+    expect(run(["on", "--confirm", "--project-root", root], operator(c, { endDelegation }))).toBe(
+      0,
+    );
+    expect(readFileSync(join(root, RECORD), "utf8")).toContain("mintedVia=kill-switch:on");
+  });
+
+  it("does not end a delegation when the mint is refused (#7420)", () => {
+    const root = repo();
+    const c = capture();
+    const endDelegation = (() => {
+      throw new Error("must not run");
+    }) as unknown as KillSwitchSeams["endDelegation"];
+    expect(
+      run(
+        ["on", "--project-root", root],
+        operator(c, { endDelegation, readInteractiveConfirm: () => "no" }),
+      ),
+    ).not.toBe(0);
+  });
+
   it("refuses an agent-marked shell and writes nothing", () => {
     const root = repo();
     const c = capture();

@@ -582,6 +582,25 @@ describe("phase lines and per-call git limit (#6378)", () => {
     expect(r.stdout).toMatch(/clean/);
   });
 
+  it("resolves the live delegation for the fence from the project root (#7420 B4)", {
+    timeout: 120_000,
+  }, () => {
+    const root = fixture();
+    const h = harness();
+    const seen: string[] = [];
+    const r = captured(() =>
+      run(["--project-root", root, "--base-ref", "base", "--quiet"], env, {
+        ...h.seams,
+        readLiveDelegation: (projectRoot: string) => {
+          seen.push(projectRoot);
+          return null;
+        },
+      }),
+    );
+    expect(r.code).toBe(0);
+    expect(seen).toHaveLength(1);
+  });
+
   it("writes no phase line with --quiet", { timeout: 120_000 }, () => {
     const root = fixture();
     const h = harness();

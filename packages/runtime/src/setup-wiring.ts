@@ -896,6 +896,7 @@ function stripNestedManaged(
     "PreCompact",
     "PostCompact",
     "SessionEnd",
+    "UserPromptSubmit",
   ] as const) {
     if (!(key in hooks)) continue;
     const filtered = Array.isArray(hooks[key])
@@ -950,7 +951,7 @@ function keepCustomNestedGroups(entries: unknown[], host: string): unknown[] {
 function mergeNestedHost(
   existing: Record<string, unknown>,
   host: string,
-  options: { compact: boolean; sessionEnd?: boolean },
+  options: { compact: boolean; sessionEnd?: boolean; promptSubmit?: boolean },
 ): Record<string, unknown> {
   const hooks = object(existing.hooks) ?? {};
   const session = Array.isArray(hooks.SessionStart)
@@ -976,6 +977,12 @@ function mergeNestedHost(
       : [];
     nextHooks.PreCompact = [...preCompact, nestedGroup(host, "session.compact")];
     nextHooks.PostCompact = [...postCompact, nestedGroup(host, "session.compact")];
+  }
+  if (options.promptSubmit) {
+    const promptSubmit = Array.isArray(hooks.UserPromptSubmit)
+      ? keepCustomNestedGroups(hooks.UserPromptSubmit as unknown[], host)
+      : [];
+    nextHooks.UserPromptSubmit = [...promptSubmit, nestedGroup(host, "prompt.submit")];
   }
   if (options.sessionEnd) {
     // Releases the session lease on every end reason (no matcher), as `verify:hooks-installed` does (#6274 / #7438).
@@ -1055,7 +1062,8 @@ const HOST_HOOK_SPECS: Array<{
   {
     host: "claude",
     rel: ".claude/settings.json",
-    merge: (cfg) => mergeNestedHost(cfg, "claude", { compact: true, sessionEnd: true }),
+    merge: (cfg) =>
+      mergeNestedHost(cfg, "claude", { compact: true, sessionEnd: true, promptSubmit: true }),
     strip: (cfg) => stripNestedManaged(cfg, "claude"),
   },
   {

@@ -33,6 +33,8 @@ Three checks read a story's `file_scope`: the **write fence** (each Write or Edi
 
 **Allowlist authority.** All three use the same allowlist: the human-stamped merge-base mint when present (or the admitted one-PR mint, #6273 / #6361), else the merge-base brief's **concrete** entries. Under a mint, glob entries match. Without a mint, a glob entry admits nothing on its own: a path it matches is an extra. On the write fence and the Path-independent check a declared path must also match the merge-base brief, so a broader mint does not widen the brief. #6203 forge approval is membership only; it is never write authority.
 
+**Delegated stamps (#7420).** A mint written under a live TOTP delegation carries `humanApproval: {kind: "operator-delegated", mintedVia: "delegated-totp", delegationId, expiresAt}`. The merge-base mint lookup in `verify:scope-provenance` (`evaluate.ts`) is the one reader that accepts it, and only while that delegation is the live one on this machine and before `expiresAt`. After the delegation ends the same stamp reads as "lacks human stamp" and fails closed. Every other approved-scope reader calls `isHumanApprovalStamp` and refuses it: the write-fence budget, the one-PR proof, renewed approval, the durable-effect and presentation ceilings, presentation coverage. On CI there is no live delegation, so a delegated stamp does not admit there. Contract: [operator-delegation.md](./operator-delegation.md).
+
 **Classes and spend.**
 
 | Extra path | Write fence | Membership | Path-independent check |

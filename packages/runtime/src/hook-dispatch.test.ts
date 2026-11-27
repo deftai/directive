@@ -1259,3 +1259,116 @@ describe("#7351 same-repo Claude WT and Directive dest admit", () => {
     expect(text).not.toContain("admitted the launch-runtime recovery");
   });
 });
+
+describe("hook-dispatch prompt.submit and the delegation end (#7420)", () => {
+  const roots: string[] = [];
+  afterAll(() => {
+    for (const r of roots.splice(0)) rmSync(r, { recursive: true, force: true });
+  });
+  function project(): string {
+    const root = mkdtempSync(join(tmpdir(), "hook-dispatch-7420-"));
+    roots.push(root);
+    execFileSync("git", ["init", "-q"], { cwd: root });
+    return root;
+  }
+  function prompt(
+    root: string,
+    seams: {
+      delegateAdapter?: (input: { stdinText: string; projectRoot: string }) => {
+        exitCode: 0;
+        stdout: string;
+        outcome: null;
+      };
+    },
+    host = "claude",
+  ) {
+    const out: string[] = [];
+    const err: string[] = [];
+    const code = run(["--host", "claude", "--event", "prompt.submit", `--project-root=${root}`], {
+      readStdin: () =>
+        JSON.stringify({ hook_event_name: "UserPromptSubmit", session_id: "s1", prompt: "hi" }),
+      writeOut: (text) => out.push(text),
+      writeErr: (text) => err.push(text),
+      cwd: () => root,
+      stdinEmptyRetryMs: 0,
+      ...seams,
+    });
+    return { code, out: out.join(""), err: err.join("") };
+  }
+
+  it("prints the adapter's additionalContext JSON and exits 0", () => {
+    const stdout = `${JSON.stringify({ hookSpecificOutput: { hookEventName: "UserPromptSubmit", additionalContext: "armed" } })}\n`;
+    const seen: string[] = [];
+    const r = prompt(project(), {
+      delegateAdapter: (input) => {
+        seen.push(input.stdinText);
+        return { exitCode: 0, stdout, outcome: null };
+      },
+    });
+    expect(r.code).toBe(0);
+    expect(r.out).toBe(stdout);
+    expect(seen).toHaveLength(1);
+  });
+
+  it("an ordinary prompt prints nothing and exits 0 (real adapter)", () => {
+    const r = prompt(project(), {});
+    expect(r.code).toBe(0);
+    expect(r.out).toBe("");
+  });
+
+  it("a throwing adapter exits 0 with one stderr line", () => {
+    const r = prompt(project(), {
+      delegateAdapter: () => {
+        throw new Error("boom");
+      },
+    });
+    expect(r.code).toBe(0);
+    expect(r.out).toBe("");
+    expect(r.err.trim().split("\n")).toHaveLength(1);
+    expect(r.err).toContain("prompt submit");
+  });
+
+  it("session.end ends the delegation for the session id; a failure never fails shutdown", () => {
+    const root = project();
+    const calls: Array<{ reason: string; sid: string | undefined }> = [];
+    const endIt = (
+      endDelegation: (
+        root: string,
+        reason: "session-end",
+        opts: { hostSessionId?: string },
+      ) => never | { ok: true; ended: boolean; record: null },
+    ) =>
+      run(["--host", "claude", "--event", "session.end", `--project-root=${root}`], {
+        readStdin: () =>
+          JSON.stringify({ hook_event_name: "SessionEnd", reason: "clear", session_id: "arm-1" }),
+        writeOut: () => undefined,
+        writeErr: () => undefined,
+        cwd: () => root,
+        stdinEmptyRetryMs: 0,
+        launchingCheckoutRoot: () => null,
+        cheapInSync: () => ({
+          ok: true,
+          pinVersion: null,
+          installedVersion: null,
+          identityMatch: true,
+          readinessValid: true,
+          failClosed: false,
+          allowSetup: false,
+          recoveryGuidance: null,
+        }),
+        endDelegation: endDelegation as never,
+      });
+    expect(
+      endIt((_root, reason, opts) => {
+        calls.push({ reason, sid: opts.hostSessionId });
+        return { ok: true, ended: true, record: null };
+      }),
+    ).toBe(0);
+    expect(calls).toEqual([{ reason: "session-end", sid: "arm-1" }]);
+    expect(
+      endIt(() => {
+        throw new Error("store down");
+      }),
+    ).toBe(0);
+  });
+});

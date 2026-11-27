@@ -31,13 +31,16 @@
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { listActiveHumanGrants, loadAuthzState } from "../authz/store.js";
+import { readLiveDelegation } from "../authz/delegation/store.js";
+import { isDelegatedOrigin } from "../authz/origin.js";
+import { listActiveHumanGrants, listDelegatedGrants, loadAuthzState } from "../authz/store.js";
 import type { HumanOriginGrant } from "../authz/types.js";
 import { defaultRunGh } from "../pr-merge-readiness/gh.js";
 import type { RunGhFn } from "../pr-merge-readiness/types.js";
 import {
   evaluateReleasePromoteLatestGate,
   evaluateReleasePublishGate,
+  runPromoteLatest,
 } from "../release-publish/pipeline.js";
 import { sectionForVersion } from "./changelog.js";
 import { runBoundTarget } from "./closed-verb-gate.js";
@@ -602,10 +605,54 @@ function readPromotedSection(ctx: Ctx): string {
   return section.length > 0 ? section : "(no promoted section found)";
 }
 
-function listGrantsOf(ctx: Ctx): (projectRoot: string) => readonly HumanOriginGrant[] {
-  return (
-    ctx.seams.listGrants ?? ((root: string) => listActiveHumanGrants(root, loadAuthzState(root)))
+/**
+ * Grants the run may use: active human-origin grants plus delegated release
+ * grants (#7420). A delegated grant is only a candidate here; the closed-verb
+ * gate admits it only for its own release verb while its delegation is live.
+ */
+export function defaultReleaseRunGrants(root: string): readonly HumanOriginGrant[] {
+  // Only grants of the live delegation are candidates: a grant of an ended
+  // delegation must not shadow a replacement minted under a new one.
+  const live = readLiveDelegation(root);
+  const delegated = listDelegatedGrants(root).filter(
+    (g) => live !== null && g.origin.delegationId === live.delegationId,
   );
+  return [...listActiveHumanGrants(root, loadAuthzState(root)), ...delegated];
+}
+
+function listGrantsOf(ctx: Ctx): (projectRoot: string) => readonly HumanOriginGrant[] {
+  return ctx.seams.listGrants ?? defaultReleaseRunGrants;
+}
+
+/** The delegated grant with this id, or null (human grants keep the unchanged path). */
+function delegatedRunGrant(ctx: Ctx, grantId: string): HumanOriginGrant | null {
+  const found = listGrantsOf(ctx)(ctx.projectRoot).find((g) => g.id === grantId);
+  return found !== undefined && isDelegatedOrigin(found.origin) ? found : null;
+}
+
+/**
+ * Draft flip: a human grant goes through the unchanged default; a delegated
+ * grant is handed to the same run-bound gate as the only candidate (#7420).
+ */
+function runFlipOf(ctx: Ctx, release: ReleaseSeams) {
+  return (c: ReleaseConfig, grantId: string): number => {
+    const delegated = delegatedRunGrant(ctx, grantId);
+    if (delegated === null) return defaultRunFlip(release)(c, grantId);
+    const seams = { ...release, closedVerbGrants: [delegated] } as ReleaseSeams;
+    return defaultRunFlip(seams)(c, grantId);
+  };
+}
+
+/** Promote dispatch: same split as {@link runFlipOf} (#7420). */
+function runPromoteOf(ctx: Ctx, release: ReleaseSeams) {
+  return (c: ReleaseConfig, grantId: string): number => {
+    const delegated = delegatedRunGrant(ctx, grantId);
+    if (delegated === null) return defaultRunPromote(release, ctx.projectRoot)(c, grantId);
+    return runPromoteLatest(
+      { version: c.version, repo: c.repo, projectRoot: c.projectRoot, dryRun: false },
+      { ...release, closedVerbGrants: [delegated] } as Parameters<typeof runPromoteLatest>[1],
+    );
+  };
 }
 
 function phaseApprove(ctx: Ctx): number {
@@ -753,7 +800,15 @@ function phaseFinish(ctx: Ctx): number {
     ...releaseConfigOf(ctx.record, ctx.projectRoot),
     runBinding: { grantId: grants.releasePublish, expectedBase: cutBase },
   };
-  const finish = ctx.seams.finish ?? ((c: ReleaseConfig) => runFinish(c, ctx.seams.release ?? {}));
+  // A delegated release grant goes to the tag gate as the only candidate, the
+  // same split as the draft flip; a human grant keeps the unchanged path.
+  const delegated = delegatedRunGrant(ctx, grants.releasePublish);
+  const releaseSeams = ctx.seams.release ?? {};
+  const finishSeams =
+    delegated === null
+      ? releaseSeams
+      : ({ ...releaseSeams, closedVerbGrants: [delegated] } as ReleaseSeams);
+  const finish = ctx.seams.finish ?? ((c: ReleaseConfig) => runFinish(c, finishSeams));
   const code = finish(config);
   if (code !== EXIT_OK) {
     line(ctx, "finish", `FAIL (finish exited ${String(code)})`);
@@ -795,8 +850,8 @@ function reconcileCtx(ctx: Ctx, phase: ReleaseRunPhase): ReconcileContext {
     listGrants: listGrantsOf(ctx),
     findGrants: (grants) => findRunGrants(ctx.record, ctx.projectRoot, grants),
     mintCommand: (kind) => mintCommandOf(ctx.record, kind),
-    flip: ctx.seams.flip ?? defaultRunFlip(release),
-    promote: ctx.seams.promote ?? defaultRunPromote(release, ctx.projectRoot),
+    flip: ctx.seams.flip ?? runFlipOf(ctx, release),
+    promote: ctx.seams.promote ?? runPromoteOf(ctx, release),
   };
 }
 

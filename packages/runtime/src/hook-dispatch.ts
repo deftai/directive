@@ -2,6 +2,7 @@
 import { readFileSync, realpathSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { endDelegation } from "@deftai/directive-core/authz";
 import { isShellTool } from "@deftai/directive-core/dist/hooks/tools.js";
 import { checkCheapInSync } from "@deftai/directive-core/dist/install-health/cheap.js";
 import {
@@ -57,6 +58,7 @@ import {
 } from "@deftai/directive-core/hooks";
 import { sameRepoGitCommonDir } from "@deftai/directive-core/session";
 import { readProjectDataStatus } from "./data-status.js";
+import { extractClaudeSessionEnd, runClaudeDelegateAdapter } from "./delegate-adapter-claude.js";
 import { maybeSelfCompleteSetup } from "./self-complete.js";
 
 /**
@@ -145,6 +147,10 @@ export interface HookDispatchCliSeams {
   };
   /** Strict session-end release (#6274). Injected in tests to force a throw. */
   readonly sessionEndRelease?: SessionEndHookSeams["release"];
+  /** Claude prompt adapter for prompt.submit (#7420). Injected in tests to force a throw. */
+  readonly delegateAdapter?: typeof runClaudeDelegateAdapter;
+  /** Delegation end on session.end (#7420). Injected in tests. */
+  readonly endDelegation?: typeof endDelegation;
 }
 
 /**
@@ -550,12 +556,67 @@ function runSessionEnd(
       },
     );
     writeErr(`${ended.diagnostic}\n`);
+    // #7420: best effort; shutdown never fails on the delegation end.
+    if (host === "claude") {
+      try {
+        const sid = extractClaudeSessionEnd(rawStdin);
+        if (sid !== null) {
+          (seams.endDelegation ?? endDelegation)(projectRoot, "session-end", {
+            hostSessionId: sid,
+          });
+        }
+      } catch {
+        /* never fail shutdown */
+      }
+    }
   } catch (cause) {
     try {
       const detail = String(cause).replace(/\s+/g, " ").slice(0, 300);
       writeErr(`Directive session end: failed on its non-blocking path: ${detail}\n`);
     } catch {
       /* never fail shutdown */
+    }
+  }
+  return 0;
+}
+
+/**
+ * prompt.submit CLI path (#7420): no policy dispatch, no setup completion. Only
+ * the Claude host reads the arm prompt; every failure is one stderr line; exit
+ * 0 always so a prompt is never blocked.
+ */
+function runPromptSubmit(
+  host: HookHost,
+  projectRootArg: string | undefined,
+  seams: HookDispatchCliSeams,
+  writeOut: (text: string) => void,
+  writeErr: (text: string) => void,
+): number {
+  try {
+    const readOnce = seams.readStdin ?? (() => readFileSync(0, "utf8"));
+    const rawStdin = readStdinHardened(readOnce, {
+      emptyRetryMs: seams.stdinEmptyRetryMs,
+      sleepMs: seams.sleepMs,
+      nowMs: seams.nowMs,
+    });
+    const cwd = (seams.cwd ?? process.cwd)();
+    const { payload } = parsePayload(rawStdin);
+    const projectRoot = normalizeHookProjectRoot(
+      projectRootArg ? resolve(projectRootArg) : projectRootFromHookPayload(payload, cwd),
+    );
+    if (killSwitchForEvent(projectRoot, seams, writeErr)) return 0;
+    if (host !== "claude") return 0;
+    const result = (seams.delegateAdapter ?? runClaudeDelegateAdapter)({
+      stdinText: rawStdin,
+      projectRoot,
+    });
+    if (result.stdout.length > 0) writeOut(result.stdout);
+  } catch (cause) {
+    try {
+      const detail = String(cause).replace(/\s+/g, " ").slice(0, 300);
+      writeErr(`Directive prompt submit: failed on its non-blocking path: ${detail}\n`);
+    } catch {
+      /* never fail a prompt */
     }
   }
   return 0;
@@ -577,6 +638,11 @@ export function run(argv: string[], seams: HookDispatchCliSeams = {}): number {
   // SessionEnd hooks have no decision control.
   if (args.event === "session.end") {
     return runSessionEnd(args.host, args.projectRoot, seams, writeErr);
+  }
+
+  // #7420: the delegation arm prompt has its own path and never blocks.
+  if (args.event === "prompt.submit" && args.host === "claude") {
+    return runPromptSubmit(args.host, args.projectRoot, seams, writeOut, writeErr);
   }
 
   const readOnce = seams.readStdin ?? (() => readFileSync(0, "utf8"));

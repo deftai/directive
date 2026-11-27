@@ -37,6 +37,27 @@ describe("signed approval docs (#6945)", () => {
     expect(approvers).toMatch(/localhost/);
   });
 
+  it("operator delegation names the passkey as its upgrade and states its strength (#7420)", () => {
+    const doc = read("content/docs/operator-delegation.md");
+    expect(doc).toMatch(/Parity of forging effort/);
+    expect(doc).toMatch(/Wider blast radius/);
+    expect(doc).toMatch(
+      /passkey \(#6945 \/ #7046\) makes the arming factor\s+unproducible by an agent/,
+    );
+    expect(doc).toMatch(/#7279 request digest is\s+not human review/);
+    expect(doc).toMatch(/finish-loop/);
+    expect(doc).toMatch(/Stop inventory/);
+    for (const rel of ["content/contracts/human-origin-authz.md", "content/commands.md"]) {
+      const text = read(rel);
+      expect(text, rel).toMatch(/parity of forging effort/i);
+      expect(text, rel).toMatch(/operator-delegation\.md/);
+    }
+    expect(read("content/contracts/human-origin-authz.md")).toMatch(
+      /#7279 request digest is not human review/,
+    );
+    expect(read("content/docs/scope-provenance.md")).toMatch(/Delegated stamps \(#7420\)/);
+  });
+
   it("the page bundle matches the shared canonical vectors", async () => {
     const vectors = JSON.parse(
       readFileSync(
