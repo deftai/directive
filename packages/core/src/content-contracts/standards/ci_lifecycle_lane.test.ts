@@ -160,7 +160,13 @@ describe("artifact-only lifecycle CI lane (#3678)", () => {
     const github = readText("scm/github.md");
     expect(github).toContain("Merge-gate aggregator enrollment (#633)");
     expect(github).toContain("Merge gate (task check)");
-    expect(github).toContain("if: always() && needs.changes.outputs.artifact_only != 'true'");
+    // #7413: the doc must quote the live merge-gate guard verbatim so it cannot drift.
+    const liveGuard = jobBlock(readText(".github/workflows/ci.yml"), "merge-gate")
+      .split("\n")
+      .map((l) => l.trim())
+      .find((l) => l.startsWith("if: "));
+    expect(liveGuard).toBeDefined();
+    expect(github).toContain(liveGuard as string);
     expect(github).toContain("operator-owned repo-scoped ruleset");
     expect(github).toMatch(/empty-PUT/i);
     expect(github).toContain("#4912");
