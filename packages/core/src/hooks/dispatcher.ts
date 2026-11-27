@@ -2797,6 +2797,8 @@ function inspectMutationGates(
               runner: seams.ritualRunner,
               detectWorkSelection: seams.detectWorkSelection,
               runGit: dispatchGit,
+              // #7416: probe only the applying host; an unknown host probes every host.
+              applyingHost: input.host,
             }),
           ))
       )(effectiveRoot);

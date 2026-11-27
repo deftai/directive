@@ -1,4 +1,5 @@
 import { spawnSync } from "node:child_process";
+import { statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { HOOK_HOSTS, type HookEvent, type HookHost } from "../hooks/dispatcher.js";
 import { READ_ONLY_HOOK_ENV } from "../hooks/tools.js";
@@ -11,11 +12,26 @@ import {
   shouldUseShellForCommand,
 } from "./command-spawn.js";
 
-export const LIVE_PROBE_CASE_TIMEOUT_MS = 1_500;
-/** Extra attempts after a timeout. One retry keeps 4×2×1.5s×2 = 24s under Cursor 30s (#3570). */
+/** One spawn attempt of one fixture. A loaded Windows node cold start often runs past 1.5 s (#7416). */
+export const LIVE_PROBE_CASE_TIMEOUT_MS = 4_000;
+/** Extra attempts after a timeout (#3570). */
 export const LIVE_PROBE_CASE_RETRY_COUNT = 1;
+/** The `tool.before` limit a host enforces on one hook call (#3570 / #7416). */
+export const LIVE_PROBE_HOST_TOOL_BEFORE_LIMIT_MS = 30_000;
+/** Safety margin kept under the host `tool.before` limit for the write-path work around the probe. */
+export const LIVE_PROBE_TOOL_BEFORE_SAFETY_MARGIN_MS = 5_000;
+/** Total probing allowed in one write: the host limit minus the margin (25 s). */
+export const LIVE_PROBE_WRITE_BUDGET_MS =
+  LIVE_PROBE_HOST_TOOL_BEFORE_LIMIT_MS - LIVE_PROBE_TOOL_BEFORE_SAFETY_MARGIN_MS;
+/** Overall deadline for the unknown-applying-host fallback, which probes every enabled host. */
+export const LIVE_PROBE_UNKNOWN_HOST_DEADLINE_MS = 20_000;
+/** Fixtures run per host: one allow case and one deny case. */
+export const LIVE_PROBE_FIXTURES_PER_HOST = 2;
+/** Worst case for one known host: both fixtures, each retried. Must stay under the write budget. */
+export const LIVE_PROBE_KNOWN_HOST_WORST_CASE_MS =
+  LIVE_PROBE_FIXTURES_PER_HOST * (LIVE_PROBE_CASE_RETRY_COUNT + 1) * LIVE_PROBE_CASE_TIMEOUT_MS;
 export const LIVE_PROBE_TIMEOUT_RECOVERY =
-  "Recovery: retry the gated ritual when load is lower. Do not reinstall @deftai/directive or disable hostHooks for a timeout.";
+  "Recovery: retry when load is lower; each write re-checks its own host, so a passing session:ready is not what admits a write. Do not reinstall @deftai/directive or disable hostHooks for a timeout.";
 export const LIVE_PROBE_BROKEN_RECOVERY =
   "Recovery: npm i -g @deftai/directive, then directive install --repair.";
 
@@ -47,24 +63,46 @@ export interface AgentHookLiveProbeHostResult {
   readonly status: AgentHookLiveProbeHostStatus;
 }
 
+/** Identity of the resolved hook command: path, size and mtime (#7416). */
+export interface AgentHookCommandIdentity {
+  readonly path: string;
+  readonly size: number;
+  readonly mtimeMs: number;
+}
+
 export interface AgentHookLiveProbeResult {
   readonly code: 0 | 1 | 2;
   readonly message: string;
   readonly cases: readonly AgentHookLiveProbeCase[];
   readonly hosts: readonly AgentHookLiveProbeHostResult[];
   readonly durationMs: number;
+  /** Resolved hook command identity; null when the command was not resolved or not readable. */
+  readonly commandIdentity?: AgentHookCommandIdentity | null;
 }
 
 export interface AgentHookLiveProbeSeams {
   /** Enabled hosts to probe. Defaults to every deposited host. */
   readonly hosts?: readonly HookHost[];
   readonly resolveCommand?: (name: string) => string | null;
+  /** Size and mtime of the resolved command; null when unreadable. */
+  readonly statCommand?: (
+    path: string,
+  ) => { readonly size: number; readonly mtimeMs: number } | null;
+  /**
+   * Overall deadline for the whole probe. When it runs out, every case that has
+   * not finished is reported `timed-out`, never `non-functional` (#7416).
+   */
+  readonly deadlineMs?: number;
+  /** Monotonic clock in ms; tests inject it. */
+  readonly clockMs?: () => number;
   readonly spawnHook?: (input: {
     readonly command: string;
     readonly args: readonly string[];
     readonly stdin: string;
     readonly cwd: string;
     readonly env: NodeJS.ProcessEnv;
+    /** Per-attempt timeout, already clamped to the time left before the overall deadline. */
+    readonly timeoutMs: number;
   }) => {
     readonly status: number;
     readonly stdout: string;
@@ -89,6 +127,42 @@ function resolveHookCommand(seams: AgentHookLiveProbeSeams): string | null {
   return (seams.resolveCommand ?? resolveCommandOnPath)(DEFT_HOOK_COMMAND_MARKER);
 }
 
+function defaultStatCommand(path: string): { size: number; mtimeMs: number } | null {
+  try {
+    const stat = statSync(path);
+    return { size: stat.size, mtimeMs: stat.mtimeMs };
+  } catch {
+    return null;
+  }
+}
+
+function readCommandIdentity(
+  command: string,
+  seams: AgentHookLiveProbeSeams,
+): AgentHookCommandIdentity | null {
+  try {
+    const stat = (seams.statCommand ?? defaultStatCommand)(command);
+    return stat === null
+      ? null
+      : { path: command, size: stat.size, mtimeMs: Math.trunc(stat.mtimeMs) };
+  } catch {
+    return null;
+  }
+}
+
+interface ProbeBudget {
+  readonly clockMs: () => number;
+  /** Absolute deadline on `clockMs`, or null when the probe has no overall deadline. */
+  readonly deadlineAt: number | null;
+  readonly deadlineMs: number | null;
+}
+
+function remainingMs(budget: ProbeBudget): number {
+  return budget.deadlineAt === null
+    ? Number.POSITIVE_INFINITY
+    : budget.deadlineAt - budget.clockMs();
+}
+
 /** Quote one Windows cmd.exe argument used by the installed hook shim. */
 export function quoteWindowsCmdArg(value: string): string {
   const escaped = value.replace(/%/g, "%%");
@@ -104,6 +178,7 @@ function spawnHookWithStdin(
   stdin: string,
   cwd: string,
   env: NodeJS.ProcessEnv = process.env,
+  timeoutMs: number = LIVE_PROBE_CASE_TIMEOUT_MS,
 ): { status: number; stdout: string; stderr: string; timedOut?: boolean } {
   const shell = shouldUseShellForCommand(command);
   const commandArgs =
@@ -119,7 +194,7 @@ function spawnHookWithStdin(
     shell,
     windowsHide: true,
     maxBuffer: SUBPROCESS_MAX_BUFFER,
-    timeout: LIVE_PROBE_CASE_TIMEOUT_MS,
+    timeout: timeoutMs,
   });
   const timedOut = (proc.error as NodeJS.ErrnoException | undefined)?.code === "ETIMEDOUT";
   return {
@@ -294,8 +369,16 @@ function runFixtureProbe(
   projectRoot: string,
   fixture: "allow" | "deny",
   spawnHook: NonNullable<AgentHookLiveProbeSeams["spawnHook"]>,
+  budget: ProbeBudget,
 ): AgentHookLiveProbeCase | null {
-  const input = {
+  const budgetExhausted = (): AgentHookLiveProbeCase => ({
+    host,
+    event: LIVE_PROBE_EVENT,
+    fixture,
+    issue: "timed-out",
+    detail: `probe deadline of ${budget.deadlineMs}ms ran out before this case finished`,
+  });
+  const baseInput = {
     command,
     args: ["--host", host, "--event", LIVE_PROBE_EVENT, "--project-root", projectRoot] as const,
     stdin:
@@ -307,15 +390,23 @@ function runFixtureProbe(
     cwd: projectRoot,
     env: fixture === "allow" ? allowProbeEnv() : denyProbeEnv(),
   };
-  let spawned = spawnHook(input);
+  const attempt = () =>
+    spawnHook({
+      ...baseInput,
+      timeoutMs: Math.max(1, Math.min(LIVE_PROBE_CASE_TIMEOUT_MS, Math.floor(remainingMs(budget)))),
+    });
+  if (remainingMs(budget) <= 0) return budgetExhausted();
+  let spawned = attempt();
   for (
     let retry = 0;
     retry < LIVE_PROBE_CASE_RETRY_COUNT && spawned.timedOut === true;
     retry += 1
   ) {
-    spawned = spawnHook(input);
+    if (remainingMs(budget) <= 0) return budgetExhausted();
+    spawned = attempt();
   }
   if (spawned.timedOut === true) {
+    if (remainingMs(budget) <= 0) return budgetExhausted();
     return {
       host,
       event: LIVE_PROBE_EVENT,
@@ -382,15 +473,30 @@ export function probeAgentHooksLive(
     };
   }
 
+  const clockMs = seams.clockMs ?? (() => performance.now());
+  const budget: ProbeBudget = {
+    clockMs,
+    deadlineAt: seams.deadlineMs === undefined ? null : clockMs() + seams.deadlineMs,
+    deadlineMs: seams.deadlineMs ?? null,
+  };
+  const commandIdentity = readCommandIdentity(command, seams);
   const spawnHook =
     seams.spawnHook ??
-    ((input) => spawnHookWithStdin(input.command, input.args, input.stdin, input.cwd, input.env));
+    ((input) =>
+      spawnHookWithStdin(
+        input.command,
+        input.args,
+        input.stdin,
+        input.cwd,
+        input.env,
+        input.timeoutMs,
+      ));
   const failures: AgentHookLiveProbeCase[] = [];
   const hostResults: AgentHookLiveProbeHostResult[] = [];
   for (const host of hosts) {
     let hostFailure: AgentHookLiveProbeCase | null = null;
     for (const fixture of ["allow", "deny"] as const) {
-      hostFailure = runFixtureProbe(command, host, root, fixture, spawnHook);
+      hostFailure = runFixtureProbe(command, host, root, fixture, spawnHook, budget);
       if (hostFailure !== null) {
         failures.push(hostFailure);
         break;
@@ -406,6 +512,7 @@ export function probeAgentHooksLive(
       cases: [],
       hosts: hostResults,
       durationMs: elapsedMs(started),
+      commandIdentity,
     };
   }
   const summary = failures
@@ -417,5 +524,6 @@ export function probeAgentHooksLive(
     cases: failures,
     hosts: hostResults,
     durationMs: elapsedMs(started),
+    commandIdentity,
   };
 }

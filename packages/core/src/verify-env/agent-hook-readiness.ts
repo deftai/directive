@@ -71,6 +71,13 @@ export interface AgentHookReadinessOptions {
     seams?: AgentHookLiveProbeSeams,
   ) => AgentHookLiveProbeResult;
   readonly liveProbeSeams?: Omit<AgentHookLiveProbeSeams, "hosts">;
+  /**
+   * Live-probe only these hosts (the applying hook host on a write, #7416).
+   * Structural registration inspection still covers every host.
+   */
+  readonly hosts?: readonly HookHost[];
+  /** Overall live-probe deadline; budget exhaustion reports `timed-out` (#7416). */
+  readonly probeDeadlineMs?: number;
 }
 
 /** Stable CLI JSON projection; keep the four readiness dimensions orthogonal. */
@@ -88,10 +95,14 @@ export function agentHookReadinessJson(result: AgentHookReadinessResult): Record
 /** Preserve fail-closed readiness semantics when an unexpected evaluator dependency throws. */
 export function evaluateAgentHookReadinessSafely(
   projectRoot: string,
-  evaluate: (projectRoot: string) => AgentHookReadinessResult = evaluateAgentHookReadiness,
+  evaluate: (
+    projectRoot: string,
+    options?: AgentHookReadinessOptions,
+  ) => AgentHookReadinessResult = evaluateAgentHookReadiness,
+  options?: AgentHookReadinessOptions,
 ): AgentHookReadinessResult {
   try {
-    return evaluate(projectRoot);
+    return options === undefined ? evaluate(projectRoot) : evaluate(projectRoot, options);
   } catch (cause) {
     const detail = cause instanceof Error ? cause.message : String(cause);
     return {
@@ -185,12 +196,15 @@ export function evaluateAgentHookReadiness(
     };
   }
 
+  const scopedHosts = options.hosts;
   const enabledHosts = structural.registrations
     .filter((entry) => policy[entry.host])
-    .map((entry) => entry.host);
+    .map((entry) => entry.host)
+    .filter((host) => scopedHosts === undefined || scopedHosts.includes(host));
   const liveProbe = (options.probeLive ?? probeAgentHooksLive)(root, {
     ...options.liveProbeSeams,
     hosts: enabledHosts,
+    ...(options.probeDeadlineMs === undefined ? {} : { deadlineMs: options.probeDeadlineMs }),
   });
   const liveByHost = new Map(liveProbe.hosts.map((entry) => [entry.host, entry.status]));
   const evaluatedHosts = hosts.map((entry): AgentHookReadinessHostResult => {
