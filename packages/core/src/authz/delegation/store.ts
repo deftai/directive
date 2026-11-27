@@ -14,6 +14,7 @@
 
 import { randomBytes } from "node:crypto";
 import {
+  chmodSync,
   existsSync,
   lstatSync,
   mkdirSync,
@@ -170,9 +171,15 @@ export function writeEnrolledSecret(
   const root = dirname(resolve(secretPath));
   let created = false;
   try {
-    mkdirSync(root, { recursive: true });
-    // Create empty, restrict the mode, then fill, so the secret is never
-    // written into a file with a wider mode.
+    // Owner-only directory first: no other user can open the file between its
+    // creation and the mode change. Then create empty, restrict, and fill, so
+    // the secret is never written into a file with a wider mode.
+    mkdirSync(root, { recursive: true, mode: 0o700 });
+    try {
+      chmodSync(root, 0o700);
+    } catch {
+      /* the OS does not honour modes (Windows) */
+    }
     containedWrite({ root, target: secretPath, data: "", mode: replace ? "replace" : "create" });
     created = true;
     containedChmod({ root, target: secretPath, mode: 0o600 });
@@ -372,22 +379,14 @@ function pidAlive(pid: number): boolean {
 }
 
 /**
- * An unreadable lock may be a live holder between create and body write, so it
- * is reclaimable only once it is older than the lock wait (the holder is stuck).
+ * Rename-away reclaim of a dead holder's lock; refuses to steal a live replacement.
+ * An unreadable lock is never reclaimed: its owner cannot be shown dead (a live
+ * holder is unreadable between create and body write), so the caller times out
+ * and the operator removes it.
  */
-function unreadableLockIsStale(path: string): boolean {
-  try {
-    return Date.now() - lstatSync(path).mtimeMs > DELEGATION_LOCK_TIMEOUT_MS;
-  } catch {
-    return false;
-  }
-}
-
-/** Rename-away reclaim of a dead holder's lock; refuses to steal a live replacement. */
 function reclaimDeadLock(path: string): boolean {
   const seen = readLockBody(path);
-  if (seen !== null && pidAlive(seen.pid)) return false;
-  if (seen === null && !unreadableLockIsStale(path)) return false;
+  if (seen === null || pidAlive(seen.pid)) return false;
   const side = `${path}.reclaim.${randomBytes(6).toString("hex")}`;
   try {
     renameSync(path, side);
@@ -395,7 +394,7 @@ function reclaimDeadLock(path: string): boolean {
     return false;
   }
   const got = readLockBody(side);
-  const same = seen === null ? got === null : got !== null && got.token === seen.token;
+  const same = got !== null && got.token === seen.token;
   if (!same) {
     try {
       renameSync(side, path);
@@ -442,7 +441,10 @@ export function withDelegationLock<T>(
     }
     if (reclaimDeadLock(lockPath)) continue;
     if (Date.now() - started > timeout) {
-      return { ok: false, reason: "delegation store lock timeout; nothing was written" };
+      return {
+        ok: false,
+        reason: `delegation store lock timeout; nothing was written (a lock with no readable owner is never reclaimed; remove ${lockPath} if no deft process is running)`,
+      };
     }
     sleepSync(DELEGATION_LOCK_RETRY_MS);
   }
