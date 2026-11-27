@@ -1,0 +1,289 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #6826",
+    "updated": "2026-11-27T00:48:42Z"
+  },
+  "plan": {
+    "title": "bug(spec): task spec:render deletes about 23k lines of SPECIFICATION.md",
+    "status": "running",
+    "narratives": {
+      "Description": "bug(spec): task spec:render deletes about 23k lines of SPECIFICATION.md",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/6826",
+      "Overview": "## Acceptance Criteria\n\n- [ ] `SPECIFICATION.md` on master equals the output of the default `task spec:render`, so a render on a clean checkout leaves no diff.\n- [ ] `verify:spec-prd-fresh` fails when the committed `SPECIFICATION.md` contains a section the default render does not produce, such as `## Scope outlook` or `## LegacyArtifacts`, and names that section.\n- [ ] A test covers the stale-snapshot case: a committed file with an extra `## Scope outlook` section is reported stale.\n\n",
+      "Labels": "framework-gap"
+    },
+    "items": [
+      {
+        "title": "`SPECIFICATION.md` on master equals the output of the default `task spec:render`, so a render on a clean checkout leaves no diff.",
+        "status": "proposed",
+        "id": "clause.1"
+      },
+      {
+        "title": "`verify:spec-prd-fresh` fails when the committed `SPECIFICATION.md` contains a section the default render does not produce, such as `## Scope outlook` or `## LegacyArtifacts`, and names that section.",
+        "status": "proposed",
+        "id": "clause.2"
+      },
+      {
+        "title": "A test covers the stale-snapshot case: a committed file with an extra `## Scope outlook` section is reported stale.",
+        "status": "proposed",
+        "id": "clause.3"
+      }
+    ],
+    "tags": [
+      "framework-gap"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/6826",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #6826: bug(spec): task spec:render deletes about 23k lines of SPECIFICATION.md"
+      }
+    ],
+    "metadata": {
+      "literal_acceptance_commands": [],
+      "literal_acceptance_rejected": [
+        {
+          "command": "## Scope outlook",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L6"
+        },
+        {
+          "command": "## LegacyArtifacts",
+          "reason": "inline backtick in prose is a mention, not a stated acceptance command (#3721)",
+          "sourceSpan": "inline@L6"
+        }
+      ],
+      "swarm": {
+        "file_scope": [
+          "SPECIFICATION.md",
+          "packages/core/src/verify-source/spec-prd-fresh.ts",
+          "packages/core/src/verify-source/spec-prd-fresh.test.ts",
+          "changelog.d/6826-spec-render-compact.md"
+        ],
+        "file_scope_confidence": "high",
+        "readiness": "ready",
+        "parallel_safe": true,
+        "size": "small",
+        "model_tier": "standard",
+        "depends_on": [],
+        "conflict_group": "spec-prd-fresh",
+        "verify_commands": [
+          "pnpm exec vitest run packages/core/src/verify-source/spec-prd-fresh.test.ts"
+        ],
+        "expected_outputs": [
+          "SPECIFICATION.md is the default compact render (about 65 lines) and a spec:render leaves no diff",
+          "spec-prd-fresh.ts reports stale and names a committed section the default render does not produce",
+          "spec-prd-fresh.test.ts covers a committed file with an extra Scope outlook section",
+          "one changelog fragment changelog.d/6826-spec-render-compact.md"
+        ],
+        "Traces": [
+          "#6826"
+        ]
+      },
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [],
+        "module_boundary": ""
+      },
+      "issueCommentThread": [
+        {
+          "body": "Recurred 2026-11-22 (worker handback): `task spec:render` again deleted about 23k lines of `SPECIFICATION.md`, and `verify:spec-prd-fresh` still reported fresh. So the freshness check does not catch a render that drops most of the file.\n\nSuggested extra criterion:\n\n- [ ] Given a `SPECIFICATION.md` that `spec:render` would shrink by a large share, `verify:spec-prd-fresh` does not report fresh.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\n",
+          "id": 7086587581,
+          "html_url": "https://github.com/deftai/directive/issues/6826#issuecomment-7086587581",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-22T22:08:39Z",
+          "updated_at": "2026-11-22T22:08:39Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "Recurred again late on 2026-11-22: during #6914's product work (#7126), `task spec:render` rewrote `SPECIFICATION.md` over its deprecated-redirect text, and the worker reverted it by hand. Workers now revert this file after every pre-pr that runs the render.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\n",
+          "id": 7092137625,
+          "html_url": "https://github.com/deftai/directive/issues/6826#issuecomment-7092137625",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-23T05:07:26Z",
+          "updated_at": "2026-11-23T05:07:26Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "Recurred 2026-11-26 during the #7014 build: running `task spec:render` in the linked worktree `wt-7014-product` (branch `fix/7014-merge-gate-timeouts`, based on origin/master `9a6cf66a`) emptied the checked-in `SPECIFICATION.md` (about 23,330 deletions). The worker reverted it with `git checkout` and kept it out of PR #7408. Same class as #6363 (linked worktree).\n\n",
+          "id": 7206300781,
+          "html_url": "https://github.com/deftai/directive/issues/6826#issuecomment-7206300781",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-27T00:14:55Z",
+          "updated_at": "2026-11-27T00:14:55Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "Folding #6363 into this issue (same failure: `spec:render` deletes about 23k lines of `SPECIFICATION.md`; #6363 is the 2026-11-15 sighting with a linked-worktree hypothesis). Its criteria carried over:\n\n- [ ] Given a linked worktree at commit C, when `task spec:render` runs, then `SPECIFICATION.md` matches the render from the primary checkout at C.\n- [ ] Given incomplete render inputs, when `task spec:render` runs, then the command refuses and names the missing input, instead of writing a much shorter file.\n\nNext step: a read-only diagnosis of the renderer's redirect-stub handling before deciding whether this needs a design arc.\n\n",
+          "id": 7206352780,
+          "html_url": "https://github.com/deftai/directive/issues/6826#issuecomment-7206352780",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-27T00:18:35Z",
+          "updated_at": "2026-11-27T00:18:35Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "## Diagnosis (2026-11-26, read-only repro at origin/master 5b0824956)\n\nNeither earlier hypothesis holds (no redirect-stub logic exists; inputs were complete; not worktree-specific).\n\n- The checked-in `SPECIFICATION.md` is a frozen full render from June/July 2026 (`## LegacyArtifacts` plus `## Scope outlook`, which embeds that period's active issue bodies; the \"redirect\" text near line 1027 is one of those bodies).\n- Since #1566 the default render is compact (`DEFAULT_INCLUDE_SCOPES_MODE = \"off\"`, `packages/core/src/render/constants.ts:41`; legacy artifacts off, `spec-render.ts:285`, `:379`). It writes Overview through OpenQuestions (`spec-render.ts:313-350`) and replaces the whole file (`mode: \"replace\"`, `spec-render.ts:372`). `task spec:render` took the file from 23,395 lines to 65. No flag set reproduces the committed file.\n- `verify:spec-prd-fresh` compares only a prefix: `specProductPrefix` (`spec-prd-fresh.ts:37-64`) strips `## LegacyArtifacts` and everything after `## Scope outlook`, then compares (`:108-130`). Both files share that prefix, so it reports fresh.\n\nFix (Scott: \"Yes, through merge\"; no arc): commit the default compact render once, and make the freshness check fail when the committed file has sections the default render does not produce. The issue body is rewritten to criteria-only for ingest; the prior body is quoted below for the audit trail.\n\n<details><summary>Prior body</summary>\n\n`task spec:render` rewrote `SPECIFICATION.md` and deleted about 23k lines of it. The file carries deprecated-redirect marker text (around line 1027 it quotes the deprecation-redirect stub). Seen twice on 2026-11-19/20; both times the diff had to be reverted by hand.\n\n## Acceptance Criteria\n\n- [ ] Given a clean master checkout, when `task spec:render` runs, then `SPECIFICATION.md` has no diff.\n- [ ] Given redirect marker text inside the body of a rendered specification, when `spec:render` runs, then it does not treat the file as a redirect stub.\n- [ ] Given a render that would remove more than a set share of the file, when `spec:render` runs, then it refuses and prints the line counts.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\n\n\n</details>\n\n",
+          "id": 7206440185,
+          "html_url": "https://github.com/deftai/directive/issues/6826#issuecomment-7206440185",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-27T00:24:53Z",
+          "updated_at": "2026-11-27T00:24:53Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6503509839,
+        "origin": "deftai/directive#6826",
+        "id": "github.issue.6503509839"
+      }
+    },
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per sentence-list entry (3), in order (#6333)",
+      "sentences": [
+        "`SPECIFICATION.md` on master equals the output of the default `task spec:render`, so a render on a clean checkout leaves no diff.",
+        "`verify:spec-prd-fresh` fails when the committed `SPECIFICATION.md` contains a section the default render does not produce, such as `## Scope outlook` or `## LegacyArtifacts`, and names that section.",
+        "A test covers the stale-snapshot case: a committed file with an extra `## Scope outlook` section is reported stale."
+      ],
+      "admitted_source_sentences": [
+        "`SPECIFICATION.md` on master equals the output of the default `task spec:render`, so a render on a clean checkout leaves no diff.",
+        "`verify:spec-prd-fresh` fails when the committed `SPECIFICATION.md` contains a section the default render does not produce, such as `## Scope outlook` or `## LegacyArtifacts`, and names that section.",
+        "A test covers the stale-snapshot case: a committed file with an extra `## Scope outlook` section is reported stale."
+      ],
+      "admitted_source_digest": "dbc4b6ab68aa3689aec9e09e3326ba444bcb13aa899d8592fececedc6f505499",
+      "admitted_source_extractor": 2,
+      "clauses": [
+        {
+          "id": 1,
+          "text": "`SPECIFICATION.md` on master equals the output of the default `task spec:render`, so a render on a clean checkout leaves no diff.",
+          "artifact_path": "SPECIFICATION.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "`verify:spec-prd-fresh` fails when the committed `SPECIFICATION.md` contains a section the default render does not produce, such as `## Scope outlook` or `## LegacyArtifacts`, and names that section.",
+          "artifact_path": "SPECIFICATION.md",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "A test covers the stale-snapshot case: a committed file with an extra `## Scope outlook` section is reported stale.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "id": "github.issue.6503509839",
+    "updated": "2026-11-27T00:48:42Z"
+  }
+}
