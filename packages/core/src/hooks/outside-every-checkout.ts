@@ -709,6 +709,10 @@ function isAgyConversationFolderTarget(
         const brainPhysical = physicalOf(brain, ctx.realpath);
         const folderPhysical = physicalOf(folder, ctx.realpath);
         if (brainPhysical === null || folderPhysical === null) continue;
+        // No link may sit above the conversation folder: the brain folder must
+        // resolve to exactly the home's physical path plus the named parts.
+        const homePhysical = physicalOf(form, ctx.realpath);
+        if (homePhysical === null || brainPhysical !== join(homePhysical, ...rootParts)) continue;
         // The folder must be a real child of the brain folder, not a link elsewhere.
         if (!strictlyInside(folderPhysical, [brainPhysical], platform)) continue;
         if (folderPhysical !== join(brainPhysical, agy.conversationId)) continue;

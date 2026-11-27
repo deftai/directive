@@ -778,6 +778,20 @@ describe("agy conversation-folder carve-out (#7445)", () => {
     expect(allowed(join(home, ".gemini", "other", "brain", ID, "x.md"))).toBe(false);
   });
 
+  it("gates a link above the conversation folder (linked brain or root folder)", () => {
+    const plugins = join(home, ".gemini", "config", "plugins");
+    mkdirSync(join(plugins, ID), { recursive: true });
+    const cliRoot = join(home, ".gemini", "antigravity-cli");
+    mkdirSync(cliRoot, { recursive: true });
+    if (!linkDir(plugins, join(cliRoot, "brain"))) return;
+    expect(allowed(join(cliRoot, "brain", ID, "hooks.json"))).toBe(false);
+    rmSync(cliRoot, { recursive: true, force: true });
+    const elsewhere = join(home, ".gemini", "config", "elsewhere");
+    mkdirSync(join(elsewhere, "brain", ID), { recursive: true });
+    if (!linkDir(elsewhere, cliRoot)) return;
+    expect(allowed(join(cliRoot, "brain", ID, "hooks.json"))).toBe(false);
+  });
+
   it("requires every target in a set to qualify", () => {
     expect(
       allTargetsOutsideEveryCheckout(
