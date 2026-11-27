@@ -23,6 +23,7 @@ import { homedir as osHomedir, tmpdir as osTmpdir } from "node:os";
 import { basename, delimiter, dirname, join, parse, posix, resolve, win32 } from "node:path";
 import { fileURLToPath } from "node:url";
 import { defaultGitRunner, type GitRunner } from "../session/git.js";
+import { resolveHookHostIdentity } from "./classify/host-session-identity.js";
 import { isOutsideProjectRootWrite } from "./outside-project-root.js";
 
 /** Decision code of an allowed write in the class. */
@@ -68,6 +69,44 @@ export interface OutsideEveryCheckoutSeams {
   readonly runGit?: GitRunner;
   /** Physical package directory of the running Directive runtime; null skips the rule. */
   readonly runtimePackageDir?: string | null;
+  /**
+   * The applying agy session (#7445): its conversation id from the host identity
+   * and the payload `artifactDirectoryPath`. Null or absent keeps the carve-out off.
+   */
+  readonly agyConversation?: AgyConversationSeam | null;
+}
+
+export interface AgyConversationSeam {
+  readonly conversationId: string;
+  readonly artifactDirectoryPath: string | null;
+}
+
+/** Folder under a home directory that holds one directory per agy conversation. */
+const AGY_BRAIN_PARTS = [".gemini", "antigravity", "brain"] as const;
+
+/** A conversation id is one plain path component. */
+const AGY_CONVERSATION_ID_RE = /^[A-Za-z0-9][A-Za-z0-9_-]*$/;
+
+/**
+ * Seam for the agy conversation-folder carve-out (#7445). Null unless the host
+ * is agy and the identity resolves to a plain conversation id.
+ */
+export function agyConversationSeam(
+  host: string,
+  payload: unknown,
+  environ: NodeJS.ProcessEnv,
+): AgyConversationSeam | null {
+  if (host !== "agy") return null;
+  const identity = resolveHookHostIdentity("agy", payload, environ);
+  const id = identity.status === "ok" ? identity.rawSessionId : null;
+  if (id === null || !AGY_CONVERSATION_ID_RE.test(id)) return null;
+  const raw =
+    typeof payload === "object" && payload !== null
+      ? (payload as Record<string, unknown>).artifactDirectoryPath
+      : undefined;
+  if (raw === undefined || raw === null) return { conversationId: id, artifactDirectoryPath: null };
+  // A present but unusable value must fail the cross-check, never be ignored.
+  return { conversationId: id, artifactDirectoryPath: typeof raw === "string" ? raw : "" };
 }
 
 export type OutsideEveryCheckoutVerdict =
@@ -616,6 +655,83 @@ function classifyWithContext(
   return { inClass: true };
 }
 
+/** True when `child` is strictly inside `parent` by exact names, in any form of either. */
+function strictlyInside(
+  child: string,
+  parents: readonly string[],
+  platform: NodeJS.Platform,
+): boolean {
+  return parents.some((parent) => {
+    const rest = pathInside(child, parent, platform, "exact");
+    return rest !== null && rest.length > 0;
+  });
+}
+
+/**
+ * Agy conversation-folder carve-out (#7445). A target is admitted only when it
+ * is strictly inside `<home>/.gemini/antigravity/brain/<conversationId>/` for the
+ * applying session's own id, by typed and by physical path. A conversation
+ * folder that is itself a link out of the brain folder, another conversation,
+ * `config/`, a `..` step and a link out all stay gated. A present payload
+ * `artifactDirectoryPath` must name the same folder; it never widens the carve-out.
+ */
+function isAgyConversationFolderTarget(
+  payloadRoot: string,
+  target: string,
+  ctx: Context,
+  agy: AgyConversationSeam,
+): boolean {
+  const { platform } = ctx;
+  if (!AGY_CONVERSATION_ID_RE.test(agy.conversationId)) return false;
+  if (target.trim().length === 0 || hasDeviceOrSharePrefix(target)) return false;
+  if (!isHostAbsolute(target, platform)) return false;
+  if (platform !== "win32" && target.includes("\\")) return false;
+  if (target.split(/[\\/]+/).some((part) => part === ".." || part === ".")) return false;
+  const typed = resolve(target);
+  const physical = buildPhysical(typed, ctx);
+  if ("error" in physical) return false;
+  if (physical.leaf !== null && !physical.leaf.isDirectory() && physical.leaf.nlink > 1) {
+    return false;
+  }
+  if (!isOutsideProjectRootWrite(payloadRoot, target)) return false;
+  for (const home of ctx.homes) {
+    for (const form of home.forms) {
+      const brain = join(form, ...AGY_BRAIN_PARTS);
+      const folder = join(brain, agy.conversationId);
+      if (!strictlyInside(typed, [folder], platform)) continue;
+      const brainPhysical = physicalOf(brain, ctx.realpath);
+      const folderPhysical = physicalOf(folder, ctx.realpath);
+      if (brainPhysical === null || folderPhysical === null) continue;
+      // The folder must be a real child of the brain folder, not a link elsewhere.
+      if (!strictlyInside(folderPhysical, [brainPhysical], platform)) continue;
+      if (folderPhysical !== join(brainPhysical, agy.conversationId)) continue;
+      if (!strictlyInside(physical.path, [folderPhysical], platform)) continue;
+      if (components(typed).some((part) => doubtfulComponent(part) !== null)) continue;
+      if (agy.artifactDirectoryPath !== null) {
+        const claimed = agy.artifactDirectoryPath;
+        if (
+          claimed.length === 0 ||
+          hasDeviceOrSharePrefix(claimed) ||
+          !isHostAbsolute(claimed, platform)
+        ) {
+          continue;
+        }
+        const claimedPath = resolve(claimed);
+        const same = (a: string): boolean => pathInside(a, folder, platform, "exact")?.length === 0;
+        const claimedPhysical = physicalOf(claimedPath, ctx.realpath);
+        if (
+          !same(claimedPath) &&
+          !(claimedPhysical !== null && claimedPhysical === folderPhysical)
+        ) {
+          continue;
+        }
+      }
+      return true;
+    }
+  }
+  return false;
+}
+
 /** Classify one direct-write target (#6376). Never throws. */
 export function classifyOutsideEveryCheckoutTarget(
   payloadRoot: string,
@@ -643,7 +759,12 @@ export function allTargetsOutsideEveryCheckout(
   try {
     const ctx = buildContext(payloadRoot, environ, seams);
     if ("error" in ctx) return false;
-    return targets.every((target) => classifyWithContext(payloadRoot, target, ctx).inClass);
+    const agy = seams.agyConversation ?? null;
+    return targets.every(
+      (target) =>
+        classifyWithContext(payloadRoot, target, ctx).inClass ||
+        (agy !== null && isAgyConversationFolderTarget(payloadRoot, target, ctx, agy)),
+    );
   } catch {
     return false;
   }
