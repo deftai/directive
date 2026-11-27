@@ -991,7 +991,18 @@ function hasNestedSessionStart(
   const sessionCommand = command(bin, host, "session.start");
   return session.some((entry) => {
     const group = object(entry);
-    return group?.matcher === undefined && nestedCommands(entry).includes(sessionCommand);
+    if (group === null || group.matcher !== undefined || !Array.isArray(group.hooks)) return false;
+    return (
+      nestedCommands(entry).includes(sessionCommand) &&
+      group.hooks.some((candidate) => {
+        const hook = object(candidate);
+        return (
+          hook !== null &&
+          hostHookEntryText(hook) === sessionCommand &&
+          hook.timeout === NESTED_HOOK_TIMEOUT_SECONDS
+        );
+      })
+    );
   });
 }
 
@@ -1000,7 +1011,9 @@ function hasCursorSessionStart(config: Record<string, unknown>, bin: string): bo
   if (hooks === null || config.version !== 1) return false;
   const session = Array.isArray(hooks.sessionStart) ? hooks.sessionStart : [];
   return session.some(
-    (entry) => object(entry)?.command === command(bin, "cursor", "session.start"),
+    (entry) =>
+      object(entry)?.command === command(bin, "cursor", "session.start") &&
+      object(entry)?.timeout === CURSOR_SESSION_HOOK_TIMEOUT_SECONDS,
   );
 }
 

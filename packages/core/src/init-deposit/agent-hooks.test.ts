@@ -546,10 +546,11 @@ describe("writeAgentHookDeposit", () => {
       expect(timeouts.every((t) => t === 30)).toBe(true);
       visitSessionStart(path, 5);
       expect(sessionStartTimeouts(path).every((t) => t === 5)).toBe(true);
-    }
-    expect(inspectAgentHookDeposit(root).some((entry) => entry.status === "drifted")).toBe(true);
-    writeAgentHookDeposit(root);
-    for (const path of paths) {
+      // Each host's own 5s deposit must read as drift, not only agy's.
+      expect(inspectAgentHookDeposit(root).find((entry) => entry.path === path)?.status).toBe(
+        "drifted",
+      );
+      writeAgentHookDeposit(root);
       expect(sessionStartTimeouts(path).every((t) => t === 30)).toBe(true);
     }
     expect(inspectAgentHookDeposit(root).every((entry) => entry.status === "healthy")).toBe(true);
