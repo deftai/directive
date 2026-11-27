@@ -65,7 +65,14 @@ const CLAUDE_WORKER_FLAGS = new Set([
   "--output-format",
 ]);
 
-const AGY_WORKER_FLAGS = new Set(["-p", "--print", "--prompt"]);
+const AGY_WORKER_FLAGS = new Set([
+  "-p",
+  "--print",
+  "--prompt",
+  "-i",
+  "--prompt-interactive",
+  "--dangerously-skip-permissions",
+]);
 
 const AGY_NON_WORKER_SUBCOMMANDS = new Set([
   "acp",

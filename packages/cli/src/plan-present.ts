@@ -14,7 +14,7 @@ import { INSTALL_SCRIPT_POLICY_PLAN_LINE } from "./pm.js";
  * CLI local copy — CLI production sources do not import core package deep paths).
  */
 export function hostHookRepairOptOutDisclosureBullet(
-  host: "claude" | "cursor" | "codex" | "grok" = "claude",
+  host: "claude" | "cursor" | "codex" | "grok" | "agy" = "claude",
 ): string {
   const registration =
     host === "cursor"
@@ -23,7 +23,9 @@ export function hostHookRepairOptOutDisclosureBullet(
         ? ".codex/hooks.json"
         : host === "grok"
           ? ".grok/hooks/deft.json"
-          : ".claude/settings.json";
+          : host === "agy"
+            ? ".agents/hooks.json"
+            : ".claude/settings.json";
   const outerGlob =
     host === "cursor"
       ? ".cursor/deft-hook-*.mjs"
@@ -31,7 +33,9 @@ export function hostHookRepairOptOutDisclosureBullet(
         ? ".codex/deft-hook-*.mjs"
         : host === "grok"
           ? ".grok/hooks/deft-hook-*.mjs"
-          : ".claude/deft-hook-*.mjs";
+          : host === "agy"
+            ? ".agents/deft-hook-*.mjs"
+            : ".claude/deft-hook-*.mjs";
   return `rewrite or remove Directive host hooks when plan.policy.hostHooks opts out (${registration}, ${outerGlob})`;
 }
 
@@ -633,6 +637,7 @@ export function presentRepairPlan(io: PresentIo, fields: RepairPlanFields): void
     writeGitHookPlanBullets(io, gitHookPlanFor(fields));
     // #7349 Prefer-A Bound P3: name host-hook paths before approval when opt-out rewrite may run.
     writeBullet(io, hostHookRepairOptOutDisclosureBullet());
+    writeBullet(io, hostHookRepairOptOutDisclosureBullet("agy"));
     writeBullet(io, "leave matching files and your other project files alone");
   } else {
     writeHumanParagraph(
@@ -645,6 +650,7 @@ export function presentRepairPlan(io: PresentIo, fields: RepairPlanFields): void
     writeBullet(io, "rerun project setup");
     writeGitHookPlanBullets(io, gitHookPlanFor(fields));
     writeBullet(io, hostHookRepairOptOutDisclosureBullet());
+    writeBullet(io, hostHookRepairOptOutDisclosureBullet("agy"));
     writeBlank(io);
     writeHumanParagraph(io, "Your existing settings and other files stay as they are.");
   }
@@ -835,6 +841,8 @@ export function classifyUninstallPath(pathLabel: string): UninstallPathCategory 
     p === ".cursor/hooks.json" ||
     p === ".codex/hooks.json" ||
     p === ".grok/hooks/deft.json" ||
+    p === ".agents/hooks.json" ||
+    /^\.agents\/deft-hook-[a-f0-9]{8}\.mjs$/.test(p) ||
     p.endsWith("/hooks.json") ||
     p.includes("/hooks/")
   ) {

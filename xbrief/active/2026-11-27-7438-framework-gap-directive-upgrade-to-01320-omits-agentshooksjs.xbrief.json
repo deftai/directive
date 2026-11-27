@@ -281,7 +281,8 @@
           "xbrief/PROJECT-DEFINITION.xbrief.json",
           "xbrief/evaluator-surface-disposition.json",
           "docs/RULE-MAP.md",
-          "changelog.d/7438-agy-install-wiring.md"
+          "changelog.d/7438-agy-install-wiring.md",
+          "packages/core/src/release-e2e/npm-ops-4507.test.ts"
         ],
         "file_scope_confidence": "medium",
         "depends_on": [],

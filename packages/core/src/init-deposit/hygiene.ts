@@ -107,7 +107,14 @@ function multiHostSkillDiscoveryManagedMatchers(): InstallerManagedMatcher[] {
 export function installerManagedMatchers(): InstallerManagedMatcher[] {
   return [
     { exact: "AGENTS.md" },
-    { prefix: ".agents/" },
+    // `.agents/` is shared with the user's own agy hooks and skills (#7438): claim only
+    // Directive's own paths. `hooks.json` is path-only here; entry ownership is decided
+    // by `classifyDirectiveOwnedChange` (the `zzzz-directive` key).
+    { exact: ".agents/hooks.json" },
+    { prefix: ".agents/deft-hook-" },
+    ...CONSUMER_SKILL_DISCOVERY_INVENTORY.map((skill) => ({
+      exact: `.agents/skills/${skill.dir}/SKILL.md`,
+    })),
     // Multi-host skill discovery thin pointers (#75 residual) — not slash commands (#55).
     // Exact inventory paths only; never claim the whole host skills tree.
     ...multiHostSkillDiscoveryManagedMatchers(),

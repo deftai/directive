@@ -2088,8 +2088,20 @@ describe("Pass 2 commit-set and #1430 peers (#4271)", () => {
     expect(isPass2CommitPath(".codex/")).toBe(false);
     expect(isPass2CommitPath(".grok/")).toBe(false);
     expect(isPass2CommitPath(".github/")).toBe(false);
-    expect(isPass2CommitPath(".agents/")).toBe(true);
+    // `.agents/` is shared with the user's own agy hooks and skills (#7438).
+    expect(isPass2CommitPath(".agents/")).toBe(false);
     expect(isPass2CommitPath(".githooks/")).toBe(true);
+  });
+
+  it("claims only Directive's own paths under .agents/ (#7438)", () => {
+    expect(isPass2CommitPath(".agents/hooks.json")).toBe(true);
+    expect(isPass2CommitPath(".agents/deft-hook-deadbeef.mjs")).toBe(true);
+    expect(isPass2CommitPath(".agents/skills/deft/SKILL.md")).toBe(true);
+    expect(isPass2CommitPath(".agents/skills/deft-directive-build/SKILL.md")).toBe(true);
+    expect(isPass2CommitPath(".agents/skills/my-own-skill/SKILL.md")).toBe(false);
+    expect(isPass2CommitPath(".agents/skills/deft/notes.md")).toBe(false);
+    expect(isPass2CommitPath(".agents/my-hook.mjs")).toBe(false);
+    expect(installerManagedMatchers().some((matcher) => matcher.prefix === ".agents/")).toBe(false);
   });
 
   it("accepts install-written data-schema.json and the seed placeholder (#6965)", () => {

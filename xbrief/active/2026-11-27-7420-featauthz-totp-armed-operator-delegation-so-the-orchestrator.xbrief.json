@@ -458,7 +458,9 @@
           "packages/core/src/content-contracts/standards/declared_records_7031.test.ts",
           "docs/RULE-MAP.md",
           "xbrief/evaluator-surface-disposition.json",
-          "changelog.d/7420-totp-delegation.md"
+          "changelog.d/7420-totp-delegation.md",
+          "packages/runtime/src/verify-scope-provenance.ts",
+          "packages/runtime/src/kill-switch.ts"
         ],
         "file_scope_confidence": "high",
         "depends_on": [],

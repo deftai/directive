@@ -1463,4 +1463,13 @@ describe("presentRepairPlan host-hook opt-out disclosure (#7349 P3)", () => {
     expect(capturePlan(false)).toContain(expected);
     expect(capturePlan(true)).toContain(expected);
   });
+
+  it("names the agy registration and outer glob on both repair branches (#7438)", () => {
+    const expected = hostHookRepairOptOutDisclosureBullet("agy");
+    expect(expected).toBe(coreHostHookRepairOptOutDisclosureBullet("agy"));
+    expect(expected).toContain(".agents/hooks.json");
+    expect(expected).toContain(".agents/deft-hook-*.mjs");
+    expect(capturePlan(false)).toContain(expected);
+    expect(capturePlan(true)).toContain(expected);
+  });
 });

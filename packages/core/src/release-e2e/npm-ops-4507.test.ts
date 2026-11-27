@@ -84,7 +84,9 @@ describe("post-publish Pass 2 host-root porcelain (#4507)", () => {
     expect(isPass2CommitPath(".github/")).toBe(false);
     expect(isPass2CommitPath(".claude/custom.md")).toBe(false);
     expect(isPass2CommitPath(".github/workflows/ci.yml")).toBe(false);
-    expect(isPass2CommitPath(".agents/")).toBe(true);
+    // `.agents/` is shared with the user's agy hooks and skills; only Directive's paths count (#7438).
+    expect(isPass2CommitPath(".agents/")).toBe(false);
+    expect(isPass2CommitPath(".agents/hooks.json")).toBe(true);
     expect(isPass2CommitPath(".githooks/")).toBe(true);
   });
 

@@ -5,7 +5,7 @@
 
 import { execFileSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, realpathSync } from "node:fs";
-import { dirname, isAbsolute, join, resolve } from "node:path";
+import { basename, dirname, isAbsolute, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { isFrameworkSourceCheckoutAt } from "@deftai/directive-core/dist/doctor/paths.js";
 import {
@@ -23,6 +23,8 @@ import {
   SPAWN_HOOK_MATCHER,
 } from "@deftai/directive-core/dist/hooks/tools.js";
 import {
+  AGY_HOOK_PATH,
+  agyDepositAdmitted,
   GROK_PRETOOLUSE_WRAPPER_REL_PATH,
   hostHookEntryFields,
   hostHookEntryPrefix,
@@ -33,7 +35,12 @@ import {
   hostHookOuterSource,
   isGrokWrapperCommand,
   isHostHookOuterCommand,
+  mergeAgyConfig,
 } from "@deftai/directive-core/dist/init-deposit/agent-hooks.js";
+import {
+  referencedHostHookOuterNames,
+  stripAgyHostHookConfig,
+} from "@deftai/directive-core/dist/init-deposit/host-hook-outer.js";
 import {
   DESIRED_GITATTRIBUTES_LINES,
   ensureGitattributes,
@@ -888,6 +895,7 @@ function stripNestedManaged(
     "PreToolUse",
     "PreCompact",
     "PostCompact",
+    "SessionEnd",
     "UserPromptSubmit",
   ] as const) {
     if (!(key in hooks)) continue;
@@ -943,7 +951,7 @@ function keepCustomNestedGroups(entries: unknown[], host: string): unknown[] {
 function mergeNestedHost(
   existing: Record<string, unknown>,
   host: string,
-  options: { compact: boolean; promptSubmit?: boolean },
+  options: { compact: boolean; sessionEnd?: boolean; promptSubmit?: boolean },
 ): Record<string, unknown> {
   const hooks = object(existing.hooks) ?? {};
   const session = Array.isArray(hooks.SessionStart)
@@ -975,6 +983,13 @@ function mergeNestedHost(
       ? keepCustomNestedGroups(hooks.UserPromptSubmit as unknown[], host)
       : [];
     nextHooks.UserPromptSubmit = [...promptSubmit, nestedGroup(host, "prompt.submit")];
+  }
+  if (options.sessionEnd) {
+    // Releases the session lease on every end reason (no matcher), as `verify:hooks-installed` does (#6274 / #7438).
+    const sessionEnd = Array.isArray(hooks.SessionEnd)
+      ? keepCustomNestedGroups(hooks.SessionEnd as unknown[], host)
+      : [];
+    nextHooks.SessionEnd = [...sessionEnd, nestedGroup(host, "session.end")];
   }
   return { ...existing, hooks: nextHooks };
 }
@@ -1047,7 +1062,8 @@ const HOST_HOOK_SPECS: Array<{
   {
     host: "claude",
     rel: ".claude/settings.json",
-    merge: (cfg) => mergeNestedHost(cfg, "claude", { compact: true, promptSubmit: true }),
+    merge: (cfg) =>
+      mergeNestedHost(cfg, "claude", { compact: true, sessionEnd: true, promptSubmit: true }),
     strip: (cfg) => stripNestedManaged(cfg, "claude"),
   },
   {
@@ -1076,9 +1092,11 @@ export function ensureHostHooks(
 ): {
   created: string[];
   modified: string[];
+  warnings: string[];
 } {
   const created: string[] = [];
   const modified: string[] = [];
+  const warnings: string[] = [];
 
   for (const spec of HOST_HOOK_SPECS) {
     const abs = join(projectRoot, spec.rel);
@@ -1125,6 +1143,15 @@ export function ensureHostHooks(
       }
     }
   }
+  ensureAgyHostHook(
+    projectRoot,
+    hostHooksPolicy,
+    outerSource,
+    outerSha8,
+    created,
+    modified,
+    warnings,
+  );
   const wrapperRel = GROK_PRETOOLUSE_WRAPPER_REL_PATH;
   if (existsSync(join(projectRoot, wrapperRel))) {
     try {
@@ -1135,7 +1162,107 @@ export function ensureHostHooks(
     }
   }
 
-  return { created, modified };
+  return { created, modified, warnings };
+}
+
+/** agy hook file as written, with no command rewrite: the file is shared with the user's hooks. */
+function readAgyHookConfig(
+  abs: string,
+): { ok: true; config: Record<string, unknown> } | { ok: false; warning: string } {
+  const raw = readFileSync(abs, "utf8");
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (cause) {
+    return {
+      ok: false,
+      warning: `Skipped the agy hooks: ${AGY_HOOK_PATH} is not valid JSON (${cause}). The file was left unchanged.`,
+    };
+  }
+  const obj = object(parsed);
+  if (obj === null) {
+    return {
+      ok: false,
+      warning: `Skipped the agy hooks: ${AGY_HOOK_PATH} must contain a JSON object. The file was left unchanged.`,
+    };
+  }
+  return { ok: true, config: obj };
+}
+
+/**
+ * agy deposit (#7347 / #7438): the `zzzz-directive` entry of `.agents/hooks.json` and the
+ * `.agents/deft-hook-<sha8>.mjs` outer. Deposits only when policy enables agy and the
+ * committed admission verdict admits it. The hook file is entry-owned: foreign entries stay,
+ * and an opt-out removes only Directive's entry (the file goes when nothing else is left).
+ */
+function ensureAgyHostHook(
+  projectRoot: string,
+  hostHooksPolicy: HostHooksPolicy,
+  outerSource: string,
+  outerSha8: string,
+  created: string[],
+  modified: string[],
+  warnings: string[],
+): void {
+  const enabled =
+    isHostHookDepositEnabled("agy", hostHooksPolicy) && agyDepositAdmitted(outerSource);
+  const abs = join(projectRoot, AGY_HOOK_PATH);
+  const prior = readText(abs);
+  const outerRel = hostHookOuterRelPath("agy", outerSha8);
+  if (enabled) {
+    const read = prior === null ? { ok: true as const, config: {} } : readAgyHookConfig(abs);
+    if (!read.ok) {
+      warnings.push(read.warning);
+      return;
+    }
+    const base = read.config;
+    const merged = mergeAgyConfig(base, outerSha8);
+    // A foreign hook that uses Directive's name is left as is (same object back).
+    if (prior === null || merged !== base) {
+      const next = `${JSON.stringify(merged, null, 2)}\n`;
+      if (prior === null || !contentsEqualIgnoringEol(prior, next)) {
+        writeContained(projectRoot, AGY_HOOK_PATH, next);
+        if (prior === null) created.push(AGY_HOOK_PATH);
+        else modified.push(AGY_HOOK_PATH);
+      }
+    }
+    const priorOuter = readText(join(projectRoot, outerRel));
+    if (priorOuter === null || !contentsEqualIgnoringEol(priorOuter, outerSource)) {
+      writeContained(projectRoot, outerRel, outerSource);
+      if (priorOuter === null) created.push(outerRel);
+      else modified.push(outerRel);
+    }
+    return;
+  }
+  let keptConfig: Record<string, unknown> | null = null;
+  if (prior !== null) {
+    const read = readAgyHookConfig(abs);
+    if (!read.ok) {
+      warnings.push(read.warning);
+      return;
+    }
+    const cfg = read.config;
+    const stripped = stripAgyHostHookConfig(cfg);
+    keptConfig = Object.keys(stripped).length === 0 ? null : stripped;
+    if (stripped !== cfg) {
+      if (Object.keys(stripped).length === 0) {
+        containedRemove({ root: projectRoot, target: AGY_HOOK_PATH });
+      } else {
+        writeContained(projectRoot, AGY_HOOK_PATH, `${JSON.stringify(stripped, null, 2)}\n`);
+      }
+      modified.push(AGY_HOOK_PATH);
+    }
+  }
+  // A kept entry (a user command chained onto Directive's) still runs the outer: keep the file.
+  const stillReferenced = referencedHostHookOuterNames(keptConfig).has(basename(outerRel));
+  if (!stillReferenced && existsSync(join(projectRoot, outerRel))) {
+    try {
+      containedRemove({ root: projectRoot, target: outerRel });
+      modified.push(outerRel);
+    } catch {
+      /* best-effort strip */
+    }
+  }
 }
 
 /** Escape `text` for use inside a double-quoted sh string. */

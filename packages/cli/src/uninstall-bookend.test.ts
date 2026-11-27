@@ -859,7 +859,7 @@ describe("v261027 .mjs outers through the launcher fallback (#6615 / AC11.4)", (
     const root = tempProject("mjs-fallback");
     writeFileSync(join(root, "package.json"), `${JSON.stringify({ private: true }, null, 2)}\n`);
     runSetup({ operation: "install", from: "none", root });
-    expect(outersOnDisk(root)).toHaveLength(4);
+    expect(outersOnDisk(root)).toHaveLength(5);
     rmSync(join(root, ".deft", "GENERATION.json"));
     writeFileSync(join(root, ".cursor", "hooks", "consumer-custom.mjs"), "// mine\n");
 
@@ -956,7 +956,7 @@ describe("v261027 .mjs outers through the launcher fallback (#6615 / AC11.4)", (
     rmSync(join(root, ".deft", "GENERATION.json"));
     const report = applyLauncherCleanup(root, discoverUninstallFootprint(root));
     expect(readFileSync(rel, "utf8")).toContain("&& node scripts/check.mjs");
-    expect(outersOnDisk(root)).toHaveLength(4);
+    expect(outersOnDisk(root)).toHaveLength(5);
     expect(report.leftovers).toEqual(expect.arrayContaining([".codex/hooks.json#hooks"]));
   });
 
@@ -967,9 +967,77 @@ describe("v261027 .mjs outers through the launcher fallback (#6615 / AC11.4)", (
     const rel = join(root, ".codex", "hooks.json");
     writeFileSync(rel, `${readFileSync(rel, "utf8")}\n{ broken`);
     const report = applyLauncherCleanup(root, discoverUninstallFootprint(root));
-    expect(outersOnDisk(root)).toHaveLength(4);
+    expect(outersOnDisk(root)).toHaveLength(5);
     expect(report.leftovers).toEqual(expect.arrayContaining([".codex/hooks.json#hooks"]));
-    expect(report.leftovers.filter((l) => l.endsWith(".mjs"))).toHaveLength(4);
+    expect(report.leftovers.filter((l) => l.endsWith(".mjs"))).toHaveLength(5);
+  });
+
+  describe("agy hook file is entry-owned (#7438)", () => {
+    const AGY = ".agents/hooks.json";
+    const FOREIGN = {
+      mine: { PreToolUse: [{ matcher: "x", hooks: [{ command: "node mine.mjs" }] }] },
+    };
+
+    it("strips only the zzzz-directive entry, keeps foreign hooks, removes the outer", () => {
+      const root = tempProject("agy-keep-foreign");
+      writeFileSync(join(root, "package.json"), `${JSON.stringify({ private: true }, null, 2)}\n`);
+      mkdirSync(join(root, ".agents"), { recursive: true });
+      writeFileSync(join(root, AGY), `${JSON.stringify(FOREIGN, null, 2)}\n`);
+      runSetup({ operation: "install", from: "none", root });
+      expect(JSON.parse(readFileSync(join(root, AGY), "utf8"))["zzzz-directive"]).toBeDefined();
+      // The ownership record is present: the entry is stripped through it.
+      applyLauncherCleanup(root, discoverUninstallFootprint(root));
+      expect(JSON.parse(readFileSync(join(root, AGY), "utf8"))).toEqual(FOREIGN);
+      expect(outersOnDisk(root).filter((rel) => rel.startsWith(".agents/"))).toEqual([]);
+      expect(verifyUninstallComplete(root).leftovers.filter((l) => l.includes("agents"))).toEqual(
+        [],
+      );
+    });
+
+    it("deletes the file only when Directive's entry was all it held", () => {
+      const root = tempProject("agy-delete-empty");
+      writeFileSync(join(root, "package.json"), `${JSON.stringify({ private: true }, null, 2)}\n`);
+      runSetup({ operation: "install", from: "none", root });
+      expect(existsSync(join(root, AGY))).toBe(true);
+      rmSync(join(root, ".deft", "GENERATION.json"));
+      const report = applyLauncherCleanup(root, discoverUninstallFootprint(root));
+      expect(existsSync(join(root, AGY))).toBe(false);
+      expect(report.removed).toContain(AGY);
+    });
+
+    it("leaves a foreign-only file byte for byte", () => {
+      const root = tempProject("agy-foreign-only");
+      mkdirSync(join(root, ".agents"), { recursive: true });
+      const bytes = `${JSON.stringify(FOREIGN)}\n`;
+      writeFileSync(join(root, AGY), bytes);
+      applyLauncherCleanup(root, discoverUninstallFootprint(root));
+      expect(readFileSync(join(root, AGY), "utf8")).toBe(bytes);
+    });
+
+    it("strips the entry in grouped and flat SessionStart shapes", () => {
+      const cmd = (event: string): string =>
+        `node deft-hook-1a2b3c4d.mjs --host agy --event ${event}`;
+      const shapes = [
+        { SessionStart: [{ hooks: [{ command: cmd("session.start") }] }] },
+        { SessionStart: [{ command: cmd("session.start") }] },
+      ];
+      for (const [index, sessionStart] of shapes.entries()) {
+        const root = tempProject(`agy-shape-${index}`);
+        mkdirSync(join(root, ".agents"), { recursive: true });
+        writeFileSync(
+          join(root, AGY),
+          `${JSON.stringify({
+            ...FOREIGN,
+            "zzzz-directive": {
+              ...sessionStart,
+              PreToolUse: [{ matcher: "*", hooks: [{ command: cmd("tool.before") }] }],
+            },
+          })}\n`,
+        );
+        applyLauncherCleanup(root, discoverUninstallFootprint(root));
+        expect(JSON.parse(readFileSync(join(root, AGY), "utf8"))).toEqual(FOREIGN);
+      }
+    });
   });
 });
 

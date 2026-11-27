@@ -567,6 +567,7 @@ describe("runSetup convert-via-removals (WAVE3-V2 3f)", () => {
     };
     const outers = gen.ownership.filter((o) => /deft-hook-[a-f0-9]{8}\.mjs$/.test(o.path));
     expect(outers.map((o) => o.path.replace(/deft-hook-[a-f0-9]{8}/, "X")).sort()).toEqual([
+      ".agents/X.mjs",
       ".claude/X.mjs",
       ".codex/X.mjs",
       ".cursor/hooks/X.mjs",
