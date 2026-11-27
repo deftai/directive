@@ -222,7 +222,7 @@ describe("writeAgentHookDeposit no-swap recovery (#4716)", () => {
       code: 0 as const,
       message: "live green",
       cases: [],
-      hosts: (["claude", "grok", "cursor", "codex"] as const).map((host) => ({
+      hosts: (["claude", "grok", "cursor", "codex", "agy"] as const).map((host) => ({
         host,
         status: "functional" as const,
       })),
@@ -241,7 +241,7 @@ describe("writeAgentHookDeposit no-swap recovery (#4716)", () => {
     expect(probe).toHaveBeenCalledTimes(1);
     expect(probe).toHaveBeenCalledWith(
       resolve(root),
-      expect.objectContaining({ hosts: ["claude", "grok", "cursor", "codex"] }),
+      expect.objectContaining({ hosts: ["claude", "grok", "cursor", "codex", "agy"] }),
     );
   });
 
