@@ -44,4 +44,4 @@ minimumReleaseAgeExclude:
   - brace-expansion@5.0.12
   - postcss@8.5.25
   - source-map-js@1.2.2
-  - '@deftai/directive-runtime@0.131.5'
+  - "@deftai/directive-runtime@0.132.0"
