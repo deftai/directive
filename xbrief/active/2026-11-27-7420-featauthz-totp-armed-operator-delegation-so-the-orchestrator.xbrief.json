@@ -945,6 +945,70 @@
       }
     },
     "id": "github.issue.6637624220",
-    "updated": "2026-11-27T05:44:17Z"
+    "updated": "2026-11-27T05:44:17Z",
+    "x-directive/intentConstraint": {
+      "constraints": [
+        {
+          "value": "1",
+          "unit": "rethrow-after-temp-cleanup",
+          "rejectionScope": "operation"
+        },
+        {
+          "value": "1",
+          "unit": "schema-version",
+          "rejectionScope": "operation"
+        },
+        {
+          "value": "12",
+          "unit": "hours",
+          "rejectionScope": "operation"
+        },
+        {
+          "value": "72",
+          "unit": "hours",
+          "rejectionScope": "operation"
+        },
+        {
+          "value": "1",
+          "unit": "hours",
+          "rejectionScope": "operation"
+        },
+        {
+          "value": "30",
+          "unit": "seconds",
+          "rejectionScope": "operation"
+        },
+        {
+          "value": "6",
+          "unit": "digits",
+          "rejectionScope": "operation"
+        },
+        {
+          "value": "1",
+          "unit": "steps",
+          "rejectionScope": "operation"
+        },
+        {
+          "value": "20",
+          "unit": "bytes",
+          "rejectionScope": "operation"
+        },
+        {
+          "value": "5000",
+          "unit": "milliseconds",
+          "rejectionScope": "operation"
+        },
+        {
+          "value": "25",
+          "unit": "milliseconds",
+          "rejectionScope": "operation"
+        },
+        {
+          "value": "72",
+          "unit": "hours",
+          "rejectionScope": "operation"
+        }
+      ]
+    }
   }
 }

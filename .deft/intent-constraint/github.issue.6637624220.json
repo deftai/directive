@@ -1,0 +1,75 @@
+{
+  "schema": "deft.intent-constraint.v1",
+  "planId": "github.issue.6637624220",
+  "xbriefRelPath": "xbrief/active/2026-11-27-7420-featauthz-totp-armed-operator-delegation-so-the-orchestrator.xbrief.json",
+  "approvedAt": "2026-11-27T17:52:19Z",
+  "constraints": [
+    {
+      "value": "1",
+      "unit": "rethrow-after-temp-cleanup",
+      "rejectionScope": "operation"
+    },
+    {
+      "value": "1",
+      "unit": "schema-version",
+      "rejectionScope": "operation"
+    },
+    {
+      "value": "12",
+      "unit": "hours",
+      "rejectionScope": "operation"
+    },
+    {
+      "value": "72",
+      "unit": "hours",
+      "rejectionScope": "operation"
+    },
+    {
+      "value": "1",
+      "unit": "hours",
+      "rejectionScope": "operation"
+    },
+    {
+      "value": "30",
+      "unit": "seconds",
+      "rejectionScope": "operation"
+    },
+    {
+      "value": "6",
+      "unit": "digits",
+      "rejectionScope": "operation"
+    },
+    {
+      "value": "1",
+      "unit": "steps",
+      "rejectionScope": "operation"
+    },
+    {
+      "value": "20",
+      "unit": "bytes",
+      "rejectionScope": "operation"
+    },
+    {
+      "value": "5000",
+      "unit": "milliseconds",
+      "rejectionScope": "operation"
+    },
+    {
+      "value": "25",
+      "unit": "milliseconds",
+      "rejectionScope": "operation"
+    },
+    {
+      "value": "72",
+      "unit": "hours",
+      "rejectionScope": "operation"
+    }
+  ],
+  "humanApproval": {
+    "kind": "declared",
+    "actor": "unspecified",
+    "mintedAt": "2026-11-27T17:52:19Z",
+    "mintedVia": "scope:record-intent-constraint"
+  },
+  "contractDigest": "764aee78fd21e9e03b5d7d9e40622257c5cc970358f24686c3d55728d915e39f"
+}
