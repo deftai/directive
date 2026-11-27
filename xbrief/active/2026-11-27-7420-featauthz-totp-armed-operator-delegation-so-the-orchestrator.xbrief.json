@@ -1,0 +1,945 @@
+{
+  "xBRIEFInfo": {
+    "version": "0.8",
+    "description": "Scope xBRIEF ingested from GitHub issue #7420",
+    "updated": "2026-11-27T05:44:17Z"
+  },
+  "plan": {
+    "title": "feat(authz): TOTP-armed operator delegation so the orchestrator can run terminal-only steps from a phone-only operator",
+    "status": "running",
+    "narratives": {
+      "Description": "feat(authz): TOTP-armed operator delegation so the orchestrator can run terminal-only steps from a phone-only operator",
+      "Origin": "Ingested from https://github.com/deftai/directive/issues/7420",
+      "Overview": "\n\n1. One core arming verb takes the prompt text and the host session id from a thin host adapter. It checks the TOTP code against the secret enrolled at a real terminal, accepts it only when its time step is greater than `lastAcceptedStep` in the protected delegation store, sets `lastAcceptedStep` to that step whenever a valid code is seen (even when the rest of the command is refused), and writes the record in the same locked step. A step at or below `lastAcceptedStep` is a quiet no-op.\n2. The record holds the arm-time host session id, `expiresAt` (default 12h, max 72h) and the allowlist. The session id limits the record's life and labels the audit; it is not isolation between same-user agents, and the TTL is the real cap. `deft delegate off`, TTL, session end, UAT start, the kill switch and a terminal `deft authz:revoke` each end it.\n3. While the record is live, #7279 harness-attended requests complete with a new provenance `delegated-totp` (not `host-user-event`), only for `scope:record-approved-scope` and `authz:grant` with one of the templates `release-cut`, `release-publish`, `release-rollback` or `release-promote-latest`. Every other harness-attended verb and template refuses. Completing a request is one compare-and-set from open to completed.\n4. Grants and approved-scope stamps minted this way carry a distinct delegated origin, and exactly one consumer accepts each: the scope-provenance fence check (`packages/core/src/scope-provenance/evaluate.ts`) for a delegated approved-scope stamp, and `evaluateClosedVerb` (`packages/core/src/authz/closed-verb.ts`) for a delegated release grant, only for the release verb its template names. `isHumanOrigin`, `isHumanApprovalStamp`, the general grant check in `authz/evaluate.ts`, the #6138 `protected`-class floor and every other consumer keep refusing a delegated origin. A delegated grant or stamp expires no later than the delegation and stops admitting when the delegation ends.\n5. Hook denies: the only delegable deny in this change is `prospective-scope-cover-deny`, and only for the advisory-capable scope-cover failure (targets resolved, staged paths read). It becomes allow-with-audit and the remaining checks still run. Unresolved targets, unreadable staged paths and index-changing forms still refuse. The inventory adds deny codes only in this per-condition form.\n6. The install-health stop is removed rather than delegated: while the runtime is missing, the outer hook stub admits one standalone install invocation, the lockfile-matched command its refusal names, run with the stub's resolved project root as its working directory and with no extra arguments or chained commands. Every other tool call stays blocked.\n7. Never delegable: the body's list, plus `finish-loop`, `gate-override` and `spec-drift-override` grants, grants with raw ops and no template, `authz:uat-*` and `authz:revoke`. The human merge gate is unchanged.\n8. Each delegated mint or allow is audited with its provenance and posts one chat line. The docs state the strength as parity of forging effort with the terminal gate and a wider blast radius, name the passkey (#6945 / #7046) as the upgrade that makes the code unproducible by an agent, and say that under standing delegation the #7279 digest is not human review.\n\n## Acceptance Criteria\n\n\n- [ ] A valid code arms; a wrong or missing code, or a step at or below `lastAcceptedStep`, writes nothing; a valid code inside a refused command still advances `lastAcceptedStep`; a repeat of the same input is a quiet no-op.\n- [ ] Two concurrent arms with the same code create one record, and two concurrent completions of one request complete it once.\n- [ ] The record carries the arm-time session id and an expiry no later than 72h; a fixture shows that `delegate off`, TTL expiry, session end, UAT start, the kill switch and a terminal `authz:revoke` each end it.\n- [ ] End to end for approved-scope: with a live record an agent shell mints a stamp, the scope-provenance fence check admits the stamped path, and after disarm the same stamp no longer admits; without a record the mint refuses as today.\n- [ ] End to end for each of the four release templates: with a live record an agent shell mints the grant, `evaluateClosedVerb` admits the matching release verb and refuses every other verb, and after disarm the same grant no longer admits.\n- [ ] A delegated grant or stamp is refused by `isHumanOrigin`, `isHumanApprovalStamp`, the general grant check, the #6138 `protected`-class floor and the other approved-scope readers.\n- [ ] `prospective-scope-cover-deny` allows with audit only for the advisory-capable scope-cover failure and the remaining checks still run; unresolved targets, unreadable staged paths and index-changing forms still refuse.\n- [ ] With the runtime missing, the hook stub admits its named install command run in the stub's project root, and refuses the same command in another working directory, with extra arguments, or chained with another command; every other tool call stays blocked.\n- [ ] With a live record, `finish-loop`, `gate-override`, `spec-drift-override`, raw-ops grants, `authz:uat-*`, `authz:revoke` and the body's never-delegable list still refuse.\n- [ ] Each delegated action is told apart from a terminal action by its provenance in the record and the audit, and posts one chat line.\n- [ ] The docs state parity of forging effort, the wider blast radius, the passkey upgrade, and that the #7279 digest is not human review under standing delegation.\n- [ ] Arming logic lives in one core verb; the Claude adapter passes only prompt text and session id; the Antigravity adapter follows #7332 and the two probes in amendment comment 7206768951.\n- [ ] The inventory table is in the PR, with an outcome (delegable in the B5 form, remove, or human-only with a reason) for each stop.\n\n",
+      "Labels": "enhancement, design-critique:ingest-ready"
+    },
+    "items": [
+      {
+        "title": "One core arming verb takes the prompt text and the host session id from a thin host adapter. It checks the TOTP code against the secret enrolled at a real terminal, accepts it only when its time step is greater than `lastAcceptedStep` in the protected delegation store, sets `lastAcceptedStep` to that step whenever a valid code is seen (even when the rest of the command is refused), and writes the record in the same locked step. A step at or below `lastAcceptedStep` is a quiet no-op.",
+        "status": "proposed",
+        "id": "clause.1"
+      },
+      {
+        "title": "The record holds the arm-time host session id, `expiresAt` (default 12h, max 72h) and the allowlist. The session id limits the record's life and labels the audit; it is not isolation between same-user agents, and the TTL is the real cap. `deft delegate off`, TTL, session end, UAT start, the kill switch and a terminal `deft authz:revoke` each end it.",
+        "status": "proposed",
+        "id": "clause.2",
+        "x-directive/requires": "merge"
+      },
+      {
+        "title": "While the record is live, #7279 harness-attended requests complete with a new provenance `delegated-totp` (not `host-user-event`), only for `scope:record-approved-scope` and `authz:grant` with one of the templates `release-cut`, `release-publish`, `release-rollback` or `release-promote-latest`. Every other harness-attended verb and template refuses. Completing a request is one compare-and-set from open to completed.",
+        "status": "proposed",
+        "id": "clause.3"
+      },
+      {
+        "title": "Grants and approved-scope stamps minted this way carry a distinct delegated origin, and exactly one consumer accepts each: the scope-provenance fence check (`packages/core/src/scope-provenance/evaluate.ts`) for a delegated approved-scope stamp, and `evaluateClosedVerb` (`packages/core/src/authz/closed-verb.ts`) for a delegated release grant, only for the release verb its template names. `isHumanOrigin`, `isHumanApprovalStamp`, the general grant check in `authz/evaluate.ts`, the #6138 `protected`-class floor and every other consumer keep refusing a delegated origin. A delegated grant or stamp expires no later than the delegation and stops admitting when the delegation ends.",
+        "status": "proposed",
+        "id": "clause.4"
+      },
+      {
+        "title": "Hook denies: the only delegable deny in this change is `prospective-scope-cover-deny`, and only for the advisory-capable scope-cover failure (targets resolved, staged paths read). It becomes allow-with-audit and the remaining checks still run. Unresolved targets, unreadable staged paths and index-changing forms still refuse. The inventory adds deny codes only in this per-condition form.",
+        "status": "proposed",
+        "id": "clause.5"
+      },
+      {
+        "title": "The install-health stop is removed rather than delegated: while the runtime is missing, the outer hook stub admits one standalone install invocation, the lockfile-matched command its refusal names, run with the stub's resolved project root as its working directory and with no extra arguments or chained commands. Every other tool call stays blocked.",
+        "status": "proposed",
+        "id": "clause.6"
+      },
+      {
+        "title": "Never delegable: the body's list, plus `finish-loop`, `gate-override` and `spec-drift-override` grants, grants with raw ops and no template, `authz:uat-*` and `authz:revoke`. The human merge gate is unchanged.",
+        "status": "proposed",
+        "id": "clause.7"
+      },
+      {
+        "title": "Each delegated mint or allow is audited with its provenance and posts one chat line. The docs state the strength as parity of forging effort with the terminal gate and a wider blast radius, name the passkey (#6945 / #7046) as the upgrade that makes the code unproducible by an agent, and say that under standing delegation the #7279 digest is not human review.",
+        "status": "proposed",
+        "id": "clause.8"
+      },
+      {
+        "title": "A valid code arms; a wrong or missing code, or a step at or below `lastAcceptedStep`, writes nothing; a valid code inside a refused command still advances `lastAcceptedStep`; a repeat of the same input is a quiet no-op.",
+        "status": "proposed",
+        "id": "clause.9"
+      },
+      {
+        "title": "Two concurrent arms with the same code create one record, and two concurrent completions of one request complete it once.",
+        "status": "proposed",
+        "id": "clause.10"
+      },
+      {
+        "title": "The record carries the arm-time session id and an expiry no later than 72h; a fixture shows that `delegate off`, TTL expiry, session end, UAT start, the kill switch and a terminal `authz:revoke` each end it.",
+        "status": "proposed",
+        "id": "clause.11",
+        "x-directive/requires": "merge"
+      },
+      {
+        "title": "End to end for approved-scope: with a live record an agent shell mints a stamp, the scope-provenance fence check admits the stamped path, and after disarm the same stamp no longer admits; without a record the mint refuses as today.",
+        "status": "proposed",
+        "id": "clause.12"
+      },
+      {
+        "title": "End to end for each of the four release templates: with a live record an agent shell mints the grant, `evaluateClosedVerb` admits the matching release verb and refuses every other verb, and after disarm the same grant no longer admits.",
+        "status": "proposed",
+        "id": "clause.13"
+      },
+      {
+        "title": "A delegated grant or stamp is refused by `isHumanOrigin`, `isHumanApprovalStamp`, the general grant check, the #6138 `protected`-class floor and the other approved-scope readers.",
+        "status": "proposed",
+        "id": "clause.14"
+      },
+      {
+        "title": "`prospective-scope-cover-deny` allows with audit only for the advisory-capable scope-cover failure and the remaining checks still run; unresolved targets, unreadable staged paths and index-changing forms still refuse.",
+        "status": "proposed",
+        "id": "clause.15"
+      },
+      {
+        "title": "With the runtime missing, the hook stub admits its named install command run in the stub's project root, and refuses the same command in another working directory, with extra arguments, or chained with another command; every other tool call stays blocked.",
+        "status": "proposed",
+        "id": "clause.16"
+      },
+      {
+        "title": "With a live record, `finish-loop`, `gate-override`, `spec-drift-override`, raw-ops grants, `authz:uat-*`, `authz:revoke` and the body's never-delegable list still refuse.",
+        "status": "proposed",
+        "id": "clause.17"
+      },
+      {
+        "title": "Each delegated action is told apart from a terminal action by its provenance in the record and the audit, and posts one chat line.",
+        "status": "proposed",
+        "id": "clause.18"
+      },
+      {
+        "title": "The docs state parity of forging effort, the wider blast radius, the passkey upgrade, and that the #7279 digest is not human review under standing delegation.",
+        "status": "proposed",
+        "id": "clause.19"
+      },
+      {
+        "title": "Arming logic lives in one core verb; the Claude adapter passes only prompt text and session id; the Antigravity adapter follows #7332 and the two probes in amendment comment 7206768951.",
+        "status": "proposed",
+        "id": "clause.20"
+      },
+      {
+        "title": "The inventory table is in the PR, with an outcome (delegable in the B5 form, remove, or human-only with a reason) for each stop.",
+        "status": "proposed",
+        "id": "clause.21"
+      }
+    ],
+    "tags": [
+      "enhancement",
+      "design-critique:ingest-ready"
+    ],
+    "references": [
+      {
+        "uri": "https://github.com/deftai/directive/issues/7420",
+        "type": "x-xbrief/github-issue",
+        "title": "Issue #7420: feat(authz): TOTP-armed operator delegation so the orchestrator can run terminal-only steps from a phone-only operator"
+      },
+      {
+        "uri": "https://github.com/deftai/directive/issues/7279",
+        "type": "x-xbrief/refs",
+        "title": "Issue #7279"
+      }
+    ],
+    "acceptance": {
+      "commands": [],
+      "none_stated": true,
+      "source_rung": "derived",
+      "derived_reason": "one clause per harvested lean item (21), in list order (#6333)",
+      "sentences": [
+        "One core arming verb takes the prompt text and the host session id from a thin host adapter. It checks the TOTP code against the secret enrolled at a real terminal, accepts it only when its time step is greater than `lastAcceptedStep` in the protected delegation store, sets `lastAcceptedStep` to that step whenever a valid code is seen (even when the rest of the command is refused), and writes the record in the same locked step. A step at or below `lastAcceptedStep` is a quiet no-op.",
+        "The record holds the arm-time host session id, `expiresAt` (default 12h, max 72h) and the allowlist. The session id limits the record's life and labels the audit; it is not isolation between same-user agents, and the TTL is the real cap. `deft delegate off`, TTL, session end, UAT start, the kill switch and a terminal `deft authz:revoke` each end it.",
+        "While the record is live, #7279 harness-attended requests complete with a new provenance `delegated-totp` (not `host-user-event`), only for `scope:record-approved-scope` and `authz:grant` with one of the templates `release-cut`, `release-publish`, `release-rollback` or `release-promote-latest`. Every other harness-attended verb and template refuses. Completing a request is one compare-and-set from open to completed.",
+        "Grants and approved-scope stamps minted this way carry a distinct delegated origin, and exactly one consumer accepts each: the scope-provenance fence check (`packages/core/src/scope-provenance/evaluate.ts`) for a delegated approved-scope stamp, and `evaluateClosedVerb` (`packages/core/src/authz/closed-verb.ts`) for a delegated release grant, only for the release verb its template names. `isHumanOrigin`, `isHumanApprovalStamp`, the general grant check in `authz/evaluate.ts`, the #6138 `protected`-class floor and every other consumer keep refusing a delegated origin. A delegated grant or stamp expires no later than the delegation and stops admitting when the delegation ends.",
+        "Hook denies: the only delegable deny in this change is `prospective-scope-cover-deny`, and only for the advisory-capable scope-cover failure (targets resolved, staged paths read). It becomes allow-with-audit and the remaining checks still run. Unresolved targets, unreadable staged paths and index-changing forms still refuse. The inventory adds deny codes only in this per-condition form.",
+        "The install-health stop is removed rather than delegated: while the runtime is missing, the outer hook stub admits one standalone install invocation, the lockfile-matched command its refusal names, run with the stub's resolved project root as its working directory and with no extra arguments or chained commands. Every other tool call stays blocked.",
+        "Never delegable: the body's list, plus `finish-loop`, `gate-override` and `spec-drift-override` grants, grants with raw ops and no template, `authz:uat-*` and `authz:revoke`. The human merge gate is unchanged.",
+        "Each delegated mint or allow is audited with its provenance and posts one chat line. The docs state the strength as parity of forging effort with the terminal gate and a wider blast radius, name the passkey (#6945 / #7046) as the upgrade that makes the code unproducible by an agent, and say that under standing delegation the #7279 digest is not human review.",
+        "A valid code arms; a wrong or missing code, or a step at or below `lastAcceptedStep`, writes nothing; a valid code inside a refused command still advances `lastAcceptedStep`; a repeat of the same input is a quiet no-op.",
+        "Two concurrent arms with the same code create one record, and two concurrent completions of one request complete it once.",
+        "The record carries the arm-time session id and an expiry no later than 72h; a fixture shows that `delegate off`, TTL expiry, session end, UAT start, the kill switch and a terminal `authz:revoke` each end it.",
+        "End to end for approved-scope: with a live record an agent shell mints a stamp, the scope-provenance fence check admits the stamped path, and after disarm the same stamp no longer admits; without a record the mint refuses as today.",
+        "End to end for each of the four release templates: with a live record an agent shell mints the grant, `evaluateClosedVerb` admits the matching release verb and refuses every other verb, and after disarm the same grant no longer admits.",
+        "A delegated grant or stamp is refused by `isHumanOrigin`, `isHumanApprovalStamp`, the general grant check, the #6138 `protected`-class floor and the other approved-scope readers.",
+        "`prospective-scope-cover-deny` allows with audit only for the advisory-capable scope-cover failure and the remaining checks still run; unresolved targets, unreadable staged paths and index-changing forms still refuse.",
+        "With the runtime missing, the hook stub admits its named install command run in the stub's project root, and refuses the same command in another working directory, with extra arguments, or chained with another command; every other tool call stays blocked.",
+        "With a live record, `finish-loop`, `gate-override`, `spec-drift-override`, raw-ops grants, `authz:uat-*`, `authz:revoke` and the body's never-delegable list still refuse.",
+        "Each delegated action is told apart from a terminal action by its provenance in the record and the audit, and posts one chat line.",
+        "The docs state parity of forging effort, the wider blast radius, the passkey upgrade, and that the #7279 digest is not human review under standing delegation.",
+        "Arming logic lives in one core verb; the Claude adapter passes only prompt text and session id; the Antigravity adapter follows #7332 and the two probes in amendment comment 7206768951.",
+        "The inventory table is in the PR, with an outcome (delegable in the B5 form, remove, or human-only with a reason) for each stop."
+      ],
+      "admitted_source_sentences": [
+        "One core arming verb takes the prompt text and the host session id from a thin host adapter. It checks the TOTP code against the secret enrolled at a real terminal, accepts it only when its time step is greater than `lastAcceptedStep` in the protected delegation store, sets `lastAcceptedStep` to that step whenever a valid code is seen (even when the rest of the command is refused), and writes the record in the same locked step. A step at or below `lastAcceptedStep` is a quiet no-op.",
+        "The record holds the arm-time host session id, `expiresAt` (default 12h, max 72h) and the allowlist. The session id limits the record's life and labels the audit; it is not isolation between same-user agents, and the TTL is the real cap. `deft delegate off`, TTL, session end, UAT start, the kill switch and a terminal `deft authz:revoke` each end it.",
+        "While the record is live, #7279 harness-attended requests complete with a new provenance `delegated-totp` (not `host-user-event`), only for `scope:record-approved-scope` and `authz:grant` with one of the templates `release-cut`, `release-publish`, `release-rollback` or `release-promote-latest`. Every other harness-attended verb and template refuses. Completing a request is one compare-and-set from open to completed.",
+        "Grants and approved-scope stamps minted this way carry a distinct delegated origin, and exactly one consumer accepts each: the scope-provenance fence check (`packages/core/src/scope-provenance/evaluate.ts`) for a delegated approved-scope stamp, and `evaluateClosedVerb` (`packages/core/src/authz/closed-verb.ts`) for a delegated release grant, only for the release verb its template names. `isHumanOrigin`, `isHumanApprovalStamp`, the general grant check in `authz/evaluate.ts`, the #6138 `protected`-class floor and every other consumer keep refusing a delegated origin. A delegated grant or stamp expires no later than the delegation and stops admitting when the delegation ends.",
+        "Hook denies: the only delegable deny in this change is `prospective-scope-cover-deny`, and only for the advisory-capable scope-cover failure (targets resolved, staged paths read). It becomes allow-with-audit and the remaining checks still run. Unresolved targets, unreadable staged paths and index-changing forms still refuse. The inventory adds deny codes only in this per-condition form.",
+        "The install-health stop is removed rather than delegated: while the runtime is missing, the outer hook stub admits one standalone install invocation, the lockfile-matched command its refusal names, run with the stub's resolved project root as its working directory and with no extra arguments or chained commands. Every other tool call stays blocked.",
+        "Never delegable: the body's list, plus `finish-loop`, `gate-override` and `spec-drift-override` grants, grants with raw ops and no template, `authz:uat-*` and `authz:revoke`. The human merge gate is unchanged.",
+        "Each delegated mint or allow is audited with its provenance and posts one chat line. The docs state the strength as parity of forging effort with the terminal gate and a wider blast radius, name the passkey (#6945 / #7046) as the upgrade that makes the code unproducible by an agent, and say that under standing delegation the #7279 digest is not human review.",
+        "A valid code arms; a wrong or missing code, or a step at or below `lastAcceptedStep`, writes nothing; a valid code inside a refused command still advances `lastAcceptedStep`; a repeat of the same input is a quiet no-op.",
+        "Two concurrent arms with the same code create one record, and two concurrent completions of one request complete it once.",
+        "The record carries the arm-time session id and an expiry no later than 72h; a fixture shows that `delegate off`, TTL expiry, session end, UAT start, the kill switch and a terminal `authz:revoke` each end it.",
+        "End to end for approved-scope: with a live record an agent shell mints a stamp, the scope-provenance fence check admits the stamped path, and after disarm the same stamp no longer admits; without a record the mint refuses as today.",
+        "End to end for each of the four release templates: with a live record an agent shell mints the grant, `evaluateClosedVerb` admits the matching release verb and refuses every other verb, and after disarm the same grant no longer admits.",
+        "A delegated grant or stamp is refused by `isHumanOrigin`, `isHumanApprovalStamp`, the general grant check, the #6138 `protected`-class floor and the other approved-scope readers.",
+        "`prospective-scope-cover-deny` allows with audit only for the advisory-capable scope-cover failure and the remaining checks still run; unresolved targets, unreadable staged paths and index-changing forms still refuse.",
+        "With the runtime missing, the hook stub admits its named install command run in the stub's project root, and refuses the same command in another working directory, with extra arguments, or chained with another command; every other tool call stays blocked.",
+        "With a live record, `finish-loop`, `gate-override`, `spec-drift-override`, raw-ops grants, `authz:uat-*`, `authz:revoke` and the body's never-delegable list still refuse.",
+        "Each delegated action is told apart from a terminal action by its provenance in the record and the audit, and posts one chat line.",
+        "The docs state parity of forging effort, the wider blast radius, the passkey upgrade, and that the #7279 digest is not human review under standing delegation.",
+        "Arming logic lives in one core verb; the Claude adapter passes only prompt text and session id; the Antigravity adapter follows #7332 and the two probes in amendment comment 7206768951.",
+        "The inventory table is in the PR, with an outcome (delegable in the B5 form, remove, or human-only with a reason) for each stop."
+      ],
+      "admitted_source_digest": "d96d1138fbb7932da0cf647040a2d96bce81a6ddc10478e01cbd35128dbfd595",
+      "clauses": [
+        {
+          "id": 1,
+          "text": "One core arming verb takes the prompt text and the host session id from a thin host adapter. It checks the TOTP code against the secret enrolled at a real terminal, accepts it only when its time step is greater than `lastAcceptedStep` in the protected delegation store, sets `lastAcceptedStep` to that step whenever a valid code is seen (even when the rest of the command is refused), and writes the record in the same locked step. A step at or below `lastAcceptedStep` is a quiet no-op.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 2,
+          "text": "The record holds the arm-time host session id, `expiresAt` (default 12h, max 72h) and the allowlist. The session id limits the record's life and labels the audit; it is not isolation between same-user agents, and the TTL is the real cap. `deft delegate off`, TTL, session end, UAT start, the kill switch and a terminal `deft authz:revoke` each end it.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 3,
+          "text": "While the record is live, #7279 harness-attended requests complete with a new provenance `delegated-totp` (not `host-user-event`), only for `scope:record-approved-scope` and `authz:grant` with one of the templates `release-cut`, `release-publish`, `release-rollback` or `release-promote-latest`. Every other harness-attended verb and template refuses. Completing a request is one compare-and-set from open to completed.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 4,
+          "text": "Grants and approved-scope stamps minted this way carry a distinct delegated origin, and exactly one consumer accepts each: the scope-provenance fence check (`packages/core/src/scope-provenance/evaluate.ts`) for a delegated approved-scope stamp, and `evaluateClosedVerb` (`packages/core/src/authz/closed-verb.ts`) for a delegated release grant, only for the release verb its template names. `isHumanOrigin`, `isHumanApprovalStamp`, the general grant check in `authz/evaluate.ts`, the #6138 `protected`-class floor and every other consumer keep refusing a delegated origin. A delegated grant or stamp expires no later than the delegation and stops admitting when the delegation ends.",
+          "artifact_path": "packages/core/src/authz/closed-verb.ts",
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 5,
+          "text": "Hook denies: the only delegable deny in this change is `prospective-scope-cover-deny`, and only for the advisory-capable scope-cover failure (targets resolved, staged paths read). It becomes allow-with-audit and the remaining checks still run. Unresolved targets, unreadable staged paths and index-changing forms still refuse. The inventory adds deny codes only in this per-condition form.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 6,
+          "text": "The install-health stop is removed rather than delegated: while the runtime is missing, the outer hook stub admits one standalone install invocation, the lockfile-matched command its refusal names, run with the stub's resolved project root as its working directory and with no extra arguments or chained commands. Every other tool call stays blocked.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 7,
+          "text": "Never delegable: the body's list, plus `finish-loop`, `gate-override` and `spec-drift-override` grants, grants with raw ops and no template, `authz:uat-*` and `authz:revoke`. The human merge gate is unchanged.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 8,
+          "text": "Each delegated mint or allow is audited with its provenance and posts one chat line. The docs state the strength as parity of forging effort with the terminal gate and a wider blast radius, name the passkey (#6945 / #7046) as the upgrade that makes the code unproducible by an agent, and say that under standing delegation the #7279 digest is not human review.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 9,
+          "text": "A valid code arms; a wrong or missing code, or a step at or below `lastAcceptedStep`, writes nothing; a valid code inside a refused command still advances `lastAcceptedStep`; a repeat of the same input is a quiet no-op.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 10,
+          "text": "Two concurrent arms with the same code create one record, and two concurrent completions of one request complete it once.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 11,
+          "text": "The record carries the arm-time session id and an expiry no later than 72h; a fixture shows that `delegate off`, TTL expiry, session end, UAT start, the kill switch and a terminal `authz:revoke` each end it.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 12,
+          "text": "End to end for approved-scope: with a live record an agent shell mints a stamp, the scope-provenance fence check admits the stamped path, and after disarm the same stamp no longer admits; without a record the mint refuses as today.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 13,
+          "text": "End to end for each of the four release templates: with a live record an agent shell mints the grant, `evaluateClosedVerb` admits the matching release verb and refuses every other verb, and after disarm the same grant no longer admits.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 14,
+          "text": "A delegated grant or stamp is refused by `isHumanOrigin`, `isHumanApprovalStamp`, the general grant check, the #6138 `protected`-class floor and the other approved-scope readers.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 15,
+          "text": "`prospective-scope-cover-deny` allows with audit only for the advisory-capable scope-cover failure and the remaining checks still run; unresolved targets, unreadable staged paths and index-changing forms still refuse.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 16,
+          "text": "With the runtime missing, the hook stub admits its named install command run in the stub's project root, and refuses the same command in another working directory, with extra arguments, or chained with another command; every other tool call stays blocked.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 17,
+          "text": "With a live record, `finish-loop`, `gate-override`, `spec-drift-override`, raw-ops grants, `authz:uat-*`, `authz:revoke` and the body's never-delegable list still refuse.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 18,
+          "text": "Each delegated action is told apart from a terminal action by its provenance in the record and the audit, and posts one chat line.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 19,
+          "text": "The docs state parity of forging effort, the wider blast radius, the passkey upgrade, and that the #7279 digest is not human review under standing delegation.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 20,
+          "text": "Arming logic lives in one core verb; the Claude adapter passes only prompt text and session id; the Antigravity adapter follows #7332 and the two probes in amendment comment 7206768951.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        },
+        {
+          "id": 21,
+          "text": "The inventory table is in the PR, with an outcome (delegable in the B5 form, remove, or human-only with a reason) for each stop.",
+          "artifact_path": null,
+          "ambiguous": false,
+          "provenance": "statement"
+        }
+      ],
+      "ambiguity_attestation": "none_found"
+    },
+    "metadata": {
+      "intended_placement": {
+        "schema": "deft.scope.intended_placement.v1",
+        "files": [
+          "packages/core/src/authz/delegation/types.ts",
+          "packages/core/src/authz/delegation/totp.ts",
+          "packages/core/src/authz/delegation/store.ts",
+          "packages/core/src/authz/delegation/arm.ts",
+          "packages/core/src/authz/types.ts",
+          "packages/core/src/authz/origin.ts",
+          "packages/core/src/authz/store.ts",
+          "packages/core/src/authz/closed-verb.ts",
+          "packages/core/src/scope-provenance/digest.ts",
+          "packages/core/src/scope-provenance/evaluate.ts",
+          "packages/core/src/hooks/dispatcher.ts",
+          "packages/runtime/src/delegate.ts",
+          "packages/runtime/src/delegate-adapter-claude.ts",
+          "packages/runtime/src/human-presence-mint.ts",
+          "packages/runtime/src/authz.ts",
+          "packages/runtime/src/scope-record-approved-scope.ts"
+        ],
+        "module_boundary": "packages/core/src/authz and packages/runtime/src",
+        "cohesion_exemption": "One authority change: the delegation record, its TOTP arming, the delegated origin, its two named consumers, the hook allow and the stub admit co-travel with their tests; splitting would leave a delegated origin with no consumer or a record with no verifier"
+      },
+      "kind": "story",
+      "swarm": {
+        "readiness": "ready",
+        "parallel_safe": false,
+        "conflict_group": "authz-delegation",
+        "size": "L",
+        "file_scope": [
+          "packages/core/src/authz/delegation/types.ts",
+          "packages/core/src/authz/delegation/totp.ts",
+          "packages/core/src/authz/delegation/totp.test.ts",
+          "packages/core/src/authz/delegation/store.ts",
+          "packages/core/src/authz/delegation/store.test.ts",
+          "packages/core/src/authz/delegation/arm.ts",
+          "packages/core/src/authz/delegation/arm.test.ts",
+          "packages/core/src/authz/delegation/delegation-e2e.test.ts",
+          "packages/core/src/authz/index.ts",
+          "packages/core/src/authz/types.ts",
+          "packages/core/src/authz/origin.ts",
+          "packages/core/src/authz/origin.test.ts",
+          "packages/core/src/authz/store.ts",
+          "packages/core/src/authz/store.test.ts",
+          "packages/core/src/authz/closed-verb.ts",
+          "packages/core/src/authz/closed-verb.test.ts",
+          "packages/core/src/authz/promote-latest-verb.test.ts",
+          "packages/core/src/authz/evaluate.test.ts",
+          "packages/core/src/authz/evaluate-branches.test.ts",
+          "packages/core/src/authz/incident-regression.test.ts",
+          "packages/core/src/authz/classify.test.ts",
+          "packages/core/src/authz/actions.ts",
+          "packages/core/src/authz/actions.test.ts",
+          "packages/core/src/scope-provenance/digest.ts",
+          "packages/core/src/scope-provenance/digest.test.ts",
+          "packages/core/src/scope-provenance/digest-branches.test.ts",
+          "packages/core/src/scope-provenance/record-stamp.ts",
+          "packages/core/src/scope-provenance/record-stamp.test.ts",
+          "packages/core/src/scope-provenance/evaluate.ts",
+          "packages/core/src/scope-provenance/evaluate.test.ts",
+          "packages/core/src/policy/write-fence-budget.test.ts",
+          "packages/core/src/policy/one-pr-scope-proof.test.ts",
+          "packages/core/src/durable-effect-acquisition/ceiling.test.ts",
+          "packages/core/src/presentation-ceiling/evaluate.test.ts",
+          "packages/core/src/presentation-coverage/artifact.test.ts",
+          "packages/core/src/hooks/dispatcher.ts",
+          "packages/core/src/hooks/dispatcher.test.ts",
+          "packages/core/src/hooks/dispatcher-active-scope.test.ts",
+          "packages/core/src/hooks/dispatcher-story-binding.test.ts",
+          "packages/core/src/hooks/dispatcher-write-gate.test.ts",
+          "packages/core/src/hooks/classify/host-session-identity.ts",
+          "packages/core/src/hooks/classify/host-session-identity.test.ts",
+          "packages/core/src/init-deposit/agent-hooks.ts",
+          "packages/core/src/init-deposit/agent-hooks.test.ts",
+          "packages/core/src/init-deposit/host-hook-outer.ts",
+          "packages/core/src/init-deposit/host-hook-outer.test.ts",
+          "packages/core/src/init-deposit/claude-hook-subfolder.test.ts",
+          "packages/core/src/install-health/recovery-admit.ts",
+          "packages/core/src/install-health/recovery-admit.test.ts",
+          "packages/core/src/verify-env/agent-hooks-live-probe.ts",
+          "packages/core/src/verify-env/agent-hooks-live-probe.test.ts",
+          "packages/core/src/release/run.ts",
+          "packages/core/src/release/run.test.ts",
+          "packages/cli/src/entry-guard.ts",
+          "packages/cli/src/entry-guard-parity.test.ts",
+          "packages/runtime/src/delegate.ts",
+          "packages/runtime/src/delegate.test.ts",
+          "packages/runtime/src/delegate-adapter-claude.ts",
+          "packages/runtime/src/delegate-adapter-claude.test.ts",
+          "packages/runtime/src/human-presence-mint.ts",
+          "packages/runtime/src/human-presence-mint.test.ts",
+          "packages/runtime/src/human-presence-mint.open-flag.test.ts",
+          "packages/runtime/src/authz.ts",
+          "packages/runtime/src/authz.test.ts",
+          "packages/runtime/src/authz-disposition.test.ts",
+          "packages/runtime/src/scope-record-approved-scope.ts",
+          "packages/runtime/src/scope-record-approved-scope.test.ts",
+          "packages/runtime/src/scope-record-approved-scope-cohort.ts",
+          "packages/runtime/src/mint-audit.test.ts",
+          "packages/runtime/src/kill-switch.test.ts",
+          "packages/runtime/src/hook-dispatch.ts",
+          "packages/runtime/src/hook-dispatch.test.ts",
+          "packages/runtime/src/setup-wiring.ts",
+          "packages/runtime/src/setup-wiring.test.ts",
+          "packages/runtime/src/dispatch.ts",
+          "packages/runtime/src/dispatch.test.ts",
+          "packages/runtime/src/cli-router/route-argv.ts",
+          "packages/runtime/src/cli-router/route-argv.test.ts",
+          "content/contracts/human-origin-authz.md",
+          "content/docs/operator-delegation.md",
+          "content/docs/scope-provenance.md",
+          "content/commands.md",
+          "packages/core/src/content-contracts/standards/approvers_6945.test.ts",
+          "packages/core/src/content-contracts/standards/declared_records_7031.test.ts",
+          "docs/RULE-MAP.md",
+          "xbrief/evaluator-surface-disposition.json",
+          "changelog.d/7420-totp-delegation.md"
+        ],
+        "file_scope_confidence": "high",
+        "depends_on": [],
+        "verify_commands": [
+          "pnpm exec vitest run --reporter=dot packages/core/src/authz/delegation packages/core/src/authz/origin.test.ts packages/core/src/authz/store.test.ts packages/core/src/authz/closed-verb.test.ts packages/core/src/authz/promote-latest-verb.test.ts",
+          "pnpm exec vitest run --reporter=dot packages/core/src/authz/evaluate.test.ts packages/core/src/authz/evaluate-branches.test.ts packages/core/src/authz/incident-regression.test.ts packages/core/src/authz/classify.test.ts packages/core/src/authz/actions.test.ts",
+          "pnpm exec vitest run --reporter=dot packages/core/src/scope-provenance packages/core/src/policy/write-fence-budget.test.ts packages/core/src/policy/one-pr-scope-proof.test.ts packages/core/src/durable-effect-acquisition/ceiling.test.ts packages/core/src/presentation-ceiling/evaluate.test.ts packages/core/src/presentation-coverage/artifact.test.ts",
+          "pnpm exec vitest run --reporter=dot packages/core/src/hooks/dispatcher.test.ts packages/core/src/hooks/dispatcher-active-scope.test.ts packages/core/src/hooks/dispatcher-story-binding.test.ts packages/core/src/hooks/dispatcher-write-gate.test.ts packages/core/src/hooks/classify/host-session-identity.test.ts",
+          "pnpm exec vitest run --reporter=dot packages/core/src/init-deposit/agent-hooks.test.ts packages/core/src/init-deposit/host-hook-outer.test.ts packages/core/src/init-deposit/claude-hook-subfolder.test.ts packages/core/src/install-health/recovery-admit.test.ts packages/core/src/verify-env/agent-hooks-live-probe.test.ts packages/cli/src/entry-guard-parity.test.ts",
+          "pnpm exec vitest run --reporter=dot packages/runtime/src/delegate.test.ts packages/runtime/src/delegate-adapter-claude.test.ts packages/runtime/src/human-presence-mint.test.ts packages/runtime/src/human-presence-mint.open-flag.test.ts packages/runtime/src/authz.test.ts packages/runtime/src/authz-disposition.test.ts",
+          "pnpm exec vitest run --reporter=dot packages/runtime/src/scope-record-approved-scope.test.ts packages/runtime/src/mint-audit.test.ts packages/runtime/src/kill-switch.test.ts packages/runtime/src/hook-dispatch.test.ts packages/runtime/src/setup-wiring.test.ts packages/runtime/src/dispatch.test.ts packages/runtime/src/cli-router/route-argv.test.ts",
+          "pnpm exec vitest run --reporter=dot packages/core/src/release/run.test.ts packages/core/src/content-contracts/standards/approvers_6945.test.ts packages/core/src/content-contracts/standards/declared_records_7031.test.ts"
+        ],
+        "expected_outputs": [
+          "Core arming verb (packages/core/src/authz/delegation) plus a Claude UserPromptSubmit adapter; protected delegation record under .deft/authz/delegation/ with lastAcceptedStep; delegated-totp provenance for scope:record-approved-scope and the four release templates only; one named consumer per delegated origin (scope-provenance fence, evaluateClosedVerb); prospective-scope-cover-deny allow-with-audit for the advisory-capable failure only; missing-runtime install admit bound to the stub project root (may already hold from #7275: verify and test); docs; inventory table in the PR.",
+          "New named constants, each its own (never borrow another action's constant): delegation TTL default 12h and max 72h; TOTP step (30s), digits (6) and accepted-window drift; TOTP secret location outside the repo (user config dir) and enrollment file name; delegation store rel path .deft/authz/delegation; delegated origin kind and mintedVia/completedVia value delegated-totp; delegated grant/stamp expiry cap; chat-line text. Each new numeric or throw may trip verify:intent-constraint: if it does, STOP and report the operator mint command (no disguised literals).",
+          "Possible Scott mints at build time: scope:record-approved-scope widen if a path outside file_scope is needed; intent-constraint mint for the new constants; evaluator-surface-disposition entries for the new deny/provenance rows (file is in file_scope).",
+          "Area note: hook deposit (UserPromptSubmit registration in agent-hooks.ts and setup-wiring.ts), the host-hook outer stub and recovery-admit sit in the OVPR installer area (polfer). The bound remedy B6 names the stub; confirm his wording approval before the build touches those files."
+        ],
+        "model_tier": "high"
+      },
+      "issueCommentThread": [
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## Scope amendment: arming is host-neutral; Antigravity is the second host\n\nThe proof is the TOTP code, not the host. Split the arming step in two:\n\n- **Core verb.** It takes the prompt text and the host session identity. It checks the code (single-use, within the time window) and writes the delegation record. All checks and the record format live here.\n- **Thin host adapters.** Each one passes the prompt text and session identity to the core verb. It decides nothing itself.\n\n| Host | Event | Prompt text | Session identity |\n| --- | --- | --- | --- |\n| Claude Code | `UserPromptSubmit` | `prompt` | `session_id` |\n| Antigravity (after #7332) | `PreInvocation` | `lastUserInput` | `conversationId` |\n\n**Antigravity notes**\n\n- Antigravity has no prompt-submit event. `lastUserInput` comes with every model call in a turn, so one message can fire the adapter many times. The single-use code (already an AC) makes repeat calls do nothing. The adapter must not fail or alarm when a code was already used for the same input.\n- `invoke_subagent` and other input sent by agents will likely look like user input, as it does in Claude. The code check covers this the same way.\n- Not yet probed:\n  1. whether a message from the Antigravity phone app reaches the desktop conversation and fires `PreInvocation`;\n  2. whether `run_command` shells can see `conversationId`, so the delegation can be bound to the session.\n\n  Run the same logging-only probe used for Claude before the adapter is built.\n\n**Added acceptance criteria**\n\n- [ ] Arming logic lives in one core verb. Host adapters only extract the prompt text and session identity.\n- [ ] Claude adapter (this issue). Antigravity adapter after #7332 lands, gated on the two probe results above.\n- [ ] A repeat adapter call with an already-used code for the same input is a quiet no-op.\n\n",
+          "id": 7206768951,
+          "html_url": "https://github.com/deftai/directive/issues/7420#issuecomment-7206768951",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-27T00:48:30Z",
+          "updated_at": "2026-11-27T00:48:30Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: triage\n```\n\nmechanism-shaped: true\ndesign-critique: warranted, because #7420 adds a way for an agent session to complete human-presence mints (`refuseNonInteractiveMint`, #7279 harness-attended requests) and to turn chosen PreToolUse deny codes into allow-with-audit, armed by a code typed in chat. That changes authority, untrusted input (prompt text), identity (session binding) and shared state (a protected delegation store), and a wrong call either keeps the phone-only operator stuck or lets an agent arm its own delegation.\n\narc-mode: no-ingest\nyolo-standing: on\nmateriality-bar: open\nspend-recommend: N≥3\nspend: N≥3\nspend-ask: resolved\ncharter: refutation\nrefutation-target: A 6-digit TOTP code checked by a prompt-submit hook is a factor a same-user agent can neither produce nor replay, so a delegation armed by it and bound to the host session id is at least as strong as today's terminal mint check (`refuseNonInteractiveMint`) for the steps it unlocks.\nstop-2-why: refutation (the body asserts that prompt text is not proof and that a TOTP code closes that gap); N≥3 panel permission applies because the target widens who can complete human-presence mints and pass hook denies, so a wrong call is a security hole on every delegated step.\ndest: C:\\Repos\\deft\\directive\\.deft-scratch\\worktrees\\arc-7420\norigin-ref: origin/HEAD\ndispatch-sha: f2e0e60939c96c381ed45bdc161be3ad194adf6e\nverification-path: pin-read git show f2e0e60939c96c381ed45bdc161be3ad194adf6e:; dest cwd-without-occupy\ndual-stop-reserved: first post-lean pain-audit of asserted coverage in-cap via evaluateDualStopParentPath; raise after reserved spent\nparent-posture: read-only. The primary checkout's occupancy lease belongs to the coordinator session; this arc leaves it in place and writes nothing in the primary (comments and catalog chips only).\n\npain: P1, P2\n\n- **P1**: Terminal-only mints (`scope:record-approved-scope`, `authz:grant` and the other `authz:*` mutators behind `refuseNonInteractiveMint`) stop a phone-only operator until they are back at a terminal.\n- **P2**: PreToolUse hook denies that have no grant escape (commit admission `prospective-scope-cover-deny` #6278, the install-health block) stop a phone-only operator the same way.\n\nNot pains (work items in the body): the inventory of \"a person runs it\" stops, and the Antigravity adapter after #7332 (amendment comment 7206768951).\n\nkeep: the never-delegable list in the body stays human-only; the human merge gate is unchanged; the delegation is never the human-origin grant that opens the `protected` target class in #6138.\n\nLocked by the operator on 2026-11-26 (critics may attack how each is built, not whether to have it):\n- standing delegation, not per-mint approval;\n- TOTP arming (passkey deferred, see #6945 / #7046);\n- host-neutral arming: one core verb plus thin host adapters (Claude `UserPromptSubmit`; Antigravity `PreInvocation` + `lastUserInput` after #7332).\n\nOperator test points for this arc:\n1. `UserPromptSubmit` is not proof that a human typed the prompt (probe evidence in the body).\n2. The TOTP secret is readable by a same-user agent; the operator accepted this as equal to today's terminal check. Check that claim.\n3. Code replay from the transcript.\n4. Session binding via `CLAUDE_CODE_SESSION_ID`, which the agent's shell can set itself.\n5. The delegation must never count as the human-origin grant that opens the #6138 `protected` class.\n6. Which deny codes are safe to delegate.\n\nOperator direction: prefer remedies that remove stops over ones that add gates.\n\nRelated: #7279 / #7272 (harness-attended mint), #6138 (target-class write floor), #6413 (memory-folder writes, separate arc), #3801 (standing mandate), #6945 / #7046 (signed approvers), #6740 (kill switch), #6278 (commit admission).\n\n",
+          "id": 7206997758,
+          "html_url": "https://github.com/deftai/directive/issues/7420#issuecomment-7206997758",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-27T01:05:09Z",
+          "updated_at": "2026-11-27T01:05:09Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\npanel-deposit\nround: 1\nsiblings: 3\ninput-ceiling: this comment (round-start snapshot taken after POST; the envelope id ceiling is authoritative)\nfamilies: grok, claude, codex\nseat: grok launcher: grok\nseat: claude launcher: spawn_subagent\nseat: codex launcher: codex\nverification-path: pin-read git show f2e0e60939c96c381ed45bdc161be3ad194adf6e:; dest cwd-without-occupy\nlaunch-probe: pass. Codex exec with the read-only sandbox and the dest as its working root; the Grok CLI with the dest as cwd in auto permission mode, web search and subagents off; the Claude seat as a native Claude Code subagent (model opus). All three replied pong. The parent runs in Claude Code auto mode, so read-only launcher forms stand in for the bypass argv. Disclosed here. Critics read only and get a parent-written snapshot of the thread up to the ceiling; the parent posts each critic body verbatim.\n\n",
+          "id": 7207069770,
+          "html_url": "https://github.com/deftai/directive/issues/7420#issuecomment-7207069770",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-27T01:10:13Z",
+          "updated_at": "2026-11-27T01:10:13Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: none\n\nThe refutation target does not hold as stated. A same-user-readable TOTP secret permits code generation; single-use codes do not authenticate the supplied session identity. Standing delegation and TOTP can remain, but their authority boundary needs revision before this design binds.\n\nVerification used source reads at `f2e0e60939c96c381ed45bdc161be3ad194adf6e`, not executable tests.\n\n### F1 — blocks-the-design — The accepted secret exposure defeats the asserted factor\n\n**Evidence:** Stop 1 test point 2 explicitly accepts a secret readable by a same-user agent. The amendment makes prompt text and supplied session identity sufficient inputs to the core arming verb. Conversely, `packages/runtime/src/human-presence-mint.ts:170–206` reads confirmation from a controlling terminal and defaults the host-event reader to `null`.\n\n**Failure:** An agent that reads the secret can calculate a fresh code and submit its own arming input. Replay rejection does nothing against fresh codes. “Outside the repo” and protected-store write restrictions do not prevent secret reads.\n\nToday's terminal checks are not proof of resistance to an unrestricted same-user process either: environment markers and terminal access are process-level checks. That weakness cannot establish the stronger assertion that the new factor is unproducible by an agent.\n\n**Consequence:** Preserve TOTP, but either put verification and its secret behind an execution boundary unavailable to agent tools, or explicitly scope the feature to cooperative-agent safeguards and withdraw the anti-self-arming guarantee. A secret store callable or decryptable by the same agent identity does not resolve this finding.\n\n### F2 — blocks-the-design — Session labels and single-use codes leave substitution and concurrency unresolved\n\n**Evidence:** The amendment passes session identity into the core verb; Stop 1 acknowledges that the shell can set `CLAUDE_CODE_SESSION_ID`. In `human-presence-mint.ts`, `admitHarnessAttendedMint` checks only that `hostEvent.hostSessionId` is nonempty; it does not compare it with a trusted requesting-session identity. Its completion path loads an open request, then separately saves it as completed.\n\n**Failure:** A caller-controlled session label can select another session's delegation. A fresh code copied before consumption can authorize a different TTL or session because TOTP itself binds neither. Concurrent adapter calls can both pass a non-atomic replay check; concurrent mint confirmations can both observe an open request. Antigravity's repeated delivery makes idempotence a normal case, not merely an attack case.\n\n**Consequence:** The design needs an authenticated session binding at both arming and use, atomic code consumption plus delegation creation, and atomic request consumption. Quiet retries must identify the same completed arming transaction and must never recreate or extend a revoked delegation. The existing request digest is useful but does not supply those properties.\n\n### F3 — blocks-the-design — Delegated grants can acquire human authority and outlive disarm\n\n**Evidence:** `packages/core/src/authz/actions.ts:161–186` mints operator origin and defaults grant expiry to `null`. `packages/core/src/authz/origin.ts:34–49` decides human origin from `origin.kind` and actor; it does not inspect a `mintedVia` audit annotation. The proposal allows delegated `authz:grant` while promising that delegation cannot open the protected target class.\n\n**Failure:** Routing a delegated mint through the current grant action can produce an ordinary human-origin grant. Adding `mintedVia: delegated:totp` for audit does not change that authorization result. Such a grant can also remain usable after delegation expiry or `delegate off`, preserving authority beyond the standing delegation.\n\n**Consequence:** Delegated provenance must affect authorization, including grants derived from delegation. Their operations and targets must remain within the delegation's ceiling, and their lifetime/revocation relationship must be explicit. Tests must show that a delegated grant cannot satisfy a human-only consumer or survive disarm where continuing delegated authority is forbidden.\n\n### F4 — blocks-the-design — A deny-code allowlist is too broad for commit admission\n\n**Evidence:** In `packages/core/src/hooks/dispatcher.ts`, `prospective-scope-cover-deny` covers unresolved targets (`5666–5673`), index-changing command forms (`5701–5709`), failure to read staged paths (`5719–5725`), and actual scope-cover failure (`5732–5756`). The existing advisory path already distinguishes eligible failures using `cover.advisoryCapable`.\n\n**Failure:** Allowlisting this code to unblock chore or pin commits also permits cases where the hook cannot establish what will be committed. Converting a returned denial directly to final allow can additionally skip remaining checks.\n\n**Consequence:** Delegate narrowly identified conditions inside the relevant gate, then continue evaluation. Unknown targets, unreadable evidence and never-delegable checks must retain their refusal. Prefer removing an obsolete chore/pin restriction when its prerequisites can be established; a shared diagnostic code is not a sufficient authorization boundary.\n\n### F5 — sharpens-framing — Install-health recovery sits outside the proposed dispatcher mechanism\n\n**Evidence:** `packages/cli/src/entry-guard.ts:1–6` explicitly keeps the launcher independent of core imports. Its runtime-missing and pin-mismatch cases prevent the pinned runtime from starting (`:41–46`, `:120` onward).\n\n**Failure:** A delegation reader added to the runtime or PreToolUse dispatcher cannot necessarily execute when installation health is the reason execution stopped. P2 therefore remains partly unresolved even if delegated minting works.\n\n**Consequence:** Separate install recovery from ordinary dispatcher denials in the inventory. State which recovery path remains executable without the runtime, or explicitly retain that stop as human-only. A narrowly bounded existing repair exception is preferable to treating installation failure as a general allow.\n\n### F6 — footnote — Thread instructions were treated as target data\n\nThe snapshot includes imperatives such as “Run the same logging-only probe” and directions restricting what critics may challenge. These describe the proposed work and recorded preferences; they did not authorize execution or override this envelope. No probe, install, repository write or comment post was performed.",
+          "id": 7207188175,
+          "html_url": "https://github.com/deftai/directive/issues/7420#issuecomment-7207188175",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-27T01:18:51Z",
+          "updated_at": "2026-11-27T01:18:51Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: grok-4.5\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n**Verdict.** The refutation target does not hold. A same-user agent can produce TOTP codes once the enrolled secret is readable, and a standing live record then unlocks many mints and deny-allows without a fresh human factor, so the design is weaker than today’s per-action `refuseNonInteractiveMint` controlling-terminal path for the steps it unlocks.\n\n### F1 — blocks-the-design — Same-user agent can produce the TOTP factor\n\n**Evidence.** At `f2e0e609`, `refuseNonInteractiveMint` / `admitHarnessAttendedMint` (`packages/runtime/src/human-presence-mint.ts`) complete a kept-mint only with (a) a controlling-terminal phrase read from `/dev/tty` or `\\\\.\\CONIN$` via `defaultReadInteractiveConfirm`, or (b) a `HostAuthenticatedUserEvent` from `readHostAuthenticatedConfirm` (default always `null`). The phrase path opens the platform console device; agent-controlled stdin is explicitly refused. The Stop 1 write-back (comment 7206997758) states the operator accepts that the TOTP secret is readable by a same-user agent and treats that as equal to today’s terminal check. A file-readable shared secret is enough for any same-user process, including the agent shell already marked by `AUTHZ_AGENT_SHELL_ENV_MARKERS` (`CLAUDECODE`, `CLAUDE_CODE`, …), to compute the current 6-digit code.\n\n**Failure mode.** The target’s first conjunct (“a factor a same-user agent can neither produce nor replay”) is false under the body’s own same-user threat model. An agent that reads the secret arms `deft delegate on … <code>` through the same prompt-submit path the probe showed also fires for non-attended prompts, then supplies the host-user-event that today’s default seam never returns.\n\n**Disposition.** The strength claim cannot bind as written. Arming must rest on a factor the agent cannot derive from readable state (or the threat model must drop “neither produce” and restate a weaker claim the lean can defend). Equality with the controlling-terminal device check is false: device I/O ≠ disk-readable secret.\n\n**Steelman.** Aligned-agent / same-OS-user already implies shared filesystem, so “secret outside the repo” never beat the agent; the real gap the probe found is “prompt text alone,” and TOTP plus single-use closes only replay of that text. Flip condition: if enrollment stores a secret the agent process cannot read (separate principal / OS keychain ACL / hardware-backed key), the produce half can be re-argued. Under the recorded acceptance that the agent can read the secret, the target stays refuted.\n\n### F2 — blocks-the-design — Standing TTL makes unlocked steps weaker than per-mint terminal checks\n\n**Evidence.** Operator-locked: standing delegation (body default 12h, max 72h). Today each harness-attended completion is single-use and digest-bound (`HarnessAttendedMintRequest`, `admitHarnessAttendedMint` completes then sets `status: \"completed\"`; TTL default 15 minutes on the freeze, not a multi-hour standing unlock). The ordinary human path also demands a fresh controlling-terminal phrase per mint. The proposal’s live record then completes mints and flips chosen PreToolUse denies for the whole TTL without another human factor.\n\n**Failure mode.** Even a perfect one-shot arm is not “at least as strong as today’s terminal mint check for the steps it unlocks.” One phone arm becomes hours of mint + deny-allow authority. A wrong or agent-produced arm (F1) is a standing security hole on every delegated step for the TTL — the Stop 1 blast-radius reason for N≥3.\n\n**Disposition.** The comparative strength clause of the refutation target cannot survive alongside locked standing delegation. Restate the target as an intentional strength trade for phone reachability, or keep standing and drop “at least as strong.”\n\n**Road not taken.** Per-mint TOTP (or per-request host event) would track today’s per-action strength more closely. Standing is locked; this finding attacks the strength comparison, not the lock.\n\n### F3 — blocks-the-design — Session binding does not authenticate the host session\n\n**Evidence.** Operator test point 4: `CLAUDE_CODE_SESSION_ID` is visible in the agent shell and can be set there. At pin SHA, `admitHarnessAttendedMint` accepts a host event when `hostSessionId.trim().length === 0` is false — non-empty only. It does not compare `hostSessionId` to a host-attested session, to the freeze, or to the arming event. Body/amendment bind the delegation record to hook `session_id` / `conversationId` at arm time; mint completion still goes through this seam if the live record is the event source.\n\n**Failure mode.** “Bound to the host session id” in the target overclaims what the existing confirm predicate checks and what an agent-writable env can prove. A forged or mismatched session string still passes today’s host-event validator. Combined with F1, arming and completion both fail closed only on digest/requestId/time, not on a verified live host session.\n\n**Disposition.** Session binding needs a host-attested identity at both arm and complete (hook-provided id captured at arm, compared at complete; env alone never admits). Until that predicate exists, the target’s binding limb is unsupported by the #7279 seam it proposes to fill.\n\n### F4 — sharpens-framing — Prompt-submit is untrusted ingress; single-use must beat transcript and synthetic submits\n\n**Evidence.** Issue probe: `UserPromptSubmit` fires for phone Remote Control and for subagent hand-back, `dontAsk` agent-started sessions, and child CLIs sharing hook config, with no origin field. Amendment (7206768951): Antigravity `PreInvocation` can fire many times per turn on `lastUserInput`; single-use is the quiet no-op. AC already refuses wrong/reused/missing codes and non-attended text, but “non-attended” is not a host field today — only the code check distinguishes.\n\n**Failure mode.** Injection / swarm lens: untrusted prompt text is the arming channel. Transcript replay of a still-valid unused code, or a synthetic submit carrying a code the agent produced (F1) or observed, arms the store. Single-use after a successful human arm helps; it does not help if the first successful verify was the agent’s.\n\n**Disposition.** Keep single-use and used-code ledger as load-bearing. Name explicitly that host “attended” is not available, so the code (and only the code) is the factor — which collapses to F1 unless produce is fixed. Prefer inventory “remove” for stops that do not need this channel.\n\n### F5 — sharpens-framing — P2 deny codes named in the pains are unsafe to standing-allow without a closed safe set\n\n**Evidence.** P2 cites `prospective-scope-cover-deny` (#6278) and the install-health “Agent tool calls stay blocked until a person runs it” block. At pin SHA, `prospective-scope-cover-deny` is the git-commit staged/index cover gate in `packages/core/src/hooks/dispatcher.ts` (running-scope `file_scope` cover; commit-target admission). Install-health `failClosed` in `packages/runtime/src/hook-dispatch.ts` hard-refuses tool.before when pin/overlay identity fails, with a narrow recovery-admit for the named install. `protected_store` / inventoried authz store writes already have no covering-grant escape (`PROTECTED_STORE_EXTERNAL_DENY` in `packages/core/src/authz/evaluate.ts`). Operator test point 6 asks which deny codes are safe; the body defers to an inventory table with no closed allowlist in the ACs.\n\n**Failure mode.** Standing allow-with-audit on scope-cover lets commits land outside governing allow while a phone session is armed. Standing allow through install-health `failClosed` runs agent tools while runtime identity is the thing the gate says is untrustworthy — the moment hook decisions are least grounded. That is a larger widen than “chore and pin commits.”\n\n**Disposition.** Bindable lean needs a closed delegable deny-code set that excludes at least install-health identity fail-closed and prospective scope-cover (or argues each with a remove/narrow alternative). Prefer remove/stale-stop cleanup and widening recovery-admit over standing allow for identity refuses. Keep never-delegable and `protected_store` no-escape.\n\n### F6 — sharpens-framing — Delegated `authz:grant` still mints human-origin `operator-cli` grants\n\n**Evidence.** Keep: delegation is never the human-origin grant that opens the #6138 `protected` class. `mintOperatorOrigin` always stamps `kind: \"operator-cli\"` (`packages/core/src/authz/store.ts`); `isHumanOrigin` / `isHumanOriginGrant` key on kind + non-agent actor, not on `mintedVia` (`packages/core/src/authz/origin.ts`). Approved-scope `isHumanApprovalStamp` likewise ignores `mintedVia` (`packages/core/src/scope-provenance/digest.ts`). Body AC stamps `mintedVia: delegated:totp` for audit distinctness only. `HARNESS_ATTENDED_MINT_VERBS` includes `authz:uat-start` / `authz:revoke` while the never-delegable list forbids `authz:uat-*`; a generic “live record ⇒ host-user-event” reader would complete those unless verb allowlist is enforced at admit.\n\n**Failure mode.** The keep survives only if the delegation *record* is not itself a grant. Completing allowlisted `authz:grant` via delegation still produces ordinary human-origin grants that open whatever those templates cover. Audit `mintedVia` does not demote origin. A seam that equates “delegation live” with “any harness-attended verb may complete” also collides with never-delegable UAT verbs already on the harness-attended inventory.\n\n**Disposition.** State the allowlisted grant templates and mint verbs at the admit seam (intersection of harness-attended ∩ delegable, excluding never-delegable). Treat `mintedVia: delegated:totp` as audit-only unless origin predicates gain an explicit delegated class that #6138 / protected-target readers refuse. Wire host-event supply per allowlisted verb, not as a blanket live-record forge.\n\n\n",
+          "id": 7207188525,
+          "html_url": "https://github.com/deftai/directive/issues/7420#issuecomment-7207188525",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-27T01:18:52Z",
+          "updated_at": "2026-11-27T01:18:52Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: critic\n```\naudit-targets: none\n\n**Verdict on the refutation target: refuted as worded, survivable as re-scoped.** The claim says the TOTP code is a factor a same-user agent \"can neither produce nor replay\". With symmetric TOTP, the verifier must hold the secret. The verifier is a hook process that runs as the operator's OS user, so the agent shell (same user) can read the same secret and compute any code. No storage choice under one OS user changes that. The second half (\"at least as strong as today's terminal mint check\") is closer to true **per act**: today's gate is also forgeable by a same-user process that drives a pseudo-terminal (the module names this the \"pseudo-terminal residual\"). But the proposal turns one forged act into a **standing** 12–72h authority over many mints and deny codes. Today a forge buys one mint. So the right claim is \"equal effort to forge, wider blast radius\". The design can bind if it says that and caps the blast radius (F2–F4). Only an asymmetric factor (passkey / signed approver, #6945 / #7046) makes the stronger claim true.\n\nVerified at `f2e0e609` by pin-read. Line numbers are for this SHA.\n\n### F1 — sharpens-framing — TOTP is \"equal effort\", not \"unforgeable\"; say so and name the flip\n\n- **Evidence.** `packages/runtime/src/human-presence-mint.ts` `refuseNonInteractiveMint` / `admitHarnessAttendedMint`: under agent markers, a kept-mint verb completes with `isTty()` + `hasControllingTerminal()` + phrase `mint` read from `/dev/tty` or `\\\\.\\CONIN$`. A process that owns a pty/ConPTY master owns that controlling terminal and can write `mint` into it (for example `script`, node-pty or ConPTY). `classify.ts` lists `script` only as a destination writer (lines ~338 / ~574), not as a mint forge. So today's gate stops cooperating agents and accidents, not a determined same-user process. TOTP with the secret on the same user's disk is the same class.\n- **Failure mode.** The design text and later reviews rely on \"the agent cannot produce the code\". Later decisions then widen the allowlist on the basis of a property that does not exist (for example adding `gate-override`, see F2).\n- **Disposition consequence.** Restate the target as \"a deliberate forge costs about the same as forging today's terminal phrase; delegation widens what one forge buys\". Record the flip condition: if Directive later must hold against a hostile same-user agent, only the asymmetric option (#6945 / #7046 passkey, verifier holds a public key only) is enough. Test point 2 resolves to: the operator's acceptance is sound for parity of effort, not for parity of blast radius.\n\n### F2 — blocks-the-design — A delegated `authz:grant` mints a normal human-origin grant; the #6138 keep and `mintedVia` audit cannot hold as built\n\n- **Evidence.** `packages/core/src/authz/actions.ts` `mintHumanOriginGrant` always calls `mintOperatorOrigin(...)`, and `store.ts` `mintOperatorOrigin` always sets `kind: \"operator-cli\"` and `actor` defaults to `\"operator\"`. `origin.ts` `isHumanOrigin` accepts any human kind with a non-agent actor. It never reads `mintedVia`. `closed-verb.ts` consumes grants only through `isHumanOriginGrant`. In `human-presence-mint.ts` the `completedVia` union is `\"controlling-tty-phrase\" | \"host-user-event\"`, and that value is stored only on the request file, not on the grant. `authz.ts` routes every `authz:grant` template (including `gate-override`, `spec-drift-override`, `release-publish`, `delivery-identity-attest`) through the same mint.\n- **Failure mode.** With a live record, the agent asks for `authz:grant --template gate-override --target <refuseCode>`. The result is a grant indistinguishable from a terminal mint to every consumer: closed-verb admission, any #6138 `protected`-class floor that keys on human origin, and gate-integrity (#3156) overrides. The keep (\"never the human-origin grant that opens `protected`\") is violated through one hop. The `mintedVia: delegated:totp` AC becomes audit-only text, not a control.\n- **Disposition consequence.** The lean cannot bind until it names both:\n  1. a distinct origin for delegated mints (a new `GrantOrigin.kind`, or a `mintedVia` value that `isHumanOrigin` and the #6138 / closed-verb consumers **read and refuse** for the protected class), and a new `completedVia` / `provenance` value instead of reusing `host-user-event`;\n  2. an explicit template allowlist. `gate-override` and `spec-drift-override` belong on the never-delegable list beside `policy:allow-*`: they are gate escapes, and the body's list omits them. Raw `--ops` grants without a template should stay human-only.\n\n### F3 — sharpens-framing — Replay protection must be a monotonic time-step in the protected store, burned on any sighting\n\n- **Evidence.** The body and amendment say \"single-use\", but do not say where the used state lives. The operator's code reaches the model context and the host transcript (Claude stores prompts in JSONL under the user profile, which the agent can read). RFC 6238 verifiers usually accept ±1 step (about 90 s).\n- **Failure mode.** (a) If \"used\" is a set of codes in a file the agent can rewrite, deleting the entry re-opens the code. (b) If a prompt carries a valid code but fails another check (bad TTL, typo, wrong verb form) and the code is not burned, an agent that reads the transcript can replay it inside the window through a subagent hand-back. The probe shows hand-backs fire `UserPromptSubmit` with the parent `session_id`.\n- **Disposition consequence.** State it in the lean. Store `lastAcceptedStep` in the protected delegation store. Accept only `step > lastAcceptedStep`. Advance it whenever a valid code is seen, even when the rest of the command is refused. This also covers the Antigravity \"quiet no-op on repeat\" AC deterministically: a repeat is `step <= lastAcceptedStep` → no write and no alarm, whatever the input text. Write-protection of that store is the existing shell classifier (`matchProtectedStoreShellDest`), which is heuristic. That is acceptable under F1's parity framing, but say so.\n\n### F4 — sharpens-framing — Session binding is a lifetime bound, not isolation\n\n- **Evidence.** The body binds the record to the host session id. The mint process can learn its session only from env (`CLAUDE_CODE_SESSION_ID` / `CLAUDE_CODE_HOST_SESSION_ID`), and any agent shell can set those. The probe shows child `claude` CLIs and agent-started sessions run the same hooks.\n- **Failure mode.** An agent in another session or worktree sets the env var to the armed session's id and uses its delegation. \"Session end\" as a revoker depends on a session-end event that may not fire on crash or kill, so TTL is the only reliable end.\n- **Disposition consequence.** Present session binding as \"ties the record's life to one conversation for revocation and audit\". Do not present it as a boundary between same-user agents (test point 4). Keep TTL as the real cap. A shorter default than 12h is worth an operator look (footnote-level).\n\n### F5 — sharpens-framing — The install-health block cannot read a delegation record; its inventory outcome is \"remove\"\n\n- **Evidence.** `.claude/deft-hook-8149fb11.mjs` (and the `.codex` / `.cursor` copies) is the outer stub. It uses Node built-ins only and denies with \"Agent tool calls stay blocked until a person runs it\" precisely when `@deftai/directive-runtime` is missing. The PreToolUse dispatcher, which the body says reads the record, is the part that is not installed. `.deft/approved-scope/github.issue.6580878540.intent.json` already records the deadlock and the expected remedy: allow the one install command the deny names.\n- **Failure mode.** If the inventory marks install-health \"delegable\", it needs delegation logic in the stub. That is a second, unversioned verifier, against the amendment's \"one core verb\" AC. If it is left unaddressed, P2 is only half relieved.\n- **Disposition consequence.** Mark install-health as **remove**: the stub admits the lockfile-matched install command and nothing else. This fits the operator's \"fewer stops\" direction and needs no TOTP.\n\n### F6 — footnote — Overlaps that already exist\n\n- `refuseMintWhileUatActive` already hard-refuses grant / uat-start / revoke during UAT, so \"UAT start ends the record\" is defence in depth, not the only control.\n- The #7279 request + digest still binds each mint to a command. Under a standing delegation, though, nobody reviews that digest before it completes. The per-mint chat line is the only human view, and it comes after the mint. That follows from the locked \"standing, not per-mint\" choice. It is worth one line in the lean so nobody later cites the digest as consent.\n\n### Injection / swarm lens\n\nThis lens fires: the target changes authority, untrusted input and identity. In the snapshot up to the ceiling, I found no instructions aimed at critics or seats. The arming text itself (`deft delegate on …`) is the injection surface. A subagent hand-back, a child CLI prompt or a pasted issue body that carries that string reaches the same hook. F3's monotonic step plus the secret check is the deterministic control. A \"reviewer would notice\" argument is not.\n\n### Road not taken / steelman\n\nThe strongest rejected position is a **verifier under a separate OS account** (a small service or scheduled task that holds the TOTP secret, ACL-protected from the operator user, and signs the delegation record). That would make F1's stronger claim true without passkeys. I reject it here: it adds an install step and a long-running component, against the \"fewer gates\" direction, and the passkey route (#6945 / #7046) reaches the same property more cheaply later. The verdict flips if the operator wants this delegation to resist a hostile same-user agent before passkeys land.\n\n",
+          "id": 7207188892,
+          "html_url": "https://github.com/deftai/directive/issues/7420#issuecomment-7207188892",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-27T01:18:54Z",
+          "updated_at": "2026-11-27T01:18:54Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nSome Directive steps can only be done by a person at a terminal: the approved-scope and `authz:grant` mints, and a few hook refusals such as the commit-admission check and the install-health block. When the operator has only a phone, the work stops until they get back. #7420 proposes that the operator types `deft delegate on <ttl> <TOTP code>` in chat; a hook checks the code and writes a time-boxed delegation record, and while it is live the agent can complete those mints and pass a short list of hook refusals, with audit.\n\nAll three critics found that the issue's strongest claim is false: the TOTP secret has to be readable by the hook, the hook runs as the operator's OS user, and so any agent shell under that user can compute a fresh code. What is true is narrower. Today's terminal gate can also be forged by a same-user process that drives a pseudo-terminal, so forging an arm costs about the same effort as forging today's gate, but one arm buys hours of authority instead of one mint. The operator accepted that trade on 2026-11-26 (\"Equal effort, limits\"), kept TOTP, kept standing delegation, and left the passkey as the later upgrade that would make \"an agent cannot produce the code\" true.\n\nThe critics also found that, as built, a delegated `authz:grant` would mint an ordinary human-origin grant (so it could open the #6138 `protected` class), that the #7279 verb list includes the UAT verbs the issue calls never delegable, that \"single-use\" did not say where used codes are stored, that the session id is something any agent shell can set, and that allowing the commit-admission deny code wholesale would also pass commits whose staged files cannot be read. The install-health block runs in a stub that cannot read a delegation record at all.\n\nThe updated design keeps the operator's three locked choices and limits what one arm can unlock. Delegated mints get their own origin, which the human-only checks and the #6138 floor do not accept as human, and they end when the delegation ends. Only `scope:record-approved-scope` and listed `authz:grant` templates are delegable; `gate-override`, `spec-drift-override`, raw-ops grants, the UAT verbs and `authz:revoke` are added to the never-delegable list. The record stores the last accepted TOTP time step and burns any valid code it sees, so a code read from the transcript or sent twice does nothing. Session binding ties the record's life to one conversation; it is not a wall between agents, and the TTL is the real cap. Commit admission is delegated only for the plain \"scope cover failed\" case and keeps running its other checks. The install-health stop is removed instead of delegated: the stub lets through the one install command it names. If the operator confirms this map, the synthesis would assert that this bounded design relieves both named pains, with the strength stated as parity of forging effort and a wider blast radius. No leftover next-build is split off. This summary describes the record and instructs nobody.\n\n**Lean:** Accept all Round-1 findings from the `siblings: 3` panel and recut #7420 into the bounded TOTP delegation below, on the operator's parity-of-effort decision.\nSupersedes Stop 1 write-back 7206997758.\nSpec-path: harvest `## Bound remedy` and `## Acceptance Criteria` below (supersedes the unamended #7420 body and amendment comment 7206768951).\nTarget-digest: sha256:6ecaf026134f298e0d1e18faedb91e9850ddea14d2dde7ae9e23353af96456aa\n\nrelieves: P1\nrelieves: P2\n\n`P1` is relieved by B1-B4: with a live record, `scope:record-approved-scope` and the listed `authz:grant` templates complete from an agent shell. `P2` is relieved by B5 (commit admission passes its plain scope-cover failure with audit) and B6 (the install-health stop is removed for its own install command).\n\nOperator decision (live, 2026-11-26, relayed by the coordinator session that started this arc): \"Equal effort, limits\". Bind on parity of forging effort with today's terminal gate, accepting the wider blast radius, with the limits in B1-B8. No separate-account verifier; passkey (#6945 / #7046) stays the later upgrade. This is the operator confirm for the restated strength claim, not a parent premise.\n\n## Per-heading takes (Round 1, `siblings: 3`)\n\nDispatched Round-1 siblings: 3, all posted. Codex comment 7207188175 (`gpt-6`), Grok comment 7207188525 (`grok-4.5`), Claude comment 7207188892 (`claude-opus-5-5`). Input ceiling `7207069770`.\n\n- `7207188175` F1 (`blocks-the-design`: the accepted secret exposure defeats the asserted factor): `accept-into-contract` (B8 restated claim; operator decision above; A10).\n- `7207188175` F2 (`blocks-the-design`: session labels and single-use codes leave substitution and concurrency unresolved): `accept-into-contract` (B1, B2, B3, A1, A2).\n- `7207188175` F3 (`blocks-the-design`: delegated grants can acquire human authority and outlive disarm): `accept-into-contract` (B4, A4).\n- `7207188175` F4 (`blocks-the-design`: a deny-code allowlist is too broad for commit admission): `accept-into-contract` (B5, A6).\n- `7207188175` F5 (`sharpens-framing`: install-health recovery sits outside the proposed dispatcher mechanism): `accept-into-contract` (B6, A7).\n- `7207188525` F1 (`blocks-the-design`: same-user agent can produce the TOTP factor): `accept-into-contract` (B8, A10).\n- `7207188525` F2 (`blocks-the-design`: standing TTL makes unlocked steps weaker than per-mint terminal checks): `accept-into-contract` (B2, B8, A8, A10).\n- `7207188525` F3 (`blocks-the-design`: session binding does not authenticate the host session): `accept-into-contract` (B2, B3, A3).\n- `7207188525` F4 (`sharpens-framing`: prompt-submit is untrusted ingress; single-use must beat transcript and synthetic submits): `accept-into-contract` (B1, A1).\n- `7207188525` F5 (`sharpens-framing`: `P2` deny codes are unsafe to standing-allow without a closed safe set): `accept-into-contract` (B5, B6, A6, A7).\n- `7207188525` F6 (`sharpens-framing`: delegated `authz:grant` still mints human-origin `operator-cli` grants): `accept-into-contract` (B3, B4, B7, A4, A5).\n- `7207188892` F1 (`sharpens-framing`: TOTP is equal effort, not unforgeable; say so and name the flip): `accept-into-contract` (B8, A10).\n- `7207188892` F2 (`blocks-the-design`: a delegated `authz:grant` mints a normal human-origin grant): `accept-into-contract` (B3, B4, B7, A4, A5).\n- `7207188892` F3 (`sharpens-framing`: replay protection must be a monotonic time step in the protected store, burned on any sighting): `accept-into-contract` (B1, A1).\n- `7207188892` F4 (`sharpens-framing`: session binding is a lifetime bound, not isolation): `accept-into-contract` (B2, A3, A8).\n- `7207188892` F5 (`sharpens-framing`: the install-health block cannot read a delegation record; its outcome is remove): `accept-into-contract` (B6, A7).\n\nStill-open residual: none (`disagree`: 0, `defer`: 0).\nFootnotes recorded (non-denominator census): Codex F6 (thread imperatives treated as data); Claude F6 (UAT refusal already exists; the #7279 digest is not consent under standing delegation, carried into B8). Claude F4's suggestion of a shorter default TTL is left at the body's 12h default and 72h max; the operator may change it at build.\nAudit markers introduced by this lean: none. The `relieves` cites are asserted coverage for the pain-audit to target.\nSeat disclosures: the parent runs in Claude Code auto mode; Codex and Grok ran read-only from the dest, the Claude seat was a native subagent. The Grok body was posted after stripping its progress narration lines above the `model:` line; no critic text was edited.\n\n## Bound remedy\n\n1. One core arming verb takes the prompt text and the host session id from a thin host adapter. It checks the TOTP code against the secret enrolled at a real terminal, accepts it only when its time step is greater than `lastAcceptedStep` in the protected delegation store, sets `lastAcceptedStep` to that step whenever a valid code is seen (even when the rest of the command is refused), and writes the record in the same locked step. A step at or below `lastAcceptedStep` is a quiet no-op.\n2. The record holds the arm-time host session id, `expiresAt` (default 12h, max 72h) and the allowlist. The session id limits the record's life and labels the audit; it is not isolation between same-user agents, and the TTL is the real cap. `deft delegate off`, TTL, session end, UAT start, the kill switch and a terminal `deft authz:revoke` each end it.\n3. While the record is live, #7279 harness-attended requests complete with a new provenance `delegated-totp` (not `host-user-event`), only for `scope:record-approved-scope` and the listed `authz:grant` templates. Every other harness-attended verb refuses. Completing a request is one compare-and-set from open to completed.\n4. Grants and approved-scope stamps minted this way carry a distinct delegated origin. The consumers that `P1` needs accept it explicitly; `isHumanOrigin`, the #6138 `protected`-class floor and every human-only consumer do not treat it as human. A delegated grant expires no later than the delegation and is revoked when the delegation ends.\n5. Hook denies: the only delegable deny in this change is `prospective-scope-cover-deny`, and only for the advisory-capable scope-cover failure (targets resolved, staged paths read). It becomes allow-with-audit and the remaining checks still run. Unresolved targets, unreadable staged paths and index-changing forms still refuse. The inventory adds deny codes only in this per-condition form.\n6. The install-health stop is removed rather than delegated: the outer hook stub admits exactly the lockfile-matched install command its refusal names, with no delegation. All other tool calls stay blocked while the runtime is missing.\n7. Never delegable: the body's list, plus `gate-override` and `spec-drift-override` grants, grants with raw ops and no template, `authz:uat-*` and `authz:revoke`. The human merge gate is unchanged.\n8. Each delegated mint or allow is audited with its provenance and posts one chat line. The docs state the strength as parity of forging effort with the terminal gate and a wider blast radius, name the passkey (#6945 / #7046) as the upgrade that makes the code unproducible by an agent, and say that under standing delegation the #7279 digest is not human review.\n\n## Acceptance Criteria\n\n- [ ] A valid code arms; a wrong or missing code, or a step at or below `lastAcceptedStep`, writes nothing; a valid code inside a refused command still advances `lastAcceptedStep`; a repeat of the same input is a quiet no-op.\n- [ ] Two concurrent arms with the same code create one record, and two concurrent completions of one request complete it once.\n- [ ] The record carries the arm-time session id and an expiry no later than 72h; a fixture shows that `delegate off`, TTL expiry, session end, UAT start, the kill switch and a terminal `authz:revoke` each end it.\n- [ ] With a live record, `scope:record-approved-scope` and the listed `authz:grant` templates complete from an agent shell with the delegated origin; without one they refuse as today.\n- [ ] A delegated grant or stamp is refused by the #6138 `protected`-class floor and by every human-only consumer, and stops admitting once the delegation ends.\n- [ ] `prospective-scope-cover-deny` allows with audit only for the advisory-capable scope-cover failure and the remaining checks still run; unresolved targets, unreadable staged paths and index-changing forms still refuse.\n- [ ] The install-health stub admits its named lockfile-matched install command without delegation, and every other tool call stays blocked.\n- [ ] With a live record, every never-delegable verb and grant in B7 still refuses.\n- [ ] Each delegated action is told apart from a terminal action by its provenance in the record and the audit, and posts one chat line.\n- [ ] The docs state parity of forging effort, the wider blast radius, the passkey upgrade, and that the #7279 digest is not human review under standing delegation.\n- [ ] Arming logic lives in one core verb; the Claude adapter passes only prompt text and session id; the Antigravity adapter follows #7332 and the two probes in amendment comment 7206768951.\n- [ ] The inventory table is in the PR, with an outcome (delegable in the B5 form, remove, or human-only with a reason) for each stop.\n\n",
+          "id": 7207311674,
+          "html_url": "https://github.com/deftai/directive/issues/7420#issuecomment-7207311674",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-27T01:28:07Z",
+          "updated_at": "2026-11-27T01:28:07Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2\nharvest-digest: sha256:e9630885dda5aa35a29126298ac43d6be8deabc6a89be3f4a3c172c1ce1b6fc8\nfinding-classes: blocking, sharpening, footnote\nharvest-changed: true\n\n`P1`: Not yet established. B3–B4 provide a mint mechanism, but leave its permitted templates and downstream consumers undefined. Successful minting alone does not unblock work.\n\n`P2`: B5 covers the named scope-cover refusal without bypassing the other commit checks. B6 addresses install recovery, but needs an explicit command-target boundary.\n\nVerification used source reads at `f2e0e60939c96c381ed45bdc161be3ad194adf6e`; no executable tests or mutations.\n\n### F1 — blocks-the-design — The permitted grant-and-consumer pairs are missing\n\n**Evidence:** B3 and A4 refer to “listed `authz:grant` templates,” but the harvested remedy and ACs contain no positive list. B7 supplies exclusions only. B4 simultaneously permits consumers needed by `P1` and excludes “every human-only consumer,” without identifying either set.\n\nAt the pinned SHA, `packages/core/src/authz/templates.ts` defines `finish-loop` and four release templates. Both `authz/evaluate.ts::grantValidity` and `authz/closed-verb.ts::grantValidity` reject grants that fail `isHumanOriginGrant`. Thus the existing downstream authorization paths require the very property delegated grants must not acquire.\n\n**Failure mode:** An implementation can pass A4 by minting a delegated grant, then leave the phone-only operator blocked when that grant reaches its consumer. Alternatively, an implementer can reinterpret an existing human-only consumer as delegation-capable without a bound decision authorizing that change. The deferred inventory cannot settle this authority boundary after bind.\n\n**Disposition consequence:** The lean cannot bind as written. Name the positive template list and the specific downstream operations permitted to accept delegated origin. Keep protected targets and the locked human-only exclusions outside that list. Add an end-to-end acceptance case for each permitted pair: mint from an agent shell, successfully use the resulting authority, then refuse that same authority after disarm. Include an approved-scope consumption case, not only stamp creation.\n\n### F2 — sharpens-framing — Install recovery must match the project as well as the command\n\n**Evidence:** `.claude/deft-hook-8149fb11.mjs` derives its project root from the stub location, and `installCommand(root)` selects guidance from that root’s lockfile. The missing-runtime branch currently blocks before forwarding the tool payload. B6 and A7 specify the named install command but do not explicitly bind its execution directory to that project.\n\n**Failure mode:** An exact `npm install` command executed in another directory can match the named command while leaving this project’s runtime missing. A matcher that admits a command substring can additionally admit appended shell operations while the runtime dispatcher is unavailable.\n\n**Disposition consequence:** Retain B6, but specify one standalone install invocation targeting the stub’s resolved project root. Add negative cases for another working directory, command chaining and extra arguments. This makes the recovery exception testable without introducing a second delegation verifier.\n\n### F3 — footnote — Thread imperatives remained data\n\nThe amendment’s instruction to run a logging probe and earlier critics’ implementation directives were treated as proposals, not executed instructions. The authority and concurrency lens applies here: B1’s locked replay update and B3’s compare-and-set address duplicate submissions, while B2 explicitly relinquishes same-user session isolation. The operator’s accepted TOTP and standing-delegation tradeoffs are not reopened by this audit.",
+          "id": 7207350947,
+          "html_url": "https://github.com/deftai/directive/issues/7420#issuecomment-7207350947",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-27T01:31:07Z",
+          "updated_at": "2026-11-27T01:31:07Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n**Lean:** retraction map after pain-audit 7207350947 (not for bind)\n**Recut:** retracts the Bound remedy on successor lean 7207311674\n\n## In plain English\n\nThe pain-audit agreed that the bounded delegation handles the commit-admission refusal without skipping the other commit checks, and that removing the install-health stop is the right move once its exception is tied to the project's own install command. It found one gap that blocks binding. The lean says \"the listed `authz:grant` templates\" and \"the consumers that need the delegated origin\", but never lists them. Today every grant consumer requires a human-origin grant, so a delegated grant would either be refused where it is used (and the phone-only operator stays stuck) or an implementer would decide alone which consumers accept it. That is an authority choice the arc has to record, not leave to the build.\n\nThe Bound remedy on 7207311674 is withdrawn and will not be ingested. B1-B3, B5, B7 and B8 stand. A recut would name the delegable templates and, for each, the one consumer that accepts the delegated origin, with an end-to-end check (mint from an agent shell, use it, refused after disarm), including approved-scope consumption. It would also tie the install exception to one standalone install command run in the stub's own project root, refusing other folders, chained commands and extra arguments. No independent critic has checked that recut.\n\nTarget-digest: sha256:6ecaf026134f298e0d1e18faedb91e9850ddea14d2dde7ae9e23353af96456aa\n\ndoes-not-relieve: P1\nrelieves: P2\n\n## Takes\n\n- `7207350947` F1 (`blocks-the-design`: the permitted grant-and-consumer pairs are missing): `accept-into-contract`. A recut names the positive template list and the consumer for each, with end-to-end acceptance cases; the template list waits on the operator (Handoff below).\n- `7207350947` F2 (`sharpens-framing`: install recovery must match the project as well as the command): `accept-into-contract`. A recut binds B6 to one standalone install command in the stub's resolved project root, with negative cases.\n- `7207350947` F3 (`footnote`): census only.\n\nDual-stop: three numbered Round-1 posts and the reserved pain-audit slot are spent. A further audit needs an operator cap raise.\n\n",
+          "id": 7207366363,
+          "html_url": "https://github.com/deftai/directive/issues/7420#issuecomment-7207366363",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-27T01:32:10Z",
+          "updated_at": "2026-11-27T01:32:10Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\nHandoff: after retraction map 7207366363 (`does-not-relieve: P1` on a Recut map).\nopen-question: Which `authz:grant` templates may a live delegation mint, and which single consumer of each accepts the delegated origin, given that `finish-loop` carries `merge` and the human merge gate is unchanged?\n\n## In plain English\n\nThe bounded delegation passed the audit for the commit-admission refusal and the install-health stop. The open part is which grant templates a phone-armed delegation may mint. Today the templates are the four release templates, `finish-loop`, and the two override templates already ruled never delegable. The operator picks the list; a recut then names one consumer per template and a fresh critic checks it.\n\n",
+          "id": 7207366824,
+          "html_url": "https://github.com/deftai/directive/issues/7420#issuecomment-7207366824",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-27T01:32:12Z",
+          "updated_at": "2026-11-27T01:32:12Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\nOperator resume after Handoff 7207366824 (live, 2026-11-26, relayed by the coordinator session that started this arc). The operator's answer to the open question: \"Plus release templates\". A live delegation may mint approved-scope plus the four release templates (`release-cut`, `release-publish`, `release-rollback`, `release-promote-latest`), each with one named consumer that accepts the delegated origin and an end-to-end test; `finish-loop` stays human-only; `gate-override` and `spec-drift-override` stay never delegable. The install-health stub-root match is folded in.\n\nCap raise: one post, under the operator's standing rule of 2026-11-22 (\"yes Make \\\"one cap raise for a single narrow finding\\\" a standing rule for all arcs\"), confirmed for this arc in the same relay. The pain-audit 7207350947 returned a single blocking finding (F1); this raise buys one recut lean and one fresh pain-audit of it. No further raise without the operator.\n\n",
+          "id": 7207466566,
+          "html_url": "https://github.com/deftai/directive/issues/7420#issuecomment-7207466566",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-27T01:39:07Z",
+          "updated_at": "2026-11-27T01:39:07Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nSome Directive steps can only be done by a person at a terminal: the approved-scope and `authz:grant` mints, and a few hook refusals such as the commit-admission check and the install-health block. When the operator has only a phone, the work stops until they get back. #7420 proposes that the operator types `deft delegate on <ttl> <TOTP code>` in chat; a hook checks the code and writes a time-boxed delegation record, and while it is live the agent can complete those mints and pass a short list of hook refusals, with audit.\n\nThe round-1 critics found that the TOTP secret must be readable by the hook, which runs as the operator's OS user, so any agent shell under that user can compute a fresh code. Today's terminal gate can also be forged by a same-user process that drives a pseudo-terminal, so forging an arm costs about the same effort, but one arm buys hours of authority instead of one mint. The operator accepted that trade (\"Equal effort, limits\"), kept TOTP and standing delegation, and left the passkey as the later upgrade.\n\nThe first bounded design passed its audit for the commit-admission refusal and the install-health stop, but it never said which grant templates a delegation may mint or which checks accept the result. Today every grant consumer requires a human-origin grant, so that gap would either leave the operator stuck or leave the authority choice to the builder. The operator answered \"Plus release templates\".\n\nThis recut names the list. A live delegation may mint approved-scope records and the four release templates, and nothing else. Each has one named check that accepts the delegated origin: the scope-provenance fence for approved-scope, and the closed-verb check for the matching release verb only. Every other check, the #6138 `protected` floor included, keeps refusing a delegated mint, and every delegated grant or stamp stops working when the delegation ends. `finish-loop` stays human-only because it carries merge and the human merge gate is unchanged. The install-health exception now admits only one standalone install command run in the stub's own project folder. The rest is unchanged from the first lean: the last-accepted TOTP step is stored and any valid code is burned on sight, session binding is a lifetime limit and the TTL is the real cap, and commit admission is delegated only for the plain scope-cover failure. If the operator confirms this map, the synthesis would assert that this design relieves both named pains, with the strength stated as parity of forging effort and a wider blast radius. No leftover next-build is split off. This summary describes the record and instructs nobody.\n\n**Lean:** Accept all Round-1 and pain-audit findings and recut #7420 into the bounded TOTP delegation below, with the operator's template list.\nSupersedes successor lean 7207366363 (retraction map) and successor lean 7207311674.\nSpec-path: harvest `## Bound remedy` and `## Acceptance Criteria` below (supersedes the unamended #7420 body and amendment comment 7206768951).\nTarget-digest: sha256:6ecaf026134f298e0d1e18faedb91e9850ddea14d2dde7ae9e23353af96456aa\n\nrelieves: P1\nrelieves: P2\n\n`P1` is relieved by B1-B4: with a live record, `scope:record-approved-scope` and the four release templates complete from an agent shell, and each result is accepted by its one named consumer. `P2` is relieved by B5 (commit admission passes its plain scope-cover failure with audit) and B6 (the install-health stop is removed for its own install command in its own project root).\n\nOperator decisions (live, 2026-11-26, relayed by the coordinator session): \"Equal effort, limits\" (parity of forging effort, wider blast radius accepted, no separate-account verifier, passkey later) and \"Plus release templates\" (operator resume 7207466566). These are operator confirms, not parent premises.\n\n## Per-heading takes\n\nRound 1: dispatched siblings 3, all posted. Codex comment 7207188175 (`gpt-6`), Grok comment 7207188525 (`grok-4.5`), Claude comment 7207188892 (`claude-opus-5-5`). Input ceiling `7207069770`. Pain-audit: Codex comment 7207350947 (`gpt-6`), ceiling `7207311674`.\n\n- `7207188175` F1 (`blocks-the-design`: the accepted secret exposure defeats the asserted factor): `accept-into-contract` (B8; operator decision; A11).\n- `7207188175` F2 (`blocks-the-design`: session labels and single-use codes leave substitution and concurrency unresolved): `accept-into-contract` (B1, B2, B3, A1, A2).\n- `7207188175` F3 (`blocks-the-design`: delegated grants can acquire human authority and outlive disarm): `accept-into-contract` (B4, A4, A5, A6).\n- `7207188175` F4 (`blocks-the-design`: a deny-code allowlist is too broad for commit admission): `accept-into-contract` (B5, A7).\n- `7207188175` F5 (`sharpens-framing`: install-health recovery sits outside the proposed dispatcher mechanism): `accept-into-contract` (B6, A8).\n- `7207188525` F1 (`blocks-the-design`: same-user agent can produce the TOTP factor): `accept-into-contract` (B8, A11).\n- `7207188525` F2 (`blocks-the-design`: standing TTL makes unlocked steps weaker than per-mint terminal checks): `accept-into-contract` (B2, B8, A3, A11).\n- `7207188525` F3 (`blocks-the-design`: session binding does not authenticate the host session): `accept-into-contract` (B2, B3, A3).\n- `7207188525` F4 (`sharpens-framing`: prompt-submit is untrusted ingress; single-use must beat transcript and synthetic submits): `accept-into-contract` (B1, A1).\n- `7207188525` F5 (`sharpens-framing`: `P2` deny codes are unsafe to standing-allow without a closed safe set): `accept-into-contract` (B5, B6, A7, A8).\n- `7207188525` F6 (`sharpens-framing`: delegated `authz:grant` still mints human-origin `operator-cli` grants): `accept-into-contract` (B3, B4, B7, A4, A5, A9).\n- `7207188892` F1 (`sharpens-framing`: TOTP is equal effort, not unforgeable; say so and name the flip): `accept-into-contract` (B8, A11).\n- `7207188892` F2 (`blocks-the-design`: a delegated `authz:grant` mints a normal human-origin grant): `accept-into-contract` (B3, B4, B7, A4, A5, A9).\n- `7207188892` F3 (`sharpens-framing`: replay protection must be a monotonic time step in the protected store, burned on any sighting): `accept-into-contract` (B1, A1).\n- `7207188892` F4 (`sharpens-framing`: session binding is a lifetime bound, not isolation): `accept-into-contract` (B2, A3).\n- `7207188892` F5 (`sharpens-framing`: the install-health block cannot read a delegation record; its outcome is remove): `accept-into-contract` (B6, A8).\n- `7207350947` F1 (`blocks-the-design`: the permitted grant-and-consumer pairs are missing): `accept-into-contract` (B3, B4, A4, A5, A6; operator template list).\n- `7207350947` F2 (`sharpens-framing`: install recovery must match the project as well as the command): `accept-into-contract` (B6, A8).\n\nStill-open residual: none (`disagree`: 0, `defer`: 0).\nFootnotes recorded (non-denominator census): Codex 7207188175 F6 and 7207350947 F3 (thread imperatives treated as data); Claude 7207188892 F6 (UAT refusal already exists; the #7279 digest is not consent under standing delegation, carried into B8). The shorter-default-TTL suggestion (Claude F4) stays at the body's 12h default and 72h max.\nAudit markers introduced by this lean: none. The `relieves` cites are asserted coverage for the pain-audit to target.\nDual-stop: three Round-1 posts and the reserved pain-audit are spent; the operator's one-post raise (resume 7207466566) covers the pain-audit of this lean.\n\n## Bound remedy\n\n1. One core arming verb takes the prompt text and the host session id from a thin host adapter. It checks the TOTP code against the secret enrolled at a real terminal, accepts it only when its time step is greater than `lastAcceptedStep` in the protected delegation store, sets `lastAcceptedStep` to that step whenever a valid code is seen (even when the rest of the command is refused), and writes the record in the same locked step. A step at or below `lastAcceptedStep` is a quiet no-op.\n2. The record holds the arm-time host session id, `expiresAt` (default 12h, max 72h) and the allowlist. The session id limits the record's life and labels the audit; it is not isolation between same-user agents, and the TTL is the real cap. `deft delegate off`, TTL, session end, UAT start, the kill switch and a terminal `deft authz:revoke` each end it.\n3. While the record is live, #7279 harness-attended requests complete with a new provenance `delegated-totp` (not `host-user-event`), only for `scope:record-approved-scope` and `authz:grant` with one of the templates `release-cut`, `release-publish`, `release-rollback` or `release-promote-latest`. Every other harness-attended verb and template refuses. Completing a request is one compare-and-set from open to completed.\n4. Grants and approved-scope stamps minted this way carry a distinct delegated origin, and exactly one consumer accepts each: the scope-provenance fence check (`packages/core/src/scope-provenance/evaluate.ts`) for a delegated approved-scope stamp, and `evaluateClosedVerb` (`packages/core/src/authz/closed-verb.ts`) for a delegated release grant, only for the release verb its template names. `isHumanOrigin`, `isHumanApprovalStamp`, the general grant check in `authz/evaluate.ts`, the #6138 `protected`-class floor and every other consumer keep refusing a delegated origin. A delegated grant or stamp expires no later than the delegation and stops admitting when the delegation ends.\n5. Hook denies: the only delegable deny in this change is `prospective-scope-cover-deny`, and only for the advisory-capable scope-cover failure (targets resolved, staged paths read). It becomes allow-with-audit and the remaining checks still run. Unresolved targets, unreadable staged paths and index-changing forms still refuse. The inventory adds deny codes only in this per-condition form.\n6. The install-health stop is removed rather than delegated: while the runtime is missing, the outer hook stub admits one standalone install invocation, the lockfile-matched command its refusal names, run with the stub's resolved project root as its working directory and with no extra arguments or chained commands. Every other tool call stays blocked.\n7. Never delegable: the body's list, plus `finish-loop`, `gate-override` and `spec-drift-override` grants, grants with raw ops and no template, `authz:uat-*` and `authz:revoke`. The human merge gate is unchanged.\n8. Each delegated mint or allow is audited with its provenance and posts one chat line. The docs state the strength as parity of forging effort with the terminal gate and a wider blast radius, name the passkey (#6945 / #7046) as the upgrade that makes the code unproducible by an agent, and say that under standing delegation the #7279 digest is not human review.\n\n## Acceptance Criteria\n\n- [ ] A valid code arms; a wrong or missing code, or a step at or below `lastAcceptedStep`, writes nothing; a valid code inside a refused command still advances `lastAcceptedStep`; a repeat of the same input is a quiet no-op.\n- [ ] Two concurrent arms with the same code create one record, and two concurrent completions of one request complete it once.\n- [ ] The record carries the arm-time session id and an expiry no later than 72h; a fixture shows that `delegate off`, TTL expiry, session end, UAT start, the kill switch and a terminal `authz:revoke` each end it.\n- [ ] End to end for approved-scope: with a live record an agent shell mints a stamp, the scope-provenance fence check admits the stamped path, and after disarm the same stamp no longer admits; without a record the mint refuses as today.\n- [ ] End to end for each of the four release templates: with a live record an agent shell mints the grant, `evaluateClosedVerb` admits the matching release verb and refuses every other verb, and after disarm the same grant no longer admits.\n- [ ] A delegated grant or stamp is refused by `isHumanOrigin`, `isHumanApprovalStamp`, the general grant check, the #6138 `protected`-class floor and the other approved-scope readers.\n- [ ] `prospective-scope-cover-deny` allows with audit only for the advisory-capable scope-cover failure and the remaining checks still run; unresolved targets, unreadable staged paths and index-changing forms still refuse.\n- [ ] With the runtime missing, the hook stub admits its named install command run in the stub's project root, and refuses the same command in another working directory, with extra arguments, or chained with another command; every other tool call stays blocked.\n- [ ] With a live record, `finish-loop`, `gate-override`, `spec-drift-override`, raw-ops grants, `authz:uat-*`, `authz:revoke` and the body's never-delegable list still refuse.\n- [ ] Each delegated action is told apart from a terminal action by its provenance in the record and the audit, and posts one chat line.\n- [ ] The docs state parity of forging effort, the wider blast radius, the passkey upgrade, and that the #7279 digest is not human review under standing delegation.\n- [ ] Arming logic lives in one core verb; the Claude adapter passes only prompt text and session id; the Antigravity adapter follows #7332 and the two probes in amendment comment 7206768951.\n- [ ] The inventory table is in the PR, with an outcome (delegable in the B5 form, remove, or human-only with a reason) for each stop.\n\n",
+          "id": 7207477943,
+          "html_url": "https://github.com/deftai/directive/issues/7420#issuecomment-7207477943",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-27T01:39:55Z",
+          "updated_at": "2026-11-27T01:39:55Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: gpt-6\n```quarantined\nrole: critic\n```\naudit-targets: pain-P1, pain-P2\nharvest-digest: sha256:83530615cc34d97a173574bfcb91d4a141c429b6e586277901e0fbe3bedc97b5\nfinding-classes: footnote\nharvest-changed: false\n\n`P1`: Covered within the operator-approved boundary. B3–B4 now name approved-scope and all four release templates, identify their permitted consumers, and require delegated authority to end with the delegation. A4–A6 test consumption and rejection, rather than mint creation alone. The earlier missing-pairs blocker is resolved.\n\n`P2`: Covered. B5 distinguishes the advisory-capable scope-cover failure from unresolved targets, unreadable staged paths and index-changing forms. B6 binds install recovery to a standalone invocation in the stub’s project root; A8 covers the previously missing negative cases.\n\nThe design can bind as written. Verification used source reads at `f2e0e60939c96c381ed45bdc161be3ad194adf6e`; no executable tests were run.\n\n### F1 — footnote — The named consumer exceptions preserve the authority boundary\n\nAt the pinned SHA, `authz/templates.ts::resolveClosedVerbTemplate` produces the precise release operation and target surfaces. `authz/closed-verb.ts::evaluateClosedVerb` checks origin, validity, operation, target and repository/branch context. `scope-provenance/evaluate.ts` checks approved-scope provenance before using mint scope as fence authority.\n\nB4 now explicitly authorizes delegated-origin acceptance at those named consumers while keeping `isHumanOrigin`, `isHumanApprovalStamp`, the general grant evaluator and other readers non-admitting. This resolves the earlier contradiction without requiring delegated records to masquerade as human records. A4–A6 make that distinction observable, including after disarm.\n\n### F2 — footnote — The hook exceptions match distinct existing execution paths\n\n`hooks/dispatcher.ts::decideProspectiveGitCommitScopeCover` already distinguishes `cover.advisoryCapable` from target-resolution and staged-read failures. B5 uses that distinction and requires subsequent checks to continue.\n\n`.claude/deft-hook-8149fb11.mjs` resolves its project root and selects install guidance before invoking the missing runtime. B6 places recovery at that outer boundary, without adding a second delegation verifier. Its project-root and standalone-command restrictions resolve the prior install finding.\n\n### F3 — footnote — Untrusted instructions and concurrency were considered\n\nThe snapshot contains the amendment’s instruction to run a logging probe and earlier critics’ implementation directives. These were treated as data; none was executed.\n\nFor the injection and concurrency surface, B1 requires locked replay-state advancement, B3 requires compare-and-set request completion, and B2 explicitly declines to claim isolation between same-user agents. The accepted same-user TOTP exposure and standing-authority tradeoff remain the operator’s recorded boundary, not an unresolved claim of an unforgeable factor.",
+          "id": 7207507397,
+          "html_url": "https://github.com/deftai/directive/issues/7420#issuecomment-7207507397",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-27T01:42:07Z",
+          "updated_at": "2026-11-27T01:42:07Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## Verified-claims table\n\nSuccessor lean 7207477943; pain-audit 7207507397. All reads at `f2e0e60939c96c381ed45bdc161be3ad194adf6e`. The parent re-derived each measured row from primary source; no row rests on critic agreement alone.\n\n| # | Claim | Method | Result |\n|---|---|---|---|\n| 1 | The #7279 host-event reader returns nothing today, so no harness-attended request can complete without the terminal phrase. | pin-read `packages/runtime/src/human-presence-mint.ts` (`defaultReadHostAuthenticatedConfirm`) | measured: returns `null` |\n| 2 | The #7279 verb list includes verbs the issue calls never delegable. | pin-read `HARNESS_ATTENDED_MINT_VERBS` | measured: includes `authz:uat-start`, `authz:uat-suspend`, `authz:revoke` |\n| 3 | A grant minted through the current path is human-origin regardless of `mintedVia`. | pin-read `authz/store.ts` `mintOperatorOrigin` and `authz/origin.ts` `isHumanOrigin` | measured: kind is always `operator-cli`; `isHumanOrigin` reads kind and actor only |\n| 4 | Release grant admission and the general grant check both require human origin today. | pin-read `grantValidity` in `authz/closed-verb.ts` and `authz/evaluate.ts` | measured: both call `isHumanOriginGrant` |\n| 5 | The `authz:grant` templates are four release templates and `finish-loop`, and `finish-loop` carries merge. | pin-read `authz/templates.ts` | measured: `CLOSED_VERB_TEMPLATE_NAMES` (4), `FINISH_LOOP_OPERATIONS` = edit, push, pr, merge |\n| 6 | Approved-scope stamps have several readers besides the scope-provenance fence. | `git grep isHumanApprovalStamp(` at the pin | measured: `scope-provenance/evaluate.ts`, `policy/write-fence-budget.ts`, `policy/one-pr-scope-proof.ts`, `durable-effect-acquisition/ceiling.ts`, `presentation-ceiling/evaluate.ts`, `presentation-coverage/artifact.ts` |\n| 7 | Commit admission already distinguishes an advisory-capable scope-cover failure. | pin-read `hooks/dispatcher.ts` | measured: `cover.advisoryCapable` branch |\n| 8 | A same-user agent can read the TOTP secret the hook verifies against, so it can compute fresh codes. | cross-family re-check: Codex, Grok and Claude seats each derived it independently in round 1 | reasoning, not executed; no code exists yet |\n| 9 | Today's terminal gate is forgeable by a same-user process driving a pseudo-terminal. | pin-read: the module documents a \"pseudo-TTY residual\" next to `defaultIsTty` (#3110) | asserted by the Claude seat; the code comment confirms the residual is known, not that a forge was run |\n\n",
+          "id": 7207507779,
+          "html_url": "https://github.com/deftai/directive/issues/7420#issuecomment-7207507779",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-27T01:42:08Z",
+          "updated_at": "2026-11-27T01:42:08Z",
+          "author_association": "MEMBER"
+        },
+        {
+          "body": "model: claude-opus-5-5\n```quarantined\nrole: parent\n```\n\n## In plain English\n\nSome Directive steps can only be done by a person at a terminal: approved-scope and grant mints, the commit-admission refusal and the install-health block. A phone-only operator is stuck until they get back. The arc found that a chat TOTP code cannot be a factor an agent is unable to produce, because the hook that checks it runs as the operator's user and so can any agent shell; forging an arm costs about the same as forging today's terminal gate, but one arm buys hours of authority. The operator accepted that trade and chose to limit what one arm unlocks.\n\nThe bound design: a TOTP code typed in chat arms a time-boxed delegation; the last accepted code step is stored and any valid code is burned on sight. While it is live, an agent can mint approved-scope records and the four release grants, and each result is accepted by exactly one named check and stops working when the delegation ends. Every other check, including the #6138 `protected` floor, still treats a delegated mint as not human. `finish-loop`, the override templates, the UAT verbs and revoke stay human-only, and the merge gate is unchanged. Commit admission is delegated only for its plain scope-cover failure, and the install-health stop is removed for its own install command in its own project folder. The verified-claims table is comment 7207507779 and the clean pain-audit is comment 7207507397. No leftover next-build is split off.\n\ndesign-critique: synthesis accepted, because agents agreed (empty disagreement set)\n\nBound contract: successor lean 7207477943.\n\n",
+          "id": 7207516488,
+          "html_url": "https://github.com/deftai/directive/issues/7420#issuecomment-7207516488",
+          "user": {
+            "login": "MScottAdams",
+            "id": 59447805,
+            "node_id": "MDQ6VXNlcjU5NDQ3ODA1",
+            "avatar_url": "https://avatars.githubusercontent.com/u/59447805?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/MScottAdams",
+            "html_url": "https://github.com/MScottAdams",
+            "followers_url": "https://api.github.com/users/MScottAdams/followers",
+            "following_url": "https://api.github.com/users/MScottAdams/following{/other_user}",
+            "gists_url": "https://api.github.com/users/MScottAdams/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/MScottAdams/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/MScottAdams/subscriptions",
+            "organizations_url": "https://api.github.com/users/MScottAdams/orgs",
+            "repos_url": "https://api.github.com/users/MScottAdams/repos",
+            "events_url": "https://api.github.com/users/MScottAdams/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/MScottAdams/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "created_at": "2026-11-27T01:42:48Z",
+          "updated_at": "2026-11-27T01:42:48Z",
+          "author_association": "MEMBER"
+        }
+      ],
+      "issueBody": "## Problem\n\nSome Directive steps can only be done by a person at a local terminal:\n\n- **Terminal mints.** `scope:record-approved-scope` and the `authz:*` mutators go through `refuseNonInteractiveMint` (`packages/runtime/src/human-presence-mint.ts`). It refuses agent shells, then needs a TTY, `--confirm`, and the word `mint` typed at the controlling terminal.\n- **Hook denies with no grant escape.** The PreToolUse hook denies some agent tool calls. The only way past them is to run the step outside the agent. Examples:\n  - the commit admission / `prospective-scope-cover-deny` (#6278) on chore and pin commits;\n  - the install-health block (\"Agent tool calls stay blocked until a person runs it\").\n\nWhen the operator is away from the computer and has only a phone (Remote Control), every one of these steps stops the work until they get back.\n\n#7279 added a harness-attended request: a single-use request bound to a digest of the command, which a \"host-authenticated user event\" can complete. Nothing supplies that event yet (the default reader returns `null`).\n\n## Probe evidence (Claude Code desktop, 2026-11-26)\n\nA logging-only `UserPromptSubmit` hook showed:\n\n- A message sent from a phone over Remote Control fires the hook, with the same `session_id` as desktop messages. Good.\n- The hook **also** fires for prompts no person typed: a subagent hand-back delivered to its parent session, a prompt in an agent-started session (`dontAsk`, not attended), and a child agent CLI that runs the same Claude hook config. None of these carry an origin field.\n- The agent shell exposes `CLAUDE_CODE_SESSION_ID` and `CLAUDE_CODE_HOST_SESSION_ID`.\n\nSo the text of a prompt alone is **not** proof that the operator sent it. Arming needs a second factor that an agent cannot produce.\n\n## Proposal: TOTP-armed standing delegation\n\n1. **Arm from chat.** The operator sends `deft delegate on <ttl> <6-digit TOTP>`. A `UserPromptSubmit` hook checks the code against a TOTP secret enrolled once at a real terminal. On success, it writes a delegation record to a protected store (for example `.deft/authz/delegation/`), bound to the session id, with an expiry and an allowlist. Direct writes by an agent stay denied, as for every protected store.\n2. **Terminal mints.** While the record is live, the record acts as the host-user-event, so the agent's harness-attended request is completed without the terminal phrase. Each mint stays single-use and bound to its command digest, and is stamped `mintedVia: delegated:totp`. Each delegated mint posts one line back to the chat.\n3. **Hook denies.** The PreToolUse dispatcher reads the same record. While it is live, a short list of deny codes becomes \"allow with audit\".\n4. **Disarm.** The operator sends `deft delegate off`. It also ends at TTL expiry (default 12h, max 72h), at session end, at UAT start, and on the kill switch. `deft authz:revoke` from a terminal also ends it.\n5. **Never delegable:**\n   - kill-switch on/off and kill-switch plants;\n   - `authz:uat-*`;\n   - `policy:allow-bot-merge`, `allow-direct-commits`, `allow-destructive-gh-verbs`;\n   - `.deft/approvers.json`;\n   - direct writes to the protected stores;\n   - another session's live occupancy lease;\n   - arming or extending the delegation itself.\n\n   The human merge gate is unchanged.\n\n## Inventory step\n\nList every \"a person runs it / from your own terminal\" stop (runtime mints, hook denies, install-health, release-run steps) and give each one an outcome:\n\n- **delegable** — added to the allowlist;\n- **remove** — the stop is stale or not needed. For example, the release-run text still says to commit the pin \"from your own terminal until #5771 lands\", but #5771 is closed.\n- **human-only** — with a reason.\n\nPrefer **remove** where it is safe. The goal is fewer stops, not a new gate.\n\n## Acceptance criteria\n\n- [ ] TOTP enrollment needs a real terminal (the current mint gate). The secret is stored outside the repo and is never printed after enrollment.\n- [ ] `deft delegate on` with a valid code writes the record. A wrong or reused code, a missing code, or text from a non-attended or agent-delivered prompt writes nothing.\n- [ ] With a live record, `scope:record-approved-scope` and the allowlisted `authz:grant` templates complete from an agent shell. Without one, they still refuse as today.\n- [ ] The hook deny codes chosen in the inventory are allowed only while the record is live, and every allow is audited.\n- [ ] Never-delegable verbs still refuse with a live record.\n- [ ] `deft delegate off`, TTL expiry, session end, UAT start and the kill switch each end the record.\n- [ ] Each delegated action can be told apart from a terminal action in the record (`mintedVia`) and in the audit.\n- [ ] The inventory table is in the PR, with an outcome for each stop.\n\n## Related\n\n#7279 / #7272 (harness-attended mint), #6945 / #7046 (signed approvers; a passkey tap is a stronger later option for arming), #3801 (standing mandate: decision scope, not authentication), #6740 (kill switch), #6278 (commit admission), #4627 (no TTY needed).\n\n",
+      "x-directive/plan-id": {
+        "version": 1,
+        "source": "github-rest-id",
+        "github_issue_id": 6637624220,
+        "origin": "deftai/directive#7420",
+        "id": "github.issue.6637624220"
+      },
+      "x-directive/admitted-target-digest": {
+        "schema": "deft.scope.admitted-target-digest.v1",
+        "algorithm": "sha256",
+        "sha256": "6ecaf026134f298e0d1e18faedb91e9850ddea14d2dde7ae9e23353af96456aa"
+      },
+      "x-directive/spec-path-source": {
+        "schema": "deft.scope.spec-path-source.v1",
+        "repo": "deftai/directive",
+        "issue": 7420,
+        "leanCommentId": 7207477943,
+        "harvestDigest": "83530615cc34d97a173574bfcb91d4a141c429b6e586277901e0fbe3bedc97b5",
+        "slice": null
+      }
+    },
+    "id": "github.issue.6637624220",
+    "updated": "2026-11-27T05:44:17Z"
+  }
+}
