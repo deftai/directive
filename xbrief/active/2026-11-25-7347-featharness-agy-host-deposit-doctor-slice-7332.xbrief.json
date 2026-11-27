@@ -121,7 +121,8 @@
           "packages/core/src/doctor/checks.ts",
           "xbrief/PROJECT-DEFINITION.xbrief.json",
           "changelog.d/7347-agy-host-deposit-doctor.md",
-          "packages/core/src/init-deposit/agent-hooks.ts"
+          "packages/core/src/init-deposit/agent-hooks.ts",
+          "packages/core/src/policy/host-hooks.ts"
         ],
         "file_scope_confidence": "medium",
         "depends_on": [
