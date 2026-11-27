@@ -2,11 +2,11 @@
   "xBRIEFInfo": {
     "version": "0.8",
     "description": "Scope xBRIEF ingested from GitHub issue #7413",
-    "updated": "2026-11-27T00:23:38Z"
+    "updated": "2026-11-27T01:06:50Z"
   },
   "plan": {
     "title": "docs(scm): github.md quotes the old merge-gate aggregator guard (always()) after #7408",
-    "status": "running",
+    "status": "completed",
     "narratives": {
       "Description": "docs(scm): github.md quotes the old merge-gate aggregator guard (always()) after #7408",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/7413",
@@ -16,13 +16,27 @@
     "items": [
       {
         "title": "`content/scm/github.md` quotes the current `merge-gate` guard (`!cancelled()` plus the `queue_passed` term), or describes it without quoting a literal that can drift.",
-        "status": "proposed",
-        "id": "clause.1"
+        "status": "completed",
+        "id": "clause.1",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "1c08cd6aa3b8869d948b6783c0b905319e527ccc",
+          "recorded_at": "2026-11-27T01:06:50Z",
+          "recorded_by": "scope:complete"
+        }
       },
       {
         "title": "`ci_lifecycle_lane.test.ts` asserts the new doc text, so the doc cannot drift from `ci.yml` again unnoticed.",
-        "status": "proposed",
-        "id": "clause.2"
+        "status": "completed",
+        "id": "clause.2",
+        "x-directive/requires": "merge",
+        "x-directive/evidence": {
+          "kind": "merge",
+          "pointer": "1c08cd6aa3b8869d948b6783c0b905319e527ccc",
+          "recorded_at": "2026-11-27T01:06:50Z",
+          "recorded_by": "scope:complete"
+        }
       }
     ],
     "tags": [
@@ -105,9 +119,38 @@
         "github_issue_id": 6637299808,
         "origin": "deftai/directive#7413",
         "id": "github.issue.6637299808"
+      },
+      "completionProvenance": {
+        "repository": "deftai/directive",
+        "implementationCommit": "2133312605141d8e882987fdcb110f25ea9efc14",
+        "prNumber": 7422,
+        "prBase": "master",
+        "mergeCommit": "1c08cd6aa3b8869d948b6783c0b905319e527ccc",
+        "deliveryBranch": "master",
+        "deliveryCommit": "f2e0e60939c96c381ed45bdc161be3ad194adf6e",
+        "verifiedAt": "2026-11-27T01:06:50Z",
+        "verifier": "scope:complete",
+        "disposition": "delivered",
+        "handoffState": "delivered",
+        "deployed": null,
+        "uatVerified": null,
+        "completedSessionId": "host:claude:v1:YTQ2NTZlZmEtNzdjMy00ZTZhLWEyYmMtNjYxNjdkYTg5NDA4",
+        "identityBasis": "merge-time-mark",
+        "partLinePrs": [
+          7415
+        ]
+      },
+      "deliveryDisposition": "delivered",
+      "handoffState": "delivered",
+      "completedAt": "2026-11-27T01:06:50Z",
+      "completedSessionId": "host:claude:v1:YTQ2NTZlZmEtNzdjMy00ZTZhLWEyYmMtNjYxNjdkYTg5NDA4",
+      "capacityBucket": "cognitive-debt",
+      "lifecycleWrite": {
+        "action": "complete",
+        "writtenAt": "2026-11-27T01:06:50Z"
       }
     },
     "id": "github.issue.6637299808",
-    "updated": "2026-11-27T00:23:38Z"
+    "updated": "2026-11-27T01:06:50Z"
   }
 }
