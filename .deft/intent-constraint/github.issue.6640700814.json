@@ -1,0 +1,25 @@
+{
+  "schema": "deft.intent-constraint.v1",
+  "planId": "github.issue.6640700814",
+  "xbriefRelPath": "xbrief/active/2026-11-27-7450-framework-gap-deposited-5-second-sessionstart-hook-timeout-i.xbrief.json",
+  "approvedAt": "2026-11-27T16:32:55Z",
+  "constraints": [
+    {
+      "value": "30",
+      "unit": "s-cursor-session-hook-timeout",
+      "rejectionScope": "invocation"
+    },
+    {
+      "value": "30",
+      "unit": "s-nested-session-hook-timeout",
+      "rejectionScope": "invocation"
+    }
+  ],
+  "humanApproval": {
+    "kind": "declared",
+    "actor": "scott-approved-values",
+    "mintedAt": "2026-11-27T16:32:55Z",
+    "mintedVia": "scope:record-intent-constraint"
+  },
+  "contractDigest": "7637936045a5952710ecd0fd1f30309b98ae4327abd306a99688cab32d63134c"
+}

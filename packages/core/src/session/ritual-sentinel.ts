@@ -279,6 +279,57 @@ function asStepMap(value: unknown): Record<string, Record<string, unknown>> {
 
 const DRIFT_PROBE_SKIP = "skipped-no-work-selection";
 
+function asHostMap(value: unknown): Record<string, Record<string, unknown>> {
+  return asStepMap(value);
+}
+
+function functionalTs(entry: Record<string, unknown>): string | null {
+  const record = entry.functional;
+  if (typeof record !== "object" || record === null) return null;
+  const ts = (record as Record<string, unknown>).ts;
+  return typeof ts === "string" ? ts : null;
+}
+
+/**
+ * Per-host `agent_hooks` merge (#7416): a write keeps every other host's entry, and for the
+ * same host the entry with the later `ts` wins (a tie goes to the incoming entry), so a stale
+ * snapshot cannot overwrite a newer result. For the same functional result a closed allowance
+ * stays closed: only a newer `functional` result (a different functional `ts`) reopens it, so a
+ * later save of an unchanged entry cannot restore an allowance another write already used.
+ */
+function mergeAgentHookHosts(
+  disk: Record<string, unknown> | undefined,
+  incoming: Record<string, unknown> | undefined,
+): Record<string, Record<string, unknown>> {
+  const merged = { ...asHostMap(disk?.hosts) };
+  for (const [host, entry] of Object.entries(asHostMap(incoming?.hosts))) {
+    const current = merged[host];
+    const currentTs = current === undefined ? null : parseTimestamp(current.ts);
+    const incomingTs = parseTimestamp(entry.ts);
+    if (
+      current === undefined ||
+      currentTs === null ||
+      incomingTs === null ||
+      incomingTs.getTime() >= currentTs.getTime()
+    ) {
+      merged[host] = entry;
+    }
+    const winner = merged[host];
+    if (current !== undefined && winner !== undefined) {
+      const keptTs = functionalTs(winner);
+      if (
+        keptTs !== null &&
+        keptTs === functionalTs(current) &&
+        winner.allowance_open === true &&
+        current.allowance_open === false
+      ) {
+        merged[host] = { ...winner, allowance_open: false };
+      }
+    }
+  }
+  return merged;
+}
+
 /**
  * Co-member persist (#3872): step maps union. Incoming omission deletes
  * `drift_probe`. A stale snapshot that still carries the skip token cannot
@@ -294,6 +345,18 @@ export function mergeSameOwnerRitualPayload(
     quick_steps: { ...asStepMap(disk.quick_steps), ...asStepMap(incoming.quick_steps) },
     gated_steps: { ...asStepMap(disk.gated_steps), ...asStepMap(incoming.gated_steps) },
   };
+  const diskHooks = asStepMap(disk.gated_steps).agent_hooks;
+  const incomingHooks = asStepMap(incoming.gated_steps).agent_hooks;
+  const mergedHooks = incomingHooks ?? diskHooks;
+  if (mergedHooks !== undefined) {
+    const hosts = mergeAgentHookHosts(diskHooks, incomingHooks);
+    if (Object.keys(hosts).length > 0) {
+      (merged.gated_steps as Record<string, Record<string, unknown>>).agent_hooks = {
+        ...mergedHooks,
+        hosts,
+      };
+    }
+  }
   if (!Object.hasOwn(incoming, "drift_probe")) {
     delete merged.drift_probe;
   } else if (incoming.drift_probe === DRIFT_PROBE_SKIP && !Object.hasOwn(disk, "drift_probe")) {
@@ -480,6 +543,30 @@ export function markRitualStaleAfterCompact(
 /** Whether ritual-state.json marks compact/age recovery as re-arm preferred (#2992). */
 export function ritualStateMarksRearmNeeded(state: RitualState): boolean {
   return state.raw.rearm_needed === true || typeof state.raw.compact_resume_at === "string";
+}
+
+/**
+ * One read-decide-write step inside the ritual-state lock (#7416). `decide` sees the current
+ * record; returning a payload publishes it, returning null publishes nothing. A lock or
+ * publish failure throws, so the caller can refuse rather than assume the step was saved.
+ */
+export function mutateRitualStateLocked<T>(
+  projectRoot: string,
+  decide: (state: RitualState | null) => { payload: Record<string, unknown> | null; result: T },
+  deps: LockDeps = {},
+): T {
+  return withRitualStateLock(
+    projectRoot,
+    (fence) => {
+      const [state] = readRitualState(projectRoot);
+      const decision = decide(state);
+      if (decision.payload !== null) {
+        publishRitualState(projectRoot, decision.payload, fence);
+      }
+      return decision.result;
+    },
+    deps,
+  );
 }
 
 export function recordRitualStep(

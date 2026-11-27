@@ -460,7 +460,10 @@
           "xbrief/evaluator-surface-disposition.json",
           "changelog.d/7420-totp-delegation.md",
           "packages/runtime/src/verify-scope-provenance.ts",
-          "packages/runtime/src/kill-switch.ts"
+          "packages/runtime/src/kill-switch.ts",
+          ".deft/intent-constraint/github.issue.6637624220.json",
+          "changelog.d/7420-intent-record.md",
+          "changelog.d/7420-remint-record.md"
         ],
         "file_scope_confidence": "high",
         "depends_on": [],

@@ -2,12 +2,14 @@ import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { nextAgentHookHostEntry } from "./agent-hook-allowance.js";
 import {
   type ApplyOccupancyInput,
   applyWorktreeOccupancy,
   type OccupancyDecision,
   resolveOccupancySessionId,
 } from "./occupancy.js";
+import { newRitualStatePayload, ritualStep, writeRitualState } from "./ritual-sentinel.js";
 import {
   inferSessionReadyRepo,
   isCacheFreshFailure,
@@ -21,6 +23,11 @@ import {
 } from "./session-ready.js";
 import type { SessionStartResult } from "./session-start.js";
 import type { VerifyResult } from "./verify-session-ritual.js";
+
+const warnTemps: string[] = [];
+afterEach(() => {
+  for (const t of warnTemps.splice(0)) rmSync(t, { recursive: true, force: true });
+});
 
 function stubOccupancy(): OccupancyDecision {
   return {
@@ -139,6 +146,46 @@ describe("runSessionReady (#2993)", () => {
     );
     expect(fetchAll).not.toHaveBeenCalled();
     expect(inspectRitual).toHaveBeenCalledTimes(2);
+  });
+
+  it("passes with a warning naming a host whose agent hook probe only timed out (#7416)", () => {
+    const root = mkdtempSync(join(tmpdir(), "ready-timeout-warn-"));
+    warnTemps.push(root);
+    const startedAt = new Date("2026-11-27T10:00:00Z");
+    writeRitualState(
+      root,
+      newRitualStatePayload({
+        sessionId: "ready-session",
+        gitHead: "abc",
+        worktreePath: root,
+        startedAt,
+        gatedSteps: {
+          agent_hooks: {
+            ...ritualStep({ ok: true, ts: startedAt }),
+            hosts: {
+              grok: nextAgentHookHostEntry(
+                null,
+                { status: "timed-out", ok: true, identity: null, registrationDigest: null },
+                startedAt,
+              ),
+              claude: nextAgentHookHostEntry(
+                null,
+                { status: "functional", ok: true, identity: null, registrationDigest: null },
+                startedAt,
+              ),
+            },
+          },
+        },
+      }),
+    );
+    const result = ready(root, {
+      inspectRitual: () => okVerify(),
+      verifyRitual: () => okVerify(),
+    });
+    expect(result.code).toBe(0);
+    expect(result.message).toContain("warning: grok agent hook probe timed out");
+    expect(result.message).toContain("Each write re-checks its own host");
+    expect(result.message).not.toContain("warning: claude");
   });
 
   it("does not report the fast path ready when the forced hook gate fails", () => {

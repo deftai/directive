@@ -18,6 +18,7 @@ import { execFileSync } from "node:child_process";
 import { join } from "node:path";
 import { cacheFetchAll, cacheRefreshClosed } from "../cache/fetch.js";
 import { formatFrameworkCommand } from "../render/framework-commands.js";
+import { readAgentHookHostEntries } from "./agent-hook-allowance.js";
 import type { GitRunner } from "./git.js";
 import {
   type ApplyOccupancyInput,
@@ -29,6 +30,7 @@ import {
   resolveOccupancySessionClaim,
   rollbackAcquiredOccupancy,
 } from "./occupancy.js";
+import { readRitualState } from "./ritual-sentinel.js";
 import {
   runSessionStart,
   type SessionStartOptions,
@@ -186,6 +188,23 @@ function readyCommand(): string {
  * One-shot recovery: leave the worktree PreToolUse-gated-inspect green, or
  * print the single remaining blocker.
  */
+/** Warning lines for hosts whose live probe only timed out; the step passed, so say so (#7416). */
+function agentHookTimeoutWarnings(projectRoot: string): string[] {
+  try {
+    const [state] = readRitualState(projectRoot);
+    const hosts = readAgentHookHostEntries(state?.gatedSteps.agent_hooks);
+    return Object.entries(hosts)
+      .filter(([, entry]) => entry.status === "timed-out" && entry.ok)
+      .map(
+        ([host]) =>
+          `warning: ${host} agent hook probe timed out (recorded timed-out, not failed). ` +
+          "Each write re-checks its own host.",
+      );
+  } catch {
+    return [];
+  }
+}
+
 export function runSessionReady(
   projectRoot: string,
   options: SessionReadyOptions = {},
@@ -310,7 +329,7 @@ export function runSessionReady(
       };
     }
     const provenance = formatOccupancyClaimProvenance(claim);
-    const combined = `${message}\n${provenance}`;
+    const combined = [message, provenance, ...agentHookTimeoutWarnings(projectRoot)].join("\n");
     lines.push(combined);
     return {
       code: 0,
