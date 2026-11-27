@@ -1084,9 +1084,11 @@ export function ensureHostHooks(
 ): {
   created: string[];
   modified: string[];
+  warnings: string[];
 } {
   const created: string[] = [];
   const modified: string[] = [];
+  const warnings: string[] = [];
 
   for (const spec of HOST_HOOK_SPECS) {
     const abs = join(projectRoot, spec.rel);
@@ -1133,7 +1135,15 @@ export function ensureHostHooks(
       }
     }
   }
-  ensureAgyHostHook(projectRoot, hostHooksPolicy, outerSource, outerSha8, created, modified);
+  ensureAgyHostHook(
+    projectRoot,
+    hostHooksPolicy,
+    outerSource,
+    outerSha8,
+    created,
+    modified,
+    warnings,
+  );
   const wrapperRel = GROK_PRETOOLUSE_WRAPPER_REL_PATH;
   if (existsSync(join(projectRoot, wrapperRel))) {
     try {
@@ -1144,21 +1154,31 @@ export function ensureHostHooks(
     }
   }
 
-  return { created, modified };
+  return { created, modified, warnings };
 }
 
 /** agy hook file as written, with no command rewrite: the file is shared with the user's hooks. */
-function readAgyHookConfig(abs: string): Record<string, unknown> {
+function readAgyHookConfig(
+  abs: string,
+): { ok: true; config: Record<string, unknown> } | { ok: false; warning: string } {
   const raw = readFileSync(abs, "utf8");
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw);
   } catch (cause) {
-    throw new Error(`${abs} is not valid JSON; refusing to overwrite user configuration: ${cause}`);
+    return {
+      ok: false,
+      warning: `Skipped the agy hooks: ${AGY_HOOK_PATH} is not valid JSON (${cause}). The file was left unchanged.`,
+    };
   }
   const obj = object(parsed);
-  if (obj === null) throw new Error(`${abs} must contain a JSON object; refusing to overwrite.`);
-  return obj;
+  if (obj === null) {
+    return {
+      ok: false,
+      warning: `Skipped the agy hooks: ${AGY_HOOK_PATH} must contain a JSON object. The file was left unchanged.`,
+    };
+  }
+  return { ok: true, config: obj };
 }
 
 /**
@@ -1174,6 +1194,7 @@ function ensureAgyHostHook(
   outerSha8: string,
   created: string[],
   modified: string[],
+  warnings: string[],
 ): void {
   const enabled =
     isHostHookDepositEnabled("agy", hostHooksPolicy) && agyDepositAdmitted(outerSource);
@@ -1181,7 +1202,12 @@ function ensureAgyHostHook(
   const prior = readText(abs);
   const outerRel = hostHookOuterRelPath("agy", outerSha8);
   if (enabled) {
-    const base = prior === null ? {} : readAgyHookConfig(abs);
+    const read = prior === null ? { ok: true as const, config: {} } : readAgyHookConfig(abs);
+    if (!read.ok) {
+      warnings.push(read.warning);
+      return;
+    }
+    const base = read.config;
     const merged = mergeAgyConfig(base, outerSha8);
     // A foreign hook that uses Directive's name is left as is (same object back).
     if (prior === null || merged !== base) {
@@ -1202,7 +1228,12 @@ function ensureAgyHostHook(
   }
   let keptConfig: Record<string, unknown> | null = null;
   if (prior !== null) {
-    const cfg = readAgyHookConfig(abs);
+    const read = readAgyHookConfig(abs);
+    if (!read.ok) {
+      warnings.push(read.warning);
+      return;
+    }
+    const cfg = read.config;
     const stripped = stripAgyHostHookConfig(cfg);
     keptConfig = Object.keys(stripped).length === 0 ? null : stripped;
     if (stripped !== cfg) {

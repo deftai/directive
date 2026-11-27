@@ -667,6 +667,32 @@ describe("agy host hooks and Claude SessionEnd on install and upgrade (#7438)", 
     });
   });
 
+  describe("an unreadable agy hook file skips only the agy deposit (#7438)", () => {
+    const cases: Array<[string, string, string]> = [
+      ["is not valid JSON", "{ not json", "is not valid JSON"],
+      ["is not a JSON object", "[1, 2]\n", "must contain a JSON object"],
+    ];
+    for (const [label, bytes, reason] of cases) {
+      it(`leaves the file unchanged, warns, and finishes the install when it ${label}`, () => {
+        const root = tempRoot();
+        mkdirSync(join(root, ".agents"), { recursive: true });
+        writeFileSync(join(root, AGY), bytes);
+        const hooks = ensureHostHooks(root);
+        expect(readFileSync(join(root, AGY), "utf8")).toBe(bytes);
+        expect(existsSync(join(root, AGY_OUTER))).toBe(false);
+        expect(hooks.warnings).toHaveLength(1);
+        expect(hooks.warnings[0]).toContain(AGY);
+        expect(hooks.warnings[0]).toContain(reason);
+        // The other hosts are still deposited.
+        expect(existsSync(join(root, ".claude/settings.json"))).toBe(true);
+        const result = runSetup({ operation: "install", from: "none", root });
+        expect(result.conflicts).toEqual([]);
+        expect(readFileSync(join(root, AGY), "utf8")).toBe(bytes);
+        expect(existsSync(join(root, ".claude/settings.json"))).toBe(true);
+      });
+    }
+  });
+
   it("a foreign-only agy file is left byte for byte and not claimed when agy is opted out", () => {
     const root = tempRoot();
     mkdirSync(join(root, ".agents"), { recursive: true });

@@ -601,6 +601,7 @@ export function runSetup(options: {
     const hooks = ensureHostHooks(root);
     created.push(...hooks.created);
     modified.push(...hooks.modified);
+    for (const warning of hooks.warnings) process.stderr.write(`warning: ${warning}\n`);
 
     const githooks = ensureGitHooks(root, {
       takeOverHooksPath: options.takeOverHooksPath === true,
