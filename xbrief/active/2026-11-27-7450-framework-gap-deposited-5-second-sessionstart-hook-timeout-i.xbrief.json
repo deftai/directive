@@ -8,30 +8,45 @@
     "title": "[framework-gap] Deposited 5-second SessionStart hook timeout is routinely exceeded on Windows (4.9s-6.5s measured on agy 1.5.18)",
     "status": "running",
     "narratives": {
-      "Description": "[framework-gap] Deposited 5-second SessionStart hook timeout is routinely exceeded on Windows (4.9s-6.5s measured on agy 1.5.18)",
+      "Description": "Raise the deposited SessionStart hook timeout from 5 to 30 seconds for every host (Claude, Grok, Codex, agy, Cursor), matching the deposited tool.before timeout. On Windows, agy SessionStart runs measured 4.9s-6.5s, so half of them were killed before injecting the notice.",
       "Origin": "Ingested from https://github.com/deftai/directive/issues/7450",
-      "Overview": "## Acceptance Criteria\n\n- [ ] The deposited SessionStart hook timeout for every host (Claude, Grok, Codex, agy via `NESTED_HOOK_TIMEOUT_SECONDS`, and Cursor via `CURSOR_SESSION_HOOK_TIMEOUT_SECONDS`) is 30 seconds, matching the deposited `tool.before` timeout.\n- [ ] Each timeout is its own named constant, not a reused literal.\n- [ ] Repair treats a deposit carrying the old 5-second SessionStart timeout as drift and rewrites it.\n- [ ] Tests assert the SessionStart timeout in each host's deposited entry.\n\n"
+      "Overview": "## Acceptance Criteria\n\n- [ ] The deposited SessionStart hook timeout for every host (Claude, Grok, Codex, agy via `NESTED_HOOK_TIMEOUT_SECONDS`, and Cursor via `CURSOR_SESSION_HOOK_TIMEOUT_SECONDS`) is 30 seconds, matching the deposited `tool.before` timeout.\n- [ ] Each timeout is its own named constant, not a reused literal.\n- [ ] Repair treats a deposit carrying the old 5-second SessionStart timeout as drift and rewrites it.\n- [ ] Tests assert the SessionStart timeout in each host's deposited entry.\n\n",
+      "UserStory": "As a Windows operator with a deposited host hook, I want SessionStart to have enough time to finish so that the session notice and applying-host record are not silently dropped.",
+      "ImplementationPlan": "Add a named SessionStart timeout constant per host family in init-deposit/agent-hooks.ts (nested hosts and Cursor), set both to 30, and use them in the deposit, drift check and coverage-applicability evaluator. Old 5-second deposits then fail the equality check and repair rewrites them. Update the tests that pin the 5-second value.",
+      "Traces": "clause.1 -> agent-hooks.ts constants; clause.2 -> distinct named constants; clause.3 -> hasRegistration drift checks; clause.4 -> agent-hooks.test.ts and evaluate.test.ts"
     },
     "items": [
       {
         "title": "The deposited SessionStart hook timeout for every host (Claude, Grok, Codex, agy via `NESTED_HOOK_TIMEOUT_SECONDS`, and Cursor via `CURSOR_SESSION_HOOK_TIMEOUT_SECONDS`) is 30 seconds, matching the deposited `tool.before` timeout.",
         "status": "proposed",
-        "id": "clause.1"
+        "id": "clause.1",
+        "narrative": {
+          "Acceptance": "Deposited SessionStart timeout is 30 in each host's entry."
+        }
       },
       {
         "title": "Each timeout is its own named constant, not a reused literal.",
         "status": "proposed",
-        "id": "clause.2"
+        "id": "clause.2",
+        "narrative": {
+          "Acceptance": "SessionStart timeouts are named constants separate from the tool.before constants."
+        }
       },
       {
         "title": "Repair treats a deposit carrying the old 5-second SessionStart timeout as drift and rewrites it.",
         "status": "proposed",
-        "id": "clause.3"
+        "id": "clause.3",
+        "narrative": {
+          "Acceptance": "A deposit with the old 5-second SessionStart timeout is reported as drift and rewritten by repair."
+        }
       },
       {
         "title": "Tests assert the SessionStart timeout in each host's deposited entry.",
         "status": "proposed",
-        "id": "clause.4"
+        "id": "clause.4",
+        "narrative": {
+          "Acceptance": "Tests assert the SessionStart timeout for each host's deposited entry."
+        }
       }
     ],
     "references": [
