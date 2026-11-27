@@ -7,13 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- [release-line] v0.132.0
+- [release-line] v0.132.1
 
 ### Added
 
 ### Changed
 
 ### Fixed
+
+### Removed
+
+## [0.132.1] - 2026-11-27
+### Added
+
+- feat(authz): TOTP-armed operator delegation. `deft delegate enroll` (terminal), then `deft delegate on [<ttl>] <code>` in chat arms a time-boxed record (default 12h, max 72h); while live, harness-attended `scope:record-approved-scope` and the four release grants complete with provenance `delegated-totp`. Each result is accepted only by the scope-provenance fence or `evaluateClosedVerb` and stops admitting when the delegation ends (`delegate off`, TTL, session end, UAT start, kill switch, terminal `authz:revoke`). Strength: parity of forging effort with the terminal mint, wider blast radius (#7420).
+
+### Changed
+
+- chore(xbrief): declare the intent-constraint record for the #7416 agent-hook probe constants.
+- chore(xbrief): land the operator remint for the #7416 intent-constraint record.
+- chore(xbrief): declare the intent-constraint record for the #7420 delegation constants.
+- chore(xbrief): land the operator remint for the #7420 intent record.
+- chore(dogfood): pin Directive to 0.132.0.
+- chore(xbrief): declare the intent-constraint record for the #7450 SessionStart hook timeout constants.
+- chore(xbrief): land the operator remint for the #7450 intent record.
+
+### Fixed
+
+- fix(hooks): a gated write now live-probes only the applying host, keeps agent_hooks results per host, and admits one timeout after a recent functional result; session:ready warns on timeout-only (#7416).
+- fix(install): `directive install` and `upgrade` now set up the agy hooks and the Claude `SessionEnd` hook, and uninstall removes only Directive's own entries (#7438).
+- fix(hooks): deposit agy `SessionStart` as flat handlers so agy 1.5.18 accepts `.agents/hooks.json` and `PreToolUse` runs; repair rewrites an earlier grouped deposit; `verify:hooks-installed` lists agy (#7440).
+- fix(hooks): agy `ask_question` was always denied because its `questions` args were dropped before the hatch and spend gates; they now reach the gates (#7442).
+- fix(hooks): agy may write to its own conversation folder (`~/.gemini/antigravity/brain/<id>/` or `~/.gemini/antigravity-cli/brain/<id>/`) before the session ritual; other conversations, `config/`, `..` and link escapes stay gated (#7445).
+- fix(session): `deft verify:session-ritual` accepts `--session-id`, the agy hook rewrite binds the owner onto it, and a failed run names a missing session identity instead of printing a false foreign-occupant refusal to the lease owner (#7446).
+- fix(hooks): the deposited SessionStart hook timeout was 5 seconds, which Windows runs exceeded (4.9s-6.5s measured on agy); it is now 30 seconds for every host, and old 5-second deposits repair as drift (#7450).
+- fix(hooks): the agy worker launch forms `agy -i`, `--prompt-interactive` and `--dangerously-skip-permissions` were not classified as launcher argv, so they skipped the dest gate; they are now denied without a dest worktree like `agy -p` (#7451).
 
 ### Removed
 
@@ -8703,7 +8731,8 @@ If you have custom scripts or references to deft files, update these paths:
 
 
 
-[Unreleased]: https://github.com/deftai/directive/compare/v0.132.0...HEAD
+[Unreleased]: https://github.com/deftai/directive/compare/v0.132.1...HEAD
+[0.132.1]: https://github.com/deftai/directive/compare/v0.132.0...v0.132.1
 [0.132.0]: https://github.com/deftai/directive/compare/v0.131.5...v0.132.0
 [0.131.5]: https://github.com/deftai/directive/compare/v0.131.4...v0.131.5
 [0.131.4]: https://github.com/deftai/directive/compare/v0.131.3...v0.131.4

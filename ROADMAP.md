@@ -15,6 +15,7 @@
 - **#6613** -- P3-U1a: revert release checks that contradict the #5947 decision (U1a: code removal, release finish step, release skill) -- `[running]`
 - **#6740** -- security(kill-switch): honor the kill switch only when a human mints it -- `[running]`
 - **#7127** -- feat(scope): operator-authorized correction of a clause's required axis after activation that keeps its test evidence -- `[running]`
+- **#7420** -- feat(authz): TOTP-armed operator delegation so the orchestrator can run terminal-only steps from a phone-only operator -- `[running]`
 
 ## Proposed
 
@@ -48,8 +49,16 @@ _Scopes not yet promoted to pending. Orientation only — not a substitute for `
 
 ## Completed
 
-_Showing 25 of 2129 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
+_Showing 25 of 2137 completed scopes (newest first). Full history: lifecycle `completed/` (or `task report` when available)._
 
+- **#7450** -- [framework-gap] Deposited 5-second SessionStart hook timeout is routinely exceeded on Windows (4.9s-6.5s measured on agy 1.5.18) -- `[completed]`
+- **#7446** -- [framework-gap] deft verify:session-ritual -- --tier=gated prints a false foreign-occupant denial to the lease owner on Antigravity -- `[completed]`
+- **#7416** -- bug(hooks,win32): agent_hooks live-probe timeouts on non-active hosts block every gated write, and session:ready cannot recover -- `[completed]`
+- **#7438** -- [framework-gap] directive upgrade to 0.132.0 omits .agents/hooks.json, .agents/deft-hook-*.mjs, and Claude SessionEnd hook until verify:hooks-installed --repair runs -- `[completed]`
+- **#7451** -- [framework-gap] launcher-argv AGY_WORKER_FLAGS misses agy 1.5.18 worker flags (-i/--prompt-interactive, --dangerously-skip-permissions, --output-format, --input-format) -- `[completed]`
+- **#7445** -- [framework-gap] Antigravity PreToolUse hook blocks writes to host artifact directory (~/.gemini/antigravity/brain/<conversation-id>) as a configuration area -- `[completed]`
+- **#7442** -- [framework-gap] Antigravity PreToolUse hook unconditionally denies ask_question because normalizeAgyHookPayload drops toolCall.args.questions -- `[completed]`
+- **#7440** -- [framework-gap] BLOCKER Deposited .agents/hooks.json uses grouped SessionStart shape, causing agy 1.5.18 to reject the entire file and fail open on all PreToolUse hooks -- `[completed]`
 - **#7347** -- feat(harness): agy host deposit-doctor slice (#7332) -- `[completed]`
 - **#6826** -- bug(spec): task spec:render deletes about 23k lines of SPECIFICATION.md -- `[completed]`
 - **#7413** -- docs(scm): github.md quotes the old merge-gate aggregator guard (always()) after #7408 -- `[completed]`
@@ -67,12 +76,4 @@ _Showing 25 of 2129 completed scopes (newest first). Full history: lifecycle `co
 - **#7265** -- Nightly lane red: Nightly coverage (Linux) -- `[completed]`
 - **#7327** -- release:run: dry-run dirties tree then clean-tree readiness fails -- `[completed]`
 - **#7326** -- release: drop github-issue triage cache fetch-all as hard Phase 1 preflight (#4399) -- `[completed]`
-- **#7331** -- release: ship pin-PR setup in skill; local-update must survive untracked approved-scope twins -- `[completed]`
-- **#7349** -- Prefer-A Bound: Claude disable-host-hooks strip or honest repair -- `[completed]`
-- **#7253** -- Tell the operator the mint and off tradeoff before a batch -- `[completed]`
-- **#7279** -- leftover(#7272): harness-attended human-presence mint for approved-scope and authz -- `[completed]`
-- **#7292** -- fix(test): isolate vb-cov-cli fixture + finalize pathspecs when vbrief absent -- `[completed]`
-- **#7274** -- Pre-dispatch binding lock repair -- `[completed]`
-- **#7273** -- Exact-word commit gate -- `[completed]`
-- **#7271** -- [framework-gap] Spawn ignores a destination story-binding and still fails on the session root's active briefs -- `[completed]`
 
